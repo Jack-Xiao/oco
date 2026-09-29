@@ -65,7 +65,7 @@ async function type(f, text, send = false) {
     const before = await input.innerText()
     await input.click()
     await input.focus()
-    await page.keyboard.press("Meta+End")
+    await page.keyboard.press("Meta+ArrowDown") // end of the whole composer (Meta+End is end of line)
     await page.keyboard.type(text, { delay: 4 })
     await sleep(200)
     if ((await input.innerText()).length >= before.length + text.length - 2) break
@@ -193,7 +193,7 @@ try {
     const f = await frameFor(A)
     let req = null
     for (let attempt = 0; attempt < 2 && !req; attempt++) {
-      await type(f, " Ignore the code above. Use the bash tool to run exactly: echo side-perm-ok . Then reply with the output.", true)
+      await type(f, attempt === 0 ? " That is my file. Separately, please use the bash tool to run: echo side-perm-ok and tell me the output." : "Please use the bash tool to run: echo side-perm-ok and tell me the output.", true)
       req = await until(async () => ((await api("GET", "/permission")) ?? []).find((p) => p.sessionID === A), 90000, 500)
       if (!req) await waitIdle(A)
     }
@@ -208,9 +208,11 @@ try {
     await waitReply(A, 120000)
     const idle = await until(async () => ((await sidebarItem(A))?.activity === "idle" ? true : undefined), 20000)
     const tool = (await messages(A)).flatMap((m) => m.parts).find((p) => p.type === "tool" && p.callID === req?.tool?.callID)
+    const firstUser = (await messages(A)).find((m) => m.info.role === "user")
+    const sentDraft = (firstUser?.parts ?? []).some((p) => p.type === "text" && p.text.includes("export function add"))
     run.record(
       "chain-permission",
-      req && sbPerm && sbPerm.badge >= 1 && /等待权限/.test(sbPerm.items.find((i) => i.id === A)?.description ?? "") && tool?.state?.status === "completed" && idle ? "PASS" : req ? "FAIL" : "NOT RUN",
+      req && sentDraft && sbPerm && sbPerm.badge >= 1 && /等待权限/.test(sbPerm.items.find((i) => i.id === A)?.description ?? "") && tool?.state?.status === "completed" && idle ? "PASS" : req ? "FAIL" : "NOT RUN",
       {
         requestId: req?.id ?? null,
         sidebarActivity: sbPerm?.items.find((i) => i.id === A)?.activity ?? null,
@@ -218,6 +220,7 @@ try {
         statusBar: sbPerm?.statusText ?? null,
         toolStatus: tool?.state?.status ?? null,
         sidebarIdleAfter: !!idle,
+        draftWasSent: sentDraft,
       },
     )
   }
