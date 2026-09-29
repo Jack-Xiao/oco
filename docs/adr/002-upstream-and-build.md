@@ -10,7 +10,10 @@
 - oco 自有的构建期调整（不改上游源码）：
   1. `oco:inline-sprites`：provider/file 图标 sprite 内联到 DOM（webview 禁止跨源 `<use>`）。
   2. `oco:worker-iife`：Worker 打包为自包含 IIFE（webview 中 Worker 无法访问资源源）。
-- 上游补丁（当前 1 个）：`0001-oco-draft-insert.patch`，`packages/app/src/components/prompt-input-v2.tsx`，+20/-1。目的：宿主把文本追加到当前 composer 草稿，不发送。无现成替代 API。回归用例：`tests/e2e/t005.mjs` 的 `selection-into-chosen-draft`。
+- 上游补丁（P1a 后共 2 个，均由 `scripts/setup.sh` 按序应用）：
+  1. `0001-oco-draft-insert.patch`（`prompt-input-v2.tsx`，+29/-1）：宿主把文本追加到当前 composer 草稿，不发送；P1a 起 composer 先核对目标 sessionID，并以 `oco:draft-inserted` 回报结果。回归：`tests/e2e/p1a-identity.mjs` 的 `draft-after-attacks`、`forged-draft-rejected`。
+  2. `0002-oco-embedded-single-session.patch`（`platform.tsx`、`layout.tsx`、`titlebar.tsx`、`use-session-commands.tsx`，约 +32/-14）：`Platform.embedded` 时不渲染/不注册内部标签条、home、新建标签/会话与终端命令，终端恒关闭。无现成 prop。回归：`no-internal-tabs`、`nav-shortcuts-deeplink`。
+- 宿主侧适配（不改上游）：P1a 在 webview 启动时安装面板级 `localStorage` 垫片（见 ADR-005 §5），而不是修改 `utils/persist.ts`。
 
 ## 升级流程
 

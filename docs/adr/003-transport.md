@@ -1,5 +1,7 @@
 # ADR-003：传输、认证边界与状态
 
+> P1a 更新（2026-09-29）：协议升至 v2（文档 generation 握手）、新增桥策略、凭据按服务身份隔离、存储改为逐 key 并接管官方 localStorage。以 [ADR-005](005-p1a-identity-storage-connection.md) 为准；下文保留 P0 决定作为历史。
+
 状态：已采纳（P0 原型），部分目标架构待 P1。日期：2026-09-29。证据：`docs/evidence/p0-spike.md`。
 
 ## 决定
