@@ -1,0 +1,280 @@
+{
+  "runId": "20260929-171755-p1a-identity-b1eb",
+  "suite": "p1a-identity",
+  "startedAt": "2026-09-29T17:17:55.826Z",
+  "ocoCommit": "064d91583ac865d0dce1ac1a0c9fde85d8c4c615",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "c7ab39f520d883cae6852ba8fa141f86d56c989dc8d82bcbfea4d42a5015942a",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "vscodeVersion": "1.139.1",
+  "vscodeProfile": "p1a-identity",
+  "sessions": {
+    "A": "ses_f11d39b70ffeWnHOUMOTmbMO5M",
+    "B": "ses_f11d38620ffeEnL7yyUHVEnhpF",
+    "C": "ses_f11d371f2ffe80hCFpsLO3We3I"
+  },
+  "finalHostState": [
+    {
+      "s": "ses_f11d39b70ffeWnHOUMOTmbMO5M",
+      "core": {
+        "requests": 38,
+        "streamsOpen": 1,
+        "rejectedMessages": 0,
+        "rejectedRequests": 0,
+        "staleDropped": 0,
+        "retired": 0,
+        "generations": 1
+      },
+      "policy": {
+        "rejected": 0,
+        "verifiedChildren": 0
+      },
+      "panel": {
+        "blockedNavigations": 0,
+        "openRequests": 0,
+        "draftAcks": 0,
+        "draftRejects": 0,
+        "titles": 0
+      }
+    },
+    {
+      "s": "ses_f11d371f2ffe80hCFpsLO3We3I",
+      "core": {
+        "requests": 36,
+        "streamsOpen": 1,
+        "rejectedMessages": 0,
+        "rejectedRequests": 0,
+        "staleDropped": 0,
+        "retired": 0,
+        "generations": 1
+      },
+      "policy": {
+        "rejected": 0,
+        "verifiedChildren": 0
+      },
+      "panel": {
+        "blockedNavigations": 0,
+        "openRequests": 0,
+        "draftAcks": 0,
+        "draftRejects": 0,
+        "titles": 0
+      }
+    }
+  ],
+  "finishedAt": "2026-09-29T17:21:29.104Z",
+  "results": [
+    {
+      "id": "three-visible-webviews",
+      "status": "PASS",
+      "detail": {
+        "visibleReady": 3,
+        "distinctGenerations": 3,
+        "editorGroups": 3
+      },
+      "at": "2026-09-29T17:18:28.032Z"
+    },
+    {
+      "id": "no-internal-tabs",
+      "status": "PASS",
+      "detail": {
+        "tabElementsPerPanel": [
+          0,
+          0,
+          0
+        ]
+      },
+      "at": "2026-09-29T17:18:28.177Z"
+    },
+    {
+      "id": "concurrent-send-isolated",
+      "status": "PASS",
+      "detail": {
+        "ALPHA": {
+          "ownPromptOnServer": true,
+          "replyCompleted": true,
+          "replyEchoesTag": true,
+          "leak": false
+        },
+        "BRAVO": {
+          "ownPromptOnServer": true,
+          "replyCompleted": true,
+          "replyEchoesTag": true,
+          "leak": false
+        },
+        "CHARLIE": {
+          "ownPromptOnServer": true,
+          "replyCompleted": true,
+          "replyEchoesTag": true,
+          "leak": false
+        }
+      },
+      "at": "2026-09-29T17:18:46.518Z"
+    },
+    {
+      "id": "nav-link-other-session",
+      "status": "PASS",
+      "detail": {
+        "hostOpenedTargetPanel": true,
+        "panelARoute": "ses_f11d39b70ffeWnHOUMOTmbMO5M",
+        "panelAStillShowsItsMessages": true,
+        "openRequests": 1
+      },
+      "at": "2026-09-29T17:18:53.168Z"
+    },
+    {
+      "id": "nav-blocked-routes",
+      "status": "PASS",
+      "detail": {
+        "blocked": 3,
+        "routeStill": "ses_f11d39b70ffeWnHOUMOTmbMO5M"
+      },
+      "at": "2026-09-29T17:18:57.984Z"
+    },
+    {
+      "id": "nav-shortcuts-deeplink",
+      "status": "PASS",
+      "detail": {
+        "route": "ses_f11d39b70ffeWnHOUMOTmbMO5M",
+        "terminalElements": 0,
+        "websocketAttempts": 0,
+        "panelsForA": 1
+      },
+      "at": "2026-09-29T17:19:07.202Z"
+    },
+    {
+      "id": "draft-after-attacks",
+      "status": "PASS",
+      "detail": {
+        "editorHadUnsavedMarker": true,
+        "draftHasSelection": true,
+        "composerHead": "\nmath.ts:1-6 (unsaved)\n```typescript\nexport function add(a: number, b: number) {\n  return a + b\n}\n\n// unsaved-ident-555\n",
+        "acks": 1,
+        "pending": 0,
+        "serverReceived": true,
+        "leakedToOthers": false
+      },
+      "at": "2026-09-29T17:19:21.618Z"
+    },
+    {
+      "id": "forged-draft-rejected",
+      "status": "PASS",
+      "detail": {
+        "hostRejects": 1,
+        "composerUnchanged": true
+      },
+      "at": "2026-09-29T17:19:24.340Z"
+    },
+    {
+      "id": "permission-after-attacks",
+      "status": "PASS",
+      "detail": {
+        "requestId": "per_0ee2de22d001Qlo9iNo7PM0IuH",
+        "clickMethod": "element.click() (pointer click intercepted: button overflows narrow panel)",
+        "buttonRightEdge": 586,
+        "panelWidth": 262,
+        "toolStatus": "completed"
+      },
+      "at": "2026-09-29T17:19:42.664Z"
+    },
+    {
+      "id": "hide-retires-generation",
+      "status": "PASS",
+      "detail": {
+        "hidden": {
+          "visible": false,
+          "generation": 0,
+          "inflight": 0,
+          "retired": 4
+        },
+        "generationBefore": 11,
+        "generationAfterShow": 13,
+        "draftRestored": true
+      },
+      "at": "2026-09-29T17:20:01.346Z"
+    },
+    {
+      "id": "reload-auto-restore",
+      "status": "PASS",
+      "detail": {
+        "newActivation": true,
+        "autoRestoredVisible": 3,
+        "editorTabsBefore": 6,
+        "editorTabsSame": true,
+        "hostPanelsBefore": 5,
+        "hostPanelsAfterLazyRevive": 3,
+        "drafts": {
+          "ALPHA": true,
+          "BRAVO": true,
+          "CHARLIE": true,
+          "BRAVO_before": "unsent-draft-BRAVO"
+        }
+      },
+      "at": "2026-09-29T17:20:11.311Z"
+    },
+    {
+      "id": "close-specific-tab",
+      "status": "PASS",
+      "detail": {
+        "busyBeforeClose": true,
+        "closedPanelGone": true,
+        "exactlyThatTabClosed": true,
+        "busyAfterClose": true,
+        "finish": "stop",
+        "lastAssistantAtClose": {
+          "id": "msg_0ee2e62a50019vqtALVqJt5QZC",
+          "completed": false,
+          "error": null
+        },
+        "bTitle": "Exact TAG-BRAVO reply",
+        "labelsBefore": [
+          "Exact TAG-BRAVO reply, Editor Group 2",
+          "New session - 2026-09-29T17:19:49.200Z, Editor Group 3",
+          "TAG-ALPHA, Editor Group 1",
+          "TAG-CHARLIE, Editor Group 3",
+          "math.ts, Editor Group 1",
+          "oco nav target, Editor Group 3"
+        ],
+        "labelsAfter": [
+          "New session - 2026-09-29T17:19:49.200Z, Editor Group 3",
+          "TAG-ALPHA, Editor Group 1",
+          "TAG-CHARLIE, Editor Group 3",
+          "math.ts, Editor Group 1",
+          "oco nav target, Editor Group 3"
+        ]
+      },
+      "at": "2026-09-29T17:21:18.478Z"
+    },
+    {
+      "id": "image-bytes",
+      "status": "PASS",
+      "detail": {
+        "bytesSent": 463,
+        "bytesReceived": 463,
+        "identical": true,
+        "method": "synthetic ClipboardEvent"
+      },
+      "at": "2026-09-29T17:21:26.551Z"
+    },
+    {
+      "id": "csp-violations",
+      "status": "PASS",
+      "detail": {
+        "count": 0,
+        "sample": []
+      },
+      "at": "2026-09-29T17:21:28.695Z"
+    }
+  ],
+  "summary": {
+    "PASS": 14,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

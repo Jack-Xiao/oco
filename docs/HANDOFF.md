@@ -2,17 +2,21 @@
 
 项目路径：`/Users/xiaojiang/Ai-Project/oco`。
 
-## 当前轮交接（2026-09-29，P1a 完成后）
+## 当前轮交接（2026-09-30，P1b-1 完成后）
 
-P1a 已完成（[验收记录](evidence/p1a-acceptance.md)、[ADR-005](adr/005-p1a-identity-storage-connection.md)）。下一轮是 P1b，提示词如下：
+P1b-1 已完成（[验收记录](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)）。下一轮先等独立源码审查的结论；如审查发现阻断问题，先修复并重新验收。之后按新的指示继续，提示词模板如下：
 
 ```text
-在 /Users/xiaojiang/Ai-Project/oco 继续开发 P1b。先读 AGENTS.md、docs/PROGRESS.md、docs/adr/005-p1a-identity-storage-connection.md、docs/evidence/p1a-acceptance.md。
+在 /Users/xiaojiang/Ai-Project/oco 继续。先读 AGENTS.md、docs/PROGRESS.md、docs/P1B-NEXT-STEPS.md、docs/adr/006-p1b1-sessions-sidebar.md、docs/evidence/p1b1-acceptance.md，以及最新的审查/指示文档。
 
-保留 P1a 的协议 v2、桥策略、存储命名空间与两个上游补丁，不重写对话 UI。按顺序：T007 其余（managed 进程、多根工作区、可操作的错误状态）→ T008（宿主共享事件订阅、有界队列、重连快照）→ T009 会话侧栏与 T010 其余（主题、窄面板布局、加载状态、未知类型兜底）→ T011/T012。
+保留协议 v2、桥策略、存储命名空间、四个上游补丁，以及 packages/contracts/src/sessions.ts 中已固定的四个接口；公共接口的改动由集成人串行完成。先处理审查指出的阻断问题，再按指示推进 P1b 其余范围（例如 T008 真实断线恢复与发送结果未知、T010 可恢复错误界面与未知类型兜底）。
 
-每个新能力先在 tests/e2e 增加能判错的用例（用 tests/e2e/lib/results.mjs，必需用例写进 REQUIRED），用 node tests/e2e/run.mjs 在干净提交上验收；单元测试放 tests/unit。简单独立的调查、机械修改和测试交给 Grok/Gemini 子代理并限定写入范围。系统剪贴板、中文输入法、Remote-SSH、团队服务仍需真实环境，缺失时标 NOT RUN/BLOCKED。不推送、不发布、不改外部服务。
+每项新能力先在 tests/e2e 增加能判错的用例，用 node tests/e2e/run.mjs（或指定套件）在同一提交上验收；普通修复只跑相关回归。简单、独立的调查和测试交给 Grok/Gemini 子代理，并限定写入范围。真实中文输入法、系统剪贴板（会覆盖使用者的剪贴板，需先征得同意）、Remote-SSH、团队服务仍需真实环境；缺失时标 NOT RUN 或 BLOCKED。允许本地提交，禁止推送、发布或修改外部服务。
 ```
+
+## 上一轮交接（2026-09-29，P1a 完成后，已完成）
+
+P1a 完成后给出的 P1b 提示词已被 [P1b 执行指示](P1B-NEXT-STEPS.md) 取代，并已完成其中的 P1b-1。
 
 ## 上一轮交接（2026-09-29 核查后，已完成）
 

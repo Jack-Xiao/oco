@@ -1,0 +1,164 @@
+{
+  "runId": "20260929-170640-p1b-sidebar-6323",
+  "suite": "p1b-sidebar",
+  "startedAt": "2026-09-29T17:06:40.527Z",
+  "ocoCommit": "ad9da32dd18afce10509b3054127c60c6e282c47",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "35c9a14af7a4492258ac3d4d7c459d81c0809e30fe16e4b18f2d5ad82a3de7c8",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "vscodeVersion": "1.139.1",
+  "vscodeProfile": "p1b-sidebar-restricted",
+  "restrictedWorkspace": "temp folder outside the trusted home folder",
+  "finishedAt": "2026-09-29T17:09:33.122Z",
+  "results": [
+    {
+      "id": "sidebar-list",
+      "status": "PASS",
+      "detail": {
+        "state": "connected",
+        "items": 198,
+        "serverRoots": 198,
+        "firstMatches": true,
+        "statusText": "$(plug) oco"
+      },
+      "at": "2026-09-29T17:06:48.325Z"
+    },
+    {
+      "id": "sidebar-create",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_f11dde027ffeo3ZiDhJjFHqZbl",
+        "listedFirst": true,
+        "description": "已打开 · 刚刚",
+        "serverDirectory": true
+      },
+      "at": "2026-09-29T17:06:51.174Z"
+    },
+    {
+      "id": "sidebar-rename",
+      "status": "PASS",
+      "detail": {
+        "serverTitle": true,
+        "treeTitle": true,
+        "tabTitle": true
+      },
+      "at": "2026-09-29T17:06:53.788Z"
+    },
+    {
+      "id": "sidebar-search",
+      "status": "PASS",
+      "detail": {
+        "matches": [
+          "ses_f11dde027ffeo3ZiDhJjFHqZbl"
+        ],
+        "rowVisible": true,
+        "restoredCount": 199,
+        "total": 199
+      },
+      "at": "2026-09-29T17:06:56.278Z"
+    },
+    {
+      "id": "chain-draft",
+      "status": "PASS",
+      "detail": {
+        "draftHead": "math.ts:1-4\n```typescript\nexport function add(a: number, b: number) {\n  return a",
+        "sentMessages": 0
+      },
+      "at": "2026-09-29T17:07:02.676Z"
+    },
+    {
+      "id": "chain-permission",
+      "status": "PASS",
+      "detail": {
+        "requestId": "per_0ee23cfe90011HeMjjyu4FyI5O",
+        "sidebarActivity": "permission",
+        "badge": 1,
+        "statusBar": "$(plug) oco $(bell-dot) 1",
+        "toolStatus": "completed",
+        "sidebarIdleAfter": true
+      },
+      "at": "2026-09-29T17:08:44.962Z"
+    },
+    {
+      "id": "chain-stop",
+      "status": "PASS",
+      "detail": {
+        "sidebarBusy": true,
+        "error": "MessageAbortedError",
+        "sidebarIdleAfter": true,
+        "sidebarActivity": "idle"
+      },
+      "at": "2026-09-29T17:08:58.981Z"
+    },
+    {
+      "id": "switch-restore",
+      "status": "PASS",
+      "detail": {
+        "aRestored": true,
+        "aDraftHasOwn": true,
+        "aDraftHasB": false,
+        "bDraftHasOwn": true,
+        "bDraftHasA": false,
+        "panelsA": 1,
+        "panelsB": 1,
+        "panelConnections": 1,
+        "sidebarState": "connected"
+      },
+      "at": "2026-09-29T17:09:08.696Z"
+    },
+    {
+      "id": "focus-existing-group",
+      "status": "PASS",
+      "detail": {
+        "visibleBefore": 2,
+        "panelsBefore": 2,
+        "panelsAfterClicks": [
+          2,
+          2
+        ],
+        "visibleAfter": 2,
+        "activeTabIsA": true
+      },
+      "at": "2026-09-29T17:09:17.729Z"
+    },
+    {
+      "id": "connection-switch",
+      "status": "PASS",
+      "detail": {
+        "downState": "error",
+        "downItems": 0,
+        "downStatus": "$(debug-disconnect) oco 未连接",
+        "downMessage": "无法连接 http://127.0.0.1:4599：fetch failed",
+        "upState": "connected",
+        "itemsBefore": 200,
+        "itemsAfter": 200,
+        "duplicates": 0
+      },
+      "at": "2026-09-29T17:09:19.573Z"
+    },
+    {
+      "id": "restricted-mode",
+      "status": "PASS",
+      "detail": {
+        "trusted": false,
+        "listed": 1,
+        "newSessionActionDisabled": true,
+        "panelsOpenedByClick": 0,
+        "statusTooltipMentionsReadOnly": null
+      },
+      "at": "2026-09-29T17:09:32.754Z"
+    }
+  ],
+  "summary": {
+    "PASS": 11,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

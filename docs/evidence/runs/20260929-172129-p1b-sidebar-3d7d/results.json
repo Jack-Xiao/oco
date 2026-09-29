@@ -1,0 +1,166 @@
+{
+  "runId": "20260929-172129-p1b-sidebar-3d7d",
+  "suite": "p1b-sidebar",
+  "startedAt": "2026-09-29T17:21:29.340Z",
+  "ocoCommit": "064d91583ac865d0dce1ac1a0c9fde85d8c4c615",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "35c9a14af7a4492258ac3d4d7c459d81c0809e30fe16e4b18f2d5ad82a3de7c8",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "vscodeVersion": "1.139.1",
+  "vscodeProfile": "p1b-sidebar-restricted",
+  "restrictedWorkspace": "temp folder outside the trusted home folder",
+  "finishedAt": "2026-09-29T17:27:04.163Z",
+  "results": [
+    {
+      "id": "sidebar-list",
+      "status": "PASS",
+      "detail": {
+        "state": "connected",
+        "items": 200,
+        "serverRoots": 200,
+        "firstMatches": true,
+        "statusText": "$(plug) oco"
+      },
+      "at": "2026-09-29T17:21:36.856Z"
+    },
+    {
+      "id": "sidebar-create",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_f11d0514affe6PJnuZusBVvm4U",
+        "listedFirst": true,
+        "description": "已打开 · 刚刚",
+        "serverDirectory": true
+      },
+      "at": "2026-09-29T17:21:39.709Z"
+    },
+    {
+      "id": "sidebar-rename",
+      "status": "PASS",
+      "detail": {
+        "serverTitle": true,
+        "treeTitle": true,
+        "tabTitle": true
+      },
+      "at": "2026-09-29T17:21:42.347Z"
+    },
+    {
+      "id": "sidebar-search",
+      "status": "PASS",
+      "detail": {
+        "matches": [
+          "ses_f11d0514affe6PJnuZusBVvm4U"
+        ],
+        "rowVisible": true,
+        "restoredCount": 200,
+        "total": 200
+      },
+      "at": "2026-09-29T17:21:44.843Z"
+    },
+    {
+      "id": "chain-draft",
+      "status": "PASS",
+      "detail": {
+        "draftHead": "math.ts:1-4\n```typescript\nexport function add(a: number, b: number) {\n  return a",
+        "sentMessages": 0
+      },
+      "at": "2026-09-29T17:21:51.134Z"
+    },
+    {
+      "id": "chain-permission",
+      "status": "NOT RUN",
+      "detail": {
+        "requestId": null,
+        "sidebarActivity": null,
+        "badge": null,
+        "statusBar": null,
+        "toolStatus": null,
+        "sidebarIdleAfter": true
+      },
+      "at": "2026-09-29T17:24:57.537Z"
+    },
+    {
+      "id": "chain-stop",
+      "status": "PASS",
+      "detail": {
+        "sidebarBusy": true,
+        "error": "MessageAbortedError",
+        "sidebarIdleAfter": true,
+        "sidebarActivity": "idle"
+      },
+      "at": "2026-09-29T17:26:30.552Z"
+    },
+    {
+      "id": "switch-restore",
+      "status": "PASS",
+      "detail": {
+        "aRestored": true,
+        "aDraftHasOwn": true,
+        "aDraftHasB": false,
+        "bDraftHasOwn": true,
+        "bDraftHasA": false,
+        "panelsA": 1,
+        "panelsB": 1,
+        "panelConnections": 1,
+        "sidebarState": "connected"
+      },
+      "at": "2026-09-29T17:26:39.715Z"
+    },
+    {
+      "id": "focus-existing-group",
+      "status": "PASS",
+      "detail": {
+        "visibleBefore": 2,
+        "panelsBefore": 2,
+        "panelsAfterClicks": [
+          2,
+          2
+        ],
+        "visibleAfter": 2,
+        "activeTabIsA": true
+      },
+      "at": "2026-09-29T17:26:48.442Z"
+    },
+    {
+      "id": "connection-switch",
+      "status": "PASS",
+      "detail": {
+        "downState": "error",
+        "downItems": 0,
+        "downStatus": "$(debug-disconnect) oco 未连接",
+        "downMessage": "无法连接 http://127.0.0.1:4599：fetch failed",
+        "upState": "connected",
+        "itemsBefore": 200,
+        "itemsAfter": 200,
+        "duplicates": 0
+      },
+      "at": "2026-09-29T17:26:50.295Z"
+    },
+    {
+      "id": "restricted-mode",
+      "status": "PASS",
+      "detail": {
+        "trusted": false,
+        "listed": 1,
+        "newSessionActionDisabled": true,
+        "panelsOpenedByClick": 0,
+        "statusTooltipMentionsReadOnly": null
+      },
+      "at": "2026-09-29T17:27:03.802Z"
+    }
+  ],
+  "summary": {
+    "PASS": 10,
+    "FAIL": 0,
+    "NOT RUN": 1,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "chain-permission"
+  ]
+}

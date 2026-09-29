@@ -1,0 +1,127 @@
+{
+  "runId": "20260929-165212-p1b-narrow-c1fb",
+  "suite": "p1b-narrow",
+  "startedAt": "2026-09-29T16:52:12.944Z",
+  "ocoCommit": "eb172f697a928792bf02438ce3ce59d0536e6609",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "458201416a84100ee9ca6ee07569b65617d79c62d33634760bbc8e785130b585",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "widths": [
+    260
+  ],
+  "clickMethod": "Playwright locator.click() (pointer, no force)",
+  "vscodeVersion": "1.139.1",
+  "vscodeProfile": "p1b-narrow-260",
+  "layout-260": {
+    "zoomLevel": 0,
+    "frameWidths": [
+      262,
+      262,
+      262
+    ],
+    "editorGroups": 3
+  },
+  "finishedAt": "2026-09-29T16:56:39.171Z",
+  "results": [
+    {
+      "id": "deny-260",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_f11eb2603ffedD1JpybLEyQ1Vo",
+        "requestId": "per_0ee152807001oib2vEU3NI5a5s",
+        "geometry": {
+          "left": 29,
+          "right": 87,
+          "top": 724,
+          "bottom": 752,
+          "viewport": [
+            262,
+            781
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "error",
+        "attempts": 1
+      },
+      "at": "2026-09-29T16:52:42.932Z"
+    },
+    {
+      "id": "allow-260",
+      "status": "FAIL",
+      "detail": {
+        "sessionId": "ses_f11eb1a74ffeVcF7wGQ613kUEl",
+        "requestId": "per_0ee1542760017npjMic218Tb9M",
+        "geometry": {
+          "left": 205,
+          "right": 299,
+          "top": 724,
+          "bottom": 752,
+          "viewport": [
+            262,
+            781
+          ],
+          "inside": false,
+          "hitSelf": false
+        },
+        "clickError": "locator.click: Timeout 10000ms exceeded.",
+        "requestResolved": false,
+        "toolStatus": "running",
+        "attempts": 1
+      },
+      "at": "2026-09-29T16:56:28.430Z"
+    },
+    {
+      "id": "question-260",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_f11eb0fb7ffeUaRVbXS3PuUAFr",
+        "requestId": "que_0ee18bb86001QAWqULCKo3wFOZ",
+        "optionGeometry": {
+          "left": 29,
+          "right": 233,
+          "top": 567,
+          "bottom": 628,
+          "viewport": [
+            262,
+            781
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "submitGeometry": {
+          "left": 160,
+          "right": 233,
+          "top": 720,
+          "bottom": 752,
+          "viewport": [
+            262,
+            781
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "recordedAnswer": "blue",
+        "attempts": 1
+      },
+      "at": "2026-09-29T16:56:38.781Z"
+    }
+  ],
+  "summary": {
+    "PASS": 2,
+    "FAIL": 1,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "allow-260"
+  ]
+}

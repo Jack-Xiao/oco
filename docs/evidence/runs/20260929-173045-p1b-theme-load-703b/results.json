@@ -1,0 +1,75 @@
+{
+  "runId": "20260929-173045-p1b-theme-load-703b",
+  "suite": "p1b-theme-load",
+  "startedAt": "2026-09-29T17:30:45.508Z",
+  "ocoCommit": "064d91583ac865d0dce1ac1a0c9fde85d8c4c615",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "2725ed34fe1b6e7eb1809c0bacd2eb88a7125bb3b594798e24bde93888758567",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.139.1",
+  "vscodeProfile": "p1b-first-load",
+  "firstLoadDelay": {
+    "paths": "^/(agent|provider|config/providers)",
+    "ms": 6000
+  },
+  "finishedAt": "2026-09-29T17:31:29.047Z",
+  "results": [
+    {
+      "id": "theme-initial-light",
+      "status": "PASS",
+      "detail": {
+        "appScheme": "light",
+        "bodyKind": "vscode-light",
+        "htmlBackground": "rgb(250, 250, 250)",
+        "generation": 1,
+        "theme": {
+          "applied": 1,
+          "switches": 0,
+          "current": "light"
+        }
+      },
+      "at": "2026-09-29T17:30:55.597Z"
+    },
+    {
+      "id": "theme-switch-dark",
+      "status": "PASS",
+      "detail": {
+        "appScheme": "dark",
+        "bodyKind": "vscode-dark",
+        "htmlBackground": "rgb(8, 8, 8)",
+        "generation": 1,
+        "theme": {
+          "applied": 1,
+          "switches": 1,
+          "current": "dark"
+        },
+        "sameDocument": true
+      },
+      "at": "2026-09-29T17:30:56.807Z"
+    },
+    {
+      "id": "first-load-submit",
+      "status": "PASS",
+      "detail": {
+        "modelShownBeforeSend": false,
+        "waitedForModel": true,
+        "toastShown": false,
+        "userMessageReachedServer": true,
+        "sentAfterMs": 7521,
+        "replied": true
+      },
+      "at": "2026-09-29T17:31:28.650Z"
+    }
+  ],
+  "summary": {
+    "PASS": 3,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}
