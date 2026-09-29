@@ -19,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
       .filter((s) => !conn.directory || s.directory === conn.directory)
       .sort((a, b) => (b.time?.updated ?? 0) - (a.time?.updated ?? 0))
       .map((s) => ({ label: s.title || s.id, description: s.id, session: s }))
-    return (await vscode.window.showQuickPick(items, { placeHolder }))?.session
+    return (await vscode.window.showQuickPick(items, { placeHolder, matchOnDescription: true }))?.session
   }
 
   const openById = async (sessionId: string) => {
@@ -57,7 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
         // Always explicit: the user picks the session (the last active one is only pre-listed first).
         const last = panels.active
         const items = [...open].sort((a) => (a === last ? -1 : 1)).map((e) => ({ label: e.panel.title, description: e.binding.sessionId, e }))
-        target = (await vscode.window.showQuickPick(items, { placeHolder: "加入到哪个会话的草稿？（不会自动发送）" }))?.e
+        target = (await vscode.window.showQuickPick(items, { placeHolder: "加入到哪个会话的草稿？（不会自动发送）", matchOnDescription: true }))?.e
       }
       if (!target) return
       const doc = editor.document

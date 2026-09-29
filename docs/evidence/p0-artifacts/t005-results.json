@@ -1,0 +1,88 @@
+{
+  "at": "2026-09-29T13:21:00.022Z",
+  "results": [
+    {
+      "id": "three-sessions",
+      "status": "PASS",
+      "detail": {
+        "sessions": 3,
+        "editorTabs": 3
+      }
+    },
+    {
+      "id": "draft-isolation+hide-restore",
+      "status": "PASS",
+      "detail": {
+        "A": "draft-A-alpha",
+        "B": "draft-B-bravo",
+        "C": "draft-C-charlie"
+      }
+    },
+    {
+      "id": "dedupe-open",
+      "status": "PASS",
+      "detail": {
+        "tabsBefore": 3,
+        "tabsAfter": 3
+      }
+    },
+    {
+      "id": "selection-into-chosen-draft",
+      "status": "PASS",
+      "detail": {
+        "bHasUnsaved": true,
+        "bKeptOldDraft": true,
+        "aClean": true,
+        "cClean": true,
+        "notAutoSent": true
+      }
+    },
+    {
+      "id": "server-received-unsaved-buffer",
+      "status": "PASS",
+      "detail": {
+        "hasMarker": true,
+        "hasFileBody": true
+      }
+    },
+    {
+      "id": "concurrent-permissions-routed",
+      "status": "PASS",
+      "detail": {
+        "pendingBoth": 2,
+        "cDockShowsC": true,
+        "aDockShowsA": true,
+        "A": "completed",
+        "C": "error"
+      }
+    },
+    {
+      "id": "image-bytes-to-server",
+      "status": "PASS",
+      "detail": {
+        "mime": "image/png",
+        "bytesReceived": 463,
+        "bytesSent": 463,
+        "identical": true
+      }
+    },
+    {
+      "id": "reload-window-restore",
+      "status": "PASS",
+      "detail": {
+        "draftRestored": true,
+        "tabsBefore": 4,
+        "tabsAfter": 4
+      }
+    },
+    {
+      "id": "close-tab-not-cancel",
+      "status": "PASS",
+      "detail": {
+        "busyAfterClose": true,
+        "finishedWithoutError": true,
+        "finish": "stop"
+      }
+    }
+  ]
+}

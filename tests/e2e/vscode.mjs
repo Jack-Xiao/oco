@@ -61,14 +61,17 @@ export async function clearNotifications(page) {
 }
 
 export async function command(page, title, { input } = {}) {
+  // Keyboard focus may be inside a webview (which swallows F1): move it back to the workbench first.
+  await page.click(".part.sidebar .composite.title", { position: { x: 30, y: 10 } }).catch(() => {})
   await page.keyboard.press("F1")
   await page.waitForSelector(".quick-input-widget input", { state: "visible" })
   await page.keyboard.type(title)
   await page.waitForTimeout(400)
   await page.keyboard.press("Enter")
   if (input !== undefined) {
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(800)
     await page.keyboard.type(input)
+    await page.waitForTimeout(800)
     await page.keyboard.press("Enter")
   }
 }

@@ -1,0 +1,35 @@
+{
+  "at": "2026-09-29T13:22:54.177Z",
+  "opens": [
+    1578,
+    1674,
+    1390
+  ],
+  "reshows": [
+    2632,
+    2722,
+    2964,
+    2626
+  ],
+  "idleBeforeMB": {
+    "totalMB": 1230,
+    "rendererMB": 460,
+    "extHostMB": 462
+  },
+  "oneOpenMB": {
+    "totalMB": 1586,
+    "rendererMB": 811,
+    "extHostMB": 473
+  },
+  "threeOpenMB": {
+    "totalMB": 1354,
+    "rendererMB": 741,
+    "extHostMB": 362
+  },
+  "afterReshowsMB": {
+    "totalMB": 1664,
+    "rendererMB": 1001,
+    "extHostMB": 413
+  },
+  "note": "open/reshow ms = palette command until the official composer is visible (includes ~1.5s of scripted palette typing)"
+}
