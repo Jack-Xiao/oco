@@ -1,0 +1,129 @@
+diff --git a/packages/app/src/components/titlebar.tsx b/packages/app/src/components/titlebar.tsx
+index 15d963a..d1cfbdc 100644
+--- a/packages/app/src/components/titlebar.tsx
++++ b/packages/app/src/components/titlebar.tsx
+@@ -313,7 +313,9 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
+             }
+             const toggleHome = () => tabs.toggleHome({ home: layout.route().type === "home", current: currentTab() })
+ 
+-            command.register("titlebar-home", () => [
++            // oco: an embedded single-session host renders/registers no tabs, home or new-tab entries.
++            const embedded = !!platform.embedded
++            if (!embedded) command.register("titlebar-home", () => [
+               {
+                 id: "home.toggle",
+                 title: language.t("home.title"),
+@@ -324,7 +326,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
+               },
+             ])
+ 
+-            command.register("tabs", () => {
++            if (!embedded) command.register("tabs", () => {
+               const current = currentTab()
+ 
+               return [
+@@ -372,6 +374,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
+                 <Show when={windows() || linux()}>
+                   <WindowsAppMenu command={command} platform={platform} variant="v2" />
+                 </Show>
++                <Show when={!embedded}>
+                 <TooltipV2
+                   placement="bottom"
+                   value={
+@@ -429,6 +432,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
+                     aria-label={language.t("command.session.new")}
+                   />
+                 </TooltipV2>
++                </Show>
+                 <div class="flex-1" />
+                 <TitlebarV2Right state={v2RightState()} />
+               </div>
+diff --git a/packages/app/src/context/layout.tsx b/packages/app/src/context/layout.tsx
+index 6235f35..df3ce03 100644
+--- a/packages/app/src/context/layout.tsx
++++ b/packages/app/src/context/layout.tsx
+@@ -817,7 +817,8 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
+           const file = s().reviewFile
+           if (typeof file === "string") return file
+         })
+-        const terminalOpened = createMemo(() => store.terminal?.opened ?? false)
++        // oco: embedded hosts do not support the terminal (no PTY WebSocket bridge).
++        const terminalOpened = createMemo(() => !platform.embedded && (store.terminal?.opened ?? false))
+         const reviewPanelOpened = createMemo(() => store.review?.panelOpened ?? DEFAULT_REVIEW_PANEL_OPENED)
+         const reviewPanelSource = createMemo(() => (reviewPanelOpened() ? ephemeral.reviewPanelSource : "other"))
+ 
+@@ -877,12 +878,14 @@ export const { use: useLayout, provider: LayoutProvider } = createSimpleContext(
+           terminal: {
+             opened: terminalOpened,
+             open() {
++              if (platform.embedded) return
+               setTerminalOpened(true)
+             },
+             close() {
+               setTerminalOpened(false)
+             },
+             toggle() {
++              if (platform.embedded) return
+               setTerminalOpened(!terminalOpened())
+             },
+           },
+diff --git a/packages/app/src/context/platform.tsx b/packages/app/src/context/platform.tsx
+index 0408b23..785c23a 100644
+--- a/packages/app/src/context/platform.tsx
++++ b/packages/app/src/context/platform.tsx
+@@ -68,6 +68,10 @@ type PlatformBase = {
+   /** Prompt drafts, history, and their blobs. */
+   draftStore?: DraftStore
+ 
++  /** oco: embedded single-session host (VS Code editor tab). No tab strip, home, new-session or
++   * terminal entry points are rendered or registered; the host owns session switching. */
++  embedded?: boolean
++
+   /** Stable platform window identity for window-scoped persistence */
+   windowID?: string
+ 
+diff --git a/packages/app/src/pages/session/use-session-commands.tsx b/packages/app/src/pages/session/use-session-commands.tsx
+index 18d5b17..66d9c5a 100644
+--- a/packages/app/src/pages/session/use-session-commands.tsx
++++ b/packages/app/src/pages/session/use-session-commands.tsx
+@@ -21,6 +21,10 @@ import { useSessionLayout } from "@/pages/session/session-layout"
+ import { useSessionArchive } from "@/pages/session/session-archive"
+ import { createSessionOwnership } from "./session-ownership"
+ import { useLocal } from "@/context/local"
++import { usePlatform } from "@/context/platform"
++
++// oco: commands an embedded single-session host must not offer (session switching / terminal).
++const EMBEDDED_HIDDEN = new Set(["session.new", "terminal.toggle", "terminal.new"])
+ 
+ export type SessionCommandContext = {
+   navigateMessageByOffset: (offset: number) => void
+@@ -643,15 +647,18 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
+     }),
+   ]
+ 
+-  command.register("session", () => [
+-    ...sessionCmds(),
+-    ...shareCmds(),
+-    ...fileCmds(),
+-    ...contextCmds(),
+-    ...viewCmds(),
+-    ...terminalCmds(),
+-    ...messageCmds(),
+-    ...mcpCmds(),
+-    ...permissionsCmds(),
+-  ])
++  const embedded = !!usePlatform().embedded
++  command.register("session", () =>
++    [
++      ...sessionCmds(),
++      ...shareCmds(),
++      ...fileCmds(),
++      ...contextCmds(),
++      ...viewCmds(),
++      ...terminalCmds(),
++      ...messageCmds(),
++      ...mcpCmds(),
++      ...permissionsCmds(),
++    ].filter((cmd) => !(embedded && EMBEDDED_HIDDEN.has(cmd.id))),
++  )
+ }

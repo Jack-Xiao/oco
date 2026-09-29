@@ -40,7 +40,7 @@ export type FetchRequest = Envelope<
 export type FetchAbort = Envelope<"fetch.abort", { id: string }>
 export type StoreOp = Envelope<
   "store.op",
-  { id: string; op: "get" | "set" | "remove" | "clear" | "keys"; name: string; key?: string; value?: string }
+  { id: string; op: "get" | "set" | "remove" | "clear" | "keys" | "snapshot"; name: string; key?: string; value?: string }
 >
 export type BlobOp = Envelope<"blob.op", { id: string; op: "put" | "get"; blobId?: string; data?: ArrayBuffer }>
 export type Ui = Envelope<"ui", { action: UiAction; url?: string; title?: string; body?: string; sessionId?: string; route?: string }>
@@ -56,7 +56,7 @@ export type FetchEnd = Envelope<"fetch.end", { id: string }>
 export type FetchError = Envelope<"fetch.error", { id: string; message: string; aborted?: boolean; status?: number }>
 export type StoreResult = Envelope<
   "store.result",
-  { id: string; value?: string | null; keys?: string[]; blobId?: string; data?: Uint8Array | null; error?: string }
+  { id: string; value?: string | null; keys?: string[]; entries?: [string, string][]; blobId?: string; data?: Uint8Array | null; error?: string }
 >
 export type DraftInsert = Envelope<
   "draft.insert",
@@ -71,7 +71,7 @@ const isHeaders = (v: unknown): v is [string, string][] =>
   Array.isArray(v) && v.length <= 200 && v.every((h) => Array.isArray(h) && h.length === 2 && isStr(h[0]) && isStr(h[1]))
 
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"])
-const STORE_OPS = new Set(["get", "set", "remove", "clear", "keys"])
+const STORE_OPS = new Set(["get", "set", "remove", "clear", "keys", "snapshot"])
 const UI_ACTIONS = new Set<UiAction>(["openExternal", "notify", "title", "openSession", "blockedNavigation"])
 
 /** Runtime validation of untrusted webview messages. Returns null when invalid. */

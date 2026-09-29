@@ -40,6 +40,8 @@ export const onDraftInsert = (fn: (m: Extract<HostToWebview, { type: "draft.inse
   return () => draftListeners.delete(fn)
 }
 
+export const currentGeneration = () => generation
+
 const welcomed = Promise.withResolvers<void>()
 export const connected = welcomed.promise
 
@@ -142,7 +144,7 @@ export const bridgeFetch: typeof fetch = async (input, init2) => {
   })
 }
 
-function storeCall(op: "get" | "set" | "remove" | "clear" | "keys", name: string, key?: string, value?: string) {
+function storeCall(op: "get" | "set" | "remove" | "clear" | "keys" | "snapshot", name: string, key?: string, value?: string) {
   const id = nextId()
   return new Promise<Extract<HostToWebview, { type: "store.result" }>>((resolve, reject) => {
     pending.set(id, { result: (r) => (r.error ? reject(new Error(r.error)) : resolve(r)) })
@@ -163,6 +165,10 @@ export function hostStorage(name: string) {
     },
   }
   return api
+}
+
+export async function storeSnapshot(name: string): Promise<[string, string][]> {
+  return (await storeCall("snapshot", name)).entries ?? []
 }
 
 export function blobPut(data: ArrayBuffer) {

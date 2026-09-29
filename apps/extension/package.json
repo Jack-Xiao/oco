@@ -37,9 +37,8 @@
       },
       {
         "command": "oco.debugState",
-        "title": "Debug State (dev only)",
-        "category": "oco",
-        "enablement": "oco.dev"
+        "title": "Debug State",
+        "category": "oco"
       }
     ],
     "menus": {
@@ -47,12 +46,6 @@
         {
           "command": "oco.addSelectionToDraft",
           "group": "oco@1"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "oco.debugState",
-          "when": "oco.dev"
         }
       ]
     },

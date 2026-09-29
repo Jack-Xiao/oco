@@ -4,8 +4,8 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-export const DEFAULT_SUITES = ["t004", "t005"];
-export const EXCLUDED_FILES = new Set(["vscode.mjs", "server.mjs", "run.mjs", "perf.mjs"]);
+export const DEFAULT_SUITES = ["p1a-chat", "p1a-identity"]; // t004/t005 are the historical P0 suites
+export const EXCLUDED_FILES = new Set(["vscode.mjs", "server.mjs", "run.mjs", "perf.mjs", "smoke.mjs"]);
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDir, "../..");

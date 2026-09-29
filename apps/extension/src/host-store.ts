@@ -34,6 +34,32 @@ export function scopeOf(name: string): Scope {
   return "connection"
 }
 
+/** Name used by the webview localStorage shim (official `persisted()` state on platform "web"). */
+export const LOCAL_STORAGE = "localStorage"
+
+// opencode.global.dat keys that are plain UI preferences (no server/project data in them).
+const UI_GLOBAL_KEYS = new Set(["language", "language.v1", "command.catalog.v1", "review-panel-v2", "go-upsell", "new-session.provider-tip", "open.app"])
+// Bare (no storage prefix) keys that are UI preferences: official settings are written as settings.v3.
+const UI_BARE_KEYS = /^(settings|language)(\.v\d+)?$/
+
+/**
+ * Scope of one official localStorage key ("<storage>:<key>" or a bare legacy key).
+ * - opencode.window.* (tabs, recent/closed tabs, window layout) -> panel: a panel never sees another panel's tabs.
+ * - settings and UI-only global keys -> ui.
+ * - everything else (server list, projects, models, workspace/session state keyed by the virtual
+ *   server URL) -> connection, so two connections sharing the virtual URL cannot mix.
+ */
+export function scopeOfLocalKey(fullKey: string): Scope {
+  const i = fullKey.indexOf(":")
+  const storage = i >= 0 ? fullKey.slice(0, i) : ""
+  const key = i >= 0 ? fullKey.slice(i + 1) : fullKey
+  if (storage.startsWith("opencode.window.")) return "panel"
+  if (storage === "opencode.settings.dat") return "ui"
+  if (storage === "opencode.global.dat" && UI_GLOBAL_KEYS.has(key)) return "ui"
+  if (!storage && (UI_GLOBAL_KEYS.has(key) || UI_BARE_KEYS.test(key))) return "ui"
+  return "connection"
+}
+
 export class KvStore {
   private readonly chains = new Map<string, Promise<unknown>>()
   stats = { writes: 0, writeErrors: 0, legacyReads: 0 }
@@ -70,8 +96,25 @@ export class KvStore {
     return v
   }
 
+  /** All localStorage-shim entries visible to this panel (ui + its connection + its panel). */
+  snapshot(ctx: StoreContext): [string, string][] {
+    const out: [string, string][] = []
+    for (const scope of ["ui", "connection", "panel"] as Scope[]) {
+      const m = this.memento(scope)
+      const pre = this.prefix(scope, LOCAL_STORAGE, ctx)
+      for (const k of m.keys()) {
+        if (!k.startsWith(pre)) continue
+        const full = decodeURIComponent(k.slice(pre.length))
+        const v = m.get<string | null>(k)
+        if (typeof v === "string" && scopeOfLocalKey(full) === scope) out.push([full, v])
+      }
+    }
+    return out
+  }
+
   async op(ctx: StoreContext, op: string, name: string, key?: string, value?: string) {
-    const scope = scopeOf(name)
+    if (op === "snapshot") return name === LOCAL_STORAGE ? { entries: this.snapshot(ctx) } : { error: "snapshot only for localStorage" }
+    const scope = name === LOCAL_STORAGE && key !== undefined ? scopeOfLocalKey(key) : scopeOf(name)
     const m = this.memento(scope)
     const pre = this.prefix(scope, name, ctx)
     switch (op) {
@@ -98,7 +141,9 @@ export class KvStore {
         })
       }
       case "clear": {
-        const entries = new Set(m.keys().filter((k) => k.startsWith(pre)))
+        // Include entries whose writes were received but are still queued (not yet in the Memento),
+        // so a later clear wins over an earlier set.
+        const entries = new Set([...m.keys(), ...this.chains.keys()].filter((k) => k.startsWith(pre)))
         if (scope !== "panel")
           for (const k of Object.keys(this.global.get<Record<string, string>>(LEGACY_PREFIX + name) ?? {})) entries.add(pre + encodeURIComponent(k))
         try {

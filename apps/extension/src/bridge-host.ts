@@ -64,7 +64,33 @@ export function createBridge(opts: {
   log: vscode.LogOutputChannel
   onUi: CoreDeps["onUi"]
   onGeneration?: CoreDeps["onGeneration"]
+  onSessionTitle?: (title: string) => void
 }) {
+  // Title tap: parse session.updated events for the bound session out of proxied SSE streams.
+  const buffers = new Map<string, string>()
+  const decoder = new TextDecoder()
+  const onSseChunk = (key: string, chunk: Uint8Array) => {
+    if (!opts.onSessionTitle) return
+    let buf = (buffers.get(key) ?? "") + decoder.decode(chunk, { stream: true })
+    let i: number
+    while ((i = buf.indexOf("\n\n")) >= 0) {
+      const raw = buf.slice(0, i)
+      buf = buf.slice(i + 2)
+      if (!raw.includes("session.updated") || !raw.includes(opts.binding.sessionId)) continue
+      try {
+        const data = raw
+          .split("\n")
+          .filter((l) => l.startsWith("data:"))
+          .map((l) => l.slice(5))
+          .join("")
+        const ev = JSON.parse(data)
+        const payload = ev.payload ?? ev
+        const info = payload?.properties?.info
+        if (payload?.type === "session.updated" && info?.id === opts.binding.sessionId && typeof info.title === "string") opts.onSessionTitle(info.title)
+      } catch {}
+    }
+    buffers.set(key, buf.length > 1_000_000 ? "" : buf)
+  }
   const bound = () => {
     const ep = opts.conn.endpoint()
     if (ep.connectionId !== opts.binding.connectionId) throw new Error("connection changed; reopen the session")
@@ -93,6 +119,7 @@ export function createBridge(opts: {
     log: opts.log,
     onUi: opts.onUi,
     onGeneration: opts.onGeneration,
+    onSseChunk,
   })
   const sub = opts.webview.onDidReceiveMessage((raw) => core.handle(raw))
   return {

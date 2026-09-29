@@ -130,18 +130,17 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   )
 
-  // Development/test only: host state dump for the E2E suites. Not registered in production.
-  if (context.extensionMode !== vscode.ExtensionMode.Production) {
-    void vscode.commands.executeCommand("setContext", "oco.dev", true)
-    context.subscriptions.push(
-      vscode.commands.registerCommand("oco.debugState", () => {
-        const state = { activationId, trusted: vscode.workspace.isTrusted, panels: panels.debugState() }
-        const file = process.env.OCO_DEBUG_STATE_FILE
-        if (file) fs.writeFileSync(file, JSON.stringify(state, null, 2))
-        return state
-      }),
-    )
-  }
+  // Diagnostics: counters and bindings only (no credentials, no message content). The E2E suites
+  // read it from OCO_DEBUG_STATE_FILE, which is only honoured outside production mode.
+  context.subscriptions.push(
+    vscode.commands.registerCommand("oco.debugState", () => {
+      const state = { activationId, trusted: vscode.workspace.isTrusted, panels: panels.debugState() }
+      const file = process.env.OCO_DEBUG_STATE_FILE
+      if (file && context.extensionMode !== vscode.ExtensionMode.Production) fs.writeFileSync(file, JSON.stringify(state, null, 2))
+      else log.info(`debug state: ${JSON.stringify(state)}`)
+      return state
+    }),
+  )
 
   let endpointNote = ""
   try {

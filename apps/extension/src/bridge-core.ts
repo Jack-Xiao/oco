@@ -18,7 +18,7 @@ import {
 import { BridgePolicy } from "./bridge-policy"
 
 export type Store = {
-  op(op: string, name: string, key?: string, value?: string): Promise<{ value?: string | null; keys?: string[]; error?: string }>
+  op(op: string, name: string, key?: string, value?: string): Promise<{ value?: string | null; keys?: string[]; entries?: [string, string][]; error?: string }>
   putBlob(data: Uint8Array): Promise<string>
   getBlob(id: string): Promise<Uint8Array | null>
 }
@@ -33,6 +33,8 @@ export type CoreDeps = {
   log: { info(m: string): void; warn(m: string): void }
   onUi(msg: Extract<WebviewToHost, { type: "ui" | "draft.ack" | "ready" }>): void
   onGeneration?(gen: number): void
+  /** Observes proxied SSE bytes (read-only tap, e.g. for the tab title). */
+  onSseChunk?(streamKey: string, chunk: Uint8Array): void
 }
 
 type Inflight = { gen: number; ac: AbortController }
@@ -162,6 +164,7 @@ export class BridgeCore {
         try {
           for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {
             if (entry.ac.signal.aborted || gen !== this.generation) break
+            if (sse) this.deps.onSseChunk?.(k, chunk)
             this.send(gen, { type: "fetch.chunk", id: msg.id, data: chunk })
           }
         } finally {

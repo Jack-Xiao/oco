@@ -113,6 +113,7 @@ export class PanelRegistry {
       onGeneration: () => {
         entry.ready = false
       },
+      onSessionTitle: (t) => this.setTitle(entry, t),
       onUi: (msg) => {
         switch (msg.type) {
           case "ready":
@@ -120,6 +121,10 @@ export class PanelRegistry {
             entry.route = msg.route
             this.log.info(`panel ready ${binding.sessionId} gen ${entry.bridge.core.generation}`)
             this.flushDrafts(entry)
+            void this.conn
+              .request<{ title?: string }>("GET", `/session/${encodeURIComponent(binding.sessionId)}`, undefined, binding.directory)
+              .then((s) => s.title && this.setTitle(entry, s.title))
+              .catch(() => undefined)
             return
           case "draft.ack": {
             if (msg.ok) entry.stats.draftAcks++
@@ -135,10 +140,7 @@ export class PanelRegistry {
           case "ui":
             if (msg.action === "openExternal" && msg.url && /^https?:\/\//.test(msg.url)) void vscode.env.openExternal(vscode.Uri.parse(msg.url))
             if (msg.action === "notify" && msg.title && !panel.active) void vscode.window.showInformationMessage(`${panel.title}: ${msg.title}`)
-            if (msg.action === "title" && msg.title) {
-              entry.stats.titles++
-              panel.title = msg.title.slice(0, 80)
-            }
+            if (msg.action === "title" && msg.title) this.setTitle(entry, msg.title)
             if (msg.action === "blockedNavigation") {
               entry.stats.blockedNavigations++
               this.log.info(`blocked in-panel navigation in ${binding.sessionId}: ${msg.route ?? ""}`)
@@ -221,6 +223,13 @@ export class PanelRegistry {
       `<head>\n<meta http-equiv="Content-Security-Policy" content="${csp}">\n<base href="${base}">\n<script nonce="${nonce}">${shim}</script>`,
     )
     return html
+  }
+
+  private setTitle(e: Entry, title: string) {
+    const t = title.trim().slice(0, 80)
+    if (!t || t === e.panel.title) return
+    e.stats.titles++
+    e.panel.title = t
   }
 
   /** Queue text for a specific session's draft (never sends). Persisted until the page acknowledges it. */

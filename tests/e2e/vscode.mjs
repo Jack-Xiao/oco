@@ -28,6 +28,7 @@ export async function launch({ workspace = path.join(root, ".oco-test/workspace"
         "window.restoreWindows": "all",
         "chat.disableAIFeatures": true,
         "workbench.tips.enabled": false,
+        "workbench.editor.closeEmptyGroups": false,
       },
       null,
       2,
@@ -66,12 +67,21 @@ export async function clearNotifications(page) {
 }
 
 export async function command(page, title, { input } = {}) {
-  // Keyboard focus may be inside a webview (which swallows F1): move it back to the workbench first.
-  await page.click(".part.sidebar .composite.title", { position: { x: 30, y: 10 } }).catch(() => {})
-  await page.keyboard.press("F1")
-  await page.waitForSelector(".quick-input-widget input", { state: "visible" })
-  await page.keyboard.type(title)
-  await page.waitForTimeout(400)
+  // Keyboard focus may be inside a webview (which swallows F1): move it back to the workbench first,
+  // and retry with the other palette shortcut if the palette does not open.
+  const palette = page.locator(".quick-input-widget input")
+  let open = false
+  for (const key of ["F1", "Meta+Shift+P", "F1"]) {
+    // Focus the workbench BEFORE pressing Escape: Escape inside a busy chat composer means "stop".
+    await page.click(".part.sidebar .composite.title", { position: { x: 30, y: 10 }, timeout: 3000 }).catch(() => {})
+    await page.keyboard.press("Escape").catch(() => {})
+    await page.keyboard.press(key)
+    open = await palette.waitFor({ state: "visible", timeout: 3000 }).then(() => true, () => false)
+    if (open) break
+  }
+  if (!open) throw new Error(`command palette did not open for: ${title}`)
+  await palette.fill(">" + title)
+  await page.waitForTimeout(500)
   await page.keyboard.press("Enter")
   if (input !== undefined) {
     await page.waitForTimeout(800)
@@ -127,7 +137,7 @@ export async function hostState(page, stateFile) {
   try {
     fs.rmSync(stateFile, { force: true })
   } catch {}
-  await command(page, "oco: Debug State (dev only)")
+  await command(page, "oco: Debug State")
   const end = Date.now() + 10000
   while (Date.now() < end) {
     if (fs.existsSync(stateFile)) {
