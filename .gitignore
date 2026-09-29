@@ -14,3 +14,5 @@ docs/evidence/p0-artifacts/*.png
 !docs/evidence/p0-artifacts/t004-*.png
 !docs/evidence/p0-artifacts/t005-*.png
 !docs/evidence/p0-artifacts/smoke-new-session.png
+docs/evidence/runs/*
+!docs/evidence/runs/README.md
