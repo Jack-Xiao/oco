@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler", "strict": true, "noEmit": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"], "types": ["node", "bun"], "skipLibCheck": true,
+    "paths": { "@oco/contracts": ["./packages/contracts/src/bridge.ts"] }
+  },
+  "include": ["tests/unit"]
+}

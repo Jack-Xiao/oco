@@ -6,28 +6,87 @@
   "publisher": "oco-local-test",
   "private": true,
   "license": "MIT",
-  "engines": { "vscode": "^1.95.0" },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
   "main": "./dist/extension.js",
-  "activationEvents": ["onWebviewPanel:oco.chat"],
+  "activationEvents": [
+    "onWebviewPanel:oco.chat"
+  ],
   "contributes": {
     "commands": [
-      { "command": "oco.openSession", "title": "Open Session", "category": "oco" },
-      { "command": "oco.newSession", "title": "New Session", "category": "oco" },
-      { "command": "oco.addSelectionToDraft", "title": "Add Selection to Session Draft", "category": "oco" },
-      { "command": "oco.setServerPassword", "title": "Set Server Password", "category": "oco" }
+      {
+        "command": "oco.openSession",
+        "title": "Open Session",
+        "category": "oco"
+      },
+      {
+        "command": "oco.newSession",
+        "title": "New Session",
+        "category": "oco"
+      },
+      {
+        "command": "oco.addSelectionToDraft",
+        "title": "Add Selection to Session Draft",
+        "category": "oco"
+      },
+      {
+        "command": "oco.setServerPassword",
+        "title": "Set Server Password",
+        "category": "oco"
+      },
+      {
+        "command": "oco.debugState",
+        "title": "Debug State (dev only)",
+        "category": "oco",
+        "enablement": "oco.dev"
+      }
     ],
     "menus": {
-      "editor/context": [{ "command": "oco.addSelectionToDraft", "group": "oco@1" }]
+      "editor/context": [
+        {
+          "command": "oco.addSelectionToDraft",
+          "group": "oco@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "oco.debugState",
+          "when": "oco.dev"
+        }
+      ]
     },
     "configuration": {
       "title": "oco",
       "properties": {
-        "oco.serverUrl": { "type": "string", "default": "http://127.0.0.1:4096", "description": "Attached OpenCode v1 server URL (oco never starts or stops it)." },
-        "oco.serverUsername": { "type": "string", "default": "opencode" }
+        "oco.serverUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:4096",
+          "description": "Attached OpenCode v1 server origin (machine scope: a workspace cannot override it). oco never starts or stops it.",
+          "scope": "machine"
+        },
+        "oco.serverUsername": {
+          "type": "string",
+          "default": "opencode",
+          "scope": "machine"
+        }
       }
     }
   },
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.js --alias:@oco/contracts=../../packages/contracts/src/bridge.ts"
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "受限模式下可以查看会话，但不能创建会话或执行有副作用的会话操作。",
+      "restrictedConfigurations": [
+        "oco.serverUrl",
+        "oco.serverUsername"
+      ]
+    }
   }
 }

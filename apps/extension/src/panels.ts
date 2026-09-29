@@ -2,24 +2,36 @@ import * as vscode from "vscode"
 import * as crypto from "node:crypto"
 import * as fs from "node:fs"
 import { BRIDGE_ORIGIN, type SessionBinding, type WebviewInit } from "@oco/contracts"
-import { BridgeHost, HostStore } from "./bridge-host"
+import { BlobStore, createBridge } from "./bridge-host"
 import type { Connection } from "./connection"
+import type { KvStore } from "./host-store"
 
 export const VIEW_TYPE = "oco.chat"
 
-type DraftMsg = { text: string; source: { path: string; startLine: number; endLine: number; unsaved: boolean } }
-type Entry = { panel: vscode.WebviewPanel; bridge: BridgeHost; binding: SessionBinding; panelId: string; ready: boolean; queue: DraftMsg[] }
+type DraftSource = { path: string; startLine: number; endLine: number; unsaved: boolean }
+type PendingDraft = { id: string; text: string; source: DraftSource }
+export type Entry = {
+  panel: vscode.WebviewPanel
+  bridge: ReturnType<typeof createBridge>
+  binding: SessionBinding
+  panelKey: string
+  ready: boolean
+  route?: string
+  stats: { blockedNavigations: number; openRequests: number; draftAcks: number; draftRejects: number; titles: number }
+}
 
 /** One editor tab per session; identity = connectionId + directory + sessionId. */
 export class PanelRegistry {
   private readonly entries = new Map<string, Entry>()
-  private epochSeq = 0
   private lastActive: string | undefined
+  /** Host operation for "open another session" requests coming from a page (validated by the caller). */
+  onOpenSession: (from: Entry, sessionId: string) => void = () => {}
 
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly conn: Connection,
-    private readonly store: HostStore,
+    private readonly kv: KvStore,
+    private readonly blobs: BlobStore,
     private readonly log: vscode.LogOutputChannel,
   ) {}
 
@@ -27,22 +39,30 @@ export class PanelRegistry {
     return `${b.connectionId}|${b.directory}|${b.sessionId}`
   }
 
+  /** Stable across reloads; used for panel-scoped storage and the persisted draft queue. */
+  static panelKey(b: SessionBinding) {
+    return crypto.createHash("sha256").update(PanelRegistry.key(b)).digest("hex").slice(0, 20)
+  }
+
   list() {
     return [...this.entries.values()]
+  }
+
+  get(binding: SessionBinding) {
+    return this.entries.get(PanelRegistry.key(binding))
   }
 
   get active(): Entry | undefined {
     return this.list().find((e) => e.panel.active) ?? (this.lastActive ? this.entries.get(this.lastActive) : undefined)
   }
 
-  open(binding: SessionBinding, title?: string) {
-    const key = PanelRegistry.key(binding)
-    const existing = this.entries.get(key)
+  open(binding: SessionBinding, title?: string, column: vscode.ViewColumn = vscode.ViewColumn.Active) {
+    const existing = this.get(binding)
     if (existing) {
       existing.panel.reveal()
       return existing
     }
-    const panel = vscode.window.createWebviewPanel(VIEW_TYPE, title ?? "OpenCode", vscode.ViewColumn.Active, {
+    const panel = vscode.window.createWebviewPanel(VIEW_TYPE, title ?? "OpenCode", column, {
       enableScripts: true,
       retainContextWhenHidden: false, // restore from host state/drafts instead of keeping every app alive
       localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, "media")],
@@ -50,35 +70,100 @@ export class PanelRegistry {
     return this.attach(panel, binding, title)
   }
 
+  private pendingKey(e: Entry) {
+    return `oco.pendingDrafts.v1/${e.panelKey}`
+  }
+
+  private pending(e: Entry): PendingDraft[] {
+    return this.context.workspaceState.get<PendingDraft[]>(this.pendingKey(e)) ?? []
+  }
+
+  private async setPending(e: Entry, list: PendingDraft[]) {
+    await this.context.workspaceState.update(this.pendingKey(e), list.length ? list : undefined)
+  }
+
+  private flushDrafts(e: Entry) {
+    if (!e.ready || !e.panel.visible) return
+    for (const d of this.pending(e))
+      e.bridge.core.sendCurrent({ type: "draft.insert", id: d.id, sessionId: e.binding.sessionId, text: d.text, source: d.source })
+  }
+
   /** Used by open() and by the serializer after Reload Window. */
   attach(panel: vscode.WebviewPanel, binding: SessionBinding, title?: string) {
     const key = PanelRegistry.key(binding)
+    const panelKey = PanelRegistry.panelKey(binding)
     const panelId = crypto.randomUUID()
     panel.title = title ?? panel.title ?? "OpenCode"
     panel.iconPath = vscode.Uri.joinPath(this.context.extensionUri, "media", "icon.svg")
-    const bridge = new BridgeHost(panel.webview, this.conn, this.store, this.log, ++this.epochSeq, (msg) => {
-      if (msg.action === "openExternal" && msg.url && /^https?:\/\//.test(msg.url)) void vscode.env.openExternal(vscode.Uri.parse(msg.url))
-      if (msg.action === "notify" && msg.title && !panel.active) void vscode.window.showInformationMessage(`${panel.title}: ${msg.title}`)
-      if (msg.action === "ready") {
-        this.log.info(`panel ready ${binding.sessionId}`)
-        entry.ready = true
-        for (const d of entry.queue.splice(0)) bridge.send({ type: "draft.insert", id: crypto.randomUUID(), ...d })
-      }
+    const entry = {
+      binding,
+      panelKey,
+      panel,
+      ready: false,
+      stats: { blockedNavigations: 0, openRequests: 0, draftAcks: 0, draftRejects: 0, titles: 0 },
+    } as Entry
+    entry.bridge = createBridge({
+      webview: panel.webview,
+      conn: this.conn,
+      kv: this.kv,
+      blobs: this.blobs,
+      binding,
+      panelKey,
+      log: this.log,
+      onGeneration: () => {
+        entry.ready = false
+      },
+      onUi: (msg) => {
+        switch (msg.type) {
+          case "ready":
+            entry.ready = true
+            entry.route = msg.route
+            this.log.info(`panel ready ${binding.sessionId} gen ${entry.bridge.core.generation}`)
+            this.flushDrafts(entry)
+            return
+          case "draft.ack": {
+            if (msg.ok) entry.stats.draftAcks++
+            else {
+              // The page refused (e.g. not showing the bound session): surface it, never retarget.
+              entry.stats.draftRejects++
+              this.log.warn(`draft insert rejected in ${binding.sessionId}: ${msg.reason}`)
+              void vscode.window.showWarningMessage(`oco: 未能加入草稿（${msg.reason ?? "unknown"}）`)
+            }
+            void this.setPending(entry, this.pending(entry).filter((d) => d.id !== msg.id))
+            return
+          }
+          case "ui":
+            if (msg.action === "openExternal" && msg.url && /^https?:\/\//.test(msg.url)) void vscode.env.openExternal(vscode.Uri.parse(msg.url))
+            if (msg.action === "notify" && msg.title && !panel.active) void vscode.window.showInformationMessage(`${panel.title}: ${msg.title}`)
+            if (msg.action === "title" && msg.title) {
+              entry.stats.titles++
+              panel.title = msg.title.slice(0, 80)
+            }
+            if (msg.action === "blockedNavigation") {
+              entry.stats.blockedNavigations++
+              this.log.info(`blocked in-panel navigation in ${binding.sessionId}: ${msg.route ?? ""}`)
+            }
+            if (msg.action === "openSession" && msg.sessionId) {
+              entry.stats.openRequests++
+              this.onOpenSession(entry, msg.sessionId)
+            }
+            return
+        }
+      },
     })
-    const entry: Entry = { panel, bridge, binding, panelId, ready: false, queue: [] }
     this.entries.set(key, entry)
-    const render = () => {
-      // A (re)render starts a new epoch: late responses for the previous document are dropped.
-      bridge.epoch = ++this.epochSeq
-      panel.webview.html = this.html(panel.webview, { panelId, epoch: bridge.epoch, binding, serverUrl: BRIDGE_ORIGIN, locale: vscode.env.language })
-    }
-    render()
+    panel.webview.html = this.html(panel.webview, { panelId, binding, serverUrl: BRIDGE_ORIGIN, locale: vscode.env.language })
     panel.onDidChangeViewState((e) => {
       if (e.webviewPanel.active) this.lastActive = key
-      if (!e.webviewPanel.visible) entry.ready = false // hidden webviews are destroyed; wait for the next "ready"
+      // retainContextWhenHidden=false: a hidden webview's document is destroyed. Retire its generation
+      // so its streams close now and nothing it sends late is accepted.
+      if (!e.webviewPanel.visible) {
+        entry.ready = false
+        entry.bridge.core.retire()
+      }
     })
     panel.onDidDispose(() => {
-      bridge.dispose() // aborts this panel's requests/streams only; the session keeps running on the server
+      entry.bridge.dispose() // aborts this panel's requests/streams only; the session keeps running on the server
       this.entries.delete(key)
       if (this.lastActive === key) this.lastActive = undefined
     })
@@ -108,8 +193,10 @@ export class PanelRegistry {
     // Workers in a webview cannot fetch from the resource origin (requests never resolve), so the
     // app's workers are built as self-contained IIFE scripts (apps/chat-webview/vite.config.ts) and
     // started from a blob bootstrap that receives their code, fetched by the main thread.
+    // WebSocket is disabled: its only user is the terminal, which v0.1 does not support.
     const shim = `
       window.__OCO_INIT__ = ${JSON.stringify(init)};
+      window.__OCO_STATS__ = { websocketBlocked: 0 };
       (() => {
         const Native = window.Worker;
         const boot = "let ready=false;const q=[];self.addEventListener('message',(e)=>{const d=e.data;" +
@@ -127,6 +214,7 @@ export class PanelRegistry {
               .catch((err) => this.dispatchEvent(new ErrorEvent("error", { message: String(err && err.message || err) })));
           }
         };
+        window.WebSocket = class { constructor() { window.__OCO_STATS__.websocketBlocked++; throw new Error("oco: WebSocket is disabled (terminal is not supported)"); } };
       })();`
     html = html.replace(
       "<head>",
@@ -135,10 +223,29 @@ export class PanelRegistry {
     return html
   }
 
-  /** Insert text into a specific session's draft (never sends). */
-  insertDraft(entry: Entry, text: string, source: DraftMsg["source"]) {
-    if (entry.ready && entry.panel.visible) entry.bridge.send({ type: "draft.insert", id: crypto.randomUUID(), text, source })
-    else entry.queue.push({ text, source })
+  /** Queue text for a specific session's draft (never sends). Persisted until the page acknowledges it. */
+  async insertDraft(entry: Entry, text: string, source: DraftSource) {
+    const d: PendingDraft = { id: crypto.randomUUID(), text, source }
+    await this.setPending(entry, [...this.pending(entry), d])
     entry.panel.reveal(undefined, false)
+    this.flushDrafts(entry)
+  }
+
+  debugState() {
+    return this.list().map((e) => ({
+      sessionId: e.binding.sessionId,
+      directory: e.binding.directory,
+      connectionId: e.binding.connectionId,
+      title: e.panel.title,
+      visible: e.panel.visible,
+      ready: e.ready,
+      route: e.route,
+      generation: e.bridge.core.generation,
+      inflight: e.bridge.core.inflightCount,
+      core: e.bridge.core.stats,
+      policy: e.bridge.policy.stats,
+      panel: e.stats,
+      pendingDrafts: this.pending(e).length,
+    }))
   }
 }

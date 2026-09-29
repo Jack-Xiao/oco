@@ -1,15 +1,17 @@
-// oco host <-> chat webview bridge protocol (P0).
-// Every message carries the protocol version and the panel epoch; the host drops
-// messages from stale epochs (panel re-bound / restored) and anything that fails validation.
+// oco host <-> chat webview bridge protocol (v2, P1a).
+//
+// Document identity: every webview *document* (initial render, re-creation after hide, reload) starts
+// with `hello { docId }`; the host answers `welcome { generation }` and from then on both sides tag
+// every message with that generation. The host only accepts the panel's current generation and
+// answers each request with the generation it was created under, so a late chunk/end/abort from an
+// older document can never reach or affect a newer one, even if request ids repeat.
 
-export const PROTOCOL_VERSION = 1
+export const PROTOCOL_VERSION = 2
 
 /** Virtual, non-loopback origin the official app talks to. The host maps it to the real server.
  * Non-loopback http is required so the app routes its SSE stream through platform.fetch
  * (vendor/opencode/packages/app/src/context/server-sdk.tsx:191-199). */
 export const BRIDGE_ORIGIN = "http://oco.bridge"
-
-export type PanelIdentity = { panelId: string; epoch: number }
 
 export type SessionBinding = {
   connectionId: string
@@ -17,15 +19,20 @@ export type SessionBinding = {
   sessionId: string
 }
 
-export type WebviewInit = PanelIdentity & {
+export type WebviewInit = {
+  panelId: string
   binding: SessionBinding
   serverUrl: typeof BRIDGE_ORIGIN
   locale?: string
 }
 
-type Envelope<T extends string, P> = { v: typeof PROTOCOL_VERSION; epoch: number; type: T } & P
+type Envelope<T extends string, P> = { v: typeof PROTOCOL_VERSION; gen: number; type: T } & P
+export type Omit2<T> = T extends unknown ? Omit<T, "v" | "gen"> : never
+
+export type UiAction = "openExternal" | "notify" | "title" | "openSession" | "blockedNavigation"
 
 // webview -> host
+export type Hello = Envelope<"hello", { docId: string }>
 export type FetchRequest = Envelope<
   "fetch.request",
   { id: string; url: string; method: string; headers: [string, string][]; body?: ArrayBuffer }
@@ -36,67 +43,86 @@ export type StoreOp = Envelope<
   { id: string; op: "get" | "set" | "remove" | "clear" | "keys"; name: string; key?: string; value?: string }
 >
 export type BlobOp = Envelope<"blob.op", { id: string; op: "put" | "get"; blobId?: string; data?: ArrayBuffer }>
-export type UiAction = Envelope<
-  "ui",
-  { action: "ready" | "openExternal" | "notify" | "title"; url?: string; title?: string; body?: string }
->
-export type WebviewToHost = FetchRequest | FetchAbort | StoreOp | BlobOp | UiAction
+export type Ui = Envelope<"ui", { action: UiAction; url?: string; title?: string; body?: string; sessionId?: string; route?: string }>
+export type DraftAck = Envelope<"draft.ack", { id: string; ok: boolean; reason?: string }>
+export type Ready = Envelope<"ready", { route: string }>
+export type WebviewToHost = Hello | FetchRequest | FetchAbort | StoreOp | BlobOp | Ui | DraftAck | Ready
 
 // host -> webview
+export type Welcome = Envelope<"welcome", { docId: string }>
 export type FetchHead = Envelope<"fetch.head", { id: string; status: number; statusText: string; headers: [string, string][] }>
 export type FetchChunk = Envelope<"fetch.chunk", { id: string; data: Uint8Array }>
 export type FetchEnd = Envelope<"fetch.end", { id: string }>
-export type FetchError = Envelope<"fetch.error", { id: string; message: string; aborted?: boolean }>
-export type StoreResult = Envelope<"store.result", { id: string; value?: string | null; keys?: string[]; blobId?: string; data?: Uint8Array | null; error?: string }>
+export type FetchError = Envelope<"fetch.error", { id: string; message: string; aborted?: boolean; status?: number }>
+export type StoreResult = Envelope<
+  "store.result",
+  { id: string; value?: string | null; keys?: string[]; blobId?: string; data?: Uint8Array | null; error?: string }
+>
 export type DraftInsert = Envelope<
   "draft.insert",
-  { id: string; text: string; source: { path: string; startLine: number; endLine: number; unsaved: boolean } }
+  { id: string; sessionId: string; text: string; source: { path: string; startLine: number; endLine: number; unsaved: boolean } }
 >
-export type HostToWebview = FetchHead | FetchChunk | FetchEnd | FetchError | StoreResult | DraftInsert
+export type HostToWebview = Welcome | FetchHead | FetchChunk | FetchEnd | FetchError | StoreResult | DraftInsert
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v)
 const isStr = (v: unknown): v is string => typeof v === "string"
+const isId = (v: unknown): v is string => isStr(v) && v.length > 0 && v.length <= 200
 const isHeaders = (v: unknown): v is [string, string][] =>
-  Array.isArray(v) && v.every((h) => Array.isArray(h) && h.length === 2 && isStr(h[0]) && isStr(h[1]))
+  Array.isArray(v) && v.length <= 200 && v.every((h) => Array.isArray(h) && h.length === 2 && isStr(h[0]) && isStr(h[1]))
 
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"])
 const STORE_OPS = new Set(["get", "set", "remove", "clear", "keys"])
-const UI_ACTIONS = new Set(["ready", "openExternal", "notify", "title"])
+const UI_ACTIONS = new Set<UiAction>(["openExternal", "notify", "title", "openSession", "blockedNavigation"])
 
 /** Runtime validation of untrusted webview messages. Returns null when invalid. */
 export function parseWebviewMessage(raw: unknown): WebviewToHost | null {
-  if (!isObj(raw) || raw.v !== PROTOCOL_VERSION || typeof raw.epoch !== "number" || !isStr(raw.type)) return null
+  if (!isObj(raw) || raw.v !== PROTOCOL_VERSION || typeof raw.gen !== "number" || !Number.isInteger(raw.gen) || !isStr(raw.type))
+    return null
   switch (raw.type) {
+    case "hello":
+      return isId(raw.docId) ? (raw as unknown as Hello) : null
     case "fetch.request": {
-      if (!isStr(raw.id) || !isStr(raw.url) || !isStr(raw.method) || !METHODS.has(raw.method)) return null
+      if (!isId(raw.id) || !isStr(raw.url) || !isStr(raw.method) || !METHODS.has(raw.method)) return null
       if (!isHeaders(raw.headers)) return null
       if (raw.body !== undefined && !(raw.body instanceof ArrayBuffer) && !ArrayBuffer.isView(raw.body)) return null
       // Only the virtual bridge origin is accepted: the bridge never fetches arbitrary URLs.
-      if (!raw.url.startsWith(BRIDGE_ORIGIN + "/")) return null
+      if (bridgeTarget(raw.url) === null) return null
       return raw as unknown as FetchRequest
     }
     case "fetch.abort":
-      return isStr(raw.id) ? (raw as unknown as FetchAbort) : null
+      return isId(raw.id) ? (raw as unknown as FetchAbort) : null
     case "store.op":
-      if (!isStr(raw.id) || !isStr(raw.op) || !STORE_OPS.has(raw.op) || !isStr(raw.name)) return null
+      if (!isId(raw.id) || !isStr(raw.op) || !STORE_OPS.has(raw.op) || !isStr(raw.name) || raw.name.length > 300) return null
       if (raw.key !== undefined && !isStr(raw.key)) return null
       if (raw.value !== undefined && !isStr(raw.value)) return null
       return raw as unknown as StoreOp
     case "blob.op":
-      if (!isStr(raw.id) || (raw.op !== "put" && raw.op !== "get")) return null
+      if (!isId(raw.id) || (raw.op !== "put" && raw.op !== "get")) return null
       if (raw.op === "get" && !isStr(raw.blobId)) return null
+      if (raw.op === "put" && !(raw.data instanceof ArrayBuffer) && !ArrayBuffer.isView(raw.data)) return null
       return raw as unknown as BlobOp
     case "ui":
-      if (!isStr(raw.action) || !UI_ACTIONS.has(raw.action)) return null
-      return raw as unknown as UiAction
+      if (!isStr(raw.action) || !UI_ACTIONS.has(raw.action as UiAction)) return null
+      for (const k of ["url", "title", "body", "sessionId", "route"] as const)
+        if (raw[k] !== undefined && (!isStr(raw[k]) || (raw[k] as string).length > 2000)) return null
+      return raw as unknown as Ui
+    case "draft.ack":
+      return isId(raw.id) && typeof raw.ok === "boolean" ? (raw as unknown as DraftAck) : null
+    case "ready":
+      return isStr(raw.route) ? (raw as unknown as Ready) : null
   }
   return null
 }
 
-/** Maps a bridge URL to a path+query on the real server. Rejects anything else. */
-export function bridgePath(url: string): string | null {
+/** Parses a bridge URL into pathname + search params. Rejects anything that is not the virtual origin. */
+export function bridgeTarget(url: string): { pathname: string; search: URLSearchParams } | null {
   if (!url.startsWith(BRIDGE_ORIGIN + "/")) return null
-  const u = new URL(url)
-  if (u.origin !== BRIDGE_ORIGIN) return null
-  return u.pathname + u.search
+  let u: URL
+  try {
+    u = new URL(url)
+  } catch {
+    return null
+  }
+  if (u.origin !== BRIDGE_ORIGIN || u.username || u.password) return null
+  return { pathname: u.pathname, search: u.searchParams }
 }

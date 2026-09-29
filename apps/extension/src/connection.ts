@@ -1,33 +1,59 @@
 import * as vscode from "vscode"
 import * as fs from "node:fs"
+import { endpointFromSetting, isLoopbackHost, sameDirectory, type Endpoint } from "./endpoint"
 
-/** P0 connection: one `attached` OpenCode server. The extension never starts, stops or reconfigures it. */
+/**
+ * P1a attached connection. oco never starts, stops or reconfigures the server.
+ * - The endpoint comes from machine-scoped settings (a workspace/repository cannot redirect it).
+ * - Secrets are keyed by the normalised endpoint identity (origin + username): changing the URL
+ *   never reuses another endpoint's password.
+ */
 export class Connection {
-  readonly id = "default"
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly log: vscode.LogOutputChannel,
   ) {}
 
-  get baseUrl(): string {
-    return vscode.workspace.getConfiguration("oco").get<string>("serverUrl", "http://127.0.0.1:4096").replace(/\/+$/, "")
+  /** Throws a user-facing error if the configured endpoint is invalid. */
+  endpoint(): Endpoint {
+    const cfg = vscode.workspace.getConfiguration("oco")
+    return endpointFromSetting(cfg.get<string>("serverUrl", "http://127.0.0.1:4096"), cfg.get<string>("serverUsername", "opencode"))
   }
 
-  get username(): string {
-    return vscode.workspace.getConfiguration("oco").get<string>("serverUsername", "opencode")
+  get id(): string {
+    return this.endpoint().connectionId
   }
 
-  /** Workspace directory the sessions belong to (first folder, P0). */
+  baseUrl(): string {
+    return this.endpoint().origin
+  }
+
+  /** Workspace folders on this extension host (local fs paths). */
+  folders(): string[] {
+    return (vscode.workspace.workspaceFolders ?? []).filter((f) => f.uri.scheme === "file").map((f) => f.uri.fsPath)
+  }
+
+  /** Directory used for new sessions / listing (first folder, P1a). */
   get directory(): string | undefined {
-    return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+    return this.folders()[0]
   }
 
-  async password(): Promise<string | undefined> {
-    const stored = await this.context.secrets.get("oco.serverPassword")
+  /** A server-reported session directory belongs to this workspace. Realpath only for a local server. */
+  ownsDirectory(directory: string): boolean {
+    const local = isLoopbackHost(this.endpoint().host)
+    return this.folders().some((f) => sameDirectory(f, directory, local))
+  }
+
+  private secretKey(ep: Endpoint) {
+    return `oco.secret.v1.${ep.connectionId}`
+  }
+
+  async password(ep = this.endpoint()): Promise<string | undefined> {
+    const stored = await this.context.secrets.get(this.secretKey(ep))
     if (stored) return stored
-    // Development-only: read a local test secret file (never used in packaged/production mode).
+    // Development/test only, loopback only: read a local test secret file.
     const file = process.env.OCO_DEV_PASSWORD_FILE
-    if (file && this.context.extensionMode !== vscode.ExtensionMode.Production) {
+    if (file && this.context.extensionMode !== vscode.ExtensionMode.Production && isLoopbackHost(ep.host)) {
       try {
         return fs.readFileSync(file, "utf8").trim()
       } catch {
@@ -37,29 +63,28 @@ export class Connection {
     return undefined
   }
 
-  async setPassword(value: string | undefined) {
-    if (value) await this.context.secrets.store("oco.serverPassword", value)
-    else await this.context.secrets.delete("oco.serverPassword")
+  async setPassword(value: string | undefined, ep = this.endpoint()) {
+    if (value) await this.context.secrets.store(this.secretKey(ep), value)
+    else await this.context.secrets.delete(this.secretKey(ep))
   }
 
-  async headers(): Promise<Record<string, string>> {
-    const h: Record<string, string> = {}
-    const pw = await this.password()
-    if (pw) h.authorization = "Basic " + Buffer.from(`${this.username}:${pw}`).toString("base64")
-    return h
+  async auth(ep = this.endpoint()): Promise<Record<string, string>> {
+    const pw = await this.password(ep)
+    return pw ? { authorization: "Basic " + Buffer.from(`${ep.username}:${pw}`).toString("base64") } : {}
   }
 
-  /** Host-side JSON call used by native UI (session pickers etc.). */
-  async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const headers = await this.headers()
-    headers["content-type"] = "application/json"
-    if (this.directory) headers["x-opencode-directory"] = encodeURIComponent(this.directory)
-    const res = await fetch(this.baseUrl + path, { method, headers, body: body ? JSON.stringify(body) : undefined })
+  /** Host-side JSON call used by native UI and bridge policy lookups. */
+  async request<T>(method: string, path: string, body?: unknown, directory = this.directory): Promise<T> {
+    const ep = this.endpoint()
+    const headers: Record<string, string> = { ...(await this.auth(ep)), "content-type": "application/json" }
+    if (directory) headers["x-opencode-directory"] = encodeURIComponent(directory)
+    const res = await fetch(ep.origin + path, { method, headers, body: body ? JSON.stringify(body) : undefined, redirect: "manual" })
     this.log.info(`${method} ${path.split("?")[0]} -> ${res.status}`)
+    if (res.status === 401) throw new Error(`认证失败（${ep.origin}），请执行 oco: Set Server Password`)
     if (!res.ok) throw new Error(`${method} ${path.split("?")[0]} failed: HTTP ${res.status}`)
     const text = await res.text()
     return (text ? JSON.parse(text) : undefined) as T
   }
 }
 
-export type SessionInfo = { id: string; title?: string; directory: string; time?: { updated?: number } }
+export type SessionInfo = { id: string; title?: string; directory: string; parentID?: string; time?: { updated?: number } }

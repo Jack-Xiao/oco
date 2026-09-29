@@ -1,5 +1,10 @@
 // oco chat webview entry: mounts the official OpenCode v1 app (vendored, pinned SHA) for ONE session.
 // Modelled on vendor/opencode/packages/desktop/src/renderer/index.tsx, with a VS Code Platform.
+//
+// Panel identity (P1a-01): the memory router only ever holds the bound session route. Any navigation
+// (internal tabs, shortcuts, deep links, child-session links, persisted tabs) is intercepted in the
+// router history: another session becomes a host "openSession" request (the host validates and
+// opens its own panel); everything else is refused. The page itself never changes session.
 import {
   AppBaseProviders,
   AppInterface,
@@ -8,21 +13,49 @@ import {
   ServerConnection,
   type Platform,
 } from "@opencode-ai/app"
-import { base64Encode } from "@opencode-ai/core/util/encode"
+import { base64Decode, base64Encode } from "@opencode-ai/core/util/encode"
 import { createMemoryHistory, MemoryRouter, type BaseRouterProps } from "@solidjs/router"
 import { render } from "solid-js/web"
-import { blobGet, blobPut, bridgeFetch, hostStorage, init, onDraftInsert, ui, vscode } from "./bridge"
+import { blobGet, blobPut, bridgeFetch, draftAck, hostStorage, init, onDraftInsert, ready, ui, vscode } from "./bridge"
 
 const root = document.getElementById("root")!
 const serverKey = ServerConnection.Key.make(init.serverUrl)
-const sessionRoute = `/server/${base64Encode(serverKey)}/session/${init.binding.sessionId}`
+const bound = init.binding
+const boundRoute = `/server/${base64Encode(serverKey)}/session/${bound.sessionId}`
+const stats = ((window as unknown as { __OCO_STATS__: Record<string, number> }).__OCO_STATS__ ??= {})
+stats.blockedNavigation = 0
+stats.openSessionRequests = 0
 
-const os = navigator.userAgent.includes("Mac") ? "macos" : navigator.userAgent.includes("Windows") ? "windows" : "linux"
+type RouteClass = { kind: "bound" } | { kind: "session"; id: string } | { kind: "other" }
+
+/** Classifies a router target against the panel binding. */
+export function classifyRoute(target: string): RouteClass {
+  const path = target.split(/[?#]/)[0]
+  const parts = path.split("/").filter(Boolean)
+  const decode = (v: string) => {
+    try {
+      return base64Decode(v)
+    } catch {
+      return undefined
+    }
+  }
+  // /server/<b64 server key>/session/<id>
+  if (parts.length === 4 && parts[0] === "server" && parts[2] === "session") {
+    if (decode(parts[1]) !== serverKey) return { kind: "other" }
+    return parts[3] === bound.sessionId ? { kind: "bound" } : { kind: "session", id: parts[3] }
+  }
+  // legacy /<b64 directory>/session/<id>
+  if (parts.length === 3 && parts[1] === "session") {
+    if (decode(parts[0]) !== bound.directory) return { kind: "other" }
+    return parts[2] === bound.sessionId ? { kind: "bound" } : { kind: "session", id: parts[2] }
+  }
+  return { kind: "other" }
+}
 
 const storageCache = new Map<string, ReturnType<typeof hostStorage>>()
 const platform: Platform = {
   platform: "web",
-  version: "oco-p0",
+  version: "oco-p1a",
   windowID: init.panelId,
   openExternal: (url) => ui("openExternal", { url }),
   restart: async () => location.reload(),
@@ -45,31 +78,73 @@ const platform: Platform = {
   }),
   getDefaultServer: async () => serverKey,
 }
-void os
 
-// Session routing belongs to the host: the memory router starts on the bound session.
+let currentRoute = boundRoute
+
 function PanelRouter(props: BaseRouterProps) {
-  const history = createMemoryHistory()
-  history.set({ value: sessionRoute, replace: true, scroll: false })
-  history.listen((value) => {
-    vscode.setState({ ...(vscode.getState() as object), route: value })
-  })
+  const inner = createMemoryHistory()
+  inner.set({ value: boundRoute, replace: true, scroll: false })
+  const guard = (value: string) => {
+    const c = classifyRoute(value)
+    if (c.kind === "bound") return true
+    if (c.kind === "session") {
+      stats.openSessionRequests++
+      ui("openSession", { sessionId: c.id })
+    } else {
+      stats.blockedNavigation++
+      ui("blockedNavigation", { route: value.slice(0, 300) })
+    }
+    return false
+  }
+  const history: typeof inner = {
+    ...inner,
+    set(change) {
+      if (!guard(change.value)) {
+        // solid-router stores the target in its own location signal even when history.set does
+        // nothing (createRouter.js intercept); push the bound route back through the listeners.
+        queueMicrotask(() => inner.set({ value: currentRoute, replace: true, scroll: false }))
+        return
+      }
+      currentRoute = change.value
+      inner.set(change)
+    },
+    // Only one route exists in a panel: history traversal would leave it.
+    go() {},
+    back() {},
+    forward() {},
+  }
   return <MemoryRouter {...props} history={history} />
 }
 
-// Host -> draft insert: forwarded to the (patched) official composer as a DOM event.
-// Inserts that arrive before the composer mounts are queued until it announces itself.
+// Host -> draft insert. Delivered only to the bound session's composer; the (patched) composer
+// re-checks its own session and reports the outcome, which is acknowledged to the host.
 let composerReady = false
-const queued: string[] = []
-const deliver = (text: string) => window.dispatchEvent(new CustomEvent("oco:draft-insert", { detail: { text } }))
+const queued: { id: string; sessionId: string; text: string }[] = []
+const deliver = (m: { id: string; sessionId: string; text: string }) =>
+  window.dispatchEvent(new CustomEvent("oco:draft-insert", { detail: { id: m.id, sessionID: m.sessionId, text: m.text } }))
+window.addEventListener("oco:draft-inserted", (e) => {
+  const d = (e as CustomEvent<{ id?: string; ok: boolean; reason?: string }>).detail
+  if (d?.id) draftAck(d.id, d.ok, d.reason)
+})
 window.addEventListener("oco:composer-ready", () => {
   composerReady = true
-  for (const text of queued.splice(0)) deliver(text)
+  for (const m of queued.splice(0)) deliver(m)
 })
 onDraftInsert((msg) => {
-  if (composerReady) deliver(msg.text)
-  else queued.push(msg.text)
+  if (msg.sessionId !== bound.sessionId) return draftAck(msg.id, false, "panel is bound to another session")
+  if (classifyRoute(currentRoute).kind !== "bound") return draftAck(msg.id, false, "panel is not showing its session")
+  if (composerReady) deliver(msg)
+  else queued.push(msg)
 })
+
+// Title: the official app sets document.title for the session; mirror it to the VS Code tab.
+let lastTitle = ""
+new MutationObserver(() => {
+  const t = document.title.trim()
+  if (!t || t === lastTitle || t === "oco" || t === "OpenCode") return
+  lastTitle = t
+  ui("title", { title: t.replace(/\s*[|·-]\s*OpenCode$/i, "") })
+}).observe(document.head, { subtree: true, childList: true, characterData: true })
 
 const servers: ServerConnection.Any[] = [{ type: "http", displayName: "oco", http: { url: init.serverUrl } }]
 
@@ -84,5 +159,8 @@ render(
   root,
 )
 
-vscode.setState({ ...(vscode.getState() as object), binding: init.binding })
-ui("ready")
+// Inspection hooks for tests: page code already has these capabilities, so exposing them grants nothing new.
+;(window as unknown as { __OCO_DEBUG__: unknown }).__OCO_DEBUG__ = { fetch: bridgeFetch, classifyRoute, route: () => currentRoute }
+
+vscode.setState({ binding: bound })
+ready(boundRoute)

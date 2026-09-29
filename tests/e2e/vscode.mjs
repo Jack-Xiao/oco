@@ -10,8 +10,9 @@ fs.mkdirSync(evidenceDir, { recursive: true })
 
 const CODE = process.env.OCO_VSCODE_BIN ?? "/Applications/Visual Studio Code.app/Contents/MacOS/Code"
 
-export async function launch({ workspace = path.join(root, ".oco-test/workspace"), profile = "default", fresh = true } = {}) {
+export async function launch({ workspace = path.join(root, ".oco-test/workspace"), profile = "default", fresh = true, run } = {}) {
   const userData = path.join(root, ".oco-test/vscode", profile)
+  const stateFile = path.join(userData, "oco-debug-state.json")
   if (fresh) fs.rmSync(userData, { recursive: true, force: true })
   fs.mkdirSync(path.join(userData, "User"), { recursive: true })
   fs.writeFileSync(
@@ -45,14 +46,18 @@ export async function launch({ workspace = path.join(root, ".oco-test/workspace"
       "--disable-workspace-trust",
       "--new-window",
     ],
-    env: { ...process.env, OCO_DEV_PASSWORD_FILE: path.join(root, ".oco-test/secret") },
+    env: { ...process.env, OCO_DEV_PASSWORD_FILE: path.join(root, ".oco-test/secret"), OCO_DEBUG_STATE_FILE: stateFile },
     timeout: 60000,
   })
   const page = await app.firstWindow()
   await page.waitForSelector(".monaco-workbench", { timeout: 60000 })
   await page.waitForTimeout(2500)
   await clearNotifications(page)
-  return { app, page }
+  if (run) {
+    const pkg = JSON.parse(fs.readFileSync("/Applications/Visual Studio Code.app/Contents/Resources/app/package.json", "utf8"))
+    run.setEnv({ vscodeVersion: pkg.version, vscodeProfile: profile })
+  }
+  return { app, page, stateFile }
 }
 
 export async function clearNotifications(page) {
@@ -116,3 +121,28 @@ export async function shot(page, name) {
 }
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+/** Host-side state (dev-only command), read from the file the extension writes. */
+export async function hostState(page, stateFile) {
+  try {
+    fs.rmSync(stateFile, { force: true })
+  } catch {}
+  await command(page, "oco: Debug State (dev only)")
+  const end = Date.now() + 10000
+  while (Date.now() < end) {
+    if (fs.existsSync(stateFile)) {
+      try {
+        return JSON.parse(fs.readFileSync(stateFile, "utf8"))
+      } catch {}
+    }
+    await page.waitForTimeout(100)
+  }
+  throw new Error("debug state not written")
+}
+
+/** Screenshot into a run's artifact directory. */
+export async function runShot(page, run, name) {
+  const p = run.artifact(`${name}.png`)
+  await page.screenshot({ path: p }).catch(() => {})
+  return p
+}

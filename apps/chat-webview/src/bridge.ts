@@ -1,12 +1,19 @@
 // Webview side of the oco host bridge. The webview never sees server credentials:
 // requests go to the virtual BRIDGE_ORIGIN and the extension host forwards them.
-import { PROTOCOL_VERSION, type HostToWebview, type WebviewInit, type WebviewToHost } from "@oco/contracts"
+//
+// Each document introduces itself with a random docId (`hello`); the host replies `welcome` with a
+// generation. Everything sent before the welcome is queued; everything received for another
+// generation is ignored, so a recreated document never sees an older document's traffic.
+import { PROTOCOL_VERSION, type HostToWebview, type Omit2, type UiAction, type WebviewInit, type WebviewToHost } from "@oco/contracts"
 
 type VsCodeApi = { postMessage(msg: unknown): void; getState(): unknown; setState(s: unknown): void }
 declare function acquireVsCodeApi(): VsCodeApi
 
 export const vscode = acquireVsCodeApi()
 export const init = (window as unknown as { __OCO_INIT__: WebviewInit }).__OCO_INIT__
+const docId = crypto.randomUUID()
+let generation = 0
+const outbox: Omit2<WebviewToHost>[] = []
 
 type Pending = {
   head?: (h: Extract<HostToWebview, { type: "fetch.head" }>) => void
@@ -17,12 +24,14 @@ type Pending = {
 }
 const pending = new Map<string, Pending>()
 let seq = 0
-const nextId = () => `${init.panelId}:${++seq}`
+const nextId = () => `${docId.slice(0, 8)}:${++seq}`
 
-type Omit2<T> = T extends unknown ? Omit<T, "v" | "epoch"> : never
-function post(msg: Omit2<WebviewToHost>, transfer?: ArrayBuffer) {
-  void transfer
-  vscode.postMessage({ ...msg, v: PROTOCOL_VERSION, epoch: init.epoch })
+function post(msg: Omit2<WebviewToHost>) {
+  if (!generation) {
+    outbox.push(msg)
+    return
+  }
+  vscode.postMessage({ ...msg, v: PROTOCOL_VERSION, gen: generation })
 }
 
 const draftListeners = new Set<(m: Extract<HostToWebview, { type: "draft.insert" }>) => void>()
@@ -31,9 +40,20 @@ export const onDraftInsert = (fn: (m: Extract<HostToWebview, { type: "draft.inse
   return () => draftListeners.delete(fn)
 }
 
+const welcomed = Promise.withResolvers<void>()
+export const connected = welcomed.promise
+
 window.addEventListener("message", (event) => {
   const msg = event.data as HostToWebview
-  if (!msg || msg.v !== PROTOCOL_VERSION || msg.epoch !== init.epoch) return
+  if (!msg || msg.v !== PROTOCOL_VERSION) return
+  if (msg.type === "welcome") {
+    if (msg.docId !== docId || generation) return
+    generation = msg.gen
+    for (const m of outbox.splice(0)) post(m)
+    welcomed.resolve()
+    return
+  }
+  if (!generation || msg.gen !== generation) return
   if (msg.type === "draft.insert") {
     for (const fn of draftListeners) fn(msg)
     return
@@ -61,6 +81,8 @@ window.addEventListener("message", (event) => {
       return
   }
 })
+
+vscode.postMessage({ v: PROTOCOL_VERSION, gen: 0, type: "hello", docId })
 
 /** fetch() replacement: serialises the request, streams the response body back incrementally. */
 export const bridgeFetch: typeof fetch = async (input, init2) => {
@@ -159,5 +181,8 @@ export function blobGet(blobId: string) {
   })
 }
 
-export const ui = (action: "ready" | "openExternal" | "notify" | "title", extra: { url?: string; title?: string; body?: string } = {}) =>
+export const ui = (action: UiAction, extra: { url?: string; title?: string; body?: string; sessionId?: string; route?: string } = {}) =>
   post({ type: "ui", action, ...extra })
+
+export const ready = (route: string) => post({ type: "ready", route })
+export const draftAck = (id: string, ok: boolean, reason?: string) => post({ type: "draft.ack", id, ok, reason })

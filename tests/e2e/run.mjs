@@ -1,0 +1,93 @@
+#!/usr/bin/env node
+import fs from "node:fs";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+export const DEFAULT_SUITES = ["t004", "t005"];
+export const EXCLUDED_FILES = new Set(["vscode.mjs", "server.mjs", "run.mjs", "perf.mjs"]);
+
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(currentDir, "../..");
+
+export function getAvailableSuites(e2eDir = currentDir) {
+  if (!fs.existsSync(e2eDir)) return [];
+  const entries = fs.readdirSync(e2eDir, { withFileTypes: true });
+  return entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".mjs") && !EXCLUDED_FILES.has(entry.name))
+    .map((entry) => entry.name.slice(0, -4))
+    .sort();
+}
+
+export function runSuites(suites, { e2eDir = currentDir, root = repoRoot } = {}) {
+  const summary = [];
+
+  for (const suite of suites) {
+    const scriptPath = path.join(e2eDir, `${suite}.mjs`);
+    if (!fs.existsSync(scriptPath)) {
+      console.error(`[ERROR] Suite script not found: ${scriptPath}`);
+      summary.push({
+        suite,
+        exitCode: 1,
+        durationMs: 0,
+      });
+      continue;
+    }
+
+    console.log(`\n>>> Running E2E suite: ${suite} (${scriptPath})...\n`);
+    const t0 = Date.now();
+    const res = spawnSync(process.execPath, [scriptPath], {
+      stdio: "inherit",
+      cwd: root,
+      env: process.env,
+    });
+    const durationMs = Date.now() - t0;
+    const exitCode = res.status !== null ? res.status : 1;
+
+    summary.push({
+      suite,
+      exitCode,
+      durationMs,
+    });
+  }
+
+  return summary;
+}
+
+export function main(argv = process.argv.slice(2)) {
+  if (argv.includes("--list")) {
+    const available = getAvailableSuites();
+    for (const suite of available) {
+      console.log(suite);
+    }
+    process.exit(0);
+  }
+
+  const requestedSuites = argv.filter((arg) => !arg.startsWith("--"));
+  const suitesToRun = requestedSuites.length > 0 ? requestedSuites : DEFAULT_SUITES;
+
+  const results = runSuites(suitesToRun);
+
+  console.log("\n=================== E2E Summary ===================");
+  console.table(
+    results.map((r) => ({
+      suite: r.suite,
+      "exit code": r.exitCode,
+      "耗时": `${(r.durationMs / 1000).toFixed(2)}s`,
+    }))
+  );
+
+  const anyFailed = results.some((r) => r.exitCode !== 0);
+  process.exit(anyFailed ? 1 : 0);
+}
+
+const isDirectRun = Boolean(
+  process.argv[1] && (
+    path.resolve(process.argv[1]) === fileURLToPath(import.meta.url) ||
+    (typeof import.meta.filename === "string" && import.meta.filename === process.argv[1])
+  )
+);
+
+if (isDirectRun) {
+  main();
+}
