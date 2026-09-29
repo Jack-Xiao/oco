@@ -23,8 +23,16 @@ page.on("console", (m) => {
 const norm = (s) => s.replace(/\s+/g, " ").trim()
 
 async function send(frame, text) {
-  await frame.locator('[data-component="prompt-input"]').click()
-  await page.keyboard.type(text, { delay: 4 })
+  const input = frame.locator('[data-component="prompt-input"]')
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await input.click()
+    await input.focus()
+    await page.keyboard.type(text, { delay: 4 })
+    await sleep(200)
+    if ((await input.innerText()).includes(text.slice(0, 20))) break
+    await page.keyboard.press("Meta+a")
+    await page.keyboard.press("Backspace")
+  }
   await page.keyboard.press("Enter")
 }
 async function newPartIds(sid, known) {
@@ -114,15 +122,23 @@ try {
   {
     const expected = "blue"
     const click = NEG ? "red" : "blue"
-    await send(frame, "Use the question tool (not plain text) to ask which color I prefer, with exactly two options: red and blue. After my answer reply with the color only.")
+    // The model may answer in plain text instead of calling the tool: up to two attempts.
     let q
-    const t0 = Date.now()
-    while (!q && Date.now() - t0 < 90000) {
-      q = ((await api("GET", "/question")) ?? []).find((x) => x.sessionID === sid)
-      if (!q) await sleep(300)
+    let attempts = 0
+    for (; attempts < 2 && !q; attempts++) {
+      await send(frame, "Use the question tool (not plain text) to ask which color I prefer, with exactly two options: red and blue. After my answer reply with the color only.")
+      const t0 = Date.now()
+      while (!q && Date.now() - t0 < 90000) {
+        q = ((await api("GET", "/question")) ?? []).find((x) => x.sessionID === sid)
+        if (!q && Date.now() - t0 > 5000 && (await status(sid)) === "idle") break
+        if (!q) await sleep(300)
+      }
+      if (!q) await waitIdle(sid)
     }
     if (!q) {
-      run.record("question-answer", "NOT RUN", { reason: "model did not call the question tool within 90s" })
+      run.record("question-answer", "NOT RUN", { reason: "model did not call the question tool", attempts })
+      for (const x of ((await api("GET", "/question")) ?? []).filter((x) => x.sessionID === sid)) await api("POST", `/question/${x.id}/reject`)
+      await waitIdle(sid)
     } else {
       const dock = frame.locator('[data-component="dock-prompt"][data-kind="question"]')
       await dock.waitFor({ timeout: 30000 })
@@ -139,6 +155,7 @@ try {
         expected,
         recordedAnswer: answer ?? null,
         negativeControl: NEG,
+        attempts,
       })
     }
   }

@@ -62,9 +62,18 @@ async function openSession(sid) {
   await page.keyboard.press("Enter")
 }
 async function type(f, text, send = false) {
-  await f.locator('[data-component="prompt-input"]').click()
-  await page.keyboard.press("Meta+End")
-  await page.keyboard.type(text, { delay: 4 })
+  // The first click on a webview can focus only the editor group; focus the composer explicitly and
+  // verify the text arrived (retry once) so a lost keystroke is never mistaken for a product result.
+  const input = f.locator('[data-component="prompt-input"]')
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const before = await input.innerText()
+    await input.click()
+    await input.focus()
+    await page.keyboard.press("Meta+End")
+    await page.keyboard.type(text, { delay: 4 })
+    await sleep(200)
+    if ((await input.innerText()).length >= before.length + text.length - 2) break
+  }
   if (send) await page.keyboard.press("Enter")
 }
 /** Editor tab labels across all groups (VS Code revives hidden webviews lazily, so the host registry
