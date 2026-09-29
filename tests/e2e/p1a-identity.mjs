@@ -5,7 +5,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { createRun } from "./lib/results.mjs"
 import { clearNotifications, launch, command, chatFrames, frameSession, sleep, runShot, hostState, root } from "./vscode.mjs"
-import { api, messages, status, waitIdle } from "./server.mjs"
+import { api, messages, status, waitIdle, waitReply } from "./server.mjs"
 
 const REQUIRED = [
   "three-visible-webviews",
@@ -134,7 +134,7 @@ try {
   await type(fA, "Reply with exactly: TAG-ALPHA", true)
   await type(fB, "Reply with exactly: TAG-BRAVO", true)
   await type(fC, "Reply with exactly: TAG-CHARLIE", true)
-  await Promise.all([waitIdle(A), waitIdle(B), waitIdle(C)])
+  await Promise.all([waitReply(A), waitReply(B), waitReply(C)])
   await sleep(1500)
   const tags = { [A]: "ALPHA", [B]: "BRAVO", [C]: "CHARLIE" }
   const iso = {}

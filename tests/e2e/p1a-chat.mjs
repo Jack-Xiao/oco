@@ -5,7 +5,7 @@
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { launch, command, waitForChatFrame, frameSession, sleep, runShot, hostState } from "./vscode.mjs"
-import { api, messages, status, waitIdle } from "./server.mjs"
+import { api, messages, status, waitIdle, waitMessageFinal } from "./server.mjs"
 
 const REQUIRED = ["stream-locked", "permission-bound", "question-answer", "cancel-real", "policy-foreign-session", "policy-directory-override", "policy-unlisted-write", "csp-violations"]
 const run = createRun({ suite: "p1a-chat", required: REQUIRED, scriptPath: fileURLToPath(import.meta.url) })
@@ -186,7 +186,8 @@ try {
       }
       await sleep(100)
     }
-    const a = (await messages(sid)).find((m) => m.info.id === target?.info.id)
+    // The session reports idle slightly before the aborted message is finalised: wait for that.
+    const a = target ? await waitMessageFinal(sid, target.info.id) : null
     const len1 = JSON.stringify(a?.parts ?? []).length
     await sleep(3000)
     const len2 = JSON.stringify((await messages(sid)).find((m) => m.info.id === target?.info.id)?.parts ?? []).length
