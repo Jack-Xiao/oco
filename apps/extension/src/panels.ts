@@ -8,6 +8,11 @@ import type { KvStore } from "./host-store"
 
 export const VIEW_TYPE = "oco.chat"
 
+const colorScheme = (): "light" | "dark" => {
+  const k = vscode.window.activeColorTheme.kind
+  return k === vscode.ColorThemeKind.Light || k === vscode.ColorThemeKind.HighContrastLight ? "light" : "dark"
+}
+
 type DraftSource = { path: string; startLine: number; endLine: number; unsaved: boolean }
 type PendingDraft = { id: string; text: string; source: DraftSource }
 export type Entry = {
@@ -26,6 +31,8 @@ export class PanelRegistry {
   private lastActive: string | undefined
   /** Host operation for "open another session" requests coming from a page (validated by the caller). */
   onOpenSession: (from: Entry, sessionId: string) => void = () => {}
+  /** A panel was opened or closed (the sidebar marks open sessions). */
+  onChange: () => void = () => {}
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -56,18 +63,26 @@ export class PanelRegistry {
     return this.list().find((e) => e.panel.active) ?? (this.lastActive ? this.entries.get(this.lastActive) : undefined)
   }
 
-  open(binding: SessionBinding, title?: string, column: vscode.ViewColumn = vscode.ViewColumn.Active) {
+  /** Open-or-focus: an already open session is revealed in the editor group that shows it. */
+  open(binding: SessionBinding, title?: string, column: vscode.ViewColumn = vscode.ViewColumn.Active, focus = true) {
     const existing = this.get(binding)
     if (existing) {
-      existing.panel.reveal()
+      existing.panel.reveal(undefined, !focus)
       return existing
     }
-    const panel = vscode.window.createWebviewPanel(VIEW_TYPE, title ?? "OpenCode", column, {
+    const panel = vscode.window.createWebviewPanel(VIEW_TYPE, title ?? "OpenCode", { viewColumn: column, preserveFocus: !focus }, {
       enableScripts: true,
       retainContextWhenHidden: false, // restore from host state/drafts instead of keeping every app alive
       localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, "media")],
     })
     return this.attach(panel, binding, title)
+  }
+
+  /** E2E hook for the first-load race: OCO_DEV_SLOW_PATHS / OCO_DEV_SLOW_MS, outside production only. */
+  private devSlow() {
+    const paths = process.env.OCO_DEV_SLOW_PATHS
+    if (!paths || this.context.extensionMode === vscode.ExtensionMode.Production) return undefined
+    return { pattern: new RegExp(paths), ms: Number(process.env.OCO_DEV_SLOW_MS ?? 4000) }
   }
 
   private pendingKey(e: Entry) {
@@ -114,6 +129,7 @@ export class PanelRegistry {
         entry.ready = false
       },
       onSessionTitle: (t) => this.setTitle(entry, t),
+      devSlow: this.devSlow(),
       onUi: (msg) => {
         switch (msg.type) {
           case "ready":
@@ -154,7 +170,7 @@ export class PanelRegistry {
       },
     })
     this.entries.set(key, entry)
-    panel.webview.html = this.html(panel.webview, { panelId, binding, serverUrl: BRIDGE_ORIGIN, locale: vscode.env.language })
+    panel.webview.html = this.html(panel.webview, { panelId, binding, serverUrl: BRIDGE_ORIGIN, locale: vscode.env.language, colorScheme: colorScheme() })
     panel.onDidChangeViewState((e) => {
       if (e.webviewPanel.active) this.lastActive = key
       // retainContextWhenHidden=false: a hidden webview's document is destroyed. Retire its generation
@@ -168,8 +184,10 @@ export class PanelRegistry {
       entry.bridge.dispose() // aborts this panel's requests/streams only; the session keeps running on the server
       this.entries.delete(key)
       if (this.lastActive === key) this.lastActive = undefined
+      this.onChange()
     })
     if (panel.active) this.lastActive = key
+    this.onChange()
     return entry
   }
 
@@ -199,6 +217,8 @@ export class PanelRegistry {
     const shim = `
       window.__OCO_INIT__ = ${JSON.stringify(init)};
       window.__OCO_STATS__ = { websocketBlocked: 0 };
+      // The app's pre-paint theme script reads this key from native storage before the host shim exists.
+      try { if (window.__OCO_INIT__.colorScheme) localStorage.setItem("opencode-color-scheme", window.__OCO_INIT__.colorScheme); } catch {}
       (() => {
         const Native = window.Worker;
         const boot = "let ready=false;const q=[];self.addEventListener('message',(e)=>{const d=e.data;" +

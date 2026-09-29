@@ -24,6 +24,8 @@ export type WebviewInit = {
   binding: SessionBinding
   serverUrl: typeof BRIDGE_ORIGIN
   locale?: string
+  /** VS Code theme kind when the page was generated (the page then follows the body theme class). */
+  colorScheme?: "light" | "dark"
 }
 
 type Envelope<T extends string, P> = { v: typeof PROTOCOL_VERSION; gen: number; type: T } & P
@@ -126,3 +128,5 @@ export function bridgeTarget(url: string): { pathname: string; search: URLSearch
   if (u.origin !== BRIDGE_ORIGIN || u.username || u.password) return null
   return { pathname: u.pathname, search: u.searchParams }
 }
+
+export * from "./sessions"

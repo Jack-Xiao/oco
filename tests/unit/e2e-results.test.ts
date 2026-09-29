@@ -313,8 +313,8 @@ describe("installCrashHandlers", () => {
 });
 
 describe("run.mjs 套件管理", () => {
-  test("DEFAULT_SUITES 为 P1a 套件", () => {
-    expect(DEFAULT_SUITES).toEqual(["p1a-chat", "p1a-identity"]);
+  test("DEFAULT_SUITES 为 P1a + P1b-1 套件", () => {
+    expect(DEFAULT_SUITES).toEqual(["p1a-chat", "p1a-identity", "p1b-sidebar", "p1b-narrow", "p1b-theme-load", "p1b-ime"]);
   });
 
   test("EXCLUDED_FILES 排除内部工具脚本", () => {

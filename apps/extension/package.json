@@ -1,7 +1,7 @@
 {
   "name": "oco",
-  "displayName": "oco (OpenCode for VS Code) — P0 prototype",
-  "description": "P0 prototype: official OpenCode v1 chat in VS Code editor tabs.",
+  "displayName": "oco (OpenCode for VS Code)",
+  "description": "OpenCode v1 sessions in the VS Code sidebar and editor tabs (attached server).",
   "version": "0.0.1",
   "publisher": "oco-local-test",
   "private": true,
@@ -11,19 +11,48 @@
   },
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onWebviewPanel:oco.chat"
+    "onWebviewPanel:oco.chat",
+    "onView:oco.sessions"
   ],
   "contributes": {
     "commands": [
       {
         "command": "oco.openSession",
         "title": "Open Session",
-        "category": "oco"
+        "category": "oco",
+        "icon": "$(go-to-file)"
       },
       {
         "command": "oco.newSession",
         "title": "New Session",
-        "category": "oco"
+        "category": "oco",
+        "icon": "$(add)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "oco.renameSession",
+        "title": "Rename Session",
+        "category": "oco",
+        "icon": "$(edit)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "oco.searchSessions",
+        "title": "Search Sessions",
+        "category": "oco",
+        "icon": "$(search)"
+      },
+      {
+        "command": "oco.clearSearch",
+        "title": "Clear Session Search",
+        "category": "oco",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "oco.reconnect",
+        "title": "Reconnect",
+        "category": "oco",
+        "icon": "$(refresh)"
       },
       {
         "command": "oco.addSelectionToDraft",
@@ -42,6 +71,56 @@
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "oco.newSession",
+          "when": "view == oco.sessions",
+          "group": "navigation@1"
+        },
+        {
+          "command": "oco.searchSessions",
+          "when": "view == oco.sessions",
+          "group": "navigation@2"
+        },
+        {
+          "command": "oco.clearSearch",
+          "when": "view == oco.sessions && oco.searchActive",
+          "group": "navigation@3"
+        },
+        {
+          "command": "oco.reconnect",
+          "when": "view == oco.sessions",
+          "group": "navigation@4"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "oco.openSession",
+          "when": "view == oco.sessions && viewItem == oco.session",
+          "group": "inline@1"
+        },
+        {
+          "command": "oco.renameSession",
+          "when": "view == oco.sessions && viewItem == oco.session",
+          "group": "inline@2"
+        },
+        {
+          "command": "oco.openSession",
+          "when": "view == oco.sessions && viewItem == oco.session",
+          "group": "1_open@1"
+        },
+        {
+          "command": "oco.renameSession",
+          "when": "view == oco.sessions && viewItem == oco.session",
+          "group": "2_edit@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "oco.clearSearch",
+          "when": "oco.searchActive"
+        }
+      ],
       "editor/context": [
         {
           "command": "oco.addSelectionToDraft",
@@ -64,7 +143,67 @@
           "scope": "machine"
         }
       }
-    }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "oco",
+          "title": "OpenCode",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "oco": [
+        {
+          "id": "oco.sessions",
+          "name": "Sessions",
+          "contextualTitle": "OpenCode"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "oco.sessions",
+        "when": "oco.connState == unconfigured",
+        "contents": "oco 未就绪：需要打开一个工作区文件夹，并在用户设置中配置 OpenCode 服务地址。\n[打开文件夹](command:workbench.action.files.openFolder)\n[打开设置](command:workbench.action.openSettings?%5B%22oco.serverUrl%22%5D)"
+      },
+      {
+        "view": "oco.sessions",
+        "when": "!oco.connState || oco.connState == connecting",
+        "contents": "正在连接 OpenCode 服务……"
+      },
+      {
+        "view": "oco.sessions",
+        "when": "oco.connState == unauthorized",
+        "contents": "服务要求认证，密码未设置或不正确。\n[设置密码](command:oco.setServerPassword)"
+      },
+      {
+        "view": "oco.sessions",
+        "when": "oco.connState == error",
+        "contents": "无法连接 OpenCode 服务，正在按退避间隔重试。\n[立即重试](command:oco.reconnect)\n[打开设置](command:workbench.action.openSettings?%5B%22oco.serverUrl%22%5D)"
+      },
+      {
+        "view": "oco.sessions",
+        "when": "oco.connState == reconnecting",
+        "contents": "连接中断，正在重连……\n[立即重试](command:oco.reconnect)"
+      },
+      {
+        "view": "oco.sessions",
+        "when": "oco.connState == connected && !oco.searchActive && isWorkspaceTrusted",
+        "contents": "当前工作区还没有 OpenCode 会话。\n[新建会话](command:oco.newSession)"
+      },
+      {
+        "view": "oco.sessions",
+        "when": "oco.connState == connected && !oco.searchActive && !isWorkspaceTrusted",
+        "contents": "当前工作区还没有会话。受限模式下不能新建会话。"
+      },
+      {
+        "view": "oco.sessions",
+        "when": "oco.connState == connected && oco.searchActive",
+        "contents": "没有匹配的会话。\n[清除搜索](command:oco.clearSearch)"
+      }
+    ]
   },
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.js --alias:@oco/contracts=../../packages/contracts/src/bridge.ts"

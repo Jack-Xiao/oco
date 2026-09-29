@@ -65,6 +65,8 @@ export function createBridge(opts: {
   onUi: CoreDeps["onUi"]
   onGeneration?: CoreDeps["onGeneration"]
   onSessionTitle?: (title: string) => void
+  /** Development/test only (never set in production): delay responses whose path matches. */
+  devSlow?: { pattern: RegExp; ms: number }
 }) {
   // Title tap: parse session.updated events for the bound session out of proxied SSE streams.
   const buffers = new Map<string, string>()
@@ -109,7 +111,13 @@ export function createBridge(opts: {
   )
   const core = new BridgeCore({
     post: (m) => void opts.webview.postMessage(m),
-    fetch: globalThis.fetch,
+    fetch: opts.devSlow
+      ? async (input, init) => {
+          const slow = opts.devSlow!
+          if (slow.pattern.test(new URL(String(input)).pathname)) await new Promise((r) => setTimeout(r, slow.ms))
+          return globalThis.fetch(input, init)
+        }
+      : globalThis.fetch,
     // A panel stays bound to the endpoint it was opened for: if the configured endpoint changes,
     // its requests fail instead of carrying this binding (and its credentials) to another server.
     baseUrl: () => bound().origin,

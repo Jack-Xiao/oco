@@ -1,7 +1,10 @@
 import * as vscode from "vscode"
 import * as fs from "node:fs"
-import type { SessionBinding } from "@oco/contracts"
+import type { OpenSessionRequest, SessionBinding } from "@oco/contracts"
 import { Connection, type SessionInfo } from "./connection"
+import { SessionStore } from "./session-store"
+import { SessionFeed } from "./session-feed"
+import { SessionsView, SessionItem } from "./sessions-view"
 import { BlobStore } from "./bridge-host"
 import { KvStore } from "./host-store"
 import { PanelRegistry, VIEW_TYPE, type Entry } from "./panels"
@@ -13,6 +16,29 @@ export function activate(context: vscode.ExtensionContext) {
   const panels = new PanelRegistry(context, conn, kv, new BlobStore(context), log)
   const activationId = Math.random().toString(36).slice(2, 10)
   context.subscriptions.push(log)
+
+  // Native sidebar: one host-side event stream + snapshot per window (P1b-1).
+  const store = new SessionStore((dir) => {
+    try {
+      return conn.ownsDirectory(dir)
+    } catch {
+      return false
+    }
+  })
+  const view = new SessionsView(store, (sid) => panels.list().some((e) => e.binding.sessionId === sid && e.binding.connectionId === feed.state.connectionId))
+  const feed = new SessionFeed({
+    fetch: (...a) => fetch(...a),
+    endpoint: () => conn.endpoint(),
+    auth: () => conn.auth(),
+    directory: () => conn.directory,
+    trusted: () => vscode.workspace.isTrusted,
+    store,
+    onChange: () => view.refresh(),
+    onState: (st) => view.setConnection(st),
+    log: (m) => log.info(m),
+  })
+  panels.onChange = () => view.refresh()
+  context.subscriptions.push(view, { dispose: () => feed.stop() })
 
   const fail = (what: string, e: unknown) => void vscode.window.showErrorMessage(`oco: ${what}（${(e as Error).message}）`)
   const requireTrust = (what: string) => {
@@ -27,9 +53,18 @@ export function activate(context: vscode.ExtensionContext) {
     return { connectionId: conn.id, directory: s.directory, sessionId: s.id }
   }
 
-  const openById = async (sessionId: string, column?: vscode.ViewColumn) => {
+  /** open-session contract: same connection and workspace only; reveals the group already showing it. */
+  const openSession = (req: OpenSessionRequest) => {
+    if (req.connectionId !== conn.id) throw new Error("连接已变化")
+    if (!conn.ownsDirectory(req.directory)) throw new Error("会话不属于当前工作区")
+    return panels.open({ connectionId: req.connectionId, directory: req.directory, sessionId: req.sessionId }, req.title, vscode.ViewColumn.Active, req.focus ?? true)
+  }
+
+  const openById = async (sessionId: string) => {
+    const known = store.list().find((i) => i.id === sessionId)
+    if (known && feed.state.state === "connected") return openSession({ connectionId: conn.id, directory: known.directory, sessionId, title: known.title })
     const s = await conn.request<SessionInfo>("GET", `/session/${encodeURIComponent(sessionId)}`)
-    return panels.open(bindingFor(s), s.title || s.id, column)
+    return openSession({ connectionId: conn.id, directory: s.directory, sessionId: s.id, title: s.title || s.id })
   }
 
   // A page asked to show another session (internal tab, child session link, shortcut...): the host
@@ -48,7 +83,9 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   const pickSession = async (placeHolder: string) => {
-    const sessions = await conn.request<SessionInfo[]>("GET", "/session")
+    const dir = conn.directory
+    if (!dir) throw new Error("需要先打开一个工作区文件夹")
+    const sessions = await conn.request<SessionInfo[]>("GET", `/session?directory=${encodeURIComponent(dir)}&roots=true&limit=200`)
     const items = sessions
       .filter((s) => conn.ownsDirectory(s.directory))
       .sort((a, b) => (b.time?.updated ?? 0) - (a.time?.updated ?? 0))
@@ -57,8 +94,9 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("oco.openSession", async (sessionId?: string) => {
+    vscode.commands.registerCommand("oco.openSession", async (arg?: string | SessionItem) => {
       try {
+        const sessionId = arg instanceof SessionItem ? arg.session.id : arg
         if (typeof sessionId === "string") return void (await openById(sessionId))
         const s = await pickSession("选择要打开的 OpenCode 会话")
         if (s) panels.open(bindingFor(s), s.title || s.id)
@@ -71,6 +109,7 @@ export function activate(context: vscode.ExtensionContext) {
         if (!requireTrust("创建会话")) return
         if (!conn.directory) throw new Error("需要先打开一个工作区文件夹")
         const s = await conn.request<SessionInfo>("POST", "/session", {})
+        if (store.add(s)) view.refresh() // identity backfill; the session.created event is deduplicated
         panels.open(bindingFor(s), s.title || "新会话")
         return s.id
       } catch (e) {
@@ -109,12 +148,41 @@ export function activate(context: vscode.ExtensionContext) {
           prompt: `${ep.origin}（用户 ${ep.username}）的密码，保存在 VS Code SecretStorage，仅用于该地址`,
           password: true,
         })
-        if (value !== undefined) await conn.setPassword(value || undefined, ep)
+        if (value !== undefined) {
+          await conn.setPassword(value || undefined, ep)
+          feed.restart()
+        }
         if (ep.cleartext) void vscode.window.showWarningMessage("oco: 该服务使用非回环 http，密码会明文传输")
       } catch (e) {
         fail("无法设置密码", e)
       }
     }),
+    vscode.commands.registerCommand("oco.renameSession", async (arg?: SessionItem) => {
+      try {
+        if (!requireTrust("重命名会话")) return
+        const item = arg instanceof SessionItem ? arg.session : undefined
+        const s = item ?? (await pickSession("选择要重命名的会话"))
+        if (!s) return
+        const current = "title" in s && s.title ? s.title : ""
+        const title = (await vscode.window.showInputBox({ prompt: "新的会话标题", value: current, validateInput: (v) => (v.trim() ? undefined : "标题不能为空") }))?.trim()
+        if (!title || title === current) return
+        const updated = await conn.request<SessionInfo>("PATCH", `/session/${encodeURIComponent(s.id)}`, { title }, s.directory)
+        if (store.add(updated)) view.refresh()
+      } catch (e) {
+        fail("无法重命名会话", e)
+      }
+    }),
+    vscode.commands.registerCommand("oco.searchSessions", async () => {
+      const q = await vscode.window.showInputBox({ prompt: "按标题或 ID 搜索会话（留空清除）", value: view.search })
+      if (q !== undefined) view.setSearch(q)
+    }),
+    vscode.commands.registerCommand("oco.clearSearch", () => view.setSearch("")),
+    vscode.commands.registerCommand("oco.reconnect", () => feed.restart()),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("oco")) feed.restart()
+    }),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => feed.restart()),
+    vscode.workspace.onDidGrantWorkspaceTrust(() => feed.restart()),
     vscode.window.registerWebviewPanelSerializer(VIEW_TYPE, {
       async deserializeWebviewPanel(panel, state: { binding?: SessionBinding } | undefined) {
         const b = state?.binding
@@ -134,7 +202,12 @@ export function activate(context: vscode.ExtensionContext) {
   // read it from OCO_DEBUG_STATE_FILE, which is only honoured outside production mode.
   context.subscriptions.push(
     vscode.commands.registerCommand("oco.debugState", () => {
-      const state = { activationId, trusted: vscode.workspace.isTrusted, panels: panels.debugState() }
+      const state = {
+        activationId,
+        trusted: vscode.workspace.isTrusted,
+        panels: panels.debugState(),
+        sidebar: { ...view.debugState(), feed: feed.stats, store: store.stats },
+      }
       const file = process.env.OCO_DEBUG_STATE_FILE
       if (file && context.extensionMode !== vscode.ExtensionMode.Production) fs.writeFileSync(file, JSON.stringify(state, null, 2))
       else log.info(`debug state: ${JSON.stringify(state)}`)
@@ -148,6 +221,7 @@ export function activate(context: vscode.ExtensionContext) {
   } catch (e) {
     endpointNote = `invalid (${(e as Error).message})`
   }
+  feed.start()
   log.info(`oco activated ${activationId}; server ${endpointNote}; directory ${conn.directory ?? "(none)"}; trusted ${vscode.workspace.isTrusted}`)
 }
 

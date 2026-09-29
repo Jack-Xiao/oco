@@ -1,0 +1,50 @@
+diff --git a/packages/app/src/components/prompt-input/submit.ts b/packages/app/src/components/prompt-input/submit.ts
+index c82c3a4..1ec4165 100644
+--- a/packages/app/src/components/prompt-input/submit.ts
++++ b/packages/app/src/components/prompt-input/submit.ts
+@@ -9,6 +9,7 @@ import { useServerSync, type ServerSync } from "@/context/server-sync"
+ import { useLanguage } from "@/context/language"
+ import { useLayout } from "@/context/layout"
+ import { useLocal, type ModelSelection } from "@/context/local"
++import { usePlatform } from "@/context/platform"
+ import { usePermission } from "@/context/permission"
+ import { type ContextItem, type ImageAttachmentPart, type Prompt, type usePrompt } from "@/context/prompt"
+ import { useSDK, type DirectorySDK } from "@/context/sdk"
+@@ -237,6 +238,8 @@ export function createPromptSubmit(input: PromptSubmitInput) {
+   const sync = useSync()
+   const serverSync = useServerSync()
+   const local = useLocal()
++  const platform = usePlatform()
++  let waitingForModel = false
+   const permission = usePermission()
+   const prompt = input.prompt
+   const layout = useLayout()
+@@ -336,8 +339,26 @@ export function createPromptSubmit(input: PromptSubmitInput) {
+     }
+ 
+     const modelSelection = input.model ?? local.model
+-    const currentModel = modelSelection.current()
+-    const currentAgent = local.agent.current()
++    let currentModel = modelSelection.current()
++    let currentAgent = local.agent.current()
++    // oco: an embedded panel can be submitted before the directory's agents/providers have loaded;
++    // wait for them briefly (once) instead of rejecting the prompt.
++    if ((!currentModel || !currentAgent) && platform.embedded) {
++      if (waitingForModel) return
++      waitingForModel = true
++      document.documentElement.dataset.ocoSubmitPending = "model"
++      try {
++        const end = Date.now() + 20000
++        while ((!currentModel || !currentAgent) && Date.now() < end) {
++          await new Promise((r) => setTimeout(r, 200))
++          currentModel = modelSelection.current()
++          currentAgent = local.agent.current()
++        }
++      } finally {
++        waitingForModel = false
++        delete document.documentElement.dataset.ocoSubmitPending
++      }
++    }
+     const variant = modelSelection.variant.current()
+     if (!currentModel || !currentAgent) {
+       showToast({

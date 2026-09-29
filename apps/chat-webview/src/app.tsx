@@ -19,6 +19,7 @@ import { createMemoryHistory, MemoryRouter, type BaseRouterProps } from "@solidj
 import { render } from "solid-js/web"
 import { blobGet, blobPut, bridgeFetch, currentGeneration, draftAck, hostStorage, init, onDraftInsert, ready, ui, vscode } from "./bridge"
 import { storageStats } from "./local-storage"
+import { themeStats } from "./theme"
 
 const root = document.getElementById("root")!
 const serverKey = ServerConnection.Key.make(init.serverUrl)
@@ -169,6 +170,7 @@ render(
   route: () => currentRoute,
   generation: currentGeneration,
   storage: storageStats,
+  theme: themeStats,
 }
 
 vscode.setState({ binding: bound })

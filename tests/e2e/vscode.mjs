@@ -10,7 +10,7 @@ fs.mkdirSync(evidenceDir, { recursive: true })
 
 const CODE = process.env.OCO_VSCODE_BIN ?? "/Applications/Visual Studio Code.app/Contents/MacOS/Code"
 
-export async function launch({ workspace = path.join(root, ".oco-test/workspace"), profile = "default", fresh = true, run } = {}) {
+export async function launch({ workspace = path.join(root, ".oco-test/workspace"), profile = "default", fresh = true, run, settings = {}, trust = true } = {}) {
   const userData = path.join(root, ".oco-test/vscode", profile)
   const stateFile = path.join(userData, "oco-debug-state.json")
   if (fresh) fs.rmSync(userData, { recursive: true, force: true })
@@ -20,7 +20,8 @@ export async function launch({ workspace = path.join(root, ".oco-test/workspace"
     JSON.stringify(
       {
         "oco.serverUrl": process.env.OCO_TEST_URL ?? "http://127.0.0.1:4517",
-        "security.workspace.trust.enabled": false,
+        "security.workspace.trust.enabled": !trust,
+        ...(trust ? {} : { "security.workspace.trust.startupPrompt": "never", "security.workspace.trust.emptyWindow": false }),
         "workbench.startupEditor": "none",
         "telemetry.telemetryLevel": "off",
         "update.mode": "none",
@@ -29,6 +30,7 @@ export async function launch({ workspace = path.join(root, ".oco-test/workspace"
         "chat.disableAIFeatures": true,
         "workbench.tips.enabled": false,
         "workbench.editor.closeEmptyGroups": false,
+        ...settings,
       },
       null,
       2,
@@ -44,7 +46,7 @@ export async function launch({ workspace = path.join(root, ".oco-test/workspace"
       "--disable-extensions",
       "--skip-welcome",
       "--skip-release-notes",
-      "--disable-workspace-trust",
+      ...(trust ? ["--disable-workspace-trust"] : []),
       "--new-window",
     ],
     env: { ...process.env, OCO_DEV_PASSWORD_FILE: path.join(root, ".oco-test/secret"), OCO_DEBUG_STATE_FILE: stateFile },
@@ -58,7 +60,7 @@ export async function launch({ workspace = path.join(root, ".oco-test/workspace"
     const pkg = JSON.parse(fs.readFileSync("/Applications/Visual Studio Code.app/Contents/Resources/app/package.json", "utf8"))
     run.setEnv({ vscodeVersion: pkg.version, vscodeProfile: profile })
   }
-  return { app, page, stateFile }
+  return { app, page, stateFile, settingsFile: path.join(userData, "User/settings.json") }
 }
 
 export async function clearNotifications(page) {
@@ -155,4 +157,32 @@ export async function runShot(page, run, name) {
   const p = run.artifact(`${name}.png`)
   await page.screenshot({ path: p }).catch(() => {})
   return p
+}
+
+/** Resize the window until every visible chat frame is ~width CSS px wide (editor groups evened out). */
+export async function fitGroups(app, page, width, { tolerance = 4 } = {}) {
+  const measure = async () => {
+    const out = []
+    for (const f of await chatFrames(page)) {
+      const w = await f.evaluate(() => (document.visibilityState === "visible" ? innerWidth : null)).catch(() => null)
+      if (w) out.push(w)
+    }
+    return out
+  }
+  let widths = []
+  for (let k = 0; k < 8; k++) {
+    widths = await measure()
+    const avg = widths.reduce((a, b) => a + b, 0) / Math.max(1, widths.length)
+    if (widths.length && widths.every((w) => Math.abs(w - width) <= tolerance)) break
+    await app.evaluate(({ BrowserWindow }, { d }) => {
+      const w = BrowserWindow.getAllWindows()[0]
+      const zoom = w.webContents.getZoomFactor()
+      const [x, y] = w.getContentSize()
+      w.setContentSize(Math.max(400, Math.round(x + d * zoom)), y)
+    }, { d: (width - avg) * widths.length })
+    await page.waitForTimeout(800)
+    await command(page, "View: Reset Editor Group Sizes")
+    await page.waitForTimeout(800)
+  }
+  return widths
 }
