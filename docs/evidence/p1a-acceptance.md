@@ -79,7 +79,7 @@ Node / Bun:      v26.7.0 / 1.3.10
 3. **结果库自测**：`tests/unit/e2e-results.test.ts` 覆盖 FAIL/缺失/NOT RUN/空结果 → 1。
 4. **源码缺陷由测试发现**：Grok 编写的 `host-store.test.ts` 暴露 `KvStore.clear` 漏掉已收到但尚未落盘的写入；已修复（`clear` 同时覆盖串行队列中的条目）。
 
-最终提交负向对照复跑：见 §8。
+最终提交负向对照复跑：[0a3c](runs/20260929-155045-p1a-chat-0a3c/results.json)，只有 question-answer FAIL，exit 1（§8）。
 
 ## 4. 未验证 / 阻塞（独立列出）
 
@@ -95,7 +95,7 @@ Node / Bun:      v26.7.0 / 1.3.10
 
 ## 5. 性能与泄漏（方法与结果）
 
-见 §8 的最终运行。方法：进程内存为本测试 profile 的进程按 Electron `--type` 汇总的 RSS；三个可见 webview 共用渲染进程，无法按面板拆分；macOS 内存压缩使 RSS 抖动（三面板可见时总量甚至低于空闲），因此只作趋势参考，不据此重写官方 UI。泄漏判据以宿主计数为准：打开的事件流数 ≤ 可见面板数；隐藏面板在途请求为 0、generation 为 0。
+结果见 §8。方法：进程内存为本测试 profile 的进程按 Electron `--type` 汇总的 RSS；三个可见 webview 共用渲染进程，无法按面板拆分；macOS 内存压缩使 RSS 抖动（三面板可见时总量甚至低于空闲），因此只作趋势参考，不据此重写官方 UI。泄漏判据以宿主计数为准：打开的事件流数 ≤ 可见面板数；隐藏面板在途请求为 0、generation 为 0。
 
 ## 6. 本轮修正的测试缺陷（均为测试侧，已修复）
 
@@ -118,7 +118,14 @@ Node / Bun:      v26.7.0 / 1.3.10
 
 ## 8. 最终提交上的补充运行
 
-（由集成人在文档提交前填写：负向对照复跑与性能基线的 runId。）
+| 运行 | 提交 | 结果 |
+| --- | --- | --- |
+| [负向对照 0a3c](runs/20260929-155045-p1a-chat-0a3c/results.json) | 1770ab1（干净；与 6ab04b6 代码相同，仅多文档） | 只有 question-answer FAIL（点击 red，记录 red，期望 blue），其余 7 项 PASS，exit 1 —— 断言能判错 |
+| [性能 7b77](runs/20260929-154922-perf-7b77/results.json) | 6ab04b6 + 未提交的文档改动（ocoDirty=true，代码未变） | no-stream-leak PASS（3 个可见面板，3 条事件流；被隐藏面板 0 条）；hidden-releases-requests PASS（隐藏面板在途 0） |
+
+性能数值（单次采样，仅供趋势参考）：新建会话到输入框可用 0.8–1.2 s；隐藏面板经命令面板重新显示 ≈1.8 s（其中约 1.8 s 为脚本在命令面板输入，面板挂载本身在输入结束后 7–150 ms 内出现输入框）；VS Code 本测试 profile 总 RSS：空闲 1244 MB，三面板可见 1340 MB（渲染进程 2 个共 711 MB），10 次隐藏/显示循环首末 1229 → 1096 MB，无增长趋势。
+
+失败的历史运行（保留，未混入通过记录）：[p1a-chat 7270](runs/20260929-153145-p1a-chat-7270/results.json)、[p1a-identity 2d7f](runs/20260929-153359-p1a-identity-2d7f/results.json)（提交 4e6603a，与干净 clone 构建并行运行）暴露了 §6 最后一条的等待竞态；修复后连续两轮全部通过。
 
 ## 9. 已知问题（进入 P1b / T010）
 

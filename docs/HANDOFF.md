@@ -2,7 +2,19 @@
 
 项目路径：`/Users/xiaojiang/Ai-Project/oco`。
 
-## 当前轮交接（2026-09-29 核查后）
+## 当前轮交接（2026-09-29，P1a 完成后）
+
+P1a 已完成（[验收记录](evidence/p1a-acceptance.md)、[ADR-005](adr/005-p1a-identity-storage-connection.md)）。下一轮是 P1b，提示词如下：
+
+```text
+在 /Users/xiaojiang/Ai-Project/oco 继续开发 P1b。先读 AGENTS.md、docs/PROGRESS.md、docs/adr/005-p1a-identity-storage-connection.md、docs/evidence/p1a-acceptance.md。
+
+保留 P1a 的协议 v2、桥策略、存储命名空间与两个上游补丁，不重写对话 UI。按顺序：T007 其余（managed 进程、多根工作区、可操作的错误状态）→ T008（宿主共享事件订阅、有界队列、重连快照）→ T009 会话侧栏与 T010 其余（主题、窄面板布局、加载状态、未知类型兜底）→ T011/T012。
+
+每个新能力先在 tests/e2e 增加能判错的用例（用 tests/e2e/lib/results.mjs，必需用例写进 REQUIRED），用 node tests/e2e/run.mjs 在干净提交上验收；单元测试放 tests/unit。简单独立的调查、机械修改和测试交给 Grok/Gemini 子代理并限定写入范围。系统剪贴板、中文输入法、Remote-SSH、团队服务仍需真实环境，缺失时标 NOT RUN/BLOCKED。不推送、不发布、不改外部服务。
+```
+
+## 上一轮交接（2026-09-29 核查后，已完成）
 
 P0 原型已经存在，下面“首轮实施提示词”仅保留为历史。**不要再执行 T001–T006 初始化。** 下一轮按 [P0 核查与 P1a 指示](P0-REVIEW-P1-INSTRUCTIONS.md) 第 5 节执行 P1a-00～04：可靠测试、请求生命周期、连接边界、单会话绑定与状态恢复。先关闭原型缺口，再铺开 P1b 功能。
 

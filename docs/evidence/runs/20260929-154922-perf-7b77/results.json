@@ -1,0 +1,200 @@
+{
+  "runId": "20260929-154922-perf-7b77",
+  "suite": "perf",
+  "startedAt": "2026-09-29T15:49:22.847Z",
+  "ocoCommit": "6ab04b68f808c4807299e7779bb2451f964b4e93",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "e764c6cb42a25ba0ddb8aaa78044598d4d80c6bc5ff4cc708af1859de5aab42a",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.139.1",
+  "vscodeProfile": "perf",
+  "method": "ps RSS summed per Electron --type of processes whose command line contains this test profile; webviews run in renderer processes",
+  "idle": {
+    "main": {
+      "processes": 1,
+      "mb": 219
+    },
+    "gpu-process": {
+      "processes": 1,
+      "mb": 92
+    },
+    "utility": {
+      "processes": 1,
+      "mb": 48
+    },
+    "renderer": {
+      "processes": 1,
+      "mb": 475
+    },
+    "utility:node(extHost)": {
+      "processes": 3,
+      "mb": 410
+    },
+    "totalMB": 1244
+  },
+  "oneGroupThreeTabs": {
+    "rss": {
+      "main": {
+        "processes": 1,
+        "mb": 168
+      },
+      "gpu-process": {
+        "processes": 1,
+        "mb": 74
+      },
+      "utility": {
+        "processes": 1,
+        "mb": 46
+      },
+      "renderer": {
+        "processes": 2,
+        "mb": 655
+      },
+      "utility:node(extHost)": {
+        "processes": 3,
+        "mb": 298
+      },
+      "totalMB": 1241
+    },
+    "visible": 1,
+    "streams": 1
+  },
+  "threeVisible": {
+    "visible": 3,
+    "streamsOpen": 3,
+    "rss": {
+      "main": {
+        "processes": 1,
+        "mb": 175
+      },
+      "gpu-process": {
+        "processes": 1,
+        "mb": 82
+      },
+      "utility": {
+        "processes": 1,
+        "mb": 45
+      },
+      "renderer": {
+        "processes": 2,
+        "mb": 711
+      },
+      "utility:node(extHost)": {
+        "processes": 3,
+        "mb": 327
+      },
+      "totalMB": 1340
+    }
+  },
+  "openMs": [
+    994,
+    804,
+    1170
+  ],
+  "reshowMs": [
+    {
+      "totalMs": 1847,
+      "afterPaletteMs": 24
+    },
+    {
+      "totalMs": 1885,
+      "afterPaletteMs": 44
+    },
+    {
+      "totalMs": 1824,
+      "afterPaletteMs": 18
+    },
+    {
+      "totalMs": 1814,
+      "afterPaletteMs": 9
+    },
+    {
+      "totalMs": 1839,
+      "afterPaletteMs": 28
+    },
+    {
+      "totalMs": 1986,
+      "afterPaletteMs": 150
+    },
+    {
+      "totalMs": 1816,
+      "afterPaletteMs": 15
+    },
+    {
+      "totalMs": 1804,
+      "afterPaletteMs": 7
+    },
+    {
+      "totalMs": 1842,
+      "afterPaletteMs": 11
+    },
+    {
+      "totalMs": 1801,
+      "afterPaletteMs": 9
+    }
+  ],
+  "rssTotalMBFirstVsLastCycle": [
+    1229,
+    1096
+  ],
+  "finishedAt": "2026-09-29T15:50:35.478Z",
+  "results": [
+    {
+      "id": "no-stream-leak",
+      "status": "PASS",
+      "detail": {
+        "visiblePanels": 3,
+        "openEventStreams": 3,
+        "perPanel": [
+          {
+            "visible": true,
+            "streamsOpen": 1,
+            "generations": 2,
+            "retired": 1
+          },
+          {
+            "visible": false,
+            "streamsOpen": 0,
+            "generations": 3,
+            "retired": 3
+          },
+          {
+            "visible": true,
+            "streamsOpen": 1,
+            "generations": 3,
+            "retired": 2
+          },
+          {
+            "visible": true,
+            "streamsOpen": 1,
+            "generations": 1,
+            "retired": 0
+          }
+        ]
+      },
+      "at": "2026-09-29T15:50:35.064Z"
+    },
+    {
+      "id": "hidden-releases-requests",
+      "status": "PASS",
+      "detail": {
+        "hiddenPanels": 1,
+        "inflight": [
+          0
+        ]
+      },
+      "at": "2026-09-29T15:50:35.064Z"
+    }
+  ],
+  "summary": {
+    "PASS": 2,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

@@ -1,0 +1,138 @@
+{
+  "runId": "20260929-155045-p1a-chat-0a3c",
+  "suite": "p1a-chat",
+  "startedAt": "2026-09-29T15:50:45.262Z",
+  "ocoCommit": "1770ab1dc6aa3d49c23bb2fadb3cdbc1dfe94089",
+  "ocoDirty": false,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "4df261c3e834dd2544ca00a1010e328b6340254f10f193bc308466a7835f18cc",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "negativeControl": "question: clicks red, expects blue",
+  "serverVersion": "1.18.33",
+  "vscodeVersion": "1.139.1",
+  "vscodeProfile": "p1a-chat",
+  "sessionId": "ses_f12236b2bffekQbHrpgbcsUAh5",
+  "hostPanels": [
+    {
+      "policy": {
+        "rejected": 5,
+        "verifiedChildren": 0
+      },
+      "core": {
+        "requests": 71,
+        "streamsOpen": 1,
+        "rejectedMessages": 0,
+        "rejectedRequests": 5,
+        "staleDropped": 0,
+        "retired": 0,
+        "generations": 1
+      }
+    }
+  ],
+  "finishedAt": "2026-09-29T15:52:23.747Z",
+  "results": [
+    {
+      "id": "stream-locked",
+      "status": "PASS",
+      "detail": {
+        "partId": "prt_0eddcbf91001Idxj0WQYhNfpnq",
+        "distinctSamplesWhileBusy": 18,
+        "samplesArePrefixes": true,
+        "monotonic": true,
+        "finalDomEqualsServer": true,
+        "serverChars": 3261,
+        "firstDiff": null
+      },
+      "at": "2026-09-29T15:51:07.164Z"
+    },
+    {
+      "id": "permission-bound",
+      "status": "PASS",
+      "detail": {
+        "requestId": "per_0eddcdcb6001G6TgrNLGvgGtaz",
+        "callId": "call_01a0eddcdc25770489196768",
+        "requestResolved": true,
+        "toolStatus": "completed",
+        "outputMatches": true,
+        "dockShowsCommand": true
+      },
+      "at": "2026-09-29T15:51:12.701Z"
+    },
+    {
+      "id": "question-answer",
+      "status": "FAIL",
+      "detail": {
+        "requestId": "que_0eddcf366001kDyJ6qj6i6tDCa",
+        "clicked": "red",
+        "expected": "blue",
+        "recordedAnswer": "red",
+        "negativeControl": true,
+        "attempts": 1
+      },
+      "at": "2026-09-29T15:51:18.042Z"
+    },
+    {
+      "id": "cancel-real",
+      "status": "PASS",
+      "detail": {
+        "buttonLabelBeforeClick": "Stop",
+        "messageId": "msg_0eddd004b0019e81djLmzvIgc3",
+        "error": "MessageAbortedError",
+        "finish": null,
+        "serverIdleAfterMs": 134,
+        "stoppedGrowing": true
+      },
+      "at": "2026-09-29T15:52:22.393Z"
+    },
+    {
+      "id": "policy-foreign-session",
+      "status": "PASS",
+      "detail": {
+        "status": 403,
+        "body": "{\"error\":\"oco: session not bound to this panel\"}",
+        "foreignStillBusy": true
+      },
+      "at": "2026-09-29T15:52:22.463Z"
+    },
+    {
+      "id": "policy-directory-override",
+      "status": "PASS",
+      "detail": {
+        "write": 403,
+        "read": 403
+      },
+      "at": "2026-09-29T15:52:22.469Z"
+    },
+    {
+      "id": "policy-unlisted-write",
+      "status": "PASS",
+      "detail": {
+        "configPatch": 403,
+        "ptyCreate": 403,
+        "configUnchanged": true
+      },
+      "at": "2026-09-29T15:52:22.504Z"
+    },
+    {
+      "id": "csp-violations",
+      "status": "PASS",
+      "detail": {
+        "count": 0,
+        "sample": []
+      },
+      "at": "2026-09-29T15:52:23.238Z"
+    }
+  ],
+  "summary": {
+    "PASS": 7,
+    "FAIL": 1,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "question-answer"
+  ]
+}

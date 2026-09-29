@@ -4,7 +4,7 @@ oco 是一个以 OpenCode 为执行引擎的 VS Code 扩展。
 
 产品形态：左侧管理会话和 Agent，在 VS Code 编辑器标签页中进行对话，通过设置和管理入口配置工作流。首选路线是 **VS Code 原生外壳 + 复用官方对话源码 + 有边界的宿主适配**。
 
-当前状态：**P0 可行性原型已完成并通过本地验证（远程未验证）**，结论见 [ADR-004](docs/adr/004-p0-decision.md)，运行记录见 [p0-spike](docs/evidence/p0-spike.md)。这是原型，不是可发布版本。
+当前状态：**P1a 已完成**：原型边界（面板身份、请求生命周期、连接与存储）已修复并在本地重新验收，见 [ADR-005](docs/adr/005-p1a-identity-storage-connection.md) 与 [P1a 验收记录](docs/evidence/p1a-acceptance.md)。远程与团队服务未验证。这是原型，不是可发布版本。
 
 ## 从这里开始
 
@@ -40,10 +40,26 @@ bun run build
 bash scripts/test-server.sh
 ```
 
-4. 用 VS Code 打开本仓库，以扩展开发宿主运行 `apps/extension`（或运行端到端测试 `node tests/e2e/t005.mjs`）。在开发宿主中把 `oco.serverUrl` 设为 `http://127.0.0.1:4517`，执行 `oco: Set Server Password`（密码在 `.oco-test/secret`），然后使用 `oco: New Session` / `oco: Open Session` / `oco: Add Selection to Session Draft`。
+4. 用 VS Code 打开本仓库，以扩展开发宿主运行 `apps/extension`。在开发宿主的**用户设置**（machine 作用域，工作区设置无效）中把 `oco.serverUrl` 设为 `http://127.0.0.1:4517`，执行 `oco: Set Server Password`（密码在 `.oco-test/secret`，只保存给该地址），然后使用 `oco: New Session` / `oco: Open Session` / `oco: Add Selection to Session Draft`。
+
+## 测试
+
+```bash
+bun run typecheck
+```
+
+```bash
+bun test tests/unit
+```
+
+端到端测试需要本机 VS Code 与第 3 步的测试服务，会启动独立 profile 的 VS Code 窗口；结果写入 `docs/evidence/runs/<runId>/`，任何失败或必需用例未执行都以非零退出：
+
+```bash
+node tests/e2e/run.mjs
+```
 
 ## 第一批工作
 
-P0（T001–T006）已完成。下一步是 T007 与 T010 的单会话嵌入模式，见 [PROGRESS](docs/PROGRESS.md)。
+P0（T001–T006）与 P1a 已完成。下一步是 P1b，见 [PROGRESS](docs/PROGRESS.md) 与 [HANDOFF](docs/HANDOFF.md)。
 
 产品名及仓库名为 `oco`。扩展 publisher、正式扩展 ID、发布渠道尚未确定，不能在计划阶段虚构归属。
