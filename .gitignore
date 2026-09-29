@@ -1,0 +1,16 @@
+node_modules/
+dist/
+out/
+*.vsix
+.oco-test/
+.dashboard/
+vendor/opencode/
+.vscode-test/
+test-results/
+apps/chat-webview/node_modules
+apps/extension/media/chat/
+apps/extension/dist/
+docs/evidence/p0-artifacts/*.png
+!docs/evidence/p0-artifacts/t004-*.png
+!docs/evidence/p0-artifacts/t005-*.png
+!docs/evidence/p0-artifacts/smoke-new-session.png

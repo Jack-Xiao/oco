@@ -1,0 +1,1 @@
+{ "compilerOptions": { "target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler", "strict": true, "lib": ["ES2022", "DOM", "DOM.Iterable"], "types": ["node", "vscode"], "skipLibCheck": true, "noEmit": true, "paths": { "@oco/contracts": ["../../packages/contracts/src/bridge.ts"] } }, "include": ["src"] }

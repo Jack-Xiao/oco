@@ -1,0 +1,39 @@
+diff --git a/packages/app/src/components/prompt-input-v2.tsx b/packages/app/src/components/prompt-input-v2.tsx
+index 481b792..9a37195 100644
+--- a/packages/app/src/components/prompt-input-v2.tsx
++++ b/packages/app/src/components/prompt-input-v2.tsx
+@@ -6,7 +6,7 @@ import { Icon } from "@opencode-ai/ui/v2/icon"
+ import { KeybindV2 } from "@opencode-ai/ui/v2/keybind-v2"
+ import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
+ import type { ReferenceInfo } from "@opencode-ai/sdk/v2/client"
+-import { createEffect, createMemo, on, Show } from "solid-js"
++import { createEffect, createMemo, on, onCleanup, Show } from "solid-js"
+ import { ModelSelectorPopoverV2 } from "@/components/dialog-select-model"
+ import { DialogSelectModelUnpaidV2 } from "@/components/dialog-select-model-unpaid-v2"
+ import type { PromptInputProps } from "@/components/prompt-input/contracts"
+@@ -90,6 +90,25 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
+   const language = useLanguage()
+   const platform = usePlatform()
+   const prompt = props.state ?? usePrompt()
++  // oco: host-driven draft insert. The VS Code host dispatches "oco:draft-insert" with plain
++  // text (e.g. an unsaved editor selection); it is appended to this composer's draft, never sent.
++  if (typeof window !== "undefined") {
++    const onOcoInsert = (event: Event) => {
++      const text = (event as CustomEvent<{ text?: string }>).detail?.text
++      if (!text) return
++      const parts = prompt.current()
++      const len = promptLength(parts)
++      const last = parts[parts.length - 1]
++      const next =
++        last && last.type === "text"
++          ? [...parts.slice(0, -1), { ...last, content: last.content + text, end: last.end + text.length }]
++          : [...parts, { type: "text" as const, content: text, start: len, end: len + text.length }]
++      prompt.set(next, len + text.length)
++    }
++    window.addEventListener("oco:draft-insert", onOcoInsert)
++    onCleanup(() => window.removeEventListener("oco:draft-insert", onOcoInsert))
++    queueMicrotask(() => window.dispatchEvent(new Event("oco:composer-ready")))
++  }
+   let editor: HTMLDivElement | undefined
+ 
+   const interaction = createPromptInputV2State()

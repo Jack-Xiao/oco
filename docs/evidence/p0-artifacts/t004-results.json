@@ -1,0 +1,51 @@
+{
+  "at": "2026-09-29T13:09:20.163Z",
+  "results": [
+    {
+      "id": "stream",
+      "status": "PASS",
+      "detail": {
+        "distinctRenderSteps": 7,
+        "firstMs": 3,
+        "lastMs": 4132,
+        "serverTextChars": 471,
+        "finish": "stop"
+      }
+    },
+    {
+      "id": "tool+permission",
+      "status": "PASS",
+      "detail": {
+        "pendingBeforeClick": 1,
+        "toolStatus": "completed",
+        "outputHasMarker": true
+      }
+    },
+    {
+      "id": "question",
+      "status": "PASS",
+      "detail": {
+        "toolStatus": "completed",
+        "answerHasBlue": true
+      }
+    },
+    {
+      "id": "cancel",
+      "status": "PASS",
+      "detail": {
+        "error": "MessageAbortedError",
+        "serverIdleAfterMs": 141,
+        "textStoppedGrowing": true,
+        "charsAtStop": 17447
+      }
+    },
+    {
+      "id": "csp-violations",
+      "status": "PASS",
+      "detail": {
+        "count": 0,
+        "sample": []
+      }
+    }
+  ]
+}
