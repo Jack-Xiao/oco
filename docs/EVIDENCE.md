@@ -55,4 +55,4 @@
 - `docs/evidence/acceptance-<date>.md`：验收矩阵及支持范围。
 - `docs/adr/001-service-contract.md` 到 `004-p0-decision.md`：由实际实验形成的决定。
 
-这些路径目前是计划位置，不存在不代表文档丢失；对应任务开始后创建。
+P0 已创建：`environment.md`、`upstream.md`、`p0-spike.md`、`p0-artifacts/`，以及 `docs/adr/001`–`004`。`acceptance-<date>.md` 在 T017 创建。

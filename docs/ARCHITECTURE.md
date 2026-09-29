@@ -1,6 +1,6 @@
 # oco 架构与边界
 
-状态：设计候选。所有拟议模块、接口和目录均未实现；P0 后通过 ADR 固定具体做法。
+状态：P0 已按 ADR-002/003 实现最小子集（apps/extension、apps/chat-webview、packages/contracts、patches/opencode）；其余模块仍为拟议。
 
 ## 1. 进程划分
 
