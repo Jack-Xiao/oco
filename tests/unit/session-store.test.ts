@@ -422,3 +422,15 @@ describe("SessionStore seen ids", () => {
     expect(only(store).title).toBe("accepted-again")
   })
 })
+
+describe("SessionStore.limitReached", () => {
+  test("follows the last snapshot and defaults to false", () => {
+    const store = new SessionStore(() => true)
+    const base = { sessions: [], status: {}, permissions: [], questions: [] }
+    expect(store.limitReached).toBe(false)
+    store.applySnapshot({ ...base, rootLimitReached: true })
+    expect(store.limitReached).toBe(true)
+    store.applySnapshot(base)
+    expect(store.limitReached).toBe(false)
+  })
+})

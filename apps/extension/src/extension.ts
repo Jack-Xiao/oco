@@ -36,6 +36,8 @@ export function activate(context: vscode.ExtensionContext) {
     onChange: () => view.refresh(),
     onState: (st) => view.setConnection(st),
     log: (m) => log.info(m),
+    // E2E hook for a silent stall (proxy holds the stream but forwards nothing), outside production only.
+    stallMs: context.extensionMode !== vscode.ExtensionMode.Production && Number(process.env.OCO_DEV_STALL_MS) > 0 ? Number(process.env.OCO_DEV_STALL_MS) : undefined,
   })
   panels.onChange = () => view.refresh()
   context.subscriptions.push(view, { dispose: () => feed.stop() })
@@ -173,7 +175,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
     vscode.commands.registerCommand("oco.searchSessions", async () => {
-      const q = await vscode.window.showInputBox({ prompt: "按标题或 ID 搜索会话（留空清除）", value: view.search })
+      const q = await vscode.window.showInputBox({ prompt: "在已加载的最近 200 个会话中按标题或 ID 搜索（留空清除）", value: view.search })
       if (q !== undefined) view.setSearch(q)
     }),
     vscode.commands.registerCommand("oco.clearSearch", () => view.setSearch("")),

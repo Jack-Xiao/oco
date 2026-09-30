@@ -21,6 +21,8 @@ export type Snapshot = {
   status: Record<string, ServerStatus>
   permissions: PendingRequest[]
   questions: PendingRequest[]
+  /** The root list came back full (server page = the feed's limit): older sessions were not loaded. */
+  rootLimitReached?: boolean
 }
 export type ServerEvent = { id?: string; type: string; properties?: Record<string, unknown> }
 
@@ -33,12 +35,15 @@ export class SessionStore {
   private seen = new Set<string>() // recent event ids (bounded), for duplicate delivery
   private static readonly SEEN_MAX = 1024
   readonly stats = { snapshots: 0, events: 0, duplicates: 0, ignored: 0 }
+  /** Last snapshot hit the root limit: the list and its search cover only the most recent sessions. */
+  limitReached = false
 
   /** Only sessions for which this returns true are kept (workspace ownership). */
   constructor(private readonly owns: (directory: string) => boolean) {}
 
   applySnapshot(s: Snapshot) {
     this.stats.snapshots++
+    this.limitReached = !!s.rootLimitReached
     const rows = new Map<string, Row>()
     for (const session of s.sessions) {
       if (!session?.id || !this.owns(session.directory) || session.time?.archived) continue

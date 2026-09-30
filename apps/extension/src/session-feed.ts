@@ -147,7 +147,11 @@ export class SessionFeed {
       if (token !== this.token) return
       if (e instanceof HttpError && e.status === 401) {
         this.d.log?.(`feed: unauthorized`)
+        // A 401 can also come from a snapshot request while /event is open: close it and its
+        // watchdog, otherwise it keeps buffering and its end or stall would retry anyway.
+        abort.abort()
         this.abort = undefined
+        this.clear()
         return this.set({ state: "unauthorized", error: `认证失败（${ep.origin}），请执行 oco: Set Server Password`, retryAt: undefined })
       }
       this.fail(token, e)
@@ -181,6 +185,7 @@ export class SessionFeed {
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
     const armStall = () => {
+      if (token !== this.token || abort.signal.aborted) return
       this.clearT(this.stallTimer)
       this.stallTimer = this.timer(() => {
         if (token !== this.token) return
@@ -192,7 +197,7 @@ export class SessionFeed {
     const pump = (async () => {
       for (;;) {
         const { done, value } = await reader.read()
-        if (token !== this.token) return
+        if (token !== this.token || abort.signal.aborted) return
         if (done) throw new Error("事件流已结束")
         armStall()
         for (const e of parser.push(decoder.decode(value, { stream: true }))) {
@@ -232,7 +237,7 @@ export class SessionFeed {
       }
     }
     if (token !== this.token) return
-    this.d.store.applySnapshot({ sessions: [...sessions.values()], status: status ?? {}, permissions: permissions ?? [], questions: questions ?? [] })
+    this.d.store.applySnapshot({ sessions: [...sessions.values()], status: status ?? {}, permissions: permissions ?? [], questions: questions ?? [], rootLimitReached: (roots ?? []).length >= SessionFeed.ROOT_LIMIT })
     for (const e of buffered.splice(0)) this.d.store.applyEvent(e)
     live = true
     this.stats.connects++

@@ -1,8 +1,15 @@
 diff --git a/packages/app/src/components/prompt-input/submit.ts b/packages/app/src/components/prompt-input/submit.ts
-index c82c3a4..1ec4165 100644
+index c82c3a4..d705f00 100644
 --- a/packages/app/src/components/prompt-input/submit.ts
 +++ b/packages/app/src/components/prompt-input/submit.ts
-@@ -9,6 +9,7 @@ import { useServerSync, type ServerSync } from "@/context/server-sync"
+@@ -3,12 +3,13 @@ import { showToast } from "@/utils/toast"
+ import { base64Encode } from "@opencode-ai/core/util/encode"
+ import { Binary } from "@opencode-ai/core/util/binary"
+ import { useNavigate, useParams, useSearchParams } from "@solidjs/router"
+-import { batch, startTransition, type Accessor } from "solid-js"
++import { batch, createEffect, startTransition, type Accessor } from "solid-js"
+ import { useTabs } from "@/context/tabs"
+ import { useServerSync, type ServerSync } from "@/context/server-sync"
  import { useLanguage } from "@/context/language"
  import { useLayout } from "@/context/layout"
  import { useLocal, type ModelSelection } from "@/context/local"
@@ -10,16 +17,42 @@ index c82c3a4..1ec4165 100644
  import { usePermission } from "@/context/permission"
  import { type ContextItem, type ImageAttachmentPart, type Prompt, type usePrompt } from "@/context/prompt"
  import { useSDK, type DirectorySDK } from "@/context/sdk"
-@@ -237,6 +238,8 @@ export function createPromptSubmit(input: PromptSubmitInput) {
+@@ -31,6 +32,19 @@ type PendingPrompt = {
+ 
+ const pending = new Map<string, PendingPrompt>()
+ 
++// oco: identity of what the user submitted (parts incl. images, context items, comments, mode).
++const ocoDraftKey = (target: ReturnType<ReturnType<typeof usePrompt>["capture"]>, comments: number, mode: string) =>
++  JSON.stringify([target.current(), target.context.items().map((item) => item.key), comments, mode], (_key, value) =>
++    value instanceof Blob ? `blob:${value.size}:${value.type}` : value,
++  )
++
++// oco: the host page shows these states (apps/chat-webview/src/submit-status.ts).
++const ocoSubmitState = (state: "waiting" | "ready" | "cancel" | "draft" | "timeout") => {
++  if (state === "waiting") document.documentElement.dataset.ocoSubmitPending = "model"
++  else delete document.documentElement.dataset.ocoSubmitPending
++  window.dispatchEvent(new CustomEvent("oco:submit-state", { detail: { state } }))
++}
++
+ export type FollowupDraft = {
+   sessionID: string
+   sessionDirectory: string
+@@ -237,7 +251,14 @@ export function createPromptSubmit(input: PromptSubmitInput) {
    const sync = useSync()
    const serverSync = useServerSync()
    const local = useLocal()
 +  const platform = usePlatform()
-+  let waitingForModel = false
++  let pendingSend: { cancelled: "" | "cancel" | "draft" } | undefined
    const permission = usePermission()
++  if (platform.embedded)
++    createEffect(() => {
++      const ready = !!(input.model ?? local.model).current() && !!local.agent.current()
++      document.documentElement.dataset.ocoModel = ready ? "ready" : "loading"
++    })
    const prompt = input.prompt
    const layout = useLayout()
-@@ -336,8 +339,26 @@ export function createPromptSubmit(input: PromptSubmitInput) {
+   const language = useLanguage()
+@@ -336,8 +357,55 @@ export function createPromptSubmit(input: PromptSubmitInput) {
      }
  
      const modelSelection = input.model ?? local.model
@@ -27,23 +60,52 @@ index c82c3a4..1ec4165 100644
 -    const currentAgent = local.agent.current()
 +    let currentModel = modelSelection.current()
 +    let currentAgent = local.agent.current()
-+    // oco: an embedded panel can be submitted before the directory's agents/providers have loaded;
-+    // wait for them briefly (once) instead of rejecting the prompt.
++    // oco: an embedded panel can be submitted before the directory's agents/providers have loaded.
++    // Hold ONE pending send instead of rejecting it. It fires only if, when the model arrives, the draft
++    // is still exactly what was submitted; editing the draft, Escape or the page's cancel button
++    // (oco:submit-cancel) drops it and keeps the draft. Submitting again while pending does nothing.
 +    if ((!currentModel || !currentAgent) && platform.embedded) {
-+      if (waitingForModel) return
-+      waitingForModel = true
-+      document.documentElement.dataset.ocoSubmitPending = "model"
++      if (pendingSend) return
++      const snapshot = () => ocoDraftKey(target, input.commentCount(), input.mode())
++      const submitted = snapshot()
++      const intent: { cancelled: "" | "cancel" | "draft" } = (pendingSend = { cancelled: "" })
++      const onCancel = () => {
++        intent.cancelled ||= "cancel"
++      }
++      const onKey = (e: KeyboardEvent) => {
++        if (e.key !== "Escape" || e.isComposing) return
++        e.preventDefault()
++        e.stopPropagation()
++        onCancel()
++      }
++      window.addEventListener("oco:submit-cancel", onCancel)
++      window.addEventListener("keydown", onKey, true)
++      ocoSubmitState("waiting")
++      let outcome: "ready" | "cancel" | "draft" | "timeout" = "timeout"
 +      try {
 +        const end = Date.now() + 20000
-+        while ((!currentModel || !currentAgent) && Date.now() < end) {
++        while (Date.now() < end) {
 +          await new Promise((r) => setTimeout(r, 200))
++          // Checked in the same tick as the model below: nothing can change the draft in between.
++          if (!intent.cancelled && snapshot() !== submitted) intent.cancelled = "draft"
++          if (intent.cancelled) {
++            outcome = intent.cancelled
++            break
++          }
 +          currentModel = modelSelection.current()
 +          currentAgent = local.agent.current()
++          if (currentModel && currentAgent) {
++            outcome = "ready"
++            break
++          }
 +        }
 +      } finally {
-+        waitingForModel = false
-+        delete document.documentElement.dataset.ocoSubmitPending
++        pendingSend = undefined
++        window.removeEventListener("oco:submit-cancel", onCancel)
++        window.removeEventListener("keydown", onKey, true)
 +      }
++      ocoSubmitState(outcome)
++      if (outcome === "cancel" || outcome === "draft") return
 +    }
      const variant = modelSelection.variant.current()
      if (!currentModel || !currentAgent) {

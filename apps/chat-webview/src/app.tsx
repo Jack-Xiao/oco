@@ -19,6 +19,7 @@ import { createMemoryHistory, MemoryRouter, type BaseRouterProps } from "@solidj
 import { render } from "solid-js/web"
 import { blobGet, blobPut, bridgeFetch, currentGeneration, draftAck, hostStorage, init, onDraftInsert, ready, ui, vscode } from "./bridge"
 import { storageStats } from "./local-storage"
+import { installSubmitStatus, submitStats } from "./submit-status"
 import { themeStats } from "./theme"
 
 const root = document.getElementById("root")!
@@ -163,6 +164,8 @@ render(
   root,
 )
 
+installSubmitStatus()
+
 // Inspection hooks for tests: page code already has these capabilities, so exposing them grants nothing new.
 ;(window as unknown as { __OCO_DEBUG__: unknown }).__OCO_DEBUG__ = {
   fetch: bridgeFetch,
@@ -171,6 +174,7 @@ render(
   generation: currentGeneration,
   storage: storageStats,
   theme: themeStats,
+  submit: submitStats,
 }
 
 vscode.setState({ binding: bound })

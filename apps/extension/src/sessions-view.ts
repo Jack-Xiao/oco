@@ -3,7 +3,7 @@ import type { ConnectionSummary, SessionActivity, SessionListItem } from "@oco/c
 import type { SessionStore } from "./session-store"
 
 export const SESSIONS_VIEW = "oco.sessions"
-const MAX_ITEMS = 200
+export const MAX_ITEMS = 200 // = SessionFeed.ROOT_LIMIT
 
 const ACTIVITY: Record<SessionActivity, { label: string; icon: string; color?: string }> = {
   idle: { label: "", icon: "comment-discussion" },
@@ -117,7 +117,11 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
     if (s?.state === "reconnecting") message = `连接中断，正在重连（第 ${s.attempt} 次）……列表可能不是最新。${s.error ? `原因：${s.error}` : ""}`
     else if (s?.state === "error") message = `无法连接 ${s.label}：${s.error ?? ""}`
     else if (s?.state === "unauthorized" || s?.state === "unconfigured") message = s.error
-    else if (all.length > MAX_ITEMS) message = `仅显示最近 ${MAX_ITEMS} 个会话，其余请用搜索查找。`
+    // The feed loads at most MAX_ITEMS root sessions and search runs on that loaded list only.
+    else if (this.store.limitReached || all.length > MAX_ITEMS)
+      message = this.query
+        ? `搜索只在已加载的最近 ${MAX_ITEMS} 个会话中进行，更早的会话不会出现在结果里。`
+        : `只加载了最近 ${MAX_ITEMS} 个会话，搜索也只覆盖这些会话。`
     this.view.message = message
     this.view.badge = waiting ? { value: waiting, tooltip: `${waiting} 个会话等待你处理` } : undefined
 

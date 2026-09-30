@@ -684,3 +684,105 @@ describe("SessionFeed", () => {
     expect(h.feed.stats.attempts).toBe(0)
   })
 })
+
+describe("SessionFeed: stale attempts and limits", () => {
+  const dir = "/work"
+  const roots = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `s${i}`, directory: dir, title: `S${i}`, time: { updated: i } }))
+
+  test("401 on a snapshot request while /event is open closes the stream and leaves no timers", async () => {
+    const h = harness({ directory: dir })
+    const stream = openStream()
+    let eventSignal: AbortSignal | undefined
+    let eventCalls = 0
+    h.handle = (url, init) => {
+      if (url.includes("/event")) {
+        eventCalls++
+        eventSignal = init.signal as AbortSignal
+        return new Response(stream.stream, { status: 200 })
+      }
+      if (url.includes("/session?")) return new Response("", { status: 401 })
+      const res = routeSnapshot(url, {})
+      if (!res) throw new Error(url)
+      return res
+    }
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "unauthorized", h, "snapshot 401")
+      expect(eventSignal?.aborted).toBe(true)
+      expect(h.timers).toHaveLength(0)
+      // A late event or the end of the old stream neither changes the store nor schedules a retry.
+      stream.push(sse({ id: "e1", type: "session.created", properties: { info: { id: "late", directory: dir, title: "Late", time: { updated: 5 } } } }))
+      stream.close()
+      for (let i = 0; i < 5; i++) await flush()
+      expect(h.store.list()).toEqual([])
+      expect(h.timers).toHaveLength(0)
+      expect(h.feed.state.state).toBe("unauthorized")
+      expect(eventCalls).toBe(1)
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("a superseded attempt whose /event resolves late does not disarm the new attempt's watchdog", async () => {
+    const h = harness({ directory: dir, stallMs: 5000 })
+    const firstEvent = defer<Response>()
+    const late = openStream()
+    const live = openStream()
+    let eventRound = 0
+    h.handle = (url) => {
+      if (url.includes("/event")) {
+        eventRound++
+        if (eventRound === 1) return firstEvent.promise
+        return new Response(live.stream, { status: 200 })
+      }
+      const res = routeSnapshot(url, { sessions: roots(1) })
+      if (!res) throw new Error(url)
+      return res
+    }
+    try {
+      h.feed.start()
+      await until(() => eventRound === 1, h, "first /event")
+      h.feed.restart()
+      await until(() => h.feed.state.state === "connected", h, "second attempt connected")
+      expect(h.timers.filter((t) => t.ms === 5000)).toHaveLength(1)
+      // The first attempt's response arrives after it was superseded (the fake ignores the abort).
+      firstEvent.resolve(new Response(late.stream, { status: 200 }))
+      for (let i = 0; i < 5; i++) await flush()
+      const watchdogs = h.timers.filter((t) => t.ms === 5000)
+      expect(watchdogs).toHaveLength(1)
+      watchdogs[0].fn()
+      expect(h.feed.stats.stalls).toBe(1)
+      expect(h.feed.state.state).toBe("reconnecting")
+    } finally {
+      late.close()
+      live.close()
+      h.feed.stop()
+    }
+  })
+
+  for (const [n, reached] of [
+    [200, true],
+    [199, false],
+  ] as const) {
+    test(`${n} root sessions from the server set limitReached=${reached}`, async () => {
+      const h = harness({ directory: dir })
+      const stream = openStream()
+      h.handle = (url) => {
+        if (url.includes("/event")) return new Response(stream.stream, { status: 200 })
+        const res = routeSnapshot(url, { sessions: roots(n) })
+        if (!res) throw new Error(url)
+        return res
+      }
+      try {
+        h.feed.start()
+        await until(() => h.feed.state.state === "connected", h, "connected")
+        expect(h.store.limitReached).toBe(reached)
+        expect(h.calls.some((c) => c.url.includes(`limit=${SessionFeed.ROOT_LIMIT}`))).toBe(true)
+      } finally {
+        stream.close()
+        h.feed.stop()
+      }
+    })
+  }
+})
