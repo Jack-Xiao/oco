@@ -6,7 +6,7 @@
 
 - 协议升到 v2（`packages/contracts/src/bridge.ts`）。每个 webview 文档启动时发 `hello{docId}`，宿主分配全进程唯一的 generation，回 `welcome`；此后双方消息都带 generation。
 - 宿主只接受面板当前 generation 的消息；请求以 `(generation, id)` 为键，回包带请求创建时的 generation；`finally` 只在表项仍是自己时才删除。
-- 面板隐藏（`retainContextWhenHidden:false` 时文档被销毁）或新 `hello` 到来时 `retire()`：中止该面板全部请求与事件流，旧文档后续消息一律丢弃。
+- 新 `hello` 到来（页面重载）或面板关闭时 `retire()`：中止该面板全部请求与事件流，旧文档后续消息一律丢弃。（2026-09-30 修订，见 ADR-007：面板改为 `retainContextWhenHidden:true`，隐藏不再销毁文档，也不再 retire。）
 - 实现在纯模块 `apps/extension/src/bridge-core.ts`（无 vscode 依赖），单元测试覆盖“旧 SSE 未结束时新文档复用同一序号”的负向夹具，并做了变异测试（见验收记录）。
 
 ## 2. 单会话绑定（P1a-01）
@@ -47,7 +47,7 @@
 | --- | --- |
 | 停止按钮 / Escape | 官方应用调用绑定会话的 abort，服务端停止运行 |
 | 关闭标签页 | 只释放该面板的请求与事件流；服务端运行继续 |
-| 隐藏标签页 | 文档销毁，generation 退役；再次显示重新挂载并恢复草稿 |
+| 隐藏标签页 | 文档保持存活，generation 与事件流不变；隐藏期间排队的草稿在再次显示时投递（2026-09-30 起，见 ADR-007） |
 | Reload Window | 新激活；可见面板由序列化器自动恢复，隐藏面板在显示时恢复；草稿从宿主恢复 |
 | 扩展停用 | 不停止任何服务（只支持 attached） |
 

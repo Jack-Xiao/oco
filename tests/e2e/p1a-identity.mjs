@@ -17,7 +17,7 @@ const REQUIRED = [
   "draft-after-attacks",
   "forged-draft-rejected",
   "permission-after-attacks",
-  "hide-retires-generation",
+  "hide-keeps-document",
   "reload-auto-restore",
   "close-specific-tab",
   "image-bytes",
@@ -324,13 +324,14 @@ try {
     toolStatus: tool?.state?.status,
   })
 
-  // 8. Hide -> generation retired, streams closed; show -> new generation, draft restored.
+  // 8. Hide -> document kept alive (retainContextWhenHidden): same generation while hidden and after
+  //    showing again, no reload, unsent draft still in the composer.
   await openSession(C)
   const fC2 = await frameFor(C)
   await type(fC2, "unsent-draft-CHARLIE")
   await sleep(1500) // draft persistence is debounced by the page
   const cBefore = (await state()).panels.find((p) => p.sessionId === C)
-  // A new session opens in the active group (C's) and hides C: its document is destroyed.
+  // A new session opens in the active group (C's) and hides C; its document must survive.
   await command(page, "oco: New Session")
   await sleep(4000)
   const cHidden = (await state()).panels.find((p) => p.sessionId === C)
@@ -339,8 +340,8 @@ try {
   await ready(fC3)
   const cShown = (await state()).panels.find((p) => p.sessionId === C)
   const cDraft = await composer(fC3)
-  run.record("hide-retires-generation", !cHidden.visible && cHidden.generation === 0 && cHidden.inflight === 0 && cShown.generation > cBefore.generation && cDraft.includes("unsent-draft-CHARLIE") ? "PASS" : "FAIL", {
-    hidden: { visible: cHidden.visible, generation: cHidden.generation, inflight: cHidden.inflight, retired: cHidden.core.retired },
+  run.record("hide-keeps-document", !cHidden.visible && cHidden.ready && cHidden.generation === cBefore.generation && cShown.generation === cBefore.generation && cDraft.includes("unsent-draft-CHARLIE") ? "PASS" : "FAIL", {
+    hidden: { visible: cHidden.visible, ready: cHidden.ready, generation: cHidden.generation, retired: cHidden.core.retired },
     generationBefore: cBefore.generation,
     generationAfterShow: cShown.generation,
     draftRestored: cDraft.includes("unsent-draft-CHARLIE"),

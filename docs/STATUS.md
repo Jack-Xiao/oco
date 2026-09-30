@@ -8,6 +8,13 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
+## 面板保持存活（ADR-007 第 1 步，2026-09-30；验证运行于 main `3036c00` + 本批未提交改动）
+
+- 用户反馈：每次切换编辑器 tab 回到聊天都要重新加载。原因：`retainContextWhenHidden:false`，隐藏即销毁文档，再显示时冷启动。
+- 改动：面板改为 `retainContextWhenHidden:true`；隐藏不再 retire generation，也不关闭事件流；草稿在面板再次可见时投递。ADR-005 第 1、6 节已修订；新 [ADR-007](adr/007-single-main-panel.md)（单主面板在面板内切换会话，第 2–4 步待实施）。
+- 检查（mock 模型）：typecheck PASS；unit 140/140；构建 PASS；E2E `p1a-identity` 14/14（`hide-retires-generation` 改为 `hide-keeps-document`：隐藏和再显示时 generation 不变，草稿仍在）；`p1b-pending-send`、`p1b-switch-pending` exit 0；`t010-recover` 首轮 3/5，两个失败用例的前提是“隐藏即重建”，已改为用 `Developer: Reload Webviews` 重建文档、在关闭前先显示旧面板，重跑 5/5。
+- 未运行：其余 E2E 套件、真实模型；常驻内存未测量。
+
 ## C1 焦点收尾 + T010 错误恢复（提交 `3e67fc7`，合并入 main，2026-09-30；验证运行于合并前的分支，基线 `33433bb` + 当时未提交的 mock 测试改动）
 
 全部 E2E 用脚本模型（`OCO_E2E_MODEL=mock`），证明 UI/宿主行为，不证明真实模型链路。详情与运行 ID：[证据](evidence/c1-focus-t010-recovery.md)。

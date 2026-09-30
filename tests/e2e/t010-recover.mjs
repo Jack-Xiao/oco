@@ -105,12 +105,11 @@ try {
     await command(page, "View: Focus First Editor Group")
     await command(page, "View: Open First Editor in Group")
   }
-  /** Hide the chat behind another editor in its group, then show it: the webview document is recreated. */
+  /** Recreate the chat's webview document (panels are retainContextWhenHidden, so hiding no longer does). */
   const reshow = async () => {
-    await command(page, "View: Focus First Editor Group")
-    await command(page, "File: New Untitled Text File")
-    await sleep(1000)
     await showChat()
+    await command(page, "Developer: Reload Webviews")
+    await sleep(1000)
   }
   const newPanel = async () => {
     const before = new Set((await Promise.all((await chatFrames(page)).map((f) => frameSession(f).catch(() => null)))).filter(Boolean))
@@ -282,7 +281,8 @@ try {
     await sleep(3000)
     const freshState = fresh ? await panel(page, fresh) : null
     const freshMessages = fresh ? (await messages(fresh)).length : null
-    // Close Panel closes the stale one.
+    // Close Panel closes the stale one (kept alive behind the new session's tab: bring it to the front first).
+    await showChat()
     const stale = await panel(page, gone)
     if (stale) await stale.f.locator('[data-oco-action="closePanel"]').click()
     const closed = await waitFor(async () => ((await panel(page, gone)) ? null : true), 10000)

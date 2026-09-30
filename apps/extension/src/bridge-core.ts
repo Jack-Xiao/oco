@@ -5,7 +5,7 @@
 //   in-flight request of the previous generation (aborted, never answered to the new document).
 // - Requests are keyed by (generation, id) and remember their own AbortController; replies carry the
 //   generation the request was created under; cleanup only removes the entry if it is still the same one.
-// - `retire()` (panel hidden -> document destroyed, or disposed) aborts everything and accepts no
+// - `retire()` (document replaced by a reload, or panel disposed) aborts everything and accepts no
 //   messages until the next `hello`.
 import {
   bridgeTarget,

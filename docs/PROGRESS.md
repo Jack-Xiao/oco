@@ -4,6 +4,18 @@
 
 更新时间：2026-09-30（P1b 稳定性收尾后）。
 
+## 面板保持存活 — ADR-007 第 1 步（2026-09-30）
+
+```text
+日期 / 负责人: 2026-09-30 / 集成 AI（Claude Code 主线程），未委派
+领取任务与写入范围: 切换编辑器 tab 回来要重新加载 → 面板保持存活。apps/extension/src/{panels.ts,bridge-core.ts}；tests/e2e/{p1a-identity,t010-recover}.mjs；docs/adr/{005,007}
+已完成行为: retainContextWhenHidden:true；隐藏不 retire；再次可见时投递草稿
+已运行检查及结果: typecheck PASS；unit 140/140；构建 PASS；mock E2E p1a-identity 14/14、p1b-pending-send exit 0、p1b-switch-pending exit 0、t010-recover 5/5（首轮 3/5，测试前提修正后重跑）
+未运行/被阻塞检查: 其余 E2E、真实模型 NOT RUN；内存占用未测
+证据与 ADR: docs/evidence/runs/20260930-13*；ADR-007（新）、ADR-005 修订
+下一批任务: ADR-007 第 2–4 步（单主面板在面板内切换、侧栏“在新面板打开”）
+```
+
 ## C1 路径加固 + 点击补点（2026-09-30）
 
 ```text

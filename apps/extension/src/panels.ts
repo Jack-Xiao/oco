@@ -88,7 +88,9 @@ export class PanelRegistry {
     }
     const panel = vscode.window.createWebviewPanel(VIEW_TYPE, title ?? "OpenCode", { viewColumn: column, preserveFocus: !focus }, {
       enableScripts: true,
-      retainContextWhenHidden: false, // restore from host state/drafts instead of keeping every app alive
+      // Keep the app alive while its tab is hidden: a destroyed document means a full cold boot (bundle,
+      // bridge handshake, session sync) on every tab switch. Memory is bounded by the few open panels.
+      retainContextWhenHidden: true,
       localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, "media")],
     })
     return this.attach(panel, binding, title)
@@ -203,12 +205,9 @@ export class PanelRegistry {
       if (entry.focusTrace) entry.focusTrace.push(`${Date.now() % 100000} panel.active=${e.webviewPanel.active}`)
       if (e.webviewPanel.active && entry.openedAt !== undefined && Date.now() - entry.openedAt < 1000) entry.stats.lateActivations++
       if (e.webviewPanel.active) this.lastActive = key
-      // retainContextWhenHidden=false: a hidden webview's document is destroyed. Retire its generation
-      // so its streams close now and nothing it sends late is accepted.
-      if (!e.webviewPanel.visible) {
-        entry.ready = false
-        entry.bridge.core.retire()
-      }
+      // retainContextWhenHidden: a hidden document stays alive with its generation and streams; drafts
+      // queued while it was hidden are delivered once it shows again.
+      if (e.webviewPanel.visible) this.flushDrafts(entry)
     })
     panel.onDidDispose(() => {
       entry.bridge.dispose() // aborts this panel's requests/streams only; the session keeps running on the server
