@@ -289,7 +289,7 @@ try {
     await runShot(page, run, "session-deleted-after")
     const ok =
       shown && !shown.actions.includes("retry") && ["showSessions", "newSession", "closePanel"].every((a) => shown.actions.includes(a)) &&
-      !leaks(shown).length && loopRequests <= 1 && /oco|会话|sessions/i.test(sidebar) &&
+      !leaks(shown).length && loopRequests <= 1 && /oco|opencode|会话|sessions/i.test(sidebar) &&
       fresh && freshState?.draft === "" && freshMessages === 0 && closed
     run.record("session-deleted", ok ? "PASS" : "FAIL", {
       shown: brief(shown),

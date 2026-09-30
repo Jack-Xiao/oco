@@ -58,6 +58,9 @@ async function frameFor(sid) {
 }
 const row = (title) => page.locator(`.part.sidebar .monaco-list-row[aria-label^="${title}"]`).first()
 const titleAction = (label) => page.locator(`.part.sidebar .title-actions [aria-label^="${label}"], .part.sidebar .actions-container [aria-label^="${label}"]`).first()
+// With Sessions and Agents in one container, VS Code shows a view's title actions only while its header is
+// hovered or focused: reveal them before using them.
+const revealSessionsActions = () => page.locator(".part.sidebar .pane-header", { hasText: "Sessions" }).first().hover().catch(() => {})
 const composer = async (f) => (await f.locator('[data-component="prompt-input"]').innerText()).trim()
 async function type(f, text, send = false) {
   const input = f.locator('[data-component="prompt-input"]')
@@ -77,6 +80,7 @@ async function sidebarItem(id) {
 }
 /** The newest session created after `known`, once its panel has a composer. */
 async function newSessionFromPlus(known) {
+  await revealSessionsActions()
   await titleAction("New Session").click()
   return until(async () => {
     for (const f of await chatFrames(page)) {
@@ -147,6 +151,7 @@ try {
   // 4. Search via the title action; clear via the clear action.
   {
     const total = (await sidebar()).items.length
+    await revealSessionsActions()
     await titleAction("Search Sessions").click()
     await sleep(600)
     await page.keyboard.type(rand)
@@ -157,6 +162,7 @@ try {
     })
     const rowVisible = await row(newTitle).isVisible().catch(() => false)
     await runShot(page, run, "4-search")
+    await revealSessionsActions()
     await titleAction("Clear Session Search").click()
     const cleared = await until(async () => {
       const sb = await sidebar()
@@ -392,6 +398,7 @@ try {
     return s.connection?.state === "connected" ? s : undefined
   }, 30000)
   const trusted = (await hostState(page, stateFile)).trusted
+  await revealSessionsActions()
   const plus = titleAction("New Session")
   const plusDisabled = await plus.evaluate((el) => el.classList.contains("disabled") || el.getAttribute("aria-disabled") === "true").catch(() => null)
   const framesBefore = (await chatFrames(page)).length
