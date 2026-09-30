@@ -1,6 +1,6 @@
 # 连接设置子集（T014）+ C2 验证收尾 + T010 有限检查
 
-基线 HEAD `b393df6` + 本批未提交改动（dirty）；opencode 1.18.33 隔离测试服务（`scripts/test-server.sh`，端口 4517，结束后已停止）；VS Code 1.139.1。主线程实现，未委派子代理（model/provider unknown）。运行目录 `docs/evidence/runs/` 被 Git 忽略，下表 ID 仅本机可查。
+基线 HEAD `b393df6`，验证运行于其上的 dirty 工作树，随后提交为 `92034b8`、`20f0ea1`、`092c6b3`；opencode 1.18.33 隔离测试服务（`scripts/test-server.sh`，端口 4517，结束后已停止）；VS Code 1.139.1。主线程实现，未委派子代理（model/provider unknown）。运行目录 `docs/evidence/runs/` 被 Git 忽略，下表 ID 仅本机可查。
 
 ## 连接设置（不含整个 T014/A15）
 
