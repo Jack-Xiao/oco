@@ -4,19 +4,18 @@ oco 是一个以 OpenCode 为执行引擎的 VS Code 扩展。
 
 产品形态：左侧管理会话和 Agent，在 VS Code 编辑器标签页中进行对话，通过设置和管理入口配置工作流。首选路线是 **VS Code 原生外壳 + 复用官方对话源码 + 有边界的宿主适配**。
 
-当前状态：**P1b-1 已完成**：原生会话侧栏、连接状态、事件状态路由与重连去重、窄栏权限/提问、主题跟随、首次加载，见 [ADR-006](docs/adr/006-p1b1-sessions-sidebar.md) 与 [P1b-1 验收记录](docs/evidence/p1b1-acceptance.md)；此前 P1a 见 [ADR-005](docs/adr/005-p1a-identity-storage-connection.md)。远程与团队服务未验证。这是原型，不是可发布版本。
+当前状态只看 [STATUS](docs/STATUS.md)，当前队列只看 [NEXT](docs/NEXT.md)。这是原型，不是可发布版本。请勿把本 README 当作已实现功能列表。
 
 ## 从这里开始
+
+实施 AI 只读 [AGENTS.md](AGENTS.md)、[STATUS](docs/STATUS.md)、[NEXT](docs/NEXT.md)，以及本次任务点名的契约。下面按需再读，不是开工必读：
 
 1. [开发计划](docs/PLAN.md)：产品范围、阶段、决策门槛、投入估计。
 2. [架构与边界](docs/ARCHITECTURE.md)：进程、状态、源码复用、通信与远程开发。
 3. [任务清单](docs/TASKS.md)：任务编号、依赖、文件归属、交付物、完成标准。
 4. [验收矩阵](docs/ACCEPTANCE.md)：可以证明什么，如何验证，哪些缺口阻止发布。
-5. [AI 交接说明](docs/HANDOFF.md)：可直接复制给实施 AI 的首轮提示词与协作方式。
-6. [进度与下一步](docs/PROGRESS.md)：当前状态、阻塞项、下一批任务。
-7. [证据与待确认事项](docs/EVIDENCE.md)：已确认事实、候选基线和未知条件。
-
-实施 AI 先阅读 [AGENTS.md](AGENTS.md)，再领取任务。请勿将本 README 当作已实现功能列表。
+5. [证据与待确认事项](docs/EVIDENCE.md)：已确认事实、候选基线和未知条件。
+6. [进度批次](docs/PROGRESS.md) 与 [历史交接](docs/HANDOFF.md)：旧记录和旧提示词，不代表当前队列。
 
 ## 运行原型
 
@@ -66,8 +65,32 @@ node tests/e2e/run.mjs
 node tests/e2e/run.mjs p1b-sidebar
 ```
 
+## 简短验收摘要
+
+日常交接先运行下列命令；它只扫描现有证据，不启动测试、服务或模型：
+
+```bash
+bun run brief
+```
+
+需要重新做离线检查时，批量运行类型检查和单元测试：
+
+```bash
+bun run verify:brief
+```
+
+本次改动需要验证构建时：
+
+```bash
+bun run verify:brief -- --build
+```
+
+终端只输出短摘要；完整白名单元数据写入被 Git 忽略的 `.oco-reports/latest.json` 与 `latest.md`。脚本区分本轮检查、上次检查和历史 E2E，保留版本、未提交状态和 NOT RUN；不同版本不能拼成全套 PASS。负向试验只按明确标记分类。检查失败返回非零；默认汇总遇损坏 JSON 也返回非零。没有结果的目录可能仍在运行，不代表通过。
+
+给主代理通常只需：提交范围、短摘要、最多三个问题及证据路径。不粘贴全部调试过程；查看源码或完整日志只针对具体问题。
+
 ## 第一批工作
 
-P0（T001–T006）、P1a 与 P1b-1 已完成。后续范围见 [PROGRESS](docs/PROGRESS.md) 与 [P1b 执行指示](docs/P1B-NEXT-STEPS.md)。
+P0（T001–T006）、P1a 与 P1b-1 已完成。现在做什么只看 [NEXT](docs/NEXT.md)。[PROGRESS](docs/PROGRESS.md) 与 [P1b 执行指示](docs/P1B-NEXT-STEPS.md) 是历史。
 
 产品名及仓库名为 `oco`。扩展 publisher、正式扩展 ID、发布渠道尚未确定，不能在计划阶段虚构归属。

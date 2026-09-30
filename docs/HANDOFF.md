@@ -1,8 +1,12 @@
 # 把 oco 交给其他 AI 实施
 
+> 历史交接和提示词。开工只读 AGENTS.md、[STATUS](STATUS.md)、[NEXT](NEXT.md) 和本任务契约。不要执行下面任何一轮提示词。
+
 项目路径：`/Users/xiaojiang/Ai-Project/oco`。
 
 ## 当前轮交接（2026-09-30，P1b-1 完成后）
+
+> 本节保留原文，但已不是当前队列。按 [NEXT](NEXT.md) 执行。
 
 P1b-1 已完成（[验收记录](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)）。下一轮先等独立源码审查的结论；如审查发现阻断问题，先修复并重新验收。之后按新的指示继续，提示词模板如下：
 

@@ -12,7 +12,9 @@
     "typecheck": "tsc -p packages/contracts && tsc -p apps/extension --noEmit",
     "test:unit": "bun test tests/unit",
     "test:server": "bash scripts/test-server.sh",
-    "test:e2e": "node tests/e2e/run.mjs"
+    "test:e2e": "node tests/e2e/run.mjs",
+    "brief": "node scripts/brief.mjs",
+    "verify:brief": "node scripts/brief.mjs --verify"
   },
   "devDependencies": {
     "@types/node": "24.12.2",
