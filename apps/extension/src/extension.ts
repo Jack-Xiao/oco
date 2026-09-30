@@ -195,6 +195,22 @@ export function activate(context: vscode.ExtensionContext) {
         fail("无法重命名会话", e)
       }
     }),
+    vscode.commands.registerCommand("oco.deleteSession", async (arg?: SessionItem) => {
+      try {
+        if (!requireTrust("删除会话")) return
+        const item = arg instanceof SessionItem ? arg.session : undefined
+        const s = item ?? (await pickSession("选择要删除的会话"))
+        if (!s) return
+        const title = "title" in s && s.title ? s.title : s.id
+        const ok = await vscode.window.showWarningMessage(`删除会话“${title}”？`, { modal: true, detail: "会话将从服务器上永久删除，无法恢复。" }, "删除")
+        if (ok !== "删除") return
+        await conn.request("DELETE", `/session/${encodeURIComponent(s.id)}`, undefined, s.directory)
+        for (const e of panels.list()) if (e.binding.sessionId === s.id) e.panel.dispose()
+        if (store.applyEvent({ type: "session.deleted", properties: { sessionID: s.id } })) view.refresh()
+      } catch (e) {
+        fail("无法删除会话", e)
+      }
+    }),
     vscode.commands.registerCommand("oco.searchSessions", async () => {
       const q = await vscode.window.showInputBox({ prompt: "在已加载的最近 200 个会话中按标题或 ID 搜索（留空清除）", value: view.search })
       if (q !== undefined) view.setSearch(q)
