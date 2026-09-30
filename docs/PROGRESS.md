@@ -154,3 +154,10 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 命令 node tests/integration/c2-diff-runtime.mjs：13 PASS / 0 FAIL，54 断言，exit 0。
 - 发现：blob 丢失时 numstat 失败被 git() 吞掉，整轮 Diff 变 []（推翻“该侧空串仍出补丁”的源码推断）；空列表与“无修改”不可区分。
 - NOT RUN：模型驱动完整轮次、edit/apply_patch 元数据、快照树对象缺失/gc 后表现。产品代码未改。
+
+## C2 单轮 Diff 展示（2026-09-30）
+
+- 基线 main 4e30f48；代码提交 7fd3bd5（补丁 0007）。主线程实现，未委派。model/provider unknown。
+- 检查：上游 tsgo exit 0；上游单测 9/0；补丁 0001–0007 重放一致；oco typecheck PASS、unit 128/0；build 成功；E2E c1-open-file 6/6（运行 20260930-093034-c1-open-file-e1b7，干净提交）。
+- 过程：两次“no panel”因测试服务未启动；两次单项 FAIL 为活动标签判定不稳定（文件已打开），未修。
+- NOT RUN：DiffUnavailable 行 E2E；其余 9 个 E2E 套件。

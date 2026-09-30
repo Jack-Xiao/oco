@@ -1,0 +1,159 @@
+{
+  "runId": "20260930-093034-c1-open-file-e1b7",
+  "suite": "c1-open-file",
+  "startedAt": "2026-09-30T09:30:34.368Z",
+  "ocoCommit": "7fd3bd553c2cb52f794da12f8b57f0c1513b8de7",
+  "ocoDirty": false,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "e3bb6690b3ab16441f6aa6cde4163435fc931e64b4c2081fe5d2bcb5c85b68a6",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.139.1",
+  "vscodeProfile": "c1-open-file",
+  "finishedAt": "2026-09-30T09:31:34.514Z",
+  "results": [
+    {
+      "id": "open-file-line",
+      "status": "PASS",
+      "detail": {
+        "editor": {
+          "tab": "math",
+          "pos": "Ln 3, Col 1",
+          "tabs": [
+            "New session - 2026-09-30T09:30:40.484Z",
+            "math"
+          ]
+        },
+        "fileOpens": 1
+      },
+      "at": "2026-09-30T09:30:43.914Z"
+    },
+    {
+      "id": "open-file-refused",
+      "status": "PASS",
+      "detail": {
+        "attempts": 5,
+        "rejected": 5,
+        "opened": 0,
+        "lastReason": "只能打开本地文件路径",
+        "tabs": [
+          "New session - 2026-09-30T09:30:40.484Z",
+          "math"
+        ]
+      },
+      "at": "2026-09-30T09:30:49.166Z"
+    },
+    {
+      "id": "tool-click-opens",
+      "status": "PASS",
+      "detail": {
+        "readTool": true,
+        "readInput": {
+          "filePath": "math.ts",
+          "offset": 2
+        },
+        "linkFound": true,
+        "expectLine": 2,
+        "editor": {
+          "tab": "math",
+          "pos": "Ln 2, Col 1",
+          "tabs": [
+            "math.ts lines 2–3 inspection",
+            "math"
+          ]
+        },
+        "fileOpens": 1
+      },
+      "at": "2026-09-30T09:31:01.114Z"
+    },
+    {
+      "id": "position-parse",
+      "status": "PASS",
+      "detail": {
+        "got": [
+          {
+            "raw": "math.ts:2",
+            "want": 2,
+            "ok": true,
+            "editor": {
+              "tab": "math",
+              "pos": "Ln 2, Col 1",
+              "tabs": [
+                "New session - 2026-09-30T09:31:03.158Z",
+                "math"
+              ]
+            }
+          },
+          {
+            "raw": "math.ts#L3",
+            "want": 3,
+            "ok": true,
+            "editor": {
+              "tab": "math",
+              "pos": "Ln 3, Col 1",
+              "tabs": [
+                "New session - 2026-09-30T09:31:03.158Z",
+                "math",
+                "math"
+              ]
+            }
+          }
+        ]
+      },
+      "at": "2026-09-30T09:31:04.877Z"
+    },
+    {
+      "id": "markdown-path",
+      "status": "PASS",
+      "detail": {
+        "found": true,
+        "codeText": "math.ts:4",
+        "plainCode": [
+          "npm test"
+        ],
+        "plainIgnored": true,
+        "editor": {
+          "tab": "math",
+          "pos": "Ln 4, Col 1",
+          "tabs": [
+            "math.ts:4 test failure",
+            "math"
+          ]
+        },
+        "fileOpens": 1
+      },
+      "at": "2026-09-30T09:31:19.166Z"
+    },
+    {
+      "id": "diff-summary",
+      "status": "PASS",
+      "detail": {
+        "scope": "本轮工作区变化（含期间外部修改）",
+        "permissionAsked": true,
+        "found": true,
+        "file": "c1-note.txt",
+        "expanded": true,
+        "chevronOpened": 0,
+        "editor": {
+          "tab": "c1-note",
+          "pos": "Ln 1, Col 1",
+          "tabs": [
+            "New session - 2026-09-30T09:31:21.239Z",
+            "c1-note"
+          ]
+        },
+        "fileOpens": 1
+      },
+      "at": "2026-09-30T09:31:34.035Z"
+    }
+  ],
+  "summary": {
+    "PASS": 6,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}
