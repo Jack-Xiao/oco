@@ -1,0 +1,45 @@
+diff --git a/packages/app/src/components/settings-general.tsx b/packages/app/src/components/settings-general.tsx
+index 8adaa1f..d065a44 100644
+--- a/packages/app/src/components/settings-general.tsx
++++ b/packages/app/src/components/settings-general.tsx
+@@ -128,9 +128,11 @@ export const SettingsGeneral: Component = () => {
+ 
+   const [shells] = createResource(
+     async () => {
++      // oco: embedded hosts block /pty; a rejected resource would crash the panel on the next render.
++      if (platform.embedded) return [] as ShellOption[]
+       const sdk = serverSdk()
+       if ((await sdk.protocol) === "v1") {
+-        return (await sdk.client.pty.shells()).data ?? []
++        return (await sdk.client.pty.shells().catch(() => undefined))?.data ?? []
+       }
+       // return (await sdk.api.pty.shells()).data
+       return [] as ShellOption[]
+diff --git a/packages/app/src/components/settings-v2/general-controllers.ts b/packages/app/src/components/settings-v2/general-controllers.ts
+index ae77fa3..f3144c4 100644
+--- a/packages/app/src/components/settings-v2/general-controllers.ts
++++ b/packages/app/src/components/settings-v2/general-controllers.ts
+@@ -2,6 +2,7 @@ import { createMemo, createResource, onMount, type Accessor } from "solid-js"
+ import type { ColorScheme } from "@opencode-ai/ui/theme/context"
+ import { useTheme } from "@opencode-ai/ui/theme/context"
+ import { usePermission } from "@/context/permission"
++import { usePlatform } from "@/context/platform"
+ import { useServerSDK } from "@/context/server-sdk"
+ import { useServerSync } from "@/context/server-sync"
+ import {
+@@ -52,10 +53,14 @@ export function createPermissionScopeController(sessionID: Accessor<string | und
+ export function createShellSettingsController() {
+   const serverSdk = useServerSDK()
+   const serverSync = useServerSync()
++  const platform = usePlatform()
+   const [shells] = createResource(
+     async () => {
++      // oco: embedded hosts block /pty (no terminal). A rejected resource rethrows from shells.latest on
++      // the next render and takes down the whole panel, so skip it there and swallow failures elsewhere.
++      if (platform.embedded) return [] as ShellOption[]
+       const sdk = serverSdk()
+-      if ((await sdk.protocol) === "v1") return (await sdk.client.pty.shells()).data ?? []
++      if ((await sdk.protocol) === "v1") return (await sdk.client.pty.shells().catch(() => undefined))?.data ?? []
+       return [] as ShellOption[]
+     },
+     { initialValue: [] as ShellOption[] },

@@ -219,3 +219,11 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 分支 `claude/c1-focus-t010-recovery-a216bc`（提交 3e67fc7）合并 main 6cc350b。冲突处理：mock 测试设施（mock-llm、vscode.mjs、p1a-chat、p1b-narrow、test-server.sh）取 main 已提交版本，test-server.sh 再加回 `OCO_MOCK_LLM_PORT` / `OCO_MOCK_LLM_EXTERNAL`；STATUS/PROGRESS 两边保留。
 - 全量定义加入 `c1-focus`（14 个套件；run.mjs、e2e-results 单测、TEST-SCOPE、README 同步）。
 - 合并后复验（脚本模型）：verify:brief --build PASS（typecheck 0 errors、unit 140/0、build）；`c1-focus` 3/3（20260930-131610-c1-focus-c838，`focusWaits` 11，`lateActivations` 0）；`t010-recover` 首次 4/5（initial-unreachable 的 send 读到上一轮回复，测试竞态，产品行为正常），修测试后 5/5 ×2（20260930-131929-…-fd20、20260930-132119-…-c69c）。其余套件 NOT RUN。
+
+## 设置页「高级」开关崩溃修复（2026-09-30）
+
+- 现象：oco 聊天面板内打开设置，点「文件树 / 命令面板 / 服务器状态 / 显示智能体」任一开关，面板进入「The chat panel hit an error」。
+- 根因：设置页 Shell 行调用 `GET /pty/shells`，宿主策略按设计拦截 `/pty`（403）；Solid resource 进入错误态，下一次渲染读 `shells.latest` 重新抛错，触发面板错误边界。开关本身和存储正常。
+- 修复：补丁 0009 `oco-embedded-settings-no-pty-shells`（settings-v2/general-controllers.ts、settings-general.tsx）：embedded 下不请求 shell 列表，其他情况请求失败返回空列表。
+- 检查：`bun run build` 通过；临时 E2E 探针（脚本模型，基于 4d56f63 + 本改动）：修复前 4 个开关各自 4/4 崩溃，修复后 0/4 崩溃，4 个开关均写入 true；关闭设置后面板显示服务器状态按钮、侧栏（文件树）按钮、Build 智能体选择器。截图 docs/evidence/settings-advanced-toggles-after-fix.png。
+- NOT RUN：补丁 0001–0009 重放、上游 tsgo、unit、全量 E2E、真实模型。未提交。
