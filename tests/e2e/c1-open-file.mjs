@@ -34,6 +34,11 @@ async function waitFor(fn, ms, step = 100) {
   return null
 }
 
+async function closeAllEditors(page) {
+  await command(page, "View: Close All Editors").catch(() => {})
+  await waitFor(async () => ((await editorState(page)).tabs.length === 0 ? true : null), 3000, 100)
+}
+
 async function newPanel(page) {
   await command(page, "oco: New Session")
   const f = await waitFor(async () => {
@@ -97,11 +102,10 @@ try {
     const tabsBefore = (await editorState(page)).tabs
     const before = await panelStats(sid)
     const bad = ["../outside.txt", "/etc/hosts", "missing-file.ts", ".", "file:///etc/hosts"]
-    for (const p of bad) {
-      await fr.evaluate((p) => window.__OCO_DEBUG__.openFile(p), p)
-      await sleep(400)
-    }
-    await sleep(1000)
+    for (const p of bad) await fr.evaluate((p) => window.__OCO_DEBUG__.openFile(p), p)
+    // Wait for the host to count every refusal, then a short grace so a wrongly opened editor would show.
+    await waitFor(async () => ((await panelStats(sid)).panel.fileRejects - before.panel.fileRejects >= bad.length ? true : null), 5000, 100)
+    await sleep(300)
     const after = await panelStats(sid)
     const ed = await editorState(page)
     await runShot(page, run, "open-file-refused")
@@ -122,8 +126,7 @@ try {
 
   // 3. Real tool part (test model): click the read tool's file name.
   try {
-    await command(page, "View: Close All Editors").catch(() => {})
-    await sleep(800)
+    await closeAllEditors(page)
     const p = await newPanel(page)
     await waitFor(async () => ((await p.f.evaluate(() => document.documentElement.dataset.ocoModel)) === "ready" ? true : null), 60000, 200)
     const input = p.f.locator(INPUT)
@@ -138,7 +141,7 @@ try {
     const group = p.f.locator('[data-component="context-tool-group-trigger"]').first()
     if (await group.count()) await group.click().catch(() => {})
     const link = p.f.locator('[data-oco-open-file], [data-slot="basic-tool-tool-subtitle"].clickable').first()
-    const found = await link.waitFor({ timeout: 20000 }).then(() => true, () => false)
+    const found = await link.waitFor({ timeout: 5000 }).then(() => true, () => false)
     if (found) await link.click()
     const expectLine = offset ?? 1
     const st = await waitFor(async () => {
@@ -163,8 +166,7 @@ try {
   // 4. Position suffix parsed by the host (the page passes the raw text, no separate line). The chat
   // panel is itself an editor tab, so editors are not closed between attempts; the line must change.
   try {
-    await command(page, "View: Close All Editors").catch(() => {})
-    await sleep(800)
+    await closeAllEditors(page)
     const p = await newPanel(page)
     const got = []
     for (const [raw, want] of [["math.ts:2", 2], ["math.ts#L3", 3]]) {
@@ -182,8 +184,7 @@ try {
 
   // 5. Markdown inline path in a real reply.
   try {
-    await command(page, "View: Close All Editors").catch(() => {})
-    await sleep(800)
+    await closeAllEditors(page)
     const p = await newPanel(page)
     await waitFor(async () => ((await p.f.evaluate(() => document.documentElement.dataset.ocoModel)) === "ready" ? true : null), 60000, 200)
     await p.f.locator(INPUT).click()
@@ -191,7 +192,7 @@ try {
     await page.keyboard.press("Enter")
     await waitReply(p.sid, 150000).catch(() => null)
     const code = p.f.locator('[data-component="text-part"] code[data-oco-open-path]').first()
-    const found = await code.waitFor({ timeout: 20000 }).then(() => true, () => false)
+    const found = await code.waitFor({ timeout: 5000 }).then(() => true, () => false)
     const codeText = found ? await code.textContent() : null
     const plain = await p.f.evaluate(() =>
       [...document.querySelectorAll('[data-component="text-part"] :not(pre) > code')]
@@ -201,7 +202,7 @@ try {
     const before = await panelStats(p.sid)
     const plainEl = p.f.locator('[data-component="text-part"] :not(pre) > code:not([data-oco-open-path])').first()
     if (await plainEl.count()) await plainEl.click()
-    await sleep(800)
+    await sleep(400)
     const afterPlain = await panelStats(p.sid)
     if (found) await code.click()
     const st = await waitFor(async () => {
@@ -228,8 +229,7 @@ try {
 
   // 6. Diff summary row after a write.
   try {
-    await command(page, "View: Close All Editors").catch(() => {})
-    await sleep(800)
+    await closeAllEditors(page)
     const p = await newPanel(page)
     await waitFor(async () => ((await p.f.evaluate(() => document.documentElement.dataset.ocoModel)) === "ready" ? true : null), 60000, 200)
     await p.f.locator(INPUT).click()
@@ -237,11 +237,14 @@ try {
     await page.keyboard.press("Enter")
     // The test server asks before edits (scripts/test-server.opencode.json): allow once in the dock.
     const dock = p.f.locator('[data-component="dock-prompt"][data-kind="permission"]')
-    const asked = await dock.waitFor({ timeout: 90000 }).then(() => true, () => false)
+    const asked = await Promise.race([
+      dock.waitFor({ timeout: 90000 }).then(() => true, () => false),
+      waitReply(p.sid, 90000).then(() => false, () => false),
+    ])
     if (asked) await dock.getByRole("button", { name: /allow once|允许一次/i }).click()
     await waitReply(p.sid, 150000).catch(() => null)
     const row = p.f.locator('[data-slot="session-turn-diff-path"][data-oco-open-file]').first()
-    const found = await row.waitFor({ timeout: 30000 }).then(() => true, () => false)
+    const found = await row.waitFor({ timeout: 10000 }).then(() => true, () => false)
     const file = found ? await row.getAttribute("data-oco-open-file") : null
     // Chevron: expands the diff, opens nothing.
     const before = await panelStats(p.sid)
@@ -251,7 +254,7 @@ try {
       await chevron.click()
       expanded = !!(await waitFor(async () => ((await p.f.locator('[data-component="session-turn-diffs-content"] [data-expanded]').count()) ? true : null), 5000, 200))
     }
-    await sleep(600)
+    await sleep(300)
     const afterChevron = await panelStats(p.sid)
     const chevronOpened = afterChevron.panel.fileOpens - before.panel.fileOpens
     if (found) await row.click()

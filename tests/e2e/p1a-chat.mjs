@@ -5,7 +5,7 @@
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { launch, command, waitForChatFrame, frameSession, sleep, runShot, hostState } from "./vscode.mjs"
-import { api, messages, status, waitIdle, waitMessageFinal } from "./server.mjs"
+import { api, messages, status, waitIdle, waitMessageFinal, MODEL } from "./server.mjs"
 
 const REQUIRED = ["stream-locked", "permission-bound", "question-answer", "cancel-real", "policy-foreign-session", "policy-directory-override", "policy-unlisted-write", "csp-violations"]
 const run = createRun({ suite: "p1a-chat", required: REQUIRED, scriptPath: fileURLToPath(import.meta.url) })
@@ -44,8 +44,11 @@ try {
   await command(page, "oco: New Session")
   const [frame] = await waitForChatFrame(page, 1, 90000, '[data-component="prompt-input"]')
   const sid = await frameSession(frame)
-  await frame.getByText("Big Pickle").first().waitFor({ timeout: 60000 })
-  await sleep(5000)
+  await frame.getByText(MODEL.label).first().waitFor({ timeout: 60000 })
+  // Agents/models loaded (patch 0004 marks the page); then a short settle for the composer.
+  const t = Date.now()
+  while (Date.now() - t < 10000 && (await frame.evaluate(() => document.documentElement.dataset.ocoModel)) !== "ready") await sleep(100)
+  await sleep(500)
   run.setEnv({ sessionId: sid })
 
   // 1. Stream locked to one assistant text part: DOM samples of that part must grow while the server
@@ -206,7 +209,7 @@ try {
   {
     const other = await api("POST", "/session", { title: "oco foreign session" })
     await api("POST", `/session/${other.id}/prompt_async`, {
-      model: { providerID: "opencode", modelID: "big-pickle" },
+      model: { providerID: MODEL.providerID, modelID: MODEL.modelID },
       parts: [{ type: "text", text: "Write a numbered list from 1 to 200 of fruit names. No tools." }],
     })
     const t0 = Date.now()

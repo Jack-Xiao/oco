@@ -2,7 +2,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { launch, command, waitForChatFrame, frameSession, shot, sleep, evidenceDir } from "./vscode.mjs"
-import { api, messages, status, waitIdle, lastAssistant, textOf } from "./server.mjs"
+import { api, messages, status, waitIdle, lastAssistant, textOf, MODEL } from "./server.mjs"
 
 const results = []
 const record = (id, status, detail) => { results.push({ id, status, detail }); console.log(`[${status}] ${id}: ${JSON.stringify(detail)}`) }
@@ -34,7 +34,7 @@ try {
   const sid = await frameSession(frame)
   console.log("session", sid)
   // The official app rejects submits until agents/models are synced ("Select an agent and model").
-  await frame.getByText("Big Pickle").first().waitFor({ timeout: 60000 })
+  await frame.getByText(MODEL.label).first().waitFor({ timeout: 60000 })
   await sleep(6000)
 
   // 1. streaming text

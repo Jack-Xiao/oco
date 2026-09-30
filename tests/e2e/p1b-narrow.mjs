@@ -6,8 +6,8 @@
 // OCO_NARROW_WIDTHS=260,320 overrides the width list.
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, chatFrames, frameSession, sleep, runShot, clearNotifications, fitGroups } from "./vscode.mjs"
-import { api, messages, status, waitIdle, waitReply } from "./server.mjs"
+import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, clearNotifications, fitGroups } from "./vscode.mjs"
+import { api, messages, status, waitIdle, waitReply, MODEL } from "./server.mjs"
 
 const WIDTHS = (process.env.OCO_NARROW_WIDTHS ?? "260,320,480,800").split(",").map(Number)
 const ZOOM = { 260: 0, 320: 0, 480: -1, 800: -4 }
@@ -168,17 +168,19 @@ try {
       const ids = []
       for (let i = 0; i < 3; i++) {
         ids.push(await newSession(page, ids))
-        await sleep(1500)
+        await sleep(500)
       }
       // Three sessions in one group -> one per group (group 1: A, group 2: B, group 3: C).
+      const tabsPerGroup = () => page.$$eval(".editor-group-container", (gs) => gs.map((g) => g.querySelectorAll(".tab").length).join(","))
       await command(page, "View: Move Editor into Right Group")
-      await sleep(1200)
+      await waitUntil(async () => (await tabsPerGroup()) === "2,1", 5000)
       await command(page, "View: Move Editor into Right Group")
-      await sleep(1200)
+      await waitUntil(async () => (await tabsPerGroup()) === "2,0,1", 5000)
       await command(page, "View: Focus First Editor Group")
-      await sleep(600)
+      await waitUntil(() => page.evaluate(() => document.querySelector(".editor-group-container")?.classList.contains("active")), 3000)
       await command(page, "View: Move Editor into Right Group")
-      await sleep(1200)
+      await waitUntil(async () => (await tabsPerGroup()) === "1,1,1", 5000)
+      await sleep(300)
       // The side bar stays open: the palette helper focuses it before pressing Escape (Escape inside
       // a webview would dismiss an open question dock).
       const widths = await fitGroups(app, page, w)
@@ -187,7 +189,7 @@ try {
       await runShot(page, run, `layout-${w}`)
       if (widths.length !== 3 || widths.some((x) => Math.abs(x - w) > 4)) throw new Error(`layout ${w}: frame widths ${widths}`)
       // Let each app finish its first sync (agent/model) before sending.
-      for (const sid of ids) await (await frameFor(page, sid)).getByText("Big Pickle").first().waitFor({ timeout: 60000 })
+      for (const sid of ids) await (await frameFor(page, sid)).getByText(MODEL.label).first().waitFor({ timeout: 60000 })
       await permissionFlow(page, w, ids[0], "reject")
       await permissionFlow(page, w, ids[1], "once")
       await questionFlow(page, w, ids[2])

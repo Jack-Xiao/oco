@@ -10,7 +10,13 @@ PORT="${OCO_TEST_PORT:-4517}"
 BIN="${OCO_OPENCODE_BIN:-$(command -v opencode)}"
 mkdir -p "$T"/{home,xdg/config,xdg/data,xdg/state,xdg/cache,workspace}
 mkdir -p "$T/xdg/config/opencode"
-cp "$ROOT/scripts/test-server.opencode.json" "$T/xdg/config/opencode/opencode.json"
+# OCO_E2E_MODEL=mock: use the scripted local model (tests/e2e/lib/mock-llm.mjs) instead of the real one.
+MODEL_MODE="${OCO_E2E_MODEL:-real}"
+if [ "$MODEL_MODE" = "mock" ]; then
+  cp "$ROOT/scripts/test-server.mock.opencode.json" "$T/xdg/config/opencode/opencode.json"
+else
+  cp "$ROOT/scripts/test-server.opencode.json" "$T/xdg/config/opencode/opencode.json"
+fi
 if [ ! -s "$T/secret" ]; then (umask 077; openssl rand -hex 16 > "$T/secret"); fi
 if [ ! -d "$T/workspace/.git" ]; then
   (cd "$T/workspace" && git init -q && printf 'export function add(a: number, b: number) {\n  return a + b\n}\n' > math.ts \
@@ -19,7 +25,15 @@ fi
 echo "opencode binary: $BIN ($("$BIN" --version))"
 echo "listening on http://127.0.0.1:$PORT (user: opencode, password: see .oco-test/secret)"
 cd "$T/workspace"
-exec env -i PATH="$PATH" TERM="${TERM:-xterm}" LANG="${LANG:-en_US.UTF-8}" \
+EXEC=exec
+if [ "$MODEL_MODE" = "mock" ]; then
+  node "$ROOT/tests/e2e/lib/mock-llm.mjs" &
+  MOCK_PID=$!
+  trap 'kill $MOCK_PID 2>/dev/null' EXIT INT TERM
+  EXEC=
+  echo "model: mock (scripted, local only)"
+fi
+$EXEC env -i PATH="$PATH" TERM="${TERM:-xterm}" LANG="${LANG:-en_US.UTF-8}" \
   HOME="$T/home" OPENCODE_TEST_HOME="$T/home" \
   XDG_CONFIG_HOME="$T/xdg/config" XDG_DATA_HOME="$T/xdg/data" \
   XDG_STATE_HOME="$T/xdg/state" XDG_CACHE_HOME="$T/xdg/cache" \

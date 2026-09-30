@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { describe, test, expect, beforeEach, afterEach, beforeAll, afterAll, spyOn } from "bun:test";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
@@ -12,6 +12,12 @@ import {
 } from "../../scripts/lib/brief-collector.mjs";
 import { runVerification } from "../../scripts/lib/brief-verifier.mjs";
 import { main } from "../../scripts/brief.mjs";
+
+// The code under test prints its terminal report; keep test output to pass/fail lines.
+const quiet = () => spyOn(console, "log").mockImplementation(() => {});
+let logSpy: ReturnType<typeof quiet>;
+beforeAll(() => { logSpy = quiet(); });
+afterAll(() => logSpy.mockRestore());
 
 describe("Brief & Verification Unit Tests", () => {
   let tmpDir: string;
@@ -171,6 +177,11 @@ describe("Brief & Verification Unit Tests", () => {
     expect(result.latestBySuite["p1a-chat"].runId).toBe("20260930-100100-p1a-chat-normal");
   });
 
+  test("4b. mock 模型运行: modelMode=mock 归为特殊运行，不当真实模型验收", () => {
+    expect(isSpecialRun({ modelMode: "mock" }, [], "c1-open-file", "run-mock").type).toBe("mock-model");
+    expect(isSpecialRun({ modelMode: "real" }, [{ id: "a", status: "PASS" }], "c1-open-file", "run-real").isSpecial).toBe(false);
+  });
+
   test("5. 必需未运行: 状态 NOT RUN 或缺失必需用例准确反映并返回 exit 1", () => {
     const runsDir = path.join(tmpDir, "runs");
     fs.mkdirSync(runsDir, { recursive: true });
@@ -228,47 +239,6 @@ describe("Brief & Verification Unit Tests", () => {
 
     expect(unitCheck?.status).toBe("PASS");
     expect(unitCheck?.exitCode).toBe(0);
-  });
-
-  test("7. 终端输出限制: formatBriefTerminal 行数必须 <= 40 行", () => {
-    // Generate many suites to test line constraint
-    const latestBySuite: Record<string, any> = {};
-    for (let i = 0; i < 10; i++) {
-      latestBySuite[`suite-${i}`] = {
-        suite: `suite-${i}`,
-        runId: `20260930-run-${i}`,
-        shortCommit: "commit1",
-        dirty: false,
-        summary: { PASS: 10, FAIL: 0, "NOT RUN": 0, BLOCKED: 0 },
-      };
-    }
-
-    const specialRuns = [
-      { suite: "perf", runId: "run-perf-1", type: "perf", reason: "benchmark" },
-      { suite: "p1a-chat", runId: "run-neg-1", type: "negative-control", reason: "test" },
-      { suite: "mutation", runId: "run-mut-1", type: "mutation", reason: "mutation test" },
-    ];
-
-    const terminal = formatBriefTerminal({
-      git: { shortHead: "commit1", dirty: false },
-      scanResult: {
-        latestBySuite,
-        specialRuns,
-        corrupted: [{ runId: "c1", error: "bad json" }],
-        empty: [{ runId: "e1", reason: "missing results.json" }],
-        missingSuites: ["extra-suite"],
-      },
-      versionAnalysis: {
-        allSameRevision: true,
-        matchesCurrentHead: true,
-        revisions: ["commit1"],
-        status: "OK",
-        message: "All match.",
-      },
-    });
-
-    const lines = terminal.split("\n");
-    expect(lines.length).toBeLessThanOrEqual(40);
   });
 
   test("8. 安全白名单: 绝不向报告写入原始日志、Prompt、认证头或Secrets", () => {
@@ -356,6 +326,7 @@ describe("Brief & Verification Unit Tests", () => {
     expect(terminal).toContain("NOT current round - rev mismatch");
   });
 
+  // Also covers the former test 7 (formatBriefTerminal <= 40 lines) with a larger suite set.
   test("11. 回归(1): stdout 行数与日志捕获 - verify 和 brief 终端输出行数严格 <= 40 行，失败给出提示且不泄露 raw 日志/密钥", () => {
     // A. Test runVerification output line count and failure tip
     const loggedLines: string[] = [];

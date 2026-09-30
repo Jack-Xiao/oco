@@ -46,6 +46,10 @@ export function isSpecialRun(meta = {}, results = [], suite = "", runId = "") {
   if (meta?.debug) {
     return { isSpecial: true, type: "debug", reason: sanitizeReason(meta.debug) };
   }
+  // Runs against the scripted local model are fast regression checks, never real-model acceptance.
+  if (meta?.modelMode === "mock") {
+    return { isSpecial: true, type: "mock-model", reason: "scripted mock model (OCO_E2E_MODEL=mock)" };
+  }
 
   // 2. Controlled known purpose / category
   const purpose = String(meta?.purpose || meta?.category || meta?.specialType || "").toLowerCase();

@@ -6,7 +6,7 @@ import fs from "node:fs"
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { launch, command, chatFrames, frameSession, sleep, runShot } from "./vscode.mjs"
-import { messages, waitReply } from "./server.mjs"
+import { messages, waitReply, MODEL } from "./server.mjs"
 
 const run = createRun({ suite: "p1b-theme-load", required: ["theme-initial-light", "theme-switch-dark", "first-load-submit"], scriptPath: fileURLToPath(import.meta.url) })
 let app
@@ -77,7 +77,7 @@ try {
   await input.click()
   await input.focus()
   await page.keyboard.type("Reply only with the word OK.", { delay: 2 })
-  const modelShownBeforeSend = await f.getByText("Big Pickle").first().isVisible().catch(() => false)
+  const modelShownBeforeSend = await f.getByText(MODEL.label).first().isVisible().catch(() => false)
   await page.keyboard.press("Enter")
   let pendingSeen = false
   let toast = false

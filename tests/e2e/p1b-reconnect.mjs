@@ -297,7 +297,8 @@ try {
   await command(page, "Focus on Sessions View")
   const loaded = await until(async () => {
     const sb = await sidebar()
-    return sb.connection?.state === "connected" && sb.items.length >= MAX ? sb : undefined
+    // The hint is part of the debounced chrome update, which can land a moment after the rows.
+    return sb.connection?.state === "connected" && sb.items.length >= MAX && sb.message ? sb : undefined
   }, 60000, 800)
   await runShot(page, run, "4-loaded")
   const idsShown = new Set((loaded?.items ?? []).map((i) => i.id))
@@ -308,7 +309,7 @@ try {
   await command(page, "oco: Search Sessions", { input: "oco-many" })
   const searched = await until(async () => {
     const sb = await sidebar()
-    return sb.search === "oco-many" ? sb : undefined
+    return sb.search === "oco-many" && /搜索只在/.test(sb.message ?? "") ? sb : undefined
   }, 20000, 600)
   await runShot(page, run, "4-search")
   const searchIds = new Set((searched?.items ?? []).map((i) => i.id))

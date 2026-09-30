@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { describe, test, expect, beforeEach, afterEach, beforeAll, afterAll, spyOn } from "bun:test";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
@@ -10,6 +10,11 @@ import {
   installCrashHandlers,
 } from "../e2e/lib/results.mjs";
 import { DEFAULT_SUITES, EXCLUDED_FILES, getAvailableSuites } from "../e2e/run.mjs";
+
+// record() echoes every status line; silence it so test output stays short.
+let logSpy: ReturnType<typeof spyOn>;
+beforeAll(() => { logSpy = spyOn(console, "log").mockImplementation(() => {}); });
+afterAll(() => logSpy.mockRestore());
 
 describe("computeExit", () => {
   test("全 PASS→0", () => {

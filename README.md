@@ -59,6 +59,14 @@ bun test tests/unit
 node tests/e2e/run.mjs
 ```
 
+日常改动时只跑相关的单个套件（例如 `node tests/e2e/c1-open-file.mjs`）。想要更快、结果不受模型波动影响时，用本地脚本模型启动测试服务（识别套件里固定的提示词，按需发起 bash/question/read/write 工具调用，只监听 127.0.0.1，不访问外网）：
+
+```bash
+OCO_E2E_MODEL=mock bash scripts/test-server.sh
+```
+
+套件会从服务读取当前模型，并把 `modelMode`（`mock` / `real`）写进 `results.json`。`bun run brief` 把 mock 运行归为特殊运行（`mock-model`），不计入真实模型验收。验收前仍须用真实模型（不带该变量启动服务）跑一次。
+
 默认套件：`p1a-chat`、`p1a-identity`、`p1b-sidebar`、`p1b-narrow`、`p1b-theme-load`、`p1b-ime`（真实模型，约 1 小时）。只跑部分套件时把名字作为参数传入，例如：
 
 ```bash
