@@ -89,6 +89,6 @@ NOT RUN（远端）：断网恢复、本机粘贴图片、托管模式（远端�
 
 ## 最终部署（gcp-workstation）
 
-- 包：`oco-0.0.1-1a6b2c7.vsix`（main 工作树构建，含未提交的补丁 0011 界面改动），`extension.js` SHA-256 `4021332d…895d`，远端覆盖安装哈希一致。
-- `scripts/remote-chat-check.mjs` 复跑：连接 11 s；回复 3 s；用户消息上 fork 按钮可见（Revert 与 Copy 之间）；点击远端文件定位第 3 行；Escape 取消 → `MessageAbortedError`；测试会话已删除。截图 [remote-final-build.png](v01-remote/remote-final-build.png)。
+- 包：`oco-0.0.1-44e4b8a.vsix`（main 工作树构建，含多根工作区改动和未提交的补丁 0011 界面改动），`extension.js` SHA-256 `7a0ff1f7…2c4d`，远端覆盖安装哈希一致。（此前 `1a6b2c7` 包同样通过下列检查。）
+- `scripts/remote-chat-check.mjs` 对 `44e4b8a` 包复跑：连接 11 s；回复 2 s；用户消息上 fork 按钮可见（Revert 与 Copy 之间）；点击远端文件定位第 3 行；Escape 取消 → `MessageAbortedError`；测试会话已删除。截图 [remote-final-build.png](v01-remote/remote-final-build.png)。
 - 用户自己的 VS Code 窗口需执行一次 “Developer: Reload Window” 才会加载新扩展代码。
