@@ -1,0 +1,35 @@
+diff --git a/packages/app/src/context/settings.tsx b/packages/app/src/context/settings.tsx
+index 1a118b6..54bd4ff 100644
+--- a/packages/app/src/context/settings.tsx
++++ b/packages/app/src/context/settings.tsx
+@@ -39,6 +39,8 @@ export interface Settings {
+     agentVisibilityInitialized?: boolean
+     newInterfaceNoticeDismissed?: boolean
+     shouldDisplayTabsToast?: boolean
++    /** oco: one-time embedded visibility defaults applied (see the effect in SettingsProvider). */
++    ocoEmbeddedDefaultsApplied?: boolean
+   }
+   appearance: {
+     fontSize: number
+@@ -318,6 +320,21 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
+       initializeAgentVisibility(existing)
+     })
+ 
++    // oco: the embedded VS Code panel shows the file tree, search, server status and agent picker by
++    // default. Applied once per profile (also to existing oco profiles), so turning one off later sticks.
++    createEffect(() => {
++      if (!platform.embedded || !ready() || !launchState.classified) return
++      if (store.general?.ocoEmbeddedDefaultsApplied) return
++      batch(() => {
++        setStore("general", "showFileTree", true)
++        setStore("general", "showSearch", true)
++        setStore("general", "showStatus", true)
++        setStore("general", "showCustomAgents", true)
++        setStore("general", "agentVisibilityInitialized", true)
++        setStore("general", "ocoEmbeddedDefaultsApplied", true)
++      })
++    })
++
+     createEffect(() => {
+       if (!ready() || !launchState.classified || launchState.migrationApplied) return
+       if (layoutUpgrade() && store.general?.newLayoutDesigns !== true) {

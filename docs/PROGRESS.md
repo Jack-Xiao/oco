@@ -226,7 +226,8 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 根因：设置页 Shell 行调用 `GET /pty/shells`，宿主策略按设计拦截 `/pty`（403）；Solid resource 进入错误态，下一次渲染读 `shells.latest` 重新抛错，触发面板错误边界。开关本身和存储正常。
 - 修复：补丁 0009 `oco-embedded-settings-no-pty-shells`（settings-v2/general-controllers.ts、settings-general.tsx）：embedded 下不请求 shell 列表，其他情况请求失败返回空列表。
 - 检查：`bun run build` 通过；临时 E2E 探针（脚本模型，基于 4d56f63 + 本改动）：修复前 4 个开关各自 4/4 崩溃，修复后 0/4 崩溃，4 个开关均写入 true；关闭设置后面板显示服务器状态按钮、侧栏（文件树）按钮、Build 智能体选择器。截图 docs/evidence/settings-advanced-toggles-after-fix.png。
-- NOT RUN：补丁 0001–0009 重放、上游 tsgo、unit、全量 E2E、真实模型。未提交。
+- 同批复验（含 0010）：0001–0010 在固定 SHA 上重放，与工作树 23 个文件一致；上游 app tsgo exit 0；verify:brief typecheck 0 errors、unit 141/0。
+- NOT RUN：全量 E2E、真实模型。
 
 ## 会话列表菜单精简 + 删除会话（2026-09-30）
 
@@ -234,3 +235,9 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 新命令 `oco.deleteSession`：需信任工作区，模态确认后 `DELETE /session/:id`，关闭展示该会话的面板，并立即从列表移除。
 - 检查：typecheck 0 errors；unit 141/0；build:extension 通过。临时探针（脚本模型，4d56f63 + 本改动）：inline 仅 Rename；确认框出现，删除后服务器返回 NotFound，列表行消失，面板 1→0。右键菜单是 macOS 原生菜单，探针读不到，仅按 package.json 确认。
 - NOT RUN：p1b-sidebar 等全量 E2E、真实模型。未提交。
+
+## 面板内默认打开高级显示项（2026-09-30）
+
+- 补丁 0010 `oco-embedded-visibility-defaults`（context/settings.tsx）：embedded 下一次性把 showFileTree / showSearch / showStatus / showCustomAgents 设为 true，并标记 `ocoEmbeddedDefaultsApplied`、`agentVisibilityInitialized`，之后以用户设置为准。已有的 oco 配置档也会应用一次。
+- 检查：0001–0010 重放一致；tsgo exit 0；verify:brief unit 141/0；临时探针（脚本模型，新配置档）：新配置档四项均为 true → 关闭文件树 → 重启后仍为 false。截图 docs/evidence/settings-embedded-defaults-fresh.png。
+- NOT RUN：全量 E2E、真实模型。
