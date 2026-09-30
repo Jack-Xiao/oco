@@ -161,3 +161,11 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 检查：上游 tsgo exit 0；上游单测 9/0；补丁 0001–0007 重放一致；oco typecheck PASS、unit 128/0；build 成功；E2E c1-open-file 6/6（运行 20260930-093034-c1-open-file-e1b7，干净提交）。
 - 过程：两次“no panel”因测试服务未启动；两次单项 FAIL 为活动标签判定不稳定（文件已打开），未修。
 - NOT RUN：DiffUnavailable 行 E2E；其余 9 个 E2E 套件。
+
+## 连接设置子集 + C2 收尾 + T010 有限检查（2026-09-30）
+
+- 基线 main b393df6，改动未提交。主线程实现，未委派；model/provider unknown。
+- 交付：`oco.openSettings` 与空态/标题栏/状态栏入口；中文设置说明；连接状态区分（`ConnectionSummary.issue`、错误文案）；c1-open-file 焦点竞态的宿主修复；webview Restart 经宿主重设 HTML（bridge UiAction `reload`）；代理 `intercept` 夹具。
+- 验证：verify:brief --build PASS（unit 136/0）；E2E 定向 `t014-connection` 6/6、`c2-diff-unavailable` 3/3、`t010-recover` 2/2、`c1-open-file` 6/6（另 16 次连跑 15 PASS，1 次为模型未出 Diff 的无关 FAIL）。详见 docs/evidence/t014-connection-c2-close.md。
+- NOT RUN：其余 E2E 套件、设置密码输入流程、受限模式、真实快照缺失全链路。
+- 未标记 T014/A15 完成。

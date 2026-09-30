@@ -4,9 +4,22 @@
 
 ## 基线与并行工作
 
-- 本文件更新于 2026-09-30。当前 main 产品基线 `d1a3607`（含 C1 与路径加固，未推送）；P1b 产品代码 `6343f7b`。实时版本以 `bun run brief` 为准。
+- 本文件更新于 2026-09-30。当前 main 提交基线 `b393df6`（含 C1、路径加固、C2 展示，未推送），其上有**未提交**的连接设置 / 焦点修复 / Restart 修复改动（见下节）；P1b 产品代码 `6343f7b`。实时版本以 `bun run brief` 为准。
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
+
+## 连接设置子集 + C2/T010 收尾（`b393df6` + 未提交改动，2026-09-30）
+
+不是完整 T014/A15。详情与运行 ID：[证据](evidence/t014-connection-c2-close.md)。
+
+| 项目 | 状态 |
+| --- | --- |
+| “Open Settings”入口、中文设置说明、错误状态区分（地址无效 / 无文件夹 / 认证失败 / 离线） | 完成；单元 136/136，E2E `t014-connection` 6/6 |
+| c1-open-file 焦点失败 | 真实问题（聊天面板约 16 ms 后重新激活），宿主一次性重新展示修复；`c1-open-file` 6/6，修复后 17 次运行无焦点失败（1 次模型未出 Diff 的无关 FAIL） |
+| DiffUnavailable UI | `c2-diff-unavailable` 3/3（夹具；只证 UI，不证真实快照缺失全链路） |
+| T010：未知类型 / 会话消失 | 未知类型 PASS；会话消失后 Restart 原本空白，已修复，`t010-recover` 2/2；错误页文案仍为上游（含 Discord） |
+
+`bun run verify:brief -- --build`：typecheck PASS、unit 136/0、build PASS。其余 E2E 套件本批 NOT RUN。
 
 ## P1b 稳定性收尾（代码提交 `6343f7b`；测试运行于 dirty `e67129d`）
 
