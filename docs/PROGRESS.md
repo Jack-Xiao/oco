@@ -241,3 +241,12 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 补丁 0010 `oco-embedded-visibility-defaults`（context/settings.tsx）：embedded 下一次性把 showFileTree / showSearch / showStatus / showCustomAgents 设为 true，并标记 `ocoEmbeddedDefaultsApplied`、`agentVisibilityInitialized`，之后以用户设置为准。已有的 oco 配置档也会应用一次。
 - 检查：0001–0010 重放一致；tsgo exit 0；verify:brief unit 141/0；临时探针（脚本模型，新配置档）：新配置档四项均为 true → 关闭文件树 → 重启后仍为 false。截图 docs/evidence/settings-embedded-defaults-fresh.png。
 - NOT RUN：全量 E2E、真实模型。
+
+## 消息 fork 按钮（2026-09-30）
+
+- 补丁 0011 `oco-message-fork-buttons`（session.tsx、timeline/message-timeline.tsx、session-ui message-part.tsx）：用户消息与助手回复都有 fork 按钮，复用上游 `UserActions.fork` 预留位与 `ui.message.forkMessage` 文案；助手回复新增 `forkResponse`，按下一条用户消息切分。
+- 按钮图标：按用户给的样式自绘 `oco-fork` SVG，加入 ui v1/v2 图标集（补丁 0011 共 5 个文件）；两支分叉都带箭头；最终版 `c3-fork` 复跑 3/3（20260930-161921-c3-fork-25f3）。
+- 新 E2E 套件 `c3-fork`（3 项），加入 DEFAULT_SUITES（16 个；run.mjs、e2e-results 单测、TEST-SCOPE 同步）。
+- 检查：0001–0011 在固定 SHA 重放无冲突；app / session-ui tsgo exit 0；verify:brief typecheck 0 errors、unit 141/0；build:webview 通过；`c3-fork` 3/3（运行 20260930-155307-c3-fork-b400，mock）；p1a-chat、c1-open-file、c2-diff-unavailable、p1b-main-panel exit 0（mock）。
+- 过程：第 2 次 `c3-fork` 运行中途 4517 测试服务被外部停止（面板显示重连），FAIL 为环境原因；本会话重启脚本模型测试服务后通过。
+- NOT RUN：真实模型、全量 E2E。

@@ -8,6 +8,14 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
+## 消息 fork 按钮（补丁 0011，2026-09-30；验证运行于 `d3ec2e9` + 本批改动）
+
+- 用户消息：在 Revert 与 Copy 之间加 fork 按钮，行为同 `/fork`（新会话止于该消息之前，原文回填输入框）。
+- 助手回复：在“复制回复”旁加 fork 按钮，保留整轮回复，切点为该轮之后的下一条用户消息；最后一轮则整段复制；输入框留空。输出中不显示，会话忙时不执行。
+- 图标为自绘 `oco-fork`（v1/v2 图标集各加一项）。
+- 新会话经宿主 `openSession` 在当前主面板原地打开（ADR-007），原会话不变。只复制对话，不回滚工作区文件。
+- 证据：[c3-fork](evidence/c3-fork.md)；E2E `c3-fork` 3/3（mock）；p1a-chat、c1-open-file、c2-diff-unavailable、p1b-main-panel 均 exit 0（mock）。NOT RUN：真实模型、全量 E2E。
+
 ## 设置页高级开关（补丁 0009、0010，2026-09-30；验证运行于 `4d56f63` + 本批改动）
 
 - 0009：设置页不再请求 `/pty/shells`（宿主拦截 → 面板崩溃）。修复前 4 个高级开关各自触发面板错误，修复后 0/4。
