@@ -45,7 +45,10 @@ try {
   const [frame] = await waitForChatFrame(page, 1, 90000, '[data-component="prompt-input"]')
   const sid = await frameSession(frame)
   await frame.getByText(MODEL.label).first().waitFor({ timeout: 60000 })
-  await sleep(5000)
+  // Agents/models loaded (patch 0004 marks the page); then a short settle for the composer.
+  const t = Date.now()
+  while (Date.now() - t < 10000 && (await frame.evaluate(() => document.documentElement.dataset.ocoModel)) !== "ready") await sleep(100)
+  await sleep(500)
   run.setEnv({ sessionId: sid })
 
   // 1. Stream locked to one assistant text part: DOM samples of that part must grow while the server

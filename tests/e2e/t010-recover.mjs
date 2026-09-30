@@ -147,8 +147,14 @@ try {
       if ((await p.f.locator(INPUT).innerText()).trim() === prompt) break
     }
     await page.keyboard.press("Enter")
-    const last = await waitReply(sid, 60000)
-    const text = last?.parts?.filter((x) => x.type === "text").map((x) => x.text).join("") ?? ""
+    // Right after Enter the session can still be idle with the previous turn last: wait for this tag's reply.
+    let text = ""
+    const end = Date.now() + 60000
+    while (Date.now() < end && !text.includes(tag)) {
+      const last = await waitReply(sid, 5000)
+      text = last?.parts?.filter((x) => x.type === "text").map((x) => x.text).join("") ?? ""
+      if (!text.includes(tag)) await sleep(500)
+    }
     return { ok: text.includes(tag), reply: text.slice(0, 80) }
   }
 

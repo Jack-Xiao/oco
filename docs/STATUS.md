@@ -4,11 +4,11 @@
 
 ## 基线与并行工作
 
-- 本文件更新于 2026-09-30。当前 main 提交基线 `092c6b3`（含 C1、路径加固、C2 展示、连接设置子集、焦点与 Restart 修复，本地，未推送）；P1b 产品代码 `6343f7b`。实时版本以 `bun run brief` 为准。
+- 本文件更新于 2026-09-30。当前 main 含 C1 焦点收尾与 T010 错误恢复（`3e67fc7` 及其合并提交，补丁 0001–0008）与测试提速（`23c0954`、`376470e`）。本地，未推送；P1b 产品代码 `6343f7b`。实时版本以 `bun run brief` 为准。
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
-## C1 焦点收尾 + T010 错误恢复（未提交，worktree `claude/c1-focus-t010-recovery-a216bc`，基线 `33433bb` + main 的未提交 mock 测试改动，2026-09-30）
+## C1 焦点收尾 + T010 错误恢复（提交 `3e67fc7`，合并入 main，2026-09-30；验证运行于合并前的分支，基线 `33433bb` + 当时未提交的 mock 测试改动）
 
 全部 E2E 用脚本模型（`OCO_E2E_MODEL=mock`），证明 UI/宿主行为，不证明真实模型链路。详情与运行 ID：[证据](evidence/c1-focus-t010-recovery.md)。
 
@@ -20,7 +20,14 @@
 | T010 未知错误 / 未知类型 | 通用界面，不显示原始响应/路径/堆栈（修复前会原样显示），去掉 Discord/报告文案；重新加载面板不空白；未知 part/tool 兜底 PASS |
 | 上游补丁 0008 | `platform.recoveryView` 钩子（5 文件）；0001–0008 在 `51ef4be` 重放一致；上游 tsgo exit 0 |
 
-`bun run verify:brief -- --build`：typecheck PASS、unit 140/0、build PASS。E2E：`c1-focus` 3/3、`t010-recover` 5/5（两次）、`c1-open-file` 6/6、`t014-connection` 6/6、`p1b-reconnect` 4/5（`search-scope-hint` 既有 FAIL，HEAD 源码对照同样 FAIL）。其余套件、真实模型 E2E NOT RUN。T010 验收项已覆盖，但未提交，且只有脚本模型证据。
+`bun run verify:brief -- --build`：typecheck PASS、unit 140/0、build PASS。E2E：`c1-focus` 3/3、`t010-recover` 5/5（两次）、`c1-open-file` 6/6、`t014-connection` 6/6、`p1b-reconnect` 4/5（`search-scope-hint` 既有 FAIL，HEAD 源码对照同样 FAIL）。其余套件、真实模型 E2E NOT RUN。T010 验收项已覆盖，但只有脚本模型证据。合并入 main 后复验：verify PASS（unit 140/0）、`c1-focus` 3/3、`t010-recover` 5/5 ×2。全量定义现为 14 个套件（含 `c1-focus`）。
+
+## 测试提速（提交 `23c0954`、`376470e`，2026-09-30；只改测试与文档）
+
+- 全量定义统一为 13 个套件（`run.mjs` 与 `brief` 共用），按改动选套件见 [测试范围](TEST-SCOPE.md)。
+- 可选本地 mock 模型（`OCO_E2E_MODEL=mock`）：13 个套件全部 exit 0，合计约 10.2 分钟（有历史数据的 11 个约 17.5 → 9.2 分钟）。mock 运行不计验收。
+- 真实模型：12 个套件 exit 0；c1-open-file 3/6 **BLOCKED**（约 12:43 起测试模型不回复，同代码 mock 6/6）。结果分布在 33433bb（dirty）/ 23c0954 / 376470e，**不是同一提交的全量**。
+- 单元 136/0、typecheck PASS；构建 NOT RUN（产品代码未改）。明细与运行 ID：[证据](evidence/test-speedup.md)。
 
 ## 连接设置子集 + C2/T010 收尾（提交 `92034b8`、`20f0ea1`、`092c6b3`，2026-09-30；验证运行于其提交前的 dirty `b393df6` 工作树，内容一致）
 
@@ -96,3 +103,7 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 ## 维护规则
 
 当前事实只更新本文件，当前队列只更新 NEXT；PROGRESS 追加批次历史。完成实现后记录准确提交与证据，再改变任务状态。全量日志/截图按需查询，不作为默认交接输入。
+
+## 个人 GCP Workstation 连接修复（2026-09-30）
+
+独立于 oco 产品验收：修复旧 IAM 隧道复用、GUI 的 gcloud Python 3.9 不兼容，以及 15 秒连接超时。真实 VS Code 已恢复 `~/ai` 工作区与远程终端；4 项定向检查通过。冷启动、跨睡眠/数小时稳定性 NOT RUN。oco Remote-SSH 功能验收仍未执行。见 [连接证据](evidence/gcp-workstation-20260930.md)。

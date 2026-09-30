@@ -9,6 +9,7 @@ import path from "node:path"
 const PORT = Number(process.env.OCO_MOCK_LLM_PORT ?? 4518)
 // Delay between streamed lines of long answers; keeps a run "busy" long enough for stop/switch tests.
 const LINE_MS = Number(process.env.OCO_MOCK_LINE_MS ?? 60)
+const SENTENCE_MS = Number(process.env.OCO_MOCK_SENTENCE_MS ?? 150)
 const FIRST_MS = Number(process.env.OCO_MOCK_FIRST_MS ?? 150)
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -40,7 +41,7 @@ export function plan(body) {
   }
 
   let m
-  if (tools.has("bash") && (m = /Use the bash tool to run exactly(?: this command)?:\s*(.+?)(?:\s\.(?:\s|$)|$)/im.exec(prompt)))
+  if (tools.has("bash") && (m = /use the bash tool to run(?: exactly)?(?: this command)?:\s*(.+?)(?:\s\.(?:\s|$)| and tell|$)/im.exec(prompt)))
     return { tool: "bash", args: { command: m[1], description: "Run the requested command" } }
   if (tools.has("question") && /question tool/i.test(prompt))
     return {
@@ -65,7 +66,11 @@ export function plan(body) {
   if ((m = /Reply with exactly this line and nothing else:\s*(.+)$/im.exec(prompt))) return { lines: [m[1].trim()] }
 
   const n = Number(/(\d+) numbered sentences|from 1 to (\d+)|1 to (\d+)/i.exec(prompt)?.slice(1).find(Boolean) ?? 0)
-  if (n > 0) return { lines: Array.from({ length: n }, (_, i) => `${i + 1}. Mock line ${i + 1}.`) }
+  // "in one paragraph": plain words, no list markup, so the rendered text equals the raw text.
+  if (n > 0 && /one paragraph/i.test(prompt)) return { lines: Array.from({ length: n }, (_, i) => `word${i + 1}`), sep: " " }
+  // Long "sentence" answers are what stop/close tests interrupt; stream them slower (300 lines ~ 45s) so a
+  // test that polls host state (~1s per read) still sees the run busy.
+  if (n > 0) return { lines: Array.from({ length: n }, (_, i) => `${i + 1}. Mock line ${i + 1}.`), lineMs: /sentence/i.test(prompt) ? SENTENCE_MS : LINE_MS }
 
   const tag = /TAG-[\w-]+/.exec(prompt)?.[0]
   return { lines: [tag ? `OK ${tag}` : "OK"] }
@@ -89,10 +94,16 @@ async function complete(req, res, body) {
     chunk(res, id, { tool_calls: [call] })
     chunk(res, id, {}, "tool_calls")
   } else {
+    // Long answers start with a reasoning block, as the real test model does. OpenCode stores a part's
+    // text when the part ends, so tests that wait for "> 200 chars stored" see it while text still streams.
+    if (step.lines.length > 1) {
+      for (let i = 0; i < 6; i++) chunk(res, id, { reasoning_content: `Planning the list, step ${i + 1}: keep every item short and numbered in order. ` })
+      await sleep(LINE_MS)
+    }
     for (const [i, line] of step.lines.entries()) {
       if (closed) return
-      chunk(res, id, { content: (i ? "\n" : "") + line })
-      if (step.lines.length > 1) await sleep(LINE_MS)
+      chunk(res, id, { content: (i ? step.sep ?? "\n" : "") + line })
+      if (step.lines.length > 1) await sleep(step.lineMs ?? LINE_MS)
     }
     chunk(res, id, {}, "stop")
   }

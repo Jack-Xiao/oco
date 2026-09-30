@@ -170,6 +170,18 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - NOT RUN：其余 E2E 套件、设置密码输入流程、受限模式、真实快照缺失全链路。
 - 未标记 T014/A15 完成。
 
+## 2026-09-30 — 个人 GCP Workstation Remote-SSH 修复
+
+用户委托诊断本机 VS Code 连接。确认 STATE_RUNNING；旧隧道监听但读 EOF，全新隧道成功；GUI PATH 使用 Python 3.9 导致 gcloud 启动失败。替换专用 SSH helper 为每连接独立隧道，固定子进程 Python 3.13，连接超时设为 240 秒，保留备份。真实 VS Code `~/ai` 和远程终端恢复；定向检查 4/4 PASS。冷启动/跨睡眠/数小时测试 NOT RUN；不改变 oco 产品 Remote-SSH 验收状态。证据：`docs/evidence/gcp-workstation-20260930.md`。
+
+## 测试提速（2026-09-30）
+
+- 基线 main 33433bb；提交 23c0954、376470e（只改测试、脚本与文档）。主线程实现，未委派；model/provider unknown。
+- 交付：E2E 条件等待替换固定停顿；可选本地 mock 模型（OCO_E2E_MODEL=mock，brief 归为 mock-model 特殊运行）；单元输出降噪、合并重复用例；全量定义统一为 13 个套件；docs/TEST-SCOPE.md。
+- 验证：unit 136/0、typecheck PASS；mock 13 个套件全部 exit 0（合计约 10.2 分钟）；真实模型 12 个 exit 0，c1-open-file 3/6 BLOCKED（测试模型约 12:43 起无回复）。
+- 过程：缩短启动等待曾让"扩展已禁用"提示盖住 dock 按钮（chat 权限点击超时），已改为先等提示再清除；轮询 hostState 会反复走命令面板，比固定等待更慢，已撤回相应改动。
+- NOT RUN：同一提交的真实模型全量、构建、并行执行、不稳定率测量。证据：docs/evidence/test-speedup.md。
+
 ## C1 焦点收尾 + T010 错误恢复（2026-09-30）
 
 - 基线 main 33433bb + main 检出里未提交的脚本模型测试改动（复制进 worktree `claude/c1-focus-t010-recovery-a216bc`，main 检出未动）。未提交。主线程实现，未委派；model/provider unknown。全部 E2E 用脚本模型。
@@ -177,3 +189,9 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - T010：补丁 0008 `platform.recoveryView`；`recovery.tsx` 三种界面 + 宿主 `connection` 通知提示条；修复不可达恢复后模型不加载（重新加载面板）与原始错误外泄；中途发现并修复重载循环。`t010-recover` 5/5 ×2。
 - 检查：verify:brief --build PASS（unit 140/0）；上游 tsgo exit 0；0001–0008 重放一致；回归 c1-open-file 6/6、t014-connection 6/6、p1b-reconnect 4/5（search-scope-hint 既有 FAIL，HEAD 对照同样）。
 - NOT RUN：真实模型 E2E、其余 E2E 套件、其他 VS Code 版本。证据：docs/evidence/c1-focus-t010-recovery.md。
+
+## 合并 C1 焦点 + T010 分支入 main（2026-09-30）
+
+- 分支 `claude/c1-focus-t010-recovery-a216bc`（提交 3e67fc7）合并 main 6cc350b。冲突处理：mock 测试设施（mock-llm、vscode.mjs、p1a-chat、p1b-narrow、test-server.sh）取 main 已提交版本，test-server.sh 再加回 `OCO_MOCK_LLM_PORT` / `OCO_MOCK_LLM_EXTERNAL`；STATUS/PROGRESS 两边保留。
+- 全量定义加入 `c1-focus`（14 个套件；run.mjs、e2e-results 单测、TEST-SCOPE、README 同步）。
+- 合并后复验（脚本模型）：verify:brief --build PASS（typecheck 0 errors、unit 140/0、build）；`c1-focus` 3/3（20260930-131610-c1-focus-c838，`focusWaits` 11，`lateActivations` 0）；`t010-recover` 首次 4/5（initial-unreachable 的 send 读到上一轮回复，测试竞态，产品行为正常），修测试后 5/5 ×2（20260930-131929-…-fd20、20260930-132119-…-c69c）。其余套件 NOT RUN。

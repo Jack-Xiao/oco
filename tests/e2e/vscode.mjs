@@ -58,6 +58,9 @@ export async function launch({ workspace = path.join(fs.realpathSync(path.join(r
   await page.waitForSelector(".monaco-workbench", { timeout: 60000 })
   // The workbench shell renders before its parts are interactive; the command palette needs the sidebar title.
   await page.waitForSelector(".part.sidebar .composite.title", { timeout: 30000 }).catch(() => {})
+  // --disable-extensions raises an "extensions are temporarily disabled" toast shortly after startup; it
+  // covers the bottom-right of the window (e.g. a dock's buttons). Wait for it, then clear it.
+  await page.locator(".notifications-toasts .notification-toast").first().waitFor({ timeout: 4000 }).catch(() => {})
   await clearNotifications(page)
   if (run) {
     const pkg = JSON.parse(fs.readFileSync("/Applications/Visual Studio Code.app/Contents/Resources/app/package.json", "utf8"))

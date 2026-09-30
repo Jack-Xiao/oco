@@ -115,3 +115,7 @@ VS Code 1.139.1 `out/vs/workbench/contrib/webview/browser/pre/index.html` 的 `t
 - 删除会话后的草稿只保留、无取回入口。
 - `p1b-reconnect` `search-scope-hint` 既有 FAIL 未修。
 - Remote-SSH、Windows、真实 IME 仍按 STATUS 未验证。
+
+## 合并入 main 后复验（2026-09-30）
+
+合并 main `6cc350b`（mock 测试设施取 main 已提交版本）。`verify:brief -- --build` PASS（unit 140/0）；`c1-focus` 3/3（`20260930-131610-c1-focus-c838`）；`t010-recover` 5/5 两次（`20260930-131929-t010-recover-fd20`、`20260930-132119-t010-recover-c69c`；首次 4/5 为测试 `send` 读到上一轮回复的竞态，已修测试）。`c1-focus` 已加入全量定义（14 个套件）。

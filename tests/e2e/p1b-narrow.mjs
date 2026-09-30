@@ -6,7 +6,7 @@
 // OCO_NARROW_WIDTHS=260,320 overrides the width list.
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, chatFrames, frameSession, sleep, runShot, clearNotifications, fitGroups } from "./vscode.mjs"
+import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, clearNotifications, fitGroups } from "./vscode.mjs"
 import { api, messages, status, waitIdle, waitReply, MODEL } from "./server.mjs"
 
 const WIDTHS = (process.env.OCO_NARROW_WIDTHS ?? "260,320,480,800").split(",").map(Number)
@@ -168,17 +168,19 @@ try {
       const ids = []
       for (let i = 0; i < 3; i++) {
         ids.push(await newSession(page, ids))
-        await sleep(1500)
+        await sleep(500)
       }
       // Three sessions in one group -> one per group (group 1: A, group 2: B, group 3: C).
+      const tabsPerGroup = () => page.$$eval(".editor-group-container", (gs) => gs.map((g) => g.querySelectorAll(".tab").length).join(","))
       await command(page, "View: Move Editor into Right Group")
-      await sleep(1200)
+      await waitUntil(async () => (await tabsPerGroup()) === "2,1", 5000)
       await command(page, "View: Move Editor into Right Group")
-      await sleep(1200)
+      await waitUntil(async () => (await tabsPerGroup()) === "2,0,1", 5000)
       await command(page, "View: Focus First Editor Group")
-      await sleep(600)
+      await waitUntil(() => page.evaluate(() => document.querySelector(".editor-group-container")?.classList.contains("active")), 3000)
       await command(page, "View: Move Editor into Right Group")
-      await sleep(1200)
+      await waitUntil(async () => (await tabsPerGroup()) === "1,1,1", 5000)
+      await sleep(300)
       // The side bar stays open: the palette helper focuses it before pressing Escape (Escape inside
       // a webview would dismiss an open question dock).
       const widths = await fitGroups(app, page, w)
