@@ -2,7 +2,21 @@
 
 > 历史批次记录。当前状态只看 [STATUS](STATUS.md)，当前队列只看 [NEXT](NEXT.md)。下文保留，不代表现在该做什么。
 
-更新时间：2026-09-30（P1b-1 完成后）。
+更新时间：2026-09-30（P1b 稳定性收尾后）。
+
+## P1b 稳定性收尾（2026-09-30）
+
+```text
+日期 / 负责人: 2026-09-30 / 集成 AI（Claude Code 主线程）
+领取任务与写入范围: P1B1-REVIEW-NEXT 的 A（前置核查）与 B（稳定性收尾）；apps/extension/src/{session-feed,session-store,sessions-view,extension}.ts、apps/chat-webview/src/{app.tsx,submit-status.ts}、patches/opencode/0004、tests/unit/{session-feed,session-store,e2e-results}.test.ts、tests/e2e/run.mjs
+已完成行为: 见 docs/evidence/p1b-stability.md（单一待发意图、加载提示、feed 401 修复、200 条范围提示）
+改动文件: 6343f7b（产品与测试）；b2f6514（另一工作者的 STATUS/NEXT/AGENTS/brief，按用户要求原样提交）
+已运行检查及结果: typecheck PASS；unit 100/100；p1b-reconnect 5/5；p1b-pending-send 7/7；旧 0004 负向对照 exit 1；默认 8 套件均有 exit 0（2 个模型输出偶发失败，重跑通过）
+未运行/被阻塞检查: 等待中切换连接无 E2E；真实输入法、系统剪贴板、Windows NOT RUN；Remote-SSH、团队服务 BLOCKED
+证据与 ADR: docs/evidence/p1b-stability.md、p1b-stability-runs.md；无新 ADR（未改公共契约）
+委派: E2E 编写与回归由 general-purpose（sonnet）子代理完成（tests/e2e/p1b-{reconnect,pending-send}.mjs、tests/e2e/lib/proxy.mjs、p1b-stability-runs.md）；Grok 子代理沙箱只能写其他目录，未落地，单元测试由主线程补写
+下一批任务: NEXT 第 2 步剩余的可恢复错误界面与未知类型兜底，之后才是第 3 步 T011/T012
+```
 
 ## P1b-1 完成（2026-09-30）
 
