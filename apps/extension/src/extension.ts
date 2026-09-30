@@ -33,6 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
   const recentLog: string[] = []
   const log = tapLog(vscode.window.createOutputChannel("oco", { log: true }), recentLog)
   const conn = new Connection(context, log)
+  conn.activeFolder = context.workspaceState.get<string>("oco.activeFolder")
   const kv = new KvStore(context.globalState, context.workspaceState)
   const panels = new PanelRegistry(context, conn, kv, new BlobStore(context), log)
   const activationId = Math.random().toString(36).slice(2, 10)
@@ -118,6 +119,15 @@ export function activate(context: vscode.ExtensionContext) {
   }
   const agentsView = new AgentsView(conn, log)
   context.subscriptions.push(agentsView)
+
+  // T007 multi-root: one active folder at a time for the sidebar, new sessions and Agents.
+  const updateFolderChrome = () => {
+    const folders = conn.folders()
+    const multi = folders.length > 1
+    void vscode.commands.executeCommand("setContext", "oco.multiRoot", multi)
+    view.setFolderLabel(multi && conn.directory ? vscode.workspace.workspaceFolders?.find((f) => f.uri.fsPath === conn.directory)?.name ?? conn.directory : undefined)
+  }
+  updateFolderChrome()
   panels.onRecoveryAction = (action) => {
     if (action === "retryConnection") feed.restart()
     else if (action === "openSettings") void vscode.commands.executeCommand("oco.openSettings")
@@ -303,6 +313,7 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       versionFor = undefined
+      updateFolderChrome()
       if (conn.mode() === "managed") void managedServer!.stop().then(() => startManaged())
       else feed.restart()
     }),
@@ -323,6 +334,26 @@ export function activate(context: vscode.ExtensionContext) {
       feed.restart()
     }),
     vscode.commands.registerCommand("oco.showLog", () => log.show()),
+    vscode.commands.registerCommand("oco.selectFolder", async (fsPath?: string) => {
+      const folders = (vscode.workspace.workspaceFolders ?? []).filter((f) => f.uri.scheme === "file")
+      if (folders.length < 2) return void vscode.window.showInformationMessage("oco: 当前只有一个工作区文件夹")
+      const target =
+        typeof fsPath === "string" && folders.some((f) => f.uri.fsPath === fsPath)
+          ? fsPath
+          : (
+              await vscode.window.showQuickPick(
+                folders.map((f) => ({ label: f.name, description: f.uri.fsPath, picked: f.uri.fsPath === conn.directory, fsPath: f.uri.fsPath })),
+                { placeHolder: "侧栏、新建会话和 Agents 使用哪个文件夹？（已打开的会话标签页不受影响）" },
+              )
+            )?.fsPath
+      if (!target || target === conn.directory) return
+      conn.activeFolder = target
+      await context.workspaceState.update("oco.activeFolder", target)
+      log.info(`active folder switched (${folders.findIndex((f) => f.uri.fsPath === target) + 1}/${folders.length})`)
+      updateFolderChrome()
+      feed.restart()
+      void agentsView.refresh()
+    }),
     vscode.commands.registerCommand("oco.exportDiagnostics", async () => {
       const content = JSON.stringify(await diagnostics(), null, 2)
       // E2E reads the export from a file (outside production only), like OCO_DEBUG_STATE_FILE.

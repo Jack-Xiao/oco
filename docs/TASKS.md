@@ -123,7 +123,7 @@ P0 合计以 3–5 人天为初始时间盒，各子任务用时由实验结果�
 
 ### [ ] T007 — 连接与自有进程管理
 
-- 状态（2026-10-01）：attached + managed 完成（`t007-managed` 7/7、`t014-connection`）：坏路径明确报错、异常退出不自动重启、只结束自有进程、多面板共用一个进程、外部服务不受影响。端口冲突不适用（托管用随机端口）。未做：多根工作区映射（只用第一个文件夹）；Remote 上的托管模式 NOT RUN。
+- 状态（2026-10-01）：attached + managed 完成（`t007-managed` 7/7、`t014-connection`）：坏路径明确报错、异常退出不自动重启、只结束自有进程、多面板共用一个进程、外部服务不受影响。端口冲突不适用（托管用随机端口）。多根工作区：一次一个当前文件夹，“oco: Select Workspace Folder” 切换并按工作区记住，已开面板不受影响（`t007-multiroot` 5/5）。Remote 上的托管模式 NOT RUN。
 
 - 依赖：T006。
 - 归属：`connections/`、`packages/opencode-adapter/` 连接部分、连接契约。

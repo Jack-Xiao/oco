@@ -71,6 +71,10 @@ NOT RUN（远端）：断网恢复、本机粘贴图片、托管模式（远端�
 - 原地切换（命令到输入框可见）中位 251 ms（230–356 ms）；新开面板 1.2–1.9 s。
 - 首次与末次切换之间合计 RSS 增长 8.9%（上一轮 16.5%），阈值 25%。增长主要在渲染进程；长时间运行的趋势未测。
 
+## 多根工作区（T007，追加）
+
+`t007-multiroot` 5/5（运行 `20260930-174425-t007-multiroot-4df1`，mock）：两个文件夹的 `.code-workspace`；默认第一个文件夹只列它的会话、标题旁显示 “alpha”；切到 beta 后只列 beta 的会话；新建会话落在 beta；切换前打开的 alpha 会话面板仍就绪；重启窗口后仍是 beta。复跑 `t007-managed`、`p1b-sidebar`、`t014-connection` exit 0；unit 161/0。
+
 ## 集成回归（main，2026-10-01 01:1x–01:4x，mock）
 
 对象：main `dbf6ef9`/`1a6b2c7`（两者之间只改了测试）加上 fork 按钮批次的未提交改动（补丁 0011，由另一会话完成、待用户确认提交；本批未提交它）。`bun run verify:brief -- --build`：typecheck 0 errors，unit 161/0，build PASS。

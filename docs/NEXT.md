@@ -6,7 +6,7 @@
 
 ## 1. 登记与收口（小，先做）
 
-- [TODO] fork 批次提交后，把 `t007-managed`、`t013-agents`、`t015-diagnostics` 加入 `tests/e2e/run.mjs` 的 `DEFAULT_SUITES`（合计 19 个），同步 `tests/unit/e2e-results.test.ts` 标题和 `docs/TEST-SCOPE.md`（计数、全量列表，以及 managed-server / agents / diagnostics 三行改动范围）。PROGRESS 追加 v0.1 批次条目（正文已备好：[v01-progress-entry](evidence/v01-progress-entry.md)，fork 批次提交后原样追加到文件末尾）。
+- [TODO] fork 批次提交后，把 `t007-managed`、`t013-agents`、`t015-diagnostics`、`t007-multiroot` 加入 `tests/e2e/run.mjs` 的 `DEFAULT_SUITES`（合计 20 个），同步 `tests/unit/e2e-results.test.ts` 标题和 `docs/TEST-SCOPE.md`（计数、全量列表，以及 managed-server / agents / diagnostics 三行改动范围）。PROGRESS 追加 v0.1 批次条目（正文已备好：[v01-progress-entry](evidence/v01-progress-entry.md)，fork 批次提交后原样追加到文件末尾）。
 - [DONE] fork 批次（未提交）+ 本批的 main 工作树已构建 `oco-0.0.1-1a6b2c7.vsix` 并部署 gcp-workstation，远端复验通过。fork 批次提交后如有改动，按 `scripts/package-vsix.sh` + `scripts/deploy-remote.sh` 重做。
 
 ## 2. 真实模型回归（缺环境时标 BLOCKED）
@@ -22,7 +22,6 @@
 
 ## 4. 仍未做的 v0.1 项（按需单独立项）
 
-- T007：多根工作区映射（现在只用第一个文件夹）。
 - T009：多连接/多工作区分组、分页或服务端搜索。
 - T010：键盘可访问性、主题配色专项检查。
 - T011：附件/图片大小限制与远端来源区分。

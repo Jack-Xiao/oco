@@ -36,7 +36,8 @@ describe("connection settings contribution", () => {
   test("Agents view and its write commands exist; writes need a trusted workspace", () => {
     expect(c.views.oco.some((v: any) => v.id === "oco.agents")).toBe(true)
     for (const id of ["oco.agents.create", "oco.agents.duplicate", "oco.agents.reloadConfig"]) expect(c.commands.find((x: any) => x.command === id)?.enablement).toBe("isWorkspaceTrusted")
-    for (const id of ["oco.exportDiagnostics", "oco.showLog", "oco.restartManagedServer", "oco.stopManagedServer", "oco.agents.openFile", "oco.agents.refresh"]) expect(c.commands.some((x: any) => x.command === id)).toBe(true)
+    expect(c.menus["view/title"].find((m: any) => m.command === "oco.selectFolder")?.when).toContain("oco.multiRoot")
+    for (const id of ["oco.selectFolder", "oco.exportDiagnostics", "oco.showLog", "oco.restartManagedServer", "oco.stopManagedServer", "oco.agents.openFile", "oco.agents.refresh"]) expect(c.commands.some((x: any) => x.command === id)).toBe(true)
   })
 })
 

@@ -22,6 +22,7 @@
 - T018：`scripts/package-vsix.sh`、`scripts/deploy-remote.sh`、[CHANGELOG](../CHANGELOG.md)、[使用与故障说明](USER-GUIDE.md)。
 - Remote-SSH（gcp-workstation）：已部署；独立 VS Code 实例经 Remote-SSH 查看，连接用户服务 1.18.33、会话列表、Agents、打开会话、诊断导出均正常；新建测试会话后发送、Escape 取消（服务端 `MessageAbortedError`）、点击回复中的远端文件路径（定位到行）均通过（`scripts/remote-chat-check.mjs`，测试会话已删）。远端断网恢复、本机粘贴图片、托管模式 NOT RUN。
 - 检查：typecheck 0 errors；unit 161/0；build PASS；`p1b-reconnect` 5/5（既有 search-scope-hint FAIL 未复现）。真实模型、全量 E2E NOT RUN。详情：[v01 证据](evidence/v01-completion.md)。
+- T007 多根工作区：一次一个当前文件夹（默认第一个），“oco: Select Workspace Folder” 切换、按工作区记住；侧栏标题显示文件夹名；已开面板不受影响；托管模式的连接身份改用进程启动目录，切换文件夹不会让面板失去绑定。`t007-multiroot` 5/5（mock，运行 `20260930-174425-t007-multiroot-4df1`）；复跑 `t007-managed`、`p1b-sidebar`、`t014-connection` exit 0。
 - T017 资源基线（ADR-007，`perf` 4/4，mock）：主面板 + 3 固定面板，渲染进程 692 MB（3 可见），12 次原地切换后 780 MB；面板数恒为 4、每面板 1 条事件流；原地切换中位 251 ms，新开面板 1.2–1.9 s。
 - 集成回归（main + 未提交的 fork 批次，mock）：默认 16 个套件与 3 个新套件、perf 全部 exit 0（首轮 `p1b-sidebar`、`t010-recover` 因 Agents 视图导致的测试选择器问题失败，已修测试后复跑通过）。最终包 `oco-0.0.1-1a6b2c7.vsix` 已部署 gcp-workstation 并复验发送/取消/远端文件/fork 按钮；用户窗口需 Reload Window。
 - 三个新套件尚未加入 `DEFAULT_SUITES`（`run.mjs` 与 fork 批次的未提交改动重叠，待其提交后登记，见 NEXT）。

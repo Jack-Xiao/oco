@@ -9,6 +9,7 @@
 - 托管模式（`oco.serverMode = managed`）：oco 用 `oco.opencodePath` 在本窗口启动 `opencode serve`（只听 127.0.0.1、随机端口、随机内存密码），所有会话标签页共用；异常退出只提示，不自动重启；关闭窗口、停用扩展或切回 attached 时只结束自己启动的进程。命令：Restart / Stop Managed Server。
 - Agents 视图：服务端生效的 Agent 列表及来源（内置 / 项目文件 / 用户文件 / 配置文件），文件与服务不一致时标“待生效”；新建（项目或用户范围）、复制（文件原样复制，内置 Agent 生成可编辑副本）、打开原文；“Reload OpenCode Config”经确认后只重载该目录的服务实例，不重启服务进程。
 - 状态栏显示服务版本与模式，未验证的服务版本给出提示；`oco: Export Diagnostics` 导出脱敏诊断（无密码、认证头、消息正文、家目录路径）；`oco: Show Log`。
+- 多根工作区：“oco: Select Workspace Folder” 选择侧栏、新建会话和 Agents 使用的文件夹（按工作区记住，已打开的标签页不受影响）。
 - 打包与部署脚本：`scripts/package-vsix.sh`、`scripts/deploy-remote.sh`。
 
 ### 之前已有

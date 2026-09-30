@@ -34,7 +34,8 @@ export class Connection {
     if (this.mode() === "managed") {
       const url = this.managed?.url
       if (!url || !this.directory) throw new Error(this.managed?.state.error ?? (this.managed?.state.status === "starting" ? "托管服务启动中" : "托管服务未运行"))
-      return managedEndpoint(url, this.opencodePath(), this.directory)
+      // Identity = binary + the folder the process started in, so switching the active folder keeps panels bound.
+      return managedEndpoint(url, this.opencodePath(), this.managed?.cwd ?? this.directory)
     }
     return endpointFromSetting(cfg.get<string>("serverUrl", "http://127.0.0.1:4096"), cfg.get<string>("serverUsername", "opencode"))
   }
@@ -52,9 +53,13 @@ export class Connection {
     return (vscode.workspace.workspaceFolders ?? []).filter((f) => f.uri.scheme === "file").map((f) => f.uri.fsPath)
   }
 
-  /** Directory used for new sessions / listing (first folder, P1a). */
+  /** Folder chosen with "oco: Select Workspace Folder" in a multi-root workspace (T007). */
+  activeFolder: string | undefined
+
+  /** Directory used for the sidebar, new sessions and Agents: the chosen folder while it is still open, else the first. */
   get directory(): string | undefined {
-    return this.folders()[0]
+    const folders = this.folders()
+    return this.activeFolder && folders.includes(this.activeFolder) ? this.activeFolder : folders[0]
   }
 
   /** A server-reported session directory belongs to this workspace. Realpath only for a local server. */

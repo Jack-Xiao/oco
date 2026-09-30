@@ -143,6 +143,12 @@
         "category": "oco",
         "icon": "$(sync)",
         "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "oco.selectFolder",
+        "title": "Select Workspace Folder",
+        "category": "oco",
+        "icon": "$(root-folder)"
       }
     ],
     "menus": {
@@ -186,6 +192,11 @@
           "command": "oco.agents.refresh",
           "when": "view == oco.agents",
           "group": "navigation@3"
+        },
+        {
+          "command": "oco.selectFolder",
+          "when": "view == oco.sessions && oco.multiRoot",
+          "group": "navigation@0"
         }
       ],
       "view/item/context": [
@@ -224,6 +235,10 @@
         {
           "command": "oco.clearSearch",
           "when": "oco.searchActive"
+        },
+        {
+          "command": "oco.selectFolder",
+          "when": "oco.multiRoot"
         }
       ],
       "editor/context": [

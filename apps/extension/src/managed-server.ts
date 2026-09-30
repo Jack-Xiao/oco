@@ -36,6 +36,8 @@ export class ManagedServer {
   private stopping = false
   private tail: string[] = []
   state: ManagedState = { status: "stopped" }
+  /** Working directory of the running process (part of the managed connection identity). */
+  cwd: string | undefined
 
   constructor(private readonly deps: ManagedDeps) {}
 
@@ -64,6 +66,7 @@ export class ManagedServer {
       this.set({ status: "failed", error, binary })
       return Promise.reject(new Error(error))
     }
+    this.cwd = cwd
     this.password = crypto.randomBytes(18).toString("hex")
     this.tail = []
     this.stopping = false

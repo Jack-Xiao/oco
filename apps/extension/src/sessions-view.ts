@@ -51,6 +51,7 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
   private query = ""
   private summary: ConnectionSummary | undefined
   private info: ServerInfo | undefined
+  private folderLabel: string | undefined
   private refreshTimer: ReturnType<typeof setTimeout> | undefined
   private readonly status: vscode.StatusBarItem
   readonly stats = { renders: 0 }
@@ -115,7 +116,7 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
     const s = this.summary
     const all = this.items()
     const waiting = all.filter((i) => i.activity === "permission" || i.activity === "question").length
-    this.view.description = this.query ? `搜索：${this.query}` : undefined
+    this.view.description = [this.folderLabel, this.query ? `搜索：${this.query}` : ""].filter(Boolean).join(" · ") || undefined
     let message: string | undefined
     if (s?.state === "reconnecting") message = `连接中断，正在重连（第 ${s.attempt} 次）……列表可能不是最新。${s.error ? `原因：${s.error}` : ""}`
     else if (s?.state === "error") message = `无法连接 ${s.label}：${s.error ?? ""}`
@@ -178,6 +179,12 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
     st.show()
   }
 
+  /** Multi-root: the folder the list belongs to, shown next to the view title (undefined for one folder). */
+  setFolderLabel(label: string | undefined) {
+    this.folderLabel = label
+    this.updateChrome()
+  }
+
   /** Server version / mode / managed process shown in the status bar (T007/T015). */
   setServerInfo(info: ServerInfo) {
     this.info = info
@@ -189,6 +196,7 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
     return {
       connection: s ? { state: s.state, attempt: s.attempt, error: s.error, issue: s.issue, label: s.label, trusted: s.trusted } : null,
       search: this.query,
+      folderLabel: this.folderLabel ?? null,
       message: this.view.message ?? null,
       badge: this.view.badge?.value ?? 0,
       statusText: this.status.text,
