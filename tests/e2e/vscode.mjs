@@ -11,7 +11,7 @@ fs.mkdirSync(evidenceDir, { recursive: true })
 
 const CODE = process.env.OCO_VSCODE_BIN ?? "/Applications/Visual Studio Code.app/Contents/MacOS/Code"
 
-export async function launch({ workspace = path.join(fs.realpathSync(path.join(root, ".oco-test")), "workspace"), profile = "default", fresh = true, run, settings = {}, trust = true } = {}) {
+export async function launch({ workspace = path.join(fs.realpathSync(path.join(root, ".oco-test")), "workspace"), profile = "default", fresh = true, run, settings = {}, trust = true, env = {} } = {}) {
   // realpath: a linked .oco-test (e.g. from a git worktree) keeps the IPC socket under macOS's 103-char limit.
   const userData = path.join(fs.realpathSync(path.join(root, ".oco-test")), "vscode", profile)
   const stateFile = path.join(userData, "oco-debug-state.json")
@@ -51,7 +51,7 @@ export async function launch({ workspace = path.join(fs.realpathSync(path.join(r
       ...(trust ? ["--disable-workspace-trust"] : []),
       "--new-window",
     ],
-    env: { ...process.env, OCO_DEV_PASSWORD_FILE: path.join(root, ".oco-test/secret"), OCO_DEBUG_STATE_FILE: stateFile },
+    env: { ...process.env, OCO_DEV_PASSWORD_FILE: path.join(root, ".oco-test/secret"), OCO_DEBUG_STATE_FILE: stateFile, ...env },
     timeout: 60000,
   })
   const page = await app.firstWindow()

@@ -4,7 +4,7 @@ import pkg from "../../apps/extension/package.json"
 import { endpointFromSetting } from "../../apps/extension/src/endpoint"
 
 const c = pkg.contributes as any
-const welcome = (state: string) => (c.viewsWelcome as { when: string; contents: string }[]).filter((w) => w.when.includes(`connState == ${state}`))
+const welcome = (state: string) => (c.viewsWelcome as { when?: string; contents: string }[]).filter((w) => (w.when ?? "").includes(`connState == ${state}`))
 
 describe("connection settings contribution", () => {
   test("a discoverable Open Settings command exists in the sidebar title and is what welcome views link to", () => {
@@ -20,16 +20,23 @@ describe("connection settings contribution", () => {
   test("unauthorized offers the password command; password is not a setting", () => {
     expect(welcome("unauthorized")[0].contents).toContain("command:oco.setServerPassword")
     const props = Object.keys(c.configuration.properties)
-    expect(props.sort()).toEqual(["oco.serverUrl", "oco.serverUsername"])
+    expect(props.sort()).toEqual(["oco.opencodePath", "oco.serverMode", "oco.serverUrl", "oco.serverUsername"])
     expect(props.some((k) => /pass|secret|token/i.test(k))).toBe(false)
   })
-  test("both settings stay machine scoped and are documented in Chinese", () => {
+  test("all settings stay machine scoped and are documented in Chinese", () => {
     for (const p of Object.values(c.configuration.properties) as any[]) {
       expect(p.scope).toBe("machine")
       expect(p.markdownDescription).toMatch(/[一-鿿]/)
     }
     expect(c.configuration.properties["oco.serverUrl"].markdownDescription).toContain("machine")
     expect(c.configuration.properties["oco.serverUsername"].markdownDescription).toContain("Set Server Password")
+    expect(c.configuration.properties["oco.serverMode"].default).toBe("attached")
+    expect(c.configuration.properties["oco.serverMode"].enum).toEqual(["attached", "managed"])
+  })
+  test("Agents view and its write commands exist; writes need a trusted workspace", () => {
+    expect(c.views.oco.some((v: any) => v.id === "oco.agents")).toBe(true)
+    for (const id of ["oco.agents.create", "oco.agents.duplicate", "oco.agents.reloadConfig"]) expect(c.commands.find((x: any) => x.command === id)?.enablement).toBe("isWorkspaceTrusted")
+    for (const id of ["oco.exportDiagnostics", "oco.showLog", "oco.restartManagedServer", "oco.stopManagedServer", "oco.agents.openFile", "oco.agents.refresh"]) expect(c.commands.some((x: any) => x.command === id)).toBe(true)
   })
 })
 

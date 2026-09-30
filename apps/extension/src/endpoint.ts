@@ -3,7 +3,7 @@ import * as crypto from "node:crypto"
 import * as fs from "node:fs"
 import * as path from "node:path"
 
-export type Endpoint = { origin: string; host: string; username: string; connectionId: string; cleartext: boolean }
+export type Endpoint = { origin: string; host: string; username: string; connectionId: string; cleartext: boolean; managed?: boolean }
 
 export function isLoopbackHost(host: string) {
   const h = host.replace(/^\[|\]$/g, "").toLowerCase()
@@ -25,6 +25,15 @@ export function endpointFromSetting(raw: string, username: string): Endpoint {
   const origin = u.origin
   const connectionId = "c" + crypto.createHash("sha256").update(`${origin}|${user}`).digest("hex").slice(0, 16)
   return { origin, host: u.hostname, username: user, connectionId, cleartext: u.protocol === "http:" && !isLoopbackHost(u.hostname) }
+}
+
+/** Endpoint of the server oco started itself. The identity is the binary + project, not the random port,
+ *  so panels stay bound across a managed restart. */
+export function managedEndpoint(url: string, binary: string, directory: string, username = "opencode"): Endpoint {
+  const u = new URL(url)
+  if (!isLoopbackHost(u.hostname)) throw new Error("托管服务只能监听回环地址")
+  const connectionId = "m" + crypto.createHash("sha256").update(`managed|${binary}|${directory}|${username}`).digest("hex").slice(0, 16)
+  return { origin: u.origin, host: u.hostname, username, connectionId, cleartext: false, managed: true }
 }
 
 function norm(p: string) {

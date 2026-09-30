@@ -1,5 +1,7 @@
 import * as vscode from "vscode"
 import * as fs from "node:fs"
+import * as os from "node:os"
+import * as childProcess from "node:child_process"
 import type { OpenSessionRequest, PanelRole, SessionBinding } from "@oco/contracts"
 import { Connection, type SessionInfo } from "./connection"
 import { SessionStore } from "./session-store"
@@ -8,15 +10,35 @@ import { SessionsView, SessionItem } from "./sessions-view"
 import { BlobStore } from "./bridge-host"
 import { KvStore } from "./host-store"
 import { PanelRegistry, VIEW_TYPE, type Entry } from "./panels"
+import { ManagedServer } from "./managed-server"
+import { AgentsView, AgentItem } from "./agents-view"
+import { redactValue, VERIFIED_SERVER } from "./diagnostics"
+
+let managedServer: ManagedServer | undefined
+
+/** Keep the last lines logged by oco for the diagnostics export (they carry no message text). */
+function tapLog(log: vscode.LogOutputChannel, recent: string[]) {
+  for (const level of ["info", "warn", "error"] as const) {
+    const orig = log[level].bind(log) as (m: string, ...a: unknown[]) => void
+    ;(log as unknown as Record<string, unknown>)[level] = (m: string, ...a: unknown[]) => {
+      recent.push(`${new Date().toISOString()} ${level} ${String(m).slice(0, 300)}`)
+      if (recent.length > 120) recent.splice(0, recent.length - 120)
+      orig(m, ...a)
+    }
+  }
+  return log
+}
 
 export function activate(context: vscode.ExtensionContext) {
-  const log = vscode.window.createOutputChannel("oco", { log: true })
+  const recentLog: string[] = []
+  const log = tapLog(vscode.window.createOutputChannel("oco", { log: true }), recentLog)
   const conn = new Connection(context, log)
   const kv = new KvStore(context.globalState, context.workspaceState)
   const panels = new PanelRegistry(context, conn, kv, new BlobStore(context), log)
   const activationId = Math.random().toString(36).slice(2, 10)
   context.subscriptions.push(log)
 
+  let refreshVersionLater = async () => {}
   // Native sidebar: one host-side event stream + snapshot per window (P1b-1).
   const store = new SessionStore((dir) => {
     try {
@@ -37,12 +59,65 @@ export function activate(context: vscode.ExtensionContext) {
     onState: (st) => {
       view.setConnection(st)
       panels.setConnection(st)
+      if (st.state === "connected") void refreshVersionLater()
     },
     log: (m) => log.info(m),
     // E2E hook for a silent stall (proxy holds the stream but forwards nothing), outside production only.
     stallMs: context.extensionMode !== vscode.ExtensionMode.Production && Number(process.env.OCO_DEV_STALL_MS) > 0 ? Number(process.env.OCO_DEV_STALL_MS) : undefined,
   })
   panels.onChange = () => view.refresh()
+
+  // T007 managed mode + T015 server version. One managed process per window, shared by every panel.
+  let serverVersion: string | undefined
+  let versionFor: string | undefined
+  const pushInfo = () => view.setServerInfo({ version: serverVersion, mode: conn.mode(), managed: managedServer?.state })
+  managedServer = new ManagedServer({
+    spawn: (cmd, args, opts) => childProcess.spawn(cmd, args, opts),
+    binary: () => conn.opencodePath(),
+    cwd: () => conn.directory,
+    env: () => process.env,
+    log: (m) => log.info(m),
+    onState: (st) => {
+      log.info(`managed server: ${st.status}${st.error ? ` (${st.error})` : ""}`)
+      pushInfo()
+    },
+  })
+  conn.managed = managedServer
+  const startManaged = async (notify = true) => {
+    if (conn.mode() !== "managed") return
+    if (!vscode.workspace.isTrusted) {
+      managedServer!.state = { status: "failed", error: "受限模式下不会启动托管服务（信任工作区后自动启动）" }
+      pushInfo()
+      feed.restart()
+      return
+    }
+    try {
+      await managedServer!.start()
+    } catch (e) {
+      if (notify)
+        void vscode.window.showErrorMessage(`oco: 托管服务启动失败（${(e as Error).message}）`, "打开设置", "显示日志").then((a) => {
+          if (a === "打开设置") void vscode.commands.executeCommand("workbench.action.openSettings", "oco.opencodePath")
+          else if (a === "显示日志") log.show()
+        })
+    }
+    feed.restart()
+  }
+  refreshVersionLater = async () => refreshVersion()
+  const refreshVersion = async () => {
+    const st = feed.state
+    if (st.state !== "connected" || !st.connectionId || versionFor === st.connectionId) return
+    versionFor = st.connectionId
+    try {
+      serverVersion = (await conn.request<{ version?: string }>("GET", "/global/health")).version
+    } catch {
+      serverVersion = undefined
+    }
+    log.info(`server version ${serverVersion ?? "unknown"} (verified ${VERIFIED_SERVER})`)
+    pushInfo()
+    void agentsView.refresh()
+  }
+  const agentsView = new AgentsView(conn, log)
+  context.subscriptions.push(agentsView)
   panels.onRecoveryAction = (action) => {
     if (action === "retryConnection") feed.restart()
     else if (action === "openSettings") void vscode.commands.executeCommand("oco.openSettings")
@@ -166,6 +241,7 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("oco.setServerPassword", async () => {
       try {
+        if (conn.mode() === "managed") return void vscode.window.showInformationMessage("oco: 托管模式每次启动都生成随机密码并只保存在内存中，不需要设置")
         const ep = conn.endpoint()
         const value = await vscode.window.showInputBox({
           prompt: `${ep.origin}（用户 ${ep.username}）的密码，保存在 VS Code SecretStorage（不写入 settings），仅用于该地址和用户名`,
@@ -219,10 +295,49 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("oco.reconnect", () => feed.restart()),
     vscode.commands.registerCommand("oco.openSettings", () => vscode.commands.executeCommand("workbench.action.openSettings", "oco")),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("oco")) feed.restart()
+      if (!e.affectsConfiguration("oco")) return
+      versionFor = undefined
+      if (e.affectsConfiguration("oco.serverMode") || e.affectsConfiguration("oco.opencodePath")) {
+        void managedServer!.stop().then(() => (conn.mode() === "managed" ? startManaged() : (pushInfo(), feed.restart())))
+      } else feed.restart()
     }),
-    vscode.workspace.onDidChangeWorkspaceFolders(() => feed.restart()),
-    vscode.workspace.onDidGrantWorkspaceTrust(() => feed.restart()),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      versionFor = undefined
+      if (conn.mode() === "managed") void managedServer!.stop().then(() => startManaged())
+      else feed.restart()
+    }),
+    vscode.workspace.onDidGrantWorkspaceTrust(() => (conn.mode() === "managed" ? void startManaged() : feed.restart())),
+    vscode.commands.registerCommand("oco.restartManagedServer", async () => {
+      if (conn.mode() !== "managed") {
+        const a = await vscode.window.showInformationMessage("oco: 当前是“连接已有服务”模式，oco 不管理该服务进程。要由 oco 启动服务，请把 oco.serverMode 设为 managed。", "打开设置")
+        if (a) void vscode.commands.executeCommand("workbench.action.openSettings", "oco.serverMode")
+        return
+      }
+      versionFor = undefined
+      await managedServer!.stop()
+      await startManaged()
+    }),
+    vscode.commands.registerCommand("oco.stopManagedServer", async () => {
+      if (conn.mode() !== "managed") return void vscode.window.showInformationMessage("oco: 当前不是托管模式，oco 不会停止外部服务")
+      await managedServer!.stop()
+      feed.restart()
+    }),
+    vscode.commands.registerCommand("oco.showLog", () => log.show()),
+    vscode.commands.registerCommand("oco.exportDiagnostics", async () => {
+      const content = JSON.stringify(await diagnostics(), null, 2)
+      // E2E reads the export from a file (outside production only), like OCO_DEBUG_STATE_FILE.
+      const file = process.env.OCO_DIAGNOSTICS_FILE
+      if (file && context.extensionMode !== vscode.ExtensionMode.Production) fs.writeFileSync(file, content)
+      const doc = await vscode.workspace.openTextDocument({ language: "json", content })
+      await vscode.window.showTextDocument(doc)
+      void vscode.window.showInformationMessage("oco: 诊断信息已生成（不含密码、认证头和消息正文）。分享前请再检查一遍。")
+    }),
+    vscode.commands.registerCommand("oco.agents.refresh", () => agentsView.refresh()),
+    vscode.commands.registerCommand("oco.agents.create", () => agentsView.create().catch((e) => fail("无法新建 Agent", e))),
+    vscode.commands.registerCommand("oco.agents.duplicate", (item?: AgentItem) => agentsView.duplicate(item).catch((e) => fail("无法复制 Agent", e))),
+    vscode.commands.registerCommand("oco.agents.openFile", (item?: AgentItem) => agentsView.openFile(item).catch((e) => fail("无法打开 Agent 原文", e))),
+    // Disposing the instance ends the server's event stream: reconnect the sidebar right away instead of after backoff.
+    vscode.commands.registerCommand("oco.agents.reloadConfig", async () => (await agentsView.reloadConfig()) && feed.restart()),
     vscode.window.registerWebviewPanelSerializer(VIEW_TYPE, {
       async deserializeWebviewPanel(panel, state: { binding?: SessionBinding; role?: PanelRole } | undefined) {
         const b = state?.binding
@@ -238,6 +353,44 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   )
 
+  /** T015 export: versions, settings shape, connection state and recent oco log lines, all redacted. */
+  const diagnostics = async () => {
+    const cfg = vscode.workspace.getConfiguration("oco")
+    let passwordStored = false
+    let endpoint: unknown = null
+    try {
+      const ep = conn.endpoint()
+      endpoint = { origin: ep.origin, loopback: ep.host === "127.0.0.1" || ep.host === "localhost" || ep.host === "::1", managed: !!ep.managed, cleartextRemote: ep.cleartext }
+      passwordStored = !!(await conn.password(ep))
+    } catch (e) {
+      endpoint = { error: (e as Error).message }
+    }
+    const pkg = context.extension.packageJSON as { version?: string }
+    const raw = {
+      generatedAt: new Date().toISOString(),
+      oco: { version: pkg.version, mode: vscode.ExtensionMode[context.extensionMode] },
+      vscode: { version: vscode.version, remoteName: vscode.env.remoteName ?? null, uiKind: vscode.UIKind[vscode.env.uiKind], appHost: vscode.env.appHost },
+      host: { platform: process.platform, arch: process.arch, release: os.release(), node: process.version },
+      settings: { serverMode: conn.mode(), serverUrl: cfg.get("serverUrl"), serverUsernameCustom: cfg.get("serverUsername", "opencode") !== "opencode", opencodePath: cfg.get("opencodePath") || "(PATH)" },
+      endpoint,
+      passwordStored,
+      server: { version: serverVersion ?? null, verified: VERIFIED_SERVER },
+      managed: managedServer?.state ?? null,
+      workspace: { folders: (vscode.workspace.workspaceFolders ?? []).length, trusted: vscode.workspace.isTrusted },
+      connection: feed.state,
+      sidebar: { feed: feed.stats, store: store.stats, items: store.size },
+      panels: panels.list().map((e) => ({ role: e.role, visible: e.panel.visible })),
+      agents: agentsView.debugState().rows.map((r) => ({ name: r.name, source: r.source, scope: r.scope, state: r.state })),
+      recentLog: recentLog.slice(-80),
+    }
+    const secrets = [managedServer?.password ?? ""]
+    try {
+      const pw = await conn.password()
+      if (pw) secrets.push(pw)
+    } catch {}
+    return redactValue(raw, { home: os.homedir(), extra: secrets })
+  }
+
   // Diagnostics: counters and bindings only (no credentials, no message content). The E2E suites
   // read it from OCO_DEBUG_STATE_FILE, which is only honoured outside production mode.
   context.subscriptions.push(
@@ -247,6 +400,9 @@ export function activate(context: vscode.ExtensionContext) {
         trusted: vscode.workspace.isTrusted,
         panels: panels.debugState(),
         sidebar: { ...view.debugState(), feed: feed.stats, store: store.stats },
+        agents: agentsView.debugState(),
+        managed: managedServer?.state ?? null,
+        serverVersion: serverVersion ?? null,
       }
       const file = process.env.OCO_DEBUG_STATE_FILE
       if (file && context.extensionMode !== vscode.ExtensionMode.Production) fs.writeFileSync(file, JSON.stringify(state, null, 2))
@@ -262,9 +418,12 @@ export function activate(context: vscode.ExtensionContext) {
     endpointNote = `invalid (${(e as Error).message})`
   }
   feed.start()
+  if (conn.mode() === "managed") void startManaged()
+  pushInfo()
   log.info(`oco activated ${activationId}; server ${endpointNote}; directory ${conn.directory ?? "(none)"}; trusted ${vscode.workspace.isTrusted}`)
 }
 
 export function deactivate() {
-  // Nothing to stop: oco only attaches to servers it does not own.
+  // Only the process oco started itself (managed mode) is stopped; attached servers are never touched.
+  return managedServer?.stop()
 }

@@ -1,9 +1,13 @@
 import * as vscode from "vscode"
 import * as fs from "node:fs"
-import { endpointFromSetting, isLoopbackHost, sameDirectory, type Endpoint } from "./endpoint"
+import { endpointFromSetting, isLoopbackHost, managedEndpoint, sameDirectory, type Endpoint } from "./endpoint"
+import type { ManagedServer } from "./managed-server"
+
+export type ServerMode = "attached" | "managed"
 
 /**
- * P1a attached connection. oco never starts, stops or reconfigures the server.
+ * attached (default): oco never starts, stops or reconfigures the server.
+ * managed (T007): the endpoint is the process ManagedServer started for this window; its secret lives in memory only.
  * - The endpoint comes from machine-scoped settings (a workspace/repository cannot redirect it).
  * - Secrets are keyed by the normalised endpoint identity (origin + username): changing the URL
  *   never reuses another endpoint's password.
@@ -14,9 +18,24 @@ export class Connection {
     private readonly log: vscode.LogOutputChannel,
   ) {}
 
-  /** Throws a user-facing error if the configured endpoint is invalid. */
+  managed: ManagedServer | undefined
+
+  mode(): ServerMode {
+    return vscode.workspace.getConfiguration("oco").get<string>("serverMode", "attached") === "managed" ? "managed" : "attached"
+  }
+
+  opencodePath(): string {
+    return vscode.workspace.getConfiguration("oco").get<string>("opencodePath", "").trim() || "opencode"
+  }
+
+  /** Throws a user-facing error if the configured endpoint is invalid (or the managed server is not running). */
   endpoint(): Endpoint {
     const cfg = vscode.workspace.getConfiguration("oco")
+    if (this.mode() === "managed") {
+      const url = this.managed?.url
+      if (!url || !this.directory) throw new Error(this.managed?.state.error ?? (this.managed?.state.status === "starting" ? "托管服务启动中" : "托管服务未运行"))
+      return managedEndpoint(url, this.opencodePath(), this.directory)
+    }
     return endpointFromSetting(cfg.get<string>("serverUrl", "http://127.0.0.1:4096"), cfg.get<string>("serverUsername", "opencode"))
   }
 
@@ -49,6 +68,7 @@ export class Connection {
   }
 
   async password(ep = this.endpoint()): Promise<string | undefined> {
+    if (ep.managed) return this.managed?.password || undefined
     const stored = await this.context.secrets.get(this.secretKey(ep))
     if (stored) return stored
     // Development/test only, loopback only: read a local test secret file.

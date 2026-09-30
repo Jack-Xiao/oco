@@ -1,6 +1,7 @@
 import * as vscode from "vscode"
 import type { ConnectionSummary, SessionActivity, SessionListItem } from "@oco/contracts"
 import type { SessionStore } from "./session-store"
+import { serverInfoLines, versionNote, type ServerInfo } from "./diagnostics"
 
 export const SESSIONS_VIEW = "oco.sessions"
 export const MAX_ITEMS = 200 // = SessionFeed.ROOT_LIMIT
@@ -49,6 +50,7 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
   readonly view: vscode.TreeView<SessionItem>
   private query = ""
   private summary: ConnectionSummary | undefined
+  private info: ServerInfo | undefined
   private refreshTimer: ReturnType<typeof setTimeout> | undefined
   private readonly status: vscode.StatusBarItem
   readonly stats = { renders: 0 }
@@ -160,7 +162,26 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
         st.command = s?.issue === "endpoint" ? "oco.openSettings" : "oco.sessions.focus"
         st.backgroundColor = undefined
     }
+    const m = this.info?.mode === "managed" ? this.info.managed : undefined
+    if (m && (m.status === "failed" || m.status === "exited") && s?.state !== "connected") {
+      st.text = `$(error) oco 托管服务未运行`
+      st.tooltip = `${m.error ?? ""}\n点击重新启动`
+      st.command = "oco.restartManagedServer"
+      st.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground")
+    } else if (m?.status === "starting") {
+      st.text = `$(sync~spin) oco 启动服务中`
+      st.command = "oco.showLog"
+    }
+    if (s?.state === "connected" && versionNote(this.info?.version)) st.text = st.text.replace("$(plug)", "$(warning)")
+    const extra = serverInfoLines(this.info)
+    if (extra.length) st.tooltip = `${typeof st.tooltip === "string" ? st.tooltip : ""}\n${extra.join("\n")}`
     st.show()
+  }
+
+  /** Server version / mode / managed process shown in the status bar (T007/T015). */
+  setServerInfo(info: ServerInfo) {
+    this.info = info
+    this.updateChrome()
   }
 
   debugState() {
@@ -171,6 +192,7 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
       message: this.view.message ?? null,
       badge: this.view.badge?.value ?? 0,
       statusText: this.status.text,
+      statusTooltip: typeof this.status.tooltip === "string" ? this.status.tooltip : null,
       items: this.getChildren().map((i) => ({ id: i.session.id, title: i.session.title, activity: i.session.activity, description: i.description })),
     }
   }
