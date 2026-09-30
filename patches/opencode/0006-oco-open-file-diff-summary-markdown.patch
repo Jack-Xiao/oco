@@ -1,0 +1,157 @@
+diff --git a/packages/app/src/pages/session/timeline/message-timeline.tsx b/packages/app/src/pages/session/timeline/message-timeline.tsx
+index e083882..c68d847 100644
+--- a/packages/app/src/pages/session/timeline/message-timeline.tsx
++++ b/packages/app/src/pages/session/timeline/message-timeline.tsx
+@@ -144,6 +144,17 @@ function TimelineThinkingRow(props: { reasoningHeading?: string; showReasoningSu
+ 
+ function TimelineDiffSummaryRow(props: { diffs: SummaryDiff[] }) {
+   const language = useLanguage()
++  // oco (patches/opencode/0006): clicking the file name opens it in the embedding host; the chevron and
++  // the rest of the row still only expand the inline diff.
++  const platform = usePlatform()
++  const openInHost = (file: string) =>
++    platform.embedded && platform.openFileInHost
++      ? (e: MouseEvent) => {
++          e.stopPropagation()
++          e.preventDefault()
++          platform.openFileInHost!(file)
++        }
++      : undefined
+   const maxFiles = 10
+   const [state, setState] = createStore({
+     showAll: false,
+@@ -187,7 +198,12 @@ function TimelineDiffSummaryRow(props: { diffs: SummaryDiff[] }) {
+                   <StickyAccordionHeader>
+                     <Accordion.Trigger>
+                       <div data-slot="session-turn-diff-trigger">
+-                        <span data-slot="session-turn-diff-path">
++                        <span
++                          data-slot="session-turn-diff-path"
++                          data-oco-open-file={openInHost(diff.file) ? diff.file : undefined}
++                          style={openInHost(diff.file) ? { cursor: "pointer" } : undefined}
++                          onClick={openInHost(diff.file)}
++                        >
+                           <Show when={diff.file.includes("/")}>
+                             <span data-slot="session-turn-diff-directory">{`\u202A${getDirectory(diff.file)}\u202C`}</span>
+                           </Show>
+diff --git a/packages/session-ui/src/components/markdown.tsx b/packages/session-ui/src/components/markdown.tsx
+index 95894ba..05a54d4 100644
+--- a/packages/session-ui/src/components/markdown.tsx
++++ b/packages/session-ui/src/components/markdown.tsx
+@@ -285,7 +285,40 @@ function decorate(root: HTMLDivElement, labels: CopyLabels) {
+   markCodeLinks(root)
+ }
+ 
+-function setupCodeCopy(root: HTMLDivElement, getLabels: () => CopyLabels) {
++/** oco (patches/opencode/0006): inline code that names a file, optionally with `:line[:col]` or
++ * `#Lline[Ccol]`. The raw text goes to the host, which parses the position and validates the path. */
++const PATH_POSITION = /(?::\d+(?::\d+)?|#L\d+(?:C\d+)?)$/
++export function openablePath(raw: string) {
++  const text = raw.trim()
++  if (!text || text.length > 4096) return false
++  return inlineCodeKind(text.replace(PATH_POSITION, "")) === "path"
++}
++
++function inlinePathCode(root: HTMLDivElement, target: Element) {
++  const code = target.closest("code")
++  if (!(code instanceof HTMLElement) || !root.contains(code)) return
++  if (code.closest("pre") || code.closest("a")) return
++  return openablePath(code.textContent ?? "") ? code : undefined
++}
++
++function markOpenablePaths(root: HTMLDivElement) {
++  for (const code of Array.from(root.querySelectorAll<HTMLElement>(":not(pre) > code"))) {
++    const on = !code.closest("a") && openablePath(code.textContent ?? "")
++    if (on) {
++      code.dataset.ocoOpenPath = ""
++      code.style.cursor = "pointer"
++    } else if ("ocoOpenPath" in code.dataset) {
++      delete code.dataset.ocoOpenPath
++      code.style.cursor = ""
++    }
++  }
++}
++
++function setupCodeCopy(
++  root: HTMLDivElement,
++  getLabels: () => CopyLabels,
++  getOpenPath?: () => ((raw: string) => void) | undefined,
++) {
+   const timeouts = new Map<HTMLElement, ReturnType<typeof setTimeout>>()
+ 
+   const updateLabel = (button: HTMLElement) => {
+@@ -298,6 +331,15 @@ function setupCodeCopy(root: HTMLDivElement, getLabels: () => CopyLabels) {
+     const target = event.target
+     if (!(target instanceof Element)) return
+ 
++    const open = getOpenPath?.()
++    const pathCode = open ? inlinePathCode(root, target) : undefined
++    if (open && pathCode) {
++      event.preventDefault()
++      event.stopPropagation()
++      open((pathCode.textContent ?? "").trim())
++      return
++    }
++
+     const button = target.closest('[data-slot="markdown-copy-button"]')
+     if (!(button instanceof HTMLElement)) return
+     const code = button.closest('[data-component="markdown-code"]')?.querySelector("code")
+@@ -368,9 +410,11 @@ export function Markdown(
+     streaming?: boolean
+     class?: string
+     classList?: Record<string, boolean>
++    /** oco (patches/opencode/0006): open an inline-code file path in the embedding host. */
++    onOpenPath?: (raw: string) => void
+   },
+ ) {
+-  const [local, others] = splitProps(props, ["text", "cacheKey", "streaming", "class", "classList"])
++  const [local, others] = splitProps(props, ["text", "cacheKey", "streaming", "class", "classList", "onOpenPath"])
+   const i18n = useI18n()
+   const [root, setRoot] = createSignal<HTMLDivElement>()
+   const owner = createUniqueId()
+@@ -526,10 +570,15 @@ export function Markdown(
+       .querySelectorAll<HTMLElement>('[data-slot="markdown-copy-button"]')
+       .forEach((button) => setCopyState(button, labels, button.dataset.copied === "true"))
+     if (!copyCleanup)
+-      copyCleanup = setupCodeCopy(container, () => ({
+-        copy: i18n.t("ui.message.copy"),
+-        copied: i18n.t("ui.message.copied"),
+-      }))
++      copyCleanup = setupCodeCopy(
++        container,
++        () => ({
++          copy: i18n.t("ui.message.copy"),
++          copied: i18n.t("ui.message.copied"),
++        }),
++        () => local.onOpenPath,
++      )
++    if (local.onOpenPath) markOpenablePaths(container)
+   })
+ 
+   onCleanup(() => {
+diff --git a/packages/session-ui/src/components/message-part.tsx b/packages/session-ui/src/components/message-part.tsx
+index c99ee5a..8ca9d48 100644
+--- a/packages/session-ui/src/components/message-part.tsx
++++ b/packages/session-ui/src/components/message-part.tsx
+@@ -334,6 +334,7 @@ function createPacedValue(getValue: () => string, live?: () => boolean) {
+ }
+ 
+ function PacedMarkdown(props: { text: string; cacheKey: string; streaming: boolean }) {
++  const data = useData()
+   const value = createPacedValue(
+     () => props.text,
+     () => props.streaming,
+@@ -341,7 +342,12 @@ function PacedMarkdown(props: { text: string; cacheKey: string; streaming: boole
+ 
+   return (
+     <Show when={value()}>
+-      <Markdown text={value()} cacheKey={props.cacheKey} streaming={props.streaming} />
++      <Markdown
++        text={value()}
++        cacheKey={props.cacheKey}
++        streaming={props.streaming}
++        onOpenPath={data.openFile ? (raw) => data.openFile!(raw) : undefined}
++      />
+     </Show>
+   )
+ }

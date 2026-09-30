@@ -4,6 +4,19 @@
 
 更新时间：2026-09-30（P1b 稳定性收尾后）。
 
+## C1 路径加固 + 点击补点（2026-09-30）
+
+```text
+日期 / 负责人: 2026-09-30 / 集成 AI（Claude Code 主线程）。委派：grok-worker 健康检查通过但执行中 600 s 无进展被终止、无产出；Gemini(agy) 10 s 健康检查无返回。路径策略、单测、验证由主线程完成。model/provider unknown。
+领取任务与写入范围: 路径来源边界、大小写实测、行号解析接线；时间线 Diff 摘要与 Markdown 路径点击。apps/extension/src/{open-file-policy.ts,panels.ts}、packages/contracts/src/bridge.ts（仅注释）、patches/opencode/0006、tests/{unit/open-file-policy.test.ts,e2e/c1-open-file.mjs}、docs
+已完成行为: 见 docs/evidence/c1-path-hardening.md
+改动文件: 同上（开发于工作树 claude/path-validation-click-enhancement-5fa385，基线 a0ebb1f；原样复制到 claude/c1-finalize-c2-source-9d5520 提交并快进合入 main，未推送）
+已运行检查及结果: typecheck PASS；unit 128/128；上游 tsgo 0 错误；补丁 0001–0006 重放一致；构建成功；E2E c1-open-file 6/6（验收运行 20260930-071232-c1-open-file-969b，最终代码重建扩展后复跑；06:08 那次 6/6 扩展包早于最后一次策略修改，不计）
+未运行/被阻塞检查: 其余 9 个 E2E 套件未重跑（未改相关代码）；大小写敏感真实卷、Remote-SSH、Windows NOT RUN；新点击入口无变异负向对照
+证据与 ADR: docs/evidence/c1-path-hardening.md；无新 ADR（契约字段不变）
+下一批任务: C2 证据先行（before/after 来源、适用范围、降级规则），确认后再实现
+```
+
 ## 收尾 + C1（2026-09-30）
 
 ```text

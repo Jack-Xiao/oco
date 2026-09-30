@@ -19,9 +19,9 @@
 - 页面 `apps/chat-webview/src/app.tsx`：`openFileInHost` → `ui("openFile")`。测试钩子 `__OCO_DEBUG__.openFile` 调同一个 platform 方法，不新增能力。
 - 宿主 `panels.ts` → `decideOpenFile`：
   1. 面板绑定的 connectionId 必须仍是当前端点，否则拒绝“连接已变化”。
-  2. 会话目录 realpath 后必须在某个本地（`file:`）工作区文件夹内；远端服务或其他检出的路径拒绝，不猜测映射。
+  2. 会话目录 realpath 后必须在某个本地（`file:`）工作区文件夹内；不在则拒绝，不猜测映射。（校正：这只证明路径在本机工作区，不能证明远端同名路径就是这个本地文件。本地映射条件已在 [路径加固](c1-path-hardening.md) 中收紧。）
   3. 相对路径按会话目录解析；解析后（先字面、再 realpath）必须在会话目录内，挡 `..` 与符号链接越界；拒绝 URI scheme、空串、NUL、超长。
-  4. 只打开普通文件；不存在、目录都拒绝并提示原因。macOS/Windows 按大小写不敏感比较。
+  4. 只打开普通文件；不存在、目录都拒绝并提示原因。macOS/Windows 按大小写不敏感比较（已改为按卷实测，见 [路径加固](c1-path-hardening.md)）。
   5. 以预览方式在旁边一栏打开，光标定位到 line/column。
 
 ## 检查与结果
@@ -45,6 +45,6 @@
 
 ## 限制
 
-- Remote-SSH、Windows 未验证（NOT RUN）。远端会话目录在本机不存在时按设计拒绝。
+- Remote-SSH、Windows 未验证（NOT RUN）。本批的“远端会话目录在本机不存在时拒绝”只覆盖目录不存在的情况；远端服务恰好对应本机同名目录的情况见 [路径加固](c1-path-hardening.md)。
 - 编辑器行号定位依赖工具参数：只有 read 带行号；edit/write 打开文件不定位。
-- 点击 grep/glob 的输出文本、Markdown 中的路径、时间线 Diff 摘要不跳转（未做）。
+- 点击 grep/glob 的输出文本不跳转。Markdown 路径与时间线 Diff 摘要已在后续批次补上（补丁 0006）。

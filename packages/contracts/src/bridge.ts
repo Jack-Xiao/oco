@@ -46,7 +46,9 @@ export type StoreOp = Envelope<
 >
 export type BlobOp = Envelope<"blob.op", { id: string; op: "put" | "get"; blobId?: string; data?: ArrayBuffer }>
 /** `openFile`: `path` is relative to the bound session directory (or absolute inside it); the host
- * validates it and never opens anything outside that directory. `line`/`column` are 1-based. */
+ * validates it and never opens anything outside that directory. `line`/`column` are 1-based. Without
+ * `line`, a path that does not exist literally may carry `:line[:col]` or `#Lline[Ccol]`, which the
+ * host parses. The host opens files only when it can confirm the server path is this machine's file. */
 export type Ui = Envelope<
   "ui",
   { action: UiAction; url?: string; title?: string; body?: string; sessionId?: string; route?: string; path?: string; line?: number; column?: number }

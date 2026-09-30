@@ -5,12 +5,20 @@
 //   open-file-refused   paths outside the session directory, missing files, directories and URI schemes are
 //                       refused by the host; nothing is opened.
 //   tool-click-opens    a real read tool part: clicking its file name opens math.ts at the read offset.
+//   position-parse      `math.ts:2` / `math.ts#L3` (no separate line) open math.ts at that line (host splitPosition).
+//   markdown-path       inline code `math.ts:4` in an assistant reply is clickable and opens math.ts at Ln 4;
+//                       non-path inline code is not intercepted (patches/opencode/0006).
+//   diff-summary        after a write, the turn's Diff summary row: clicking the file name opens the file;
+//                       clicking the chevron only expands the inline diff and opens nothing (0006).
+import fs from "node:fs"
+import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { launch, command, chatFrames, frameSession, sleep, runShot, hostState, clearNotifications } from "./vscode.mjs"
 import { messages, waitReply } from "./server.mjs"
 
-const CASES = ["open-file-line", "open-file-refused", "tool-click-opens"]
+const CASES = ["open-file-line", "open-file-refused", "tool-click-opens", "position-parse", "markdown-path", "diff-summary"]
+const NOTE = "c1-note.txt"
 const run = createRun({ suite: "c1-open-file", required: CASES, scriptPath: fileURLToPath(import.meta.url) })
 const INPUT = '[data-component="prompt-input"]'
 let app
@@ -141,9 +149,127 @@ try {
     run.record("tool-click-opens", "FAIL", { error: String(e?.message ?? e).slice(0, 400) })
     await runShot(page, run, "tool-click-opens-error")
   }
+
+  // 4. Position suffix parsed by the host (the page passes the raw text, no separate line). The chat
+  // panel is itself an editor tab, so editors are not closed between attempts; the line must change.
+  try {
+    await command(page, "View: Close All Editors").catch(() => {})
+    await sleep(800)
+    const p = await newPanel(page)
+    const got = []
+    for (const [raw, want] of [["math.ts:2", 2], ["math.ts#L3", 3]]) {
+      await p.f.evaluate((r) => window.__OCO_DEBUG__.openFile(r), raw)
+      const st = await waitFor(async () => {
+        const s = await editorState(page)
+        return /^math(\.ts)?$/.test(s.tab ?? "") && lineOf(s.pos) === want ? s : null
+      }, 10000, 200)
+      got.push({ raw, want, ok: !!st, editor: st ?? (await editorState(page)) })
+    }
+    run.record("position-parse", got.every((g) => g.ok) ? "PASS" : "FAIL", { got })
+  } catch (e) {
+    run.record("position-parse", "FAIL", { error: String(e?.message ?? e).slice(0, 400) })
+  }
+
+  // 5. Markdown inline path in a real reply.
+  try {
+    await command(page, "View: Close All Editors").catch(() => {})
+    await sleep(800)
+    const p = await newPanel(page)
+    await waitFor(async () => ((await p.f.evaluate(() => document.documentElement.dataset.ocoModel)) === "ready" ? true : null), 60000, 200)
+    await p.f.locator(INPUT).click()
+    await page.keyboard.type("Do not use any tools. Reply with exactly this line and nothing else: See `math.ts:4` and `npm test`.", { delay: 2 })
+    await page.keyboard.press("Enter")
+    await waitReply(p.sid, 150000).catch(() => null)
+    const code = p.f.locator('[data-component="text-part"] code[data-oco-open-path]').first()
+    const found = await code.waitFor({ timeout: 20000 }).then(() => true, () => false)
+    const codeText = found ? await code.textContent() : null
+    const plain = await p.f.evaluate(() =>
+      [...document.querySelectorAll('[data-component="text-part"] :not(pre) > code')]
+        .filter((c) => !("ocoOpenPath" in c.dataset))
+        .map((c) => c.textContent),
+    )
+    const before = await panelStats(p.sid)
+    const plainEl = p.f.locator('[data-component="text-part"] :not(pre) > code:not([data-oco-open-path])').first()
+    if (await plainEl.count()) await plainEl.click()
+    await sleep(800)
+    const afterPlain = await panelStats(p.sid)
+    if (found) await code.click()
+    const st = await waitFor(async () => {
+      const s = await editorState(page)
+      return /^math(\.ts)?$/.test(s.tab ?? "") && lineOf(s.pos) === 4 ? s : null
+    }, 10000, 200)
+    await runShot(page, run, "markdown-path")
+    const ps = await panelStats(p.sid)
+    const plainIgnored = afterPlain.panel.fileOpens === before.panel.fileOpens && afterPlain.panel.fileRejects === before.panel.fileRejects
+    run.record("markdown-path", found && st && ps?.panel.fileOpens === 1 && plainIgnored ? "PASS" : "FAIL", {
+      found,
+      codeText,
+      plainCode: plain,
+      plainIgnored,
+      editor: st ?? (await editorState(page)),
+      fileOpens: ps?.panel.fileOpens,
+      lastReject: ps?.lastFileReject,
+    })
+  } catch (e) {
+    run.record("markdown-path", "FAIL", { error: String(e?.message ?? e).slice(0, 400) })
+    await runShot(page, run, "markdown-path-error")
+  }
+
+  // 6. Diff summary row after a write.
+  try {
+    await command(page, "View: Close All Editors").catch(() => {})
+    await sleep(800)
+    const p = await newPanel(page)
+    await waitFor(async () => ((await p.f.evaluate(() => document.documentElement.dataset.ocoModel)) === "ready" ? true : null), 60000, 200)
+    await p.f.locator(INPUT).click()
+    await page.keyboard.type(`Use the write tool to create the file ${NOTE} containing the single line hello. Then reply only with OK.`, { delay: 2 })
+    await page.keyboard.press("Enter")
+    // The test server asks before edits (scripts/test-server.opencode.json): allow once in the dock.
+    const dock = p.f.locator('[data-component="dock-prompt"][data-kind="permission"]')
+    const asked = await dock.waitFor({ timeout: 90000 }).then(() => true, () => false)
+    if (asked) await dock.getByRole("button", { name: /allow once|允许一次/i }).click()
+    await waitReply(p.sid, 150000).catch(() => null)
+    const row = p.f.locator('[data-slot="session-turn-diff-path"][data-oco-open-file]').first()
+    const found = await row.waitFor({ timeout: 30000 }).then(() => true, () => false)
+    const file = found ? await row.getAttribute("data-oco-open-file") : null
+    // Chevron: expands the diff, opens nothing.
+    const before = await panelStats(p.sid)
+    const chevron = p.f.locator('[data-slot="session-turn-diff-chevron"]').first()
+    let expanded = false
+    if (found) {
+      await chevron.click()
+      expanded = !!(await waitFor(async () => ((await p.f.locator('[data-component="session-turn-diffs-content"] [data-expanded]').count()) ? true : null), 5000, 200))
+    }
+    await sleep(600)
+    const afterChevron = await panelStats(p.sid)
+    const chevronOpened = afterChevron.panel.fileOpens - before.panel.fileOpens
+    if (found) await row.click()
+    const st = await waitFor(async () => {
+      const s = await editorState(page)
+      return s.tab && NOTE.startsWith(s.tab) ? s : null
+    }, 10000, 200)
+    await runShot(page, run, "diff-summary")
+    const ps = await panelStats(p.sid)
+    run.record("diff-summary", found && st && expanded && chevronOpened === 0 && ps?.panel.fileOpens === 1 ? "PASS" : "FAIL", {
+      permissionAsked: asked,
+      found,
+      file,
+      expanded,
+      chevronOpened,
+      editor: st ?? (await editorState(page)),
+      fileOpens: ps?.panel.fileOpens,
+      lastReject: ps?.lastFileReject,
+    })
+  } catch (e) {
+    run.record("diff-summary", "FAIL", { error: String(e?.message ?? e).slice(0, 400) })
+    await runShot(page, run, "diff-summary-error")
+  }
 } catch (e) {
   run.record("run", "FAIL", { error: String(e?.message ?? e).slice(0, 400) })
 } finally {
   await app?.close().catch(() => {})
+  try {
+    fs.rmSync(path.join(fs.realpathSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../../.oco-test")), "workspace", NOTE), { force: true })
+  } catch {}
   process.exit(run.finish())
 }

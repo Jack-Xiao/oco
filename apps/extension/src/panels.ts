@@ -5,7 +5,8 @@ import { BRIDGE_ORIGIN, type SessionBinding, type WebviewInit } from "@oco/contr
 import { BlobStore, createBridge } from "./bridge-host"
 import type { Connection } from "./connection"
 import type { KvStore } from "./host-store"
-import { decideOpenFile } from "./open-file-policy"
+import { decideOpenFile, probeCaseInsensitive } from "./open-file-policy"
+import { isLoopbackHost } from "./endpoint"
 
 export const VIEW_TYPE = "oco.chat"
 
@@ -273,8 +274,11 @@ export class PanelRegistry {
       void vscode.window.showWarningMessage(`oco: 无法打开文件（${reason}）`)
     }
     let current: string | undefined
+    let serverLocal = false
     try {
-      current = this.conn.endpoint().connectionId
+      const ep = this.conn.endpoint()
+      current = ep.connectionId
+      serverLocal = isLoopbackHost(ep.host)
     } catch {
       current = undefined
     }
@@ -284,9 +288,10 @@ export class PanelRegistry {
       {
         directory: entry.binding.directory,
         workspaceRoots: (vscode.workspace.workspaceFolders ?? []).filter((f) => f.uri.scheme === "file").map((f) => f.uri.fsPath),
+        serverLocal,
         realpath: (x) => fs.promises.realpath(x).catch(() => null),
         isFile: (x) => fs.promises.stat(x).then((st) => st.isFile(), () => false),
-        caseInsensitive: process.platform === "darwin" || process.platform === "win32",
+        caseInsensitive: (dir) => probeCaseInsensitive(dir, (x) => fs.promises.lstat(x)),
       },
     )
     if (!d.ok) return reject(d.reason)

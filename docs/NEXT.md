@@ -28,8 +28,8 @@
 ## 3. C 段：T011 / T012
 
 - [DONE C1] 工具部件文件名点击在 VS Code 打开并定位（read 按 offset 行）；宿主校验路径不出会话目录、会话目录须映射到本地工作区；选区/当前文件上下文随请求到达服务已复验。见 [C1 证据](evidence/c1-editor.md)。
-- [TODO C1 补点，小] 时间线 Diff 摘要文件名、Markdown 行内路径（`path:line`）点击跳转。调查与改法见 [survey](evidence/c1-file-click-survey.md) 第 5 节补丁点 3、4；复用 `openFileInHost` 与已有宿主校验，不新增契约。评审面板/附件（补丁点 5）暂不做。
-- [TODO C2] 可信 Diff：先确认服务能给出的 base/head 来源（会话快照、工具 filediff before/after、Git），写证据后再实现展示。缺前像时明确降级：Git 工作区差异不能冒充会话 Diff，不提供无正确前像的回滚。
+- [DONE] C1 路径加固（回环服务条件、大小写实测、行号解析接线）与补点（Diff 摘要文件名、Markdown 行内路径 `path:line`，补丁 0006）。见[加固证据](evidence/c1-path-hardening.md)（整批验收与子任务记录分节）。评审面板/附件（survey 补丁点 5）、grep/glob 输出文本、远程映射暂不做。
+- [进行中 C2] 可信 Diff：先交付证据文档——before/after 来源（会话快照、工具 filediff before/after、Git）、各来源适用范围、缺失时的降级规则；经确认后再实现展示。缺前像时明确降级：Git 工作区差异不能冒充会话 Diff，不提供无正确前像的回滚。不做远程映射、回滚、管理页面。
 - [可选] 连接变化时由宿主通知旧面板撤销待发并提示（现状：宿主拒绝提交，未误发，但无专门提示）。
 
 T010 的“可恢复错误界面与未知类型兜底”单列：先检查现有兜底，能复现白屏或无法恢复就优先修，否则单独排期，不作为 C 段门槛。
