@@ -1,15 +1,26 @@
-// P1a-04 performance / leak baseline (structured). Method: real VS Code, 3 editor groups (3 visible
-// webviews), then 10 hide/show cycles of one panel sharing a group with a 4th session.
-// Measures: per-process RSS by Electron process type (only processes of this test profile), host-side
-// open event streams / in-flight requests per panel, and re-show latency.
+// T017 resource baseline under ADR-007 (one main panel that switches in place + pinned panels kept alive).
+// Method: real VS Code + test server; 10 sessions created through the API; the main panel plus 3 pinned
+// panels spread over 3 editor groups; then the main panel switches through the other sessions 12 times.
+// Measures per Electron process type RSS (this test profile only), host-side event streams per panel,
+// in-place switch latency, and the RSS trend between the first and last switch.
+//   panels-bounded       12 switches leave exactly 4 panels (1 main + 3 pinned): no panel per session
+//   no-stream-leak       at most one host event stream per live panel; switching never adds generations
+//   hidden-stays-alive   pinned panels keep their generation (no reload); in-flight requests are only their event stream
+//   rss-bounded          total RSS after the last switch is within 25 % of the first switch (no steady growth)
 import { execSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, chatFrames, frameSession, sleep, hostState } from "./vscode.mjs"
+import { launch, command, chatFrames, sleep, hostState } from "./vscode.mjs"
+import { api } from "./server.mjs"
 
-const run = createRun({ suite: "perf", required: ["no-stream-leak", "hidden-releases-requests"], scriptPath: fileURLToPath(import.meta.url) })
+const REQUIRED = ["panels-bounded", "no-stream-leak", "hidden-stays-alive", "rss-bounded"]
+const run = createRun({ suite: "perf", required: REQUIRED, scriptPath: fileURLToPath(import.meta.url) })
+const created = []
 const { app, page, stateFile } = await launch({ profile: "perf", run })
-run.installCrashHandlers(() => app.close())
+run.installCrashHandlers(async () => {
+  await app.close().catch(() => {})
+  for (const id of created) await api("DELETE", `/session/${id}`).catch(() => {})
+})
 const state = () => hostState(page, stateFile)
 
 function rss() {
@@ -26,49 +37,29 @@ function rss() {
   out.totalMB = Object.values(out).reduce((a, v) => a + (v.mb ?? 0), 0)
   return out
 }
-async function newSession(ids) {
-  await command(page, "oco: New Session")
+/** Palette-open `sid` and time until a visible frame shows it with its composer. */
+async function open(title, sid) {
   const t0 = Date.now()
+  await command(page, title, { input: sid })
   while (Date.now() - t0 < 60000) {
     for (const f of await chatFrames(page)) {
-      const s = await frameSession(f).catch(() => null)
-      const ok = s && !ids.includes(s) && (await f.$('[data-component="prompt-input"]').catch(() => null))
-      if (ok) return { sid: s, ms: Date.now() - t0 }
-    }
-    await sleep(100)
-  }
-  throw new Error("no new panel")
-}
-async function showSession(sid) {
-  const t0 = Date.now()
-  await command(page, "oco: Open Session")
-  await sleep(800)
-  await page.keyboard.type(sid)
-  await sleep(300)
-  await page.keyboard.press("Enter")
-  const typed = Date.now() - t0
-  while (Date.now() - t0 < 60000) {
-    for (const f of await chatFrames(page)) {
-      const ok = await f.evaluate((id) => (window.__OCO_DEBUG__?.sessionId?.() ?? window.__OCO_INIT__.binding.sessionId) === id && document.visibilityState === "visible" && !!document.querySelector('[data-component="prompt-input"]'), sid).catch(() => false)
-      if (ok) return { totalMs: Date.now() - t0, afterPaletteMs: Date.now() - t0 - typed }
+      const ok = await f
+        .evaluate((id) => (window.__OCO_DEBUG__?.sessionId?.() ?? window.__OCO_INIT__.binding.sessionId) === id && document.visibilityState === "visible" && !!document.querySelector('[data-component="prompt-input"]'), sid)
+        .catch(() => false)
+      if (ok) return Date.now() - t0
     }
     await sleep(50)
   }
   throw new Error("not shown " + sid)
 }
-const streams = (st) => st.panels.reduce((a, p) => a + p.core.streamsOpen, 0)
+const streams = (st) => st.panels.reduce((a, p) => a + (p.core.streamsOpen ?? 0), 0)
 
 try {
   const idle = rss()
-  const ids = []
-  const opens = []
-  for (let i = 0; i < 3; i++) {
-    const r = await newSession(ids)
-    ids.push(r.sid)
-    opens.push(r.ms)
-    await sleep(3000)
-  }
-  const oneGroupThreeTabs = { rss: rss(), host: await state() }
+  for (let i = 0; i < 10; i++) created.push((await api("POST", "/session", { title: `oco-perf-${i}` })).id)
+  const openMs = [await open("oco: Open Session", created[0])]
+  for (let i = 1; i <= 3; i++) openMs.push(await open("oco: Open in New Panel", created[i]))
+  // Spread the 4 tabs over 3 groups so 3 webviews are visible at once.
   await command(page, "View: Move Editor into Right Group")
   await sleep(1500)
   await command(page, "View: Move Editor into Right Group")
@@ -76,44 +67,51 @@ try {
   await command(page, "View: Focus First Editor Group")
   await sleep(800)
   await command(page, "View: Move Editor into Right Group")
-  await sleep(6000)
-  const three = await state()
-  const threeVisible = { visible: three.panels.filter((p) => p.visible).length, streamsOpen: streams(three), rss: rss() }
-  // A 4th session in group 3 shares the group with the 3rd: alternate them 10 times.
-  const d = await newSession(ids)
-  ids.push(d.sid)
-  await sleep(3000)
-  const reshows = []
+  await sleep(4000)
+  const four = await state()
+  const baseGenerations = Object.fromEntries(four.panels.map((p) => [p.sessionId, p.generation]))
+  const fourPanels = { panels: four.panels.length, visible: four.panels.filter((p) => p.visible).length, streams: streams(four), rss: rss() }
+
+  // The main panel switches through sessions 4..9 twice (in place, ADR-007).
+  const switchMs = []
   const rssTrend = []
-  for (let i = 0; i < 10; i++) {
-    reshows.push(await showSession(i % 2 === 0 ? ids[2] : ids[3]))
-    await sleep(1500)
-    if (i === 0 || i === 9) rssTrend.push(rss().totalMB)
+  for (let i = 0; i < 12; i++) {
+    switchMs.push(await open("oco: Open Session", created[4 + (i % 6)]))
+    await sleep(1200)
+    if (i === 0 || i === 11) rssTrend.push(rss().totalMB)
   }
+  await sleep(2000)
   const after = await state()
-  const visibleAfter = after.panels.filter((p) => p.visible).length
-  const hidden = after.panels.filter((p) => !p.visible)
-  run.record("no-stream-leak", streams(after) <= visibleAfter ? "PASS" : "FAIL", {
-    visiblePanels: visibleAfter,
+  const main = after.panels.filter((p) => p.role === "main")
+  const pinned = after.panels.filter((p) => p.role === "pinned")
+  run.record("panels-bounded", after.panels.length === 4 && main.length === 1 && pinned.length === 3 ? "PASS" : "FAIL", { panels: after.panels.length, main: main.length, pinned: pinned.length })
+  run.record("no-stream-leak", streams(after) <= after.panels.length ? "PASS" : "FAIL", {
+    panels: after.panels.length,
     openEventStreams: streams(after),
-    perPanel: after.panels.map((p) => ({ visible: p.visible, streamsOpen: p.core.streamsOpen, generations: p.core.generations, retired: p.core.retired })),
+    perPanel: after.panels.map((p) => ({ role: p.role, visible: p.visible, streamsOpen: p.core.streamsOpen, generation: p.generation })),
   })
-  run.record("hidden-releases-requests", hidden.length > 0 && hidden.every((p) => p.inflight === 0 && p.generation === 0) ? "PASS" : "FAIL", {
-    hiddenPanels: hidden.length,
-    inflight: hidden.map((p) => p.inflight),
+  const hidden = pinned.filter((p) => !p.visible)
+  run.record("hidden-stays-alive", pinned.every((p) => p.generation === baseGenerations[p.sessionId]) && pinned.every((p) => p.inflight <= (p.core.streamsOpen ?? 0)) ? "PASS" : "FAIL", {
+    hiddenPinned: hidden.length,
+    generations: pinned.map((p) => [baseGenerations[p.sessionId], p.generation]),
+    inflight: pinned.map((p) => p.inflight),
   })
+  const growth = rssTrend.length === 2 ? (rssTrend[1] - rssTrend[0]) / rssTrend[0] : 1
+  run.record("rss-bounded", growth <= 0.25 ? "PASS" : "FAIL", { firstSwitchMB: rssTrend[0], lastSwitchMB: rssTrend[1], growthPct: Math.round(growth * 1000) / 10 })
+  const sorted = [...switchMs].sort((a, b) => a - b)
   run.setEnv({
-    method: "ps RSS summed per Electron --type of processes whose command line contains this test profile; webviews run in renderer processes",
+    method: "ps RSS summed per Electron --type of processes whose command line contains this test profile; webviews run in renderer processes; latency = palette command to visible composer",
     idle,
-    oneGroupThreeTabs: { rss: oneGroupThreeTabs.rss, visible: oneGroupThreeTabs.host.panels.filter((p) => p.visible).length, streams: streams(oneGroupThreeTabs.host) },
-    threeVisible,
-    openMs: opens,
-    reshowMs: reshows,
-    rssTotalMBFirstVsLastCycle: rssTrend,
+    fourPanels,
+    openMs,
+    switchMs,
+    switchMedianMs: sorted[Math.floor(sorted.length / 2)],
+    after: rss(),
   })
 } catch (e) {
   run.record("run", "FAIL", { error: String(e?.message ?? e).slice(0, 500) })
 } finally {
   await app.close().catch(() => {})
+  for (const id of created) await api("DELETE", `/session/${id}`).catch(() => {})
   process.exit(run.finish())
 }
