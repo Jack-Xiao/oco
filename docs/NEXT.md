@@ -12,7 +12,8 @@
 ## 2. 真实模型回归（缺环境时标 BLOCKED）
 
 - [TODO] 同一提交的真实模型全量：`node tests/e2e/run.mjs`。前提：测试服务用真实模型配置启动（`bash scripts/test-server.sh`，不带 `OCO_E2E_MODEL=mock`）且模型能回复；没有其他会话同时跑 E2E。
-- [TODO] Remote 上的发送、取消、断网恢复、本机粘贴图片、点击远端文件（A11）。需要能在 Remote 窗口操作；不改用户的远端机器设置。
+- [DONE] Remote 上的发送、取消、点击远端文件（`scripts/remote-chat-check.mjs`）。
+- [TODO] Remote 断网恢复、本机粘贴图片（A11 剩余）。不改用户的远端机器设置。
 
 ## 3. 性能与资源（T017）
 

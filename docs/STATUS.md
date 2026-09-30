@@ -20,7 +20,7 @@
 - T013 Agents 视图：有效列表 + 来源（内置/项目文件/用户文件/配置文件）+ 待生效；新建、复制（原样）、打开原文、确认后重载配置（不重启服务，重载后侧栏立即重连）；非回环服务只读。`t013-agents` 6/6 ×2（mock）。
 - T015：状态栏服务版本/模式/未验证版本提示；`oco: Export Diagnostics`（脱敏）、`oco: Show Log`。`t015-diagnostics` 4/4（mock）。
 - T018：`scripts/package-vsix.sh`、`scripts/deploy-remote.sh`、[CHANGELOG](../CHANGELOG.md)、[使用与故障说明](USER-GUIDE.md)。
-- Remote-SSH（gcp-workstation）：已部署；独立 VS Code 实例经 Remote-SSH 查看，连接用户服务 1.18.33、会话列表、Agents、打开会话、诊断导出均正常。远端发送/取消/图片/托管模式 NOT RUN。
+- Remote-SSH（gcp-workstation）：已部署；独立 VS Code 实例经 Remote-SSH 查看，连接用户服务 1.18.33、会话列表、Agents、打开会话、诊断导出均正常；新建测试会话后发送、Escape 取消（服务端 `MessageAbortedError`）、点击回复中的远端文件路径（定位到行）均通过（`scripts/remote-chat-check.mjs`，测试会话已删）。远端断网恢复、本机粘贴图片、托管模式 NOT RUN。
 - 检查：typecheck 0 errors；unit 161/0；build PASS；`p1b-reconnect` 5/5（既有 search-scope-hint FAIL 未复现）。真实模型、全量 E2E NOT RUN。详情：[v01 证据](evidence/v01-completion.md)。
 - T017 资源基线（ADR-007，`perf` 4/4，mock）：主面板 + 3 固定面板，渲染进程 692 MB（3 可见），12 次原地切换后 780 MB；面板数恒为 4、每面板 1 条事件流；原地切换中位 251 ms，新开面板 1.2–1.9 s。
 - 三个新套件尚未加入 `DEFAULT_SUITES`（`run.mjs` 与 fork 批次的未提交改动重叠，待其提交后登记，见 NEXT）。

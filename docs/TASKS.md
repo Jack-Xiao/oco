@@ -212,7 +212,7 @@ P0 合计以 3–5 人天为初始时间盒，各子任务用时由实验结果�
 
 ### [ ] T016 — 远程及目标平台完整验证
 
-- 状态（2026-10-01）：Remote-SSH（gcp-workstation，Linux）实测：安装、连接用户服务 1.18.33、会话列表、Agents、打开会话渲染、诊断导出（`scripts/remote-look.mjs`，截图 `docs/evidence/v01-remote/`）。NOT RUN：远端发送/取消/断网恢复、本机粘贴图片、远端托管模式、Windows。
+- 状态（2026-10-01）：Remote-SSH（gcp-workstation，Linux）实测：安装、连接用户服务 1.18.33、会话列表、Agents、打开会话渲染、诊断导出（`scripts/remote-look.mjs`，截图 `docs/evidence/v01-remote/`）。远端发送、Escape 取消（服务端 aborted）、点击远端文件路径通过（`scripts/remote-chat-check.mjs`）。NOT RUN：远端断网恢复、本机粘贴图片、远端托管模式、Windows。
 
 - 依赖：T007–T015 全部集成，包括会话侧栏与对话页面。
 - 归属：远程适配修复、平台测试及证据；修改功能代码时由原负责人审核。
