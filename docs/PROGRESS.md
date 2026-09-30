@@ -169,3 +169,15 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 验证：verify:brief --build PASS（unit 136/0）；E2E 定向 `t014-connection` 6/6、`c2-diff-unavailable` 3/3、`t010-recover` 2/2、`c1-open-file` 6/6（另 16 次连跑 15 PASS，1 次为模型未出 Diff 的无关 FAIL）。详见 docs/evidence/t014-connection-c2-close.md。
 - NOT RUN：其余 E2E 套件、设置密码输入流程、受限模式、真实快照缺失全链路。
 - 未标记 T014/A15 完成。
+
+## 2026-09-30 — 个人 GCP Workstation Remote-SSH 修复
+
+用户委托诊断本机 VS Code 连接。确认 STATE_RUNNING；旧隧道监听但读 EOF，全新隧道成功；GUI PATH 使用 Python 3.9 导致 gcloud 启动失败。替换专用 SSH helper 为每连接独立隧道，固定子进程 Python 3.13，连接超时设为 240 秒，保留备份。真实 VS Code `~/ai` 和远程终端恢复；定向检查 4/4 PASS。冷启动/跨睡眠/数小时测试 NOT RUN；不改变 oco 产品 Remote-SSH 验收状态。证据：`docs/evidence/gcp-workstation-20260930.md`。
+
+## 测试提速（2026-09-30）
+
+- 基线 main 33433bb；提交 23c0954、376470e（只改测试、脚本与文档）。主线程实现，未委派；model/provider unknown。
+- 交付：E2E 条件等待替换固定停顿；可选本地 mock 模型（OCO_E2E_MODEL=mock，brief 归为 mock-model 特殊运行）；单元输出降噪、合并重复用例；全量定义统一为 13 个套件；docs/TEST-SCOPE.md。
+- 验证：unit 136/0、typecheck PASS；mock 13 个套件全部 exit 0（合计约 10.2 分钟）；真实模型 12 个 exit 0，c1-open-file 3/6 BLOCKED（测试模型约 12:43 起无回复）。
+- 过程：缩短启动等待曾让"扩展已禁用"提示盖住 dock 按钮（chat 权限点击超时），已改为先等提示再清除；轮询 hostState 会反复走命令面板，比固定等待更慢，已撤回相应改动。
+- NOT RUN：同一提交的真实模型全量、构建、并行执行、不稳定率测量。证据：docs/evidence/test-speedup.md。
