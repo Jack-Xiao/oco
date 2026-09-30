@@ -38,7 +38,7 @@
 | 快照关闭（`snapshot: false`）或非 git 项目 | 无哈希，`summary.diffs` 不写 / 为 `[]` | 仍有 | NOT RUN |
 | 未跟踪且 > 2 MiB 的文件 | 不进快照，**整条缺失**（不是空前像） | 仍有 | NOT RUN |
 | 二进制 | `patch: ""`，增删 0 | — | NOT RUN |
-| 快照内容读取失败 | **推断**：该侧当成空串仍生成补丁，看起来像新建/全删 | — | NOT RUN |
+| 快照 blob 丢失 | **实测**：整轮 `[]`（完好文件也丢），不报错，照样持久化；推翻原推断 | — | PASS（[运行时证据](c2-runtime.md) 第二轮） |
 
 ## 最小实现建议（本批不实现）
 
@@ -50,5 +50,6 @@
 
 ## 未做 / 下一步
 
-- 已补真实 Snapshot / SessionSummary.computeDiff 模块测试（8/8）；完整服务的 `summary.diffs` 持久化与 HTTP 返回仍未实测，快照 blob 缺失负测仍待补。见 [运行时证据](c2-runtime.md)。
+- 已补模块测试（8/8）与 HTTP/持久化/blob 缺失（5/5），见 [运行时证据](c2-runtime.md)。结论：非空 Diff 可证明属于该会话该用户消息的快照窗口；空列表不证明任何事。模型驱动完整轮次、工具元数据仍 NOT RUN。
+- 展示规则补充：单轮 Diff 为 `[]` 但该轮有 edit / write / apply_patch 工具部件时，显示“本轮 Diff 不可用”并只列工具涉及的文件，不显示“无修改”。
 - 未查：`message-v2.ts`、`git/index.ts`、jsdiff 默认上下文、write 权限 diff 是否落库、`Global.Path.data` 具体路径、SDK v1 `FileDiff.before/after` 字段来源（原始记录称已过时）。

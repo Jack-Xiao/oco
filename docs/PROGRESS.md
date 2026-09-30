@@ -146,3 +146,11 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 来源建议已收紧：哈希存在不是 blob 完整性证明；FileDiff 无 binary 标记；空 Diff 不能断言没有修改。
 - NOT RUN：HTTP/模型 E2E、summary 持久化、blob 缺失负测、工具元数据、oco 全量验证/构建。没有改产品代码。
 - 证据：docs/evidence/c2-runtime.md；下一步补 HTTP/持久化与 blob 缺失负测，再决定展示方案。
+
+## C2 HTTP / 持久化 / blob 缺失（2026-09-30）
+
+- 基线：main c427722；上游 51ef4be；Bun 1.3.10。主线程实现（未委派）。model/provider unknown。
+- 新增 tests/integration/c2-diff-http.test.ts；runner c2-diff-runtime.mjs 改为同时运行两个文件（可传 runtime/http）。
+- 命令 node tests/integration/c2-diff-runtime.mjs：13 PASS / 0 FAIL，54 断言，exit 0。
+- 发现：blob 丢失时 numstat 失败被 git() 吞掉，整轮 Diff 变 []（推翻“该侧空串仍出补丁”的源码推断）；空列表与“无修改”不可区分。
+- NOT RUN：模型驱动完整轮次、edit/apply_patch 元数据、快照树对象缺失/gc 后表现。产品代码未改。
