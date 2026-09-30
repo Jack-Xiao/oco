@@ -10,7 +10,7 @@
 日期 / 负责人: 2026-09-30 / 集成 AI（Claude Code 主线程）。委派：grok-worker ×2 均因 cli-chat-proxy.grok.com 请求错误失败、无产出；gemini-worker ×1 返回 {"status":"ERROR"} 但已写出 docs/evidence/c1-file-click-survey.md（集成人抽验后保留）。model/provider unknown。测试与实现由集成人完成。
 领取任务与写入范围: 收尾（STATUS/NEXT 版本表述、等待中切换连接 E2E）；C1（文件点击跳转、宿主路径校验、上下文复验）。packages/contracts、apps/extension、apps/chat-webview、patches/opencode/0005、tests、docs
 已完成行为: 见 docs/evidence/p1b-switch-pending.md、docs/evidence/c1-editor.md
-改动文件: packages/contracts/src/bridge.ts；apps/extension/src/{open-file-policy.ts,panels.ts}；apps/chat-webview/src/{app.tsx,bridge.ts}；patches/opencode/0005-oco-open-file-in-host.patch；tests/e2e/{p1b-switch-pending.mjs,c1-open-file.mjs,run.mjs,vscode.mjs,server.mjs,p1a-identity.mjs,p1b-sidebar.mjs,p1b-reconnect.mjs}；tests/unit/{open-file-policy,bridge-contract,e2e-results}.test.ts；docs
+改动文件（提交 `3bc386f`）: packages/contracts/src/bridge.ts；apps/extension/src/{open-file-policy.ts,panels.ts}；apps/chat-webview/src/{app.tsx,bridge.ts}；patches/opencode/0005-oco-open-file-in-host.patch；tests/e2e/{p1b-switch-pending.mjs,c1-open-file.mjs,run.mjs,vscode.mjs,server.mjs,p1a-identity.mjs,p1b-sidebar.mjs,p1b-reconnect.mjs}；tests/unit/{open-file-policy,bridge-contract,e2e-results}.test.ts；docs
 已运行检查及结果: typecheck PASS；unit 117/117；上游 tsgo 0 错误；补丁重放一致；E2E 默认 10 套件均有 exit 0 运行（非同一次，详见 STATUS）；p1b-switch-pending 变异对照 FAIL（预期）
 未运行/被阻塞检查: 真实输入法 NOT RUN；Remote-SSH/Windows NOT RUN；C2 未开始
 证据与 ADR: docs/evidence/{p1b-switch-pending,c1-editor,c1-file-click-survey}.md；无新 ADR（契约扩展为 ui.openFile）

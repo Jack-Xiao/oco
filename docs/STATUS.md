@@ -4,9 +4,9 @@
 
 ## 基线与并行工作
 
-- 本文件更新于 2026-09-30。已提交基线 `7fdc693`（产品代码 `6343f7b`）；C1 与切换连接补测为其上的未提交改动（worktree `review-planning-c-phase-a242fb`），提交后以提交号为准。实时版本以 `bun run brief` 为准。
+- 本文件更新于 2026-09-30。产品代码与 C1 `3bc386f`（分支 `claude/review-planning-c-phase-a242fb`，未推送）；P1b 产品代码 `6343f7b`。实时版本以 `bun run brief` 为准。
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
-- 进行中：C1 已实现并验证，待本地提交；C2 未开始。
+- C1 已实现并验证（`3bc386f`）；C2 未开始。
 
 ## P1b 稳定性收尾（代码提交 `6343f7b`；测试运行于 dirty `e67129d`）
 
@@ -22,7 +22,7 @@
 
 以下结果运行于 dirty `e67129d` 工作树（改动随后提交为 `6343f7b`），**未对干净的 `6343f7b` 全量复验**：typecheck PASS；单元测试 100/100；默认 8 个 E2E 套件均有 exit 0 的运行。首轮 p1a-chat `stream-locked` 与 p1b-narrow `question-260` 因测试模型输出失败，各重跑一次通过。p1b-ime 的真实输入法用例 NOT RUN。明细见 [运行记录](evidence/p1b-stability-runs.md)。
 
-## C1 编辑器联动（未提交，基于 `7fdc693`）
+## C1 编辑器联动（`3bc386f`）
 
 | 项目 | 状态 | 证据 |
 | --- | --- | --- |
