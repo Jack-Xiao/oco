@@ -43,6 +43,8 @@ bash scripts/test-server.sh
 
 已知行为：嵌入的对话页不占用官方应用的新建/标签/终端快捷键，这些按键交给 VS Code（例如 Cmd+N 新建未命名文件）。
 
+安装、连接方式（attached / managed）、Agents 视图和故障排查见 [使用与故障说明](docs/USER-GUIDE.md)；打包用 `bash scripts/package-vsix.sh`。
+
 打包当前代码并装到 VS Code Remote（`SSH: gcp-workstation`）时，按 [构建并安装到 Remote](docs/remote-install.md) 执行。那不是上面的扩展开发宿主。
 
 ## 测试
