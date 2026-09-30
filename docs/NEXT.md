@@ -2,62 +2,35 @@
 
 本文件是唯一的当前队列。状态只看 [STATUS](STATUS.md)。不要执行 HANDOFF 或 P1B-NEXT-STEPS 里的旧提示词。
 
-进度：C1 与切换连接补测见 [STATUS](STATUS.md)。P1b（代码提交 `6343f7b`，测试运行于 dirty `e67129d`，见 [STATUS](STATUS.md) 与[证据](evidence/p1b-stability.md)）：第 1 步完成；第 2 步除“可恢复错误界面与未知类型兜底”外完成。`brief` 工具已随 `b2f6514` 提交。
+进度：P1b、C1、C2、T014 连接子集、ADR-007 面板、设置页修复（补丁 0009/0010）已完成。2026-10-01 的 v0.1 收尾批次（[计划](V01-COMPLETION-PLAN.md)、[证据](evidence/v01-completion.md)）完成了托管模式（T007）、Agents 视图（T013）、诊断与状态栏（T015）、打包部署脚本与使用说明（T018），并在 gcp-workstation Remote 上查看了已安装扩展。消息 fork 按钮（补丁 0011）由另一会话完成，等待用户确认提交。
 
-## 1. 有限核查 — DONE（代码 `6343f7b`；证据来自 dirty `e67129d`）
+## 1. 登记与收口（小，先做）
 
-只确认两件事。发现实际问题就先修并验证，不要干等其他聊天的结论。
+- [TODO] fork 批次提交后，把 `t007-managed`、`t013-agents`、`t015-diagnostics` 加入 `tests/e2e/run.mjs` 的 `DEFAULT_SUITES`（合计 19 个），同步 `tests/unit/e2e-results.test.ts` 标题和 `docs/TEST-SCOPE.md`（计数、全量列表，以及 managed-server / agents / diagnostics 三行改动范围）。PROGRESS 追加 v0.1 批次条目。
+- [TODO] 用 fork 批次和本批合并后的同一提交重新构建 VSIX，部署 gcp-workstation 并用 `scripts/remote-look.mjs` 复看。
 
-- 旧连接晚到的事件或快照不能回写新连接。
-- 等待模型期间，重复发送、取消、草稿变化、关闭或切换，不能把旧请求发出去。
+## 2. 真实模型回归（缺环境时标 BLOCKED）
 
-这不是重跑全套 E2E。源码定向复核此前没有做完。
+- [TODO] 同一提交的真实模型全量：`node tests/e2e/run.mjs`。前提：测试服务用真实模型配置启动（`bash scripts/test-server.sh`，不带 `OCO_E2E_MODEL=mock`）且模型能回复；没有其他会话同时跑 E2E。
+- [TODO] Remote 上的发送、取消、断网恢复、本机粘贴图片、点击远端文件（A11）。需要能在 Remote 窗口操作；不改用户的远端机器设置。
 
-## 2. 稳定性收尾（只做 T008 / T010 的剩余小段）— 错误界面已实现待提交
+## 3. 性能与资源（T017）
 
-核查没有阻断，或阻断已修好之后：
+- [TODO] `tests/e2e/perf.mjs` 按 ADR-007 改写：主面板 + 3 个固定面板、10 个已打开会话，记录各进程 RSS 与切换耗时；“隐藏释放请求”改为“隐藏保持存活且无事件流泄漏”。
 
-- [DONE] 模型加载等待要有可见提示。
-- [DONE；切换连接已补 E2E `p1b-switch-pending`，见[证据](evidence/p1b-switch-pending.md)] 只保留一个明确的待发意图。取消、草稿变化或切换连接后，旧请求不得发送。优先禁用发送并保留草稿，或做严格的待发状态机。禁止无边界排队。
-- [DONE] 用受控测试服务或代理断流，验证重连后侧栏快照与增量事件一致。不碰用户现有 OpenCode 服务、配置或进程。
-- [IMPLEMENTED，未提交；脚本模型 E2E `t010-recover` 5/5，见[证据](evidence/c1-focus-t010-recovery.md)] 服务不可达（打开中/加载时）、会话已删除、未知错误的 oco 界面（补丁 0008）；去掉 Discord/报告与原始错误。剩余：提交；真实模型下复验；删除会话草稿的取回入口（可选）。
-- [DONE] 侧栏搜索只覆盖最近 200 个已加载会话。分页或服务端搜索另立任务，不塞进本步。
+## 4. 仍未做的 v0.1 项（按需单独立项）
 
-不做 T007 的 managed 进程和多根工作区。
-
-## 3. C 段：T011 / T012
-
-- [DONE C1] 工具部件文件名点击在 VS Code 打开并定位（read 按 offset 行）；宿主校验路径不出会话目录、会话目录须映射到本地工作区；选区/当前文件上下文随请求到达服务已复验。见 [C1 证据](evidence/c1-editor.md)。
-- [DONE] C1 路径加固（回环服务条件、大小写实测、行号解析接线）与补点（Diff 摘要文件名、Markdown 行内路径 `path:line`，补丁 0006）。见[加固证据](evidence/c1-path-hardening.md)（整批验收与子任务记录分节）。评审面板/附件（survey 补丁点 5）、grep/glob 输出文本、远程映射暂不做。
-- [DONE C2] 单轮 Diff 展示（补丁 0007）：范围标签“本轮工作区变化（含期间外部修改）”；空 Diff + 写文件工具时显示“不可用”并只列文件。见 [展示证据](evidence/c2-display.md)。`c1-open-file` 焦点问题已修（真实缺陷）；DiffUnavailable 已有夹具 E2E（`c2-diff-unavailable`）。不做会话级累计 Diff、回滚。
-- [IMPLEMENTED，未提交] C1 焦点：删除 1 s `refocus`，改为按 webview 焦点轮询等待后再打开（`c1-focus` 3/3，变异对照 FAIL）。
-- [可选] 连接变化时由宿主通知旧面板撤销待发并提示（现状：宿主拒绝提交，未误发，但无专门提示；本批的 `connection` 通知带 `bound`，可复用）。
-- [既有 FAIL] `p1b-reconnect` `search-scope-hint`：侧栏“最近 200 个”提示落后一次更新（HEAD 源码对照同样 FAIL），另立小任务。
-
-T010 的“可恢复错误界面与未知类型兜底”单列：先检查现有兜底，能复现白屏或无法恢复就优先修，否则单独排期，不作为 C 段门槛。
-
-## 3b. T014 连接设置子集 — DONE（本地提交 `92034b8`/`20f0ea1`/`092c6b3`，未推送，见[证据](evidence/t014-connection-c2-close.md)）
-
-已做：Open Settings 入口、中文设置说明、连接错误区分。剩余（属 T014 其余部分，不在本批）：Agent 配置操作契约、管理页、模型/provider 编辑；设置密码 E2E；受限模式行为。
-
-## 3c. 同一提交上的真实模型全量回归 — TODO
-
-测试提速后（`23c0954`/`376470e`）还缺一次同一提交的真实模型全量：`node tests/e2e/run.mjs`（13 个套件）。前提：测试模型能正常回复（2026-09-30 12:43 起无响应，c1-open-file BLOCKED），且没有其他会话同时跑 E2E。见[证据](evidence/test-speedup.md)。日常改动按 [测试范围](TEST-SCOPE.md) 只跑相关套件，可用 mock。
-
-## 3d. 面板体验（ADR-007）— DONE（本地提交，未推送）
-
-- [DONE] 面板保持存活：切换 tab 不再重载。
-- [DONE] 单主面板原地切换，加"在新面板打开"。
-- [TODO] 真实模型下回归 `p1b-main-panel`，并测常驻内存（主面板加 2–3 个固定面板）。跨目录切换加一条 E2E。
-
-## 4. 更后，且不扩大
-
-Agent 管理、设置（T013/T014）和 T007 的剩余项，在第 3 步稳定后再单独立项。不要在本队列里顺手做。
+- T007：多根工作区映射（现在只用第一个文件夹）。
+- T009：多连接/多工作区分组、分页或服务端搜索。
+- T010：键盘可访问性、主题配色专项检查。
+- T011：附件/图片大小限制与远端来源区分。
+- T013/T014：Agent 表单式编辑（目前以原文编辑为准）、管理页外壳。
+- T018：正式 publisher、oco 自身许可证（需用户决定）。
 
 ## 执行约束
 
 - 开工只读 AGENTS.md、STATUS.md、NEXT.md，以及本任务点名的契约。
 - 主代理只做范围、架构、集成和关键抽验。有风险或证据矛盾再深入。
-- 简单检查批量交给一个验证代理。历史 E2E 不是本轮通过。
-- 真实 IME、系统剪贴板、Windows、远程仍按 STATUS 的未验证标记。缺环境就标 NOT RUN 或 BLOCKED。
+- 历史 E2E 不是本轮通过；mock 运行不计真实模型验收。
+- 真实 IME、系统剪贴板、Windows 仍按 STATUS 的未验证标记。缺环境就标 NOT RUN 或 BLOCKED。
 - 任务写明授权时可以本地提交。不自动推送或发布。

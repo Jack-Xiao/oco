@@ -1,6 +1,6 @@
 // Look at the INSTALLED oco extension in a real Remote-SSH window, without touching the user's VS Code:
 // a separate VS Code instance (own profile under .oco-test/rl) with only the Remote-SSH extensions copied in.
-// Not an acceptance suite (excluded from run.mjs); it only produces screenshots/text for manual review.
+// Not an acceptance suite; it only produces screenshots/text for manual review.
 //   OCO_REMOTE_HOST (default gcp-workstation), OCO_REMOTE_FOLDER (default /home/user/ai)
 //   STEPS="click:<selector>,wait:<ms>,hover:<selector>,cmd:<palette title>,shot:<name>,text:<selector>"
 import { _electron as electron } from "playwright-core"
@@ -8,7 +8,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 
-const root = path.resolve(import.meta.dirname, "../..")
+const root = path.resolve(import.meta.dirname, "..")
 const R = path.join(fs.realpathSync(path.join(root, ".oco-test")), "rl") // short path: IPC socket limit
 const HOST = process.env.OCO_REMOTE_HOST ?? "gcp-workstation"
 const FOLDER = process.env.OCO_REMOTE_FOLDER ?? "/home/user/ai"

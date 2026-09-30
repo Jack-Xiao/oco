@@ -14,6 +14,16 @@
 - 0010：面板内默认打开文件树、命令面板（搜索）、服务器状态和显示智能体；每个配置档只应用一次（`ocoEmbeddedDefaultsApplied`），用户之后关掉的保持关闭（新配置档探针：默认全开 → 关闭文件树 → 重启后仍为关）。
 - 限制：截图里能看到状态按钮、侧栏按钮和智能体选择器；标题栏搜索按钮没看到，未查。脚本模型探针为临时脚本，未纳入 E2E 套件。NOT RUN：全量 E2E、真实模型。
 
+## v0.1 收尾批次（2026-10-01；分支 `claude/v01-completion`，验证运行于 `2b40651`）
+
+- T007 托管模式：`oco.serverMode = managed` + `oco.opencodePath`，每窗口一个 `opencode serve`（127.0.0.1、随机端口、内存随机密码），多面板共用；异常退出不自动重启；只结束自有进程。`t007-managed` 7/7（mock）。
+- T013 Agents 视图：有效列表 + 来源（内置/项目文件/用户文件/配置文件）+ 待生效；新建、复制（原样）、打开原文、确认后重载配置（不重启服务，重载后侧栏立即重连）；非回环服务只读。`t013-agents` 6/6 ×2（mock）。
+- T015：状态栏服务版本/模式/未验证版本提示；`oco: Export Diagnostics`（脱敏）、`oco: Show Log`。`t015-diagnostics` 4/4（mock）。
+- T018：`scripts/package-vsix.sh`、`scripts/deploy-remote.sh`、[CHANGELOG](../CHANGELOG.md)、[使用与故障说明](USER-GUIDE.md)。
+- Remote-SSH（gcp-workstation）：已部署；独立 VS Code 实例经 Remote-SSH 查看，连接用户服务 1.18.33、会话列表、Agents、打开会话、诊断导出均正常。远端发送/取消/图片/托管模式 NOT RUN。
+- 检查：typecheck 0 errors；unit 161/0；build PASS；`p1b-reconnect` 5/5（既有 search-scope-hint FAIL 未复现）。真实模型、全量 E2E NOT RUN。详情：[v01 证据](evidence/v01-completion.md)。
+- 三个新套件尚未加入 `DEFAULT_SUITES`（`run.mjs` 与 fork 批次的未提交改动重叠，待其提交后登记，见 NEXT）。
+
 ## 单主面板会话切换（ADR-007 第 2–4 步，2026-09-30；验证运行于 `fe20a44` + 本批未提交改动）
 
 - 行为：最多一个主面板，点侧栏会话、打开会话、新建会话都在主面板里原地切换（宿主发 `navigate`，页面不重载）；右键或命令 `oco: Open in New Panel` 开固定面板；已显示的会话只聚焦所在面板；Reload Window 后角色保留。跨目录切换改为重建桥并重载文档（无专门 E2E）。
