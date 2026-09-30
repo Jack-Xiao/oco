@@ -31,7 +31,20 @@ export type WebviewInit = {
 type Envelope<T extends string, P> = { v: typeof PROTOCOL_VERSION; gen: number; type: T } & P
 export type Omit2<T> = T extends unknown ? Omit<T, "v" | "gen"> : never
 
-export type UiAction = "openExternal" | "notify" | "title" | "openSession" | "blockedNavigation" | "openFile" | "reload"
+export type UiAction =
+  | "openExternal"
+  | "notify"
+  | "title"
+  | "openSession"
+  | "blockedNavigation"
+  | "openFile"
+  | "reload"
+  // T010 recovery screen: fixed host operations, no arguments.
+  | "retryConnection"
+  | "openSettings"
+  | "showSessions"
+  | "newSession"
+  | "closePanel"
 
 // webview -> host
 export type Hello = Envelope<"hello", { docId: string }>
@@ -48,10 +61,12 @@ export type BlobOp = Envelope<"blob.op", { id: string; op: "put" | "get"; blobId
 /** `openFile`: `path` is relative to the bound session directory (or absolute inside it); the host
  * validates it and never opens anything outside that directory. `line`/`column` are 1-based. Without
  * `line`, a path that does not exist literally may carry `:line[:col]` or `#Lline[Ccol]`, which the
- * host parses. The host opens files only when it can confirm the server path is this machine's file. */
+ * host parses. The host opens files only when it can confirm the server path is this machine's file.
+ * `focusAgeMs` (openFile only): ms since the page's window last gained focus, if it ever did. The host uses it
+ * to let VS Code report a focus the requesting click just gave the webview before it opens the file. */
 export type Ui = Envelope<
   "ui",
-  { action: UiAction; url?: string; title?: string; body?: string; sessionId?: string; route?: string; path?: string; line?: number; column?: number }
+  { action: UiAction; url?: string; title?: string; body?: string; sessionId?: string; route?: string; path?: string; line?: number; column?: number; focusAgeMs?: number }
 >
 export type DraftAck = Envelope<"draft.ack", { id: string; ok: boolean; reason?: string }>
 export type Ready = Envelope<"ready", { route: string }>
@@ -71,7 +86,13 @@ export type DraftInsert = Envelope<
   "draft.insert",
   { id: string; sessionId: string; text: string; source: { path: string; startLine: number; endLine: number; unsaved: boolean } }
 >
-export type HostToWebview = Welcome | FetchHead | FetchChunk | FetchEnd | FetchError | StoreResult | DraftInsert
+/** Host connection state for this panel (T010). `state` is the host's feed state; `bound` is false when the host
+ * is now connected somewhere else than the panel's binding. Carries no address, credentials or server text. */
+export type ConnectionNotice = Envelope<
+  "connection",
+  { state: "connected" | "connecting" | "reconnecting" | "error" | "unauthorized" | "unconfigured"; bound: boolean }
+>
+export type HostToWebview = Welcome | FetchHead | FetchChunk | FetchEnd | FetchError | StoreResult | DraftInsert | ConnectionNotice
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v)
 const isStr = (v: unknown): v is string => typeof v === "string"
@@ -81,7 +102,20 @@ const isHeaders = (v: unknown): v is [string, string][] =>
 
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"])
 const STORE_OPS = new Set(["get", "set", "remove", "clear", "keys", "snapshot"])
-const UI_ACTIONS = new Set<UiAction>(["openExternal", "notify", "title", "openSession", "blockedNavigation", "openFile", "reload"])
+const UI_ACTIONS = new Set<UiAction>([
+  "openExternal",
+  "notify",
+  "title",
+  "openSession",
+  "blockedNavigation",
+  "openFile",
+  "reload",
+  "retryConnection",
+  "openSettings",
+  "showSessions",
+  "newSession",
+  "closePanel",
+])
 const isPos = (v: unknown) => v === undefined || (typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 10_000_000)
 
 /** Runtime validation of untrusted webview messages. Returns null when invalid. */
@@ -118,6 +152,7 @@ export function parseWebviewMessage(raw: unknown): WebviewToHost | null {
       if (raw.path !== undefined && (!isStr(raw.path) || raw.path.length > 4096)) return null
       if (!isPos(raw.line) || !isPos(raw.column)) return null
       if (raw.action === "openFile" && !isStr(raw.path)) return null
+      if (raw.focusAgeMs !== undefined && !(typeof raw.focusAgeMs === "number" && Number.isFinite(raw.focusAgeMs) && raw.focusAgeMs >= 0)) return null
       return raw as unknown as Ui
     case "draft.ack":
       return isId(raw.id) && typeof raw.ok === "boolean" ? (raw as unknown as DraftAck) : null

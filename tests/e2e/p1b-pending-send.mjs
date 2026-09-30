@@ -6,7 +6,7 @@
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { launch, command, chatFrames, frameSession, sleep, runShot } from "./vscode.mjs"
-import { messages, waitReply } from "./server.mjs"
+import { messages, waitReply, MODEL } from "./server.mjs"
 
 const DELAY = 8000
 const CASES = ["loading-hint", "pending-visible-and-send", "pending-duplicate", "pending-draft-change", "pending-escape", "pending-cancel-button", "pending-close"]
@@ -118,7 +118,7 @@ try {
       return s?.bar?.state === "loading" ? s : null
     }, DELAY - 1500)
     const hintAtMs = Date.now() - t0
-    const modelShownWhileLoading = await f.getByText("Big Pickle").first().isVisible().catch(() => false)
+    const modelShownWhileLoading = await f.getByText(MODEL.label).first().isVisible().catch(() => false)
     const loaded = await modelReady(f)
     const hidden = await waitFor(async () => (await snap(f))?.bar === null, 3000)
     const after = await snap(f)

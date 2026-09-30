@@ -3,7 +3,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { launch, command, waitForChatFrame, chatFrames, frameSession, shot, sleep, evidenceDir, root } from "./vscode.mjs"
-import { api, messages, status, waitIdle } from "./server.mjs"
+import { api, messages, status, waitIdle, MODEL } from "./server.mjs"
 
 const results = []
 const record = (id, st, detail) => { results.push({ id, status: st, detail }); console.log(`[${st}] ${id}: ${JSON.stringify(detail)}`) }
@@ -31,7 +31,7 @@ async function focusSession(sid) {
     for (const f of await chatFrames(page)) {
       const ok = await f.evaluate((id) => window.__OCO_INIT__.binding.sessionId === id && document.visibilityState === "visible" && !!document.querySelector('[data-component="prompt-input"], [data-component="dock-prompt"]'), sid).catch(() => false)
       if (ok) {
-        if (await f.$('[data-component="prompt-input"]')) await f.getByText("Big Pickle").first().waitFor({ timeout: 60000 })
+        if (await f.$('[data-component="prompt-input"]')) await f.getByText(MODEL.label).first().waitFor({ timeout: 60000 })
         await sleep(2500)
         return f
       }
@@ -57,7 +57,7 @@ try {
     const f = await visibleFrame()
     const sid = await frameSession(f)
     if (!ids.includes(sid)) ids.push(sid)
-    await f.getByText("Big Pickle").first().waitFor({ timeout: 60000 })
+    await f.getByText(MODEL.label).first().waitFor({ timeout: 60000 })
     await sleep(3000)
   }
   const [A, B, C] = ids

@@ -3,6 +3,7 @@
 import { _electron as electron } from "playwright-core"
 import fs from "node:fs"
 import path from "node:path"
+import { MODEL } from "./server.mjs"
 
 export const root = path.resolve(import.meta.dirname, "../..")
 export const evidenceDir = path.join(root, "docs/evidence/p0-artifacts")
@@ -55,18 +56,19 @@ export async function launch({ workspace = path.join(fs.realpathSync(path.join(r
   })
   const page = await app.firstWindow()
   await page.waitForSelector(".monaco-workbench", { timeout: 60000 })
-  await page.waitForTimeout(2500)
+  // The workbench shell renders before its parts are interactive; the command palette needs the sidebar title.
+  await page.waitForSelector(".part.sidebar .composite.title", { timeout: 30000 }).catch(() => {})
   await clearNotifications(page)
   if (run) {
     const pkg = JSON.parse(fs.readFileSync("/Applications/Visual Studio Code.app/Contents/Resources/app/package.json", "utf8"))
-    run.setEnv({ vscodeVersion: pkg.version, vscodeProfile: profile })
+    run.setEnv({ vscodeVersion: pkg.version, vscodeProfile: profile, modelMode: MODEL.mode, model: `${MODEL.providerID}/${MODEL.modelID}` })
   }
   return { app, page, stateFile, settingsFile: path.join(userData, "User/settings.json") }
 }
 
 export async function clearNotifications(page) {
   await command(page, "Notifications: Clear All Notifications")
-  await page.waitForTimeout(300)
+  await page.locator(".notifications-toasts .notification-toast").first().waitFor({ state: "detached", timeout: 2000 }).catch(() => {})
 }
 
 export async function command(page, title, { input } = {}) {
@@ -84,14 +86,53 @@ export async function command(page, title, { input } = {}) {
   }
   if (!open) throw new Error(`command palette did not open for: ${title}`)
   await palette.fill(">" + title)
-  await page.waitForTimeout(500)
+  // Wait until the palette has filtered down to this command, so Enter never runs a stale first row.
+  const label = title.slice(title.lastIndexOf(": ") + 1).trim()
+  await page
+    .waitForFunction(
+      (label) => document.querySelector(".quick-input-list .monaco-list-row.focused")?.textContent?.includes(label),
+      label,
+      { timeout: 3000 },
+    )
+    .catch(() => page.waitForTimeout(500))
   await page.keyboard.press("Enter")
-  if (input !== undefined) {
-    await page.waitForTimeout(800)
-    await page.keyboard.type(input)
-    await page.waitForTimeout(800)
-    await page.keyboard.press("Enter")
+  if (input !== undefined) await quickInput(page, input)
+}
+
+/** Answer the quick pick / input box a command just opened: wait until it is shown (it reuses the palette
+ *  widget, so "ready" means it no longer holds ">title"), type, and press Enter once the focused row
+ *  matches (quick picks) or right away (input boxes, which have no rows). */
+export async function quickInput(page, text) {
+  await page
+    .waitForFunction(() => {
+      const el = document.querySelector(".quick-input-widget input")
+      return el && el.offsetParent !== null && !el.value.startsWith(">")
+    }, null, { timeout: 10000 })
+    .catch(() => page.waitForTimeout(800))
+  await page.keyboard.type(text)
+  await page
+    .waitForFunction(
+      (t) => {
+        const rows = document.querySelector(".quick-input-list")
+        if (!rows || rows.offsetParent === null) return true
+        return document.querySelector(".quick-input-list .monaco-list-row.focused")?.textContent?.includes(t)
+      },
+      text,
+      { timeout: 2000 },
+    )
+    .catch(() => page.waitForTimeout(300))
+  await page.keyboard.press("Enter")
+}
+
+/** Poll `fn` until it returns a truthy value (returned) or `ms` elapses (returns null). */
+export async function waitUntil(fn, ms = 5000, step = 100) {
+  const end = Date.now() + ms
+  while (Date.now() < end) {
+    const v = await fn().catch(() => null)
+    if (v) return v
+    await new Promise((r) => setTimeout(r, step))
   }
+  return null
 }
 
 /** Runs a VS Code command through the extension host (for test setup only). */

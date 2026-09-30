@@ -34,12 +34,21 @@ export function activate(context: vscode.ExtensionContext) {
     trusted: () => vscode.workspace.isTrusted,
     store,
     onChange: () => view.refresh(),
-    onState: (st) => view.setConnection(st),
+    onState: (st) => {
+      view.setConnection(st)
+      panels.setConnection(st)
+    },
     log: (m) => log.info(m),
     // E2E hook for a silent stall (proxy holds the stream but forwards nothing), outside production only.
     stallMs: context.extensionMode !== vscode.ExtensionMode.Production && Number(process.env.OCO_DEV_STALL_MS) > 0 ? Number(process.env.OCO_DEV_STALL_MS) : undefined,
   })
   panels.onChange = () => view.refresh()
+  panels.onRecoveryAction = (action) => {
+    if (action === "retryConnection") feed.restart()
+    else if (action === "openSettings") void vscode.commands.executeCommand("oco.openSettings")
+    else if (action === "showSessions") void vscode.commands.executeCommand("oco.sessions.focus")
+    else void vscode.commands.executeCommand("oco.newSession")
+  }
   context.subscriptions.push(view, { dispose: () => feed.stop() })
 
   const fail = (what: string, e: unknown) => void vscode.window.showErrorMessage(`oco: ${what}（${(e as Error).message}）`)

@@ -1,0 +1,95 @@
+diff --git a/packages/app/src/app.tsx b/packages/app/src/app.tsx
+index 0c95087..30e22c2 100644
+--- a/packages/app/src/app.tsx
++++ b/packages/app/src/app.tsx
+@@ -508,6 +508,8 @@ function ConnectionError(props: { onRetry?: () => void; onServerSelected?: (key:
+ 
+   const timer = setInterval(() => props.onRetry?.(), 1000)
+   onCleanup(() => clearInterval(timer))
++  const platform = usePlatform()
++  if (platform.recoveryView) return platform.recoveryView({ kind: "unreachable", retry: () => props.onRetry?.() })
+ 
+   return (
+     <div class="h-dvh w-screen flex flex-col items-center justify-center bg-background-base gap-6 p-6">
+diff --git a/packages/app/src/context/platform.tsx b/packages/app/src/context/platform.tsx
+index 92dc253..8a5752b 100644
+--- a/packages/app/src/context/platform.tsx
++++ b/packages/app/src/context/platform.tsx
+@@ -1,12 +1,21 @@
+ import { createSimpleContext } from "@opencode-ai/ui/context"
+ import type { AsyncStorage, SyncStorage } from "@solid-primitives/storage"
+-import type { Accessor } from "solid-js"
++import type { Accessor, JSX } from "solid-js"
+ import type { DesktopMenuAction } from "../desktop-menu"
+ import { ServerConnection } from "./server"
+ import type { WslServersPlatform } from "../wsl/types"
+ import type { UpdaterPlatform } from "../updater"
+ import type { DraftStore } from "@/utils/draft-store"
+ 
++/** oco (patches/opencode/0008): what the embedding host's recovery view is asked to show. */
++export type RecoveryViewProps = {
++  /** unreachable: the server health check fails; session-missing: the bound session is gone; error: anything else. */
++  kind: "unreachable" | "session-missing" | "error"
++  error?: unknown
++  /** Retry now (unreachable only; the app keeps retrying on its own as well). */
++  retry?: () => void
++}
++
+ type PickerPaths = string | string[] | null
+ type OpenDirectoryPickerOptions = { title?: string; multiple?: boolean }
+ type OpenAttachmentPickerOptions = {
+@@ -77,6 +86,10 @@ type PlatformBase = {
+    * terminal entry points are rendered or registered; the host owns session switching. */
+   embedded?: boolean
+ 
++  /** oco (patches/opencode/0008): the embedding host renders its own recovery screen in place of the
++   * error page, the unreachable-server screen and the missing-session screen. */
++  recoveryView?(props: RecoveryViewProps): JSX.Element
++
+   /** Stable platform window identity for window-scoped persistence */
+   windowID?: string
+ 
+diff --git a/packages/app/src/index.ts b/packages/app/src/index.ts
+index 0e0ed02..e0254b7 100644
+--- a/packages/app/src/index.ts
++++ b/packages/app/src/index.ts
+@@ -10,7 +10,13 @@ export { ACCEPTED_FILE_EXTENSIONS, ACCEPTED_FILE_TYPES, filePickerFilters } from
+ export { useCommand } from "./context/command"
+ export { loadLocaleDict, normalizeLocale, type Locale, useLanguage } from "./context/language"
+ export { useWslServers } from "./wsl/context"
+-export { type DisplayBackend, type FatalRendererErrorLog, type Platform, PlatformProvider } from "./context/platform"
++export {
++  type DisplayBackend,
++  type FatalRendererErrorLog,
++  type Platform,
++  PlatformProvider,
++  type RecoveryViewProps,
++} from "./context/platform"
+ export { type UpdaterPlatform, type UpdaterState } from "./updater"
+ export {
+   type WslDistroProbe,
+diff --git a/packages/app/src/pages/error.tsx b/packages/app/src/pages/error.tsx
+index 2fc6095..26b5ab7 100644
+--- a/packages/app/src/pages/error.tsx
++++ b/packages/app/src/pages/error.tsx
+@@ -221,6 +221,7 @@ interface ErrorPageProps {
+ 
+ export const ErrorPage: Component<ErrorPageProps> = (props) => {
+   const platform = usePlatform()
++  if (platform.recoveryView) return platform.recoveryView({ kind: "error", error: props.error })
+   const language = useLanguage()
+   const formattedError = () => formatError(props.error, language.t)
+   let recordedFatalError: Promise<void> | undefined
+diff --git a/packages/app/src/pages/session.tsx b/packages/app/src/pages/session.tsx
+index 2e647e0..d6f009d 100644
+--- a/packages/app/src/pages/session.tsx
++++ b/packages/app/src/pages/session.tsx
+@@ -214,6 +214,8 @@ function SessionErrorFallback(props: { error: unknown; sessionID?: string; serve
+     tabs.removeSessionTab({ server: props.serverKey ?? server.key, sessionId: props.sessionID })
+   }
+   if (isCurrentSessionNotFoundError(props.error, props.sessionID)) {
++    const platform = usePlatform()
++    if (platform.recoveryView) return platform.recoveryView({ kind: "session-missing", error: props.error })
+     return (
+       <div class="flex-1 min-h-0 overflow-hidden">
+         <div class="h-full px-6 pb-42 -mt-4 flex flex-col items-center justify-center text-center gap-4">

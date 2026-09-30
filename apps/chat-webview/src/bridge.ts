@@ -42,6 +42,16 @@ export const onDraftInsert = (fn: (m: Extract<HostToWebview, { type: "draft.inse
 
 export const currentGeneration = () => generation
 
+type ConnectionNotice = Extract<HostToWebview, { type: "connection" }>
+let lastConnection: ConnectionNotice | undefined
+const connectionListeners = new Set<(m: ConnectionNotice) => void>()
+/** Host connection state (T010). Replays the latest notice to a new listener. */
+export const onConnection = (fn: (m: ConnectionNotice) => void) => {
+  connectionListeners.add(fn)
+  if (lastConnection) fn(lastConnection)
+  return () => connectionListeners.delete(fn)
+}
+
 const welcomed = Promise.withResolvers<void>()
 export const connected = welcomed.promise
 
@@ -58,6 +68,11 @@ window.addEventListener("message", (event) => {
   if (!generation || msg.gen !== generation) return
   if (msg.type === "draft.insert") {
     for (const fn of draftListeners) fn(msg)
+    return
+  }
+  if (msg.type === "connection") {
+    lastConnection = msg
+    for (const fn of connectionListeners) fn(msg)
     return
   }
   const p = pending.get(msg.id)
@@ -189,7 +204,7 @@ export function blobGet(blobId: string) {
 
 export const ui = (
   action: UiAction,
-  extra: { url?: string; title?: string; body?: string; sessionId?: string; route?: string; path?: string; line?: number; column?: number } = {},
+  extra: { url?: string; title?: string; body?: string; sessionId?: string; route?: string; path?: string; line?: number; column?: number; focusAgeMs?: number } = {},
 ) =>
   post({ type: "ui", action, ...extra })
 

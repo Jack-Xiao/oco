@@ -10,6 +10,17 @@ export async function api(method, p, body) {
   const t = await r.text()
   return t ? JSON.parse(t) : null
 }
+
+/** Model the test server runs: the real one, or the scripted local mock (scripts/test-server.sh, OCO_E2E_MODEL=mock).
+ *  Read from the server so a suite can never claim the wrong mode; falls back to OCO_E2E_MODEL if it is down. */
+async function detectModel() {
+  const configured = await api("GET", "/config").then((c) => c?.model, () => undefined)
+  const mock = configured ? configured.startsWith("oco-mock/") : process.env.OCO_E2E_MODEL === "mock"
+  return mock
+    ? { mode: "mock", providerID: "oco-mock", modelID: "mock", label: "OCO Mock" }
+    : { mode: "real", providerID: "opencode", modelID: "big-pickle", label: "Big Pickle" }
+}
+export const MODEL = await detectModel()
 export const messages = (sid) => api("GET", `/session/${sid}/message`)
 export async function status(sid) {
   const all = await api("GET", "/session/status")

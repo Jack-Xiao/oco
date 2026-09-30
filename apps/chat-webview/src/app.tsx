@@ -19,6 +19,7 @@ import { createMemoryHistory, MemoryRouter, type BaseRouterProps } from "@solidj
 import { render } from "solid-js/web"
 import { blobGet, blobPut, bridgeFetch, currentGeneration, draftAck, hostStorage, init, onDraftInsert, ready, ui, vscode } from "./bridge"
 import { storageStats } from "./local-storage"
+import { ConnectionBanner, RecoveryView } from "./recovery"
 import { installSubmitStatus, submitStats } from "./submit-status"
 import { themeStats } from "./theme"
 
@@ -56,6 +57,12 @@ export function classifyRoute(target: string): RouteClass {
   return { kind: "other" }
 }
 
+// When this document last gained focus; sent with openFile so the host can tell whether the click that asked
+// for the file also just focused the webview (see Panels.settleWebviewFocus).
+let focusedAt: number | undefined
+window.addEventListener("focus", () => (focusedAt = performance.now()))
+const focusAgeMs = () => (focusedAt === undefined ? undefined : Math.round(performance.now() - focusedAt))
+
 const storageCache = new Map<string, ReturnType<typeof hostStorage>>()
 const platform: Platform = {
   platform: "web",
@@ -64,10 +71,13 @@ const platform: Platform = {
   windowID: init.panelId,
   openExternal: (url) => ui("openExternal", { url }),
   // patches/opencode/0005: file names in tool parts open in VS Code; the host validates the path.
-  openFileInHost: (path, line) => ui("openFile", { path, line: Number.isInteger(line) && line! >= 1 ? line : undefined }),
+  openFileInHost: (path, line) =>
+    ui("openFile", { path, line: Number.isInteger(line) && line! >= 1 ? line : undefined, focusAgeMs: focusAgeMs() }),
   // A plain location.reload() leaves a VS Code webview blank (its inner frame has no URL to reload), so the host
   // resets the panel HTML instead (T010: the error page's Restart must actually recover the chat).
   restart: async () => ui("reload"),
+  // patches/opencode/0008 (T010): oco's own error / unreachable / missing-session screens.
+  recoveryView: RecoveryView,
   notify: async (title, body) => ui("notify", { title, body }),
   fetch: bridgeFetch,
   storage: (name = "default.dat") => {
@@ -162,6 +172,7 @@ render(
     <PlatformProvider value={platform}>
       <AppBaseProviders locale={init.locale as never}>
         <AppInterface defaultServer={serverKey} servers={servers} router={PanelRouter} disableHealthCheck={false} />
+        <ConnectionBanner />
       </AppBaseProviders>
     </PlatformProvider>
   ),

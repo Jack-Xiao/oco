@@ -24,3 +24,22 @@ describe("parseWebviewMessage ui.openFile", () => {
     expect(parseWebviewMessage(ui({ action: "openFolder", path: "a" }))).toBeNull()
   })
 })
+
+describe("parseWebviewMessage ui.openFile focusAgeMs (C1 focus)", () => {
+  test("accepts a non-negative finite age or none", () => {
+    for (const ok of [undefined, 0, 12.5, 250, 1e9]) expect(parseWebviewMessage(ui({ action: "openFile", path: "a", focusAgeMs: ok }))).not.toBeNull()
+  })
+  test("rejects negative, non-finite or non-numeric ages", () => {
+    for (const bad of [-1, Infinity, NaN, "10", null, {}]) expect(parseWebviewMessage(ui({ action: "openFile", path: "a", focusAgeMs: bad }))).toBeNull()
+  })
+})
+
+describe("parseWebviewMessage T010 recovery actions", () => {
+  test("the fixed recovery actions are accepted", () => {
+    for (const action of ["retryConnection", "openSettings", "showSessions", "newSession", "closePanel"])
+      expect(parseWebviewMessage(ui({ action }))).not.toBeNull()
+  })
+  test("a free-form command action is not", () => {
+    expect(parseWebviewMessage(ui({ action: "command", command: "workbench.action.terminal.new" }))).toBeNull()
+  })
+})

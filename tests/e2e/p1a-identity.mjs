@@ -4,8 +4,8 @@ import { fileURLToPath } from "node:url"
 import fs from "node:fs"
 import path from "node:path"
 import { createRun } from "./lib/results.mjs"
-import { clearNotifications, launch, command, chatFrames, frameSession, sleep, runShot, hostState, root } from "./vscode.mjs"
-import { api, messages, status, waitIdle, waitReply } from "./server.mjs"
+import { clearNotifications, launch, command, quickInput, waitUntil, chatFrames, frameSession, sleep, runShot, hostState, root } from "./vscode.mjs"
+import { api, messages, status, waitIdle, waitReply, MODEL } from "./server.mjs"
 
 const REQUIRED = [
   "three-visible-webviews",
@@ -51,16 +51,17 @@ async function frameFor(sid, timeout = 60000) {
   throw new Error(`no visible frame for ${sid}`)
 }
 async function ready(f) {
-  await f.getByText("Big Pickle").first().waitFor({ timeout: 60000 })
-  await sleep(2500)
+  await f.getByText(MODEL.label).first().waitFor({ timeout: 60000 })
+  // The page marks itself once agents/models are loaded (patch 0004); then the composer accepts input.
+  await waitUntil(async () => (await f.evaluate(() => document.documentElement.dataset.ocoModel)) === "ready", 10000, 100)
+  await sleep(300)
 }
 async function openSession(sid) {
-  await command(page, "oco: Open Session")
-  await sleep(1000)
-  await page.keyboard.type(sid)
-  await sleep(500)
-  await page.keyboard.press("Enter")
+  await command(page, "oco: Open Session", { input: sid })
 }
+// Note: hostState() runs a palette command (~1s), so poll it only where one read replaces a long wait.
+const panelOf = async (sid) => (await state()).panels.find((p) => p.sessionId === sid)
+const groupCount = () => page.$$eval(".editor-group-container", (e) => e.length)
 async function type(f, text, send = false) {
   // The first click on a webview can focus only the editor group; focus the composer explicitly and
   // verify the text arrived (retry once) so a lost keystroke is never mistaken for a product result.
@@ -106,13 +107,17 @@ try {
   }
   // Spread the three tabs over three editor groups: C -> right twice (g3), then B -> right (g2).
   await command(page, "View: Move Editor into Right Group")
-  await sleep(1500)
+  await waitUntil(async () => (await groupCount()) >= 2, 5000)
   await command(page, "View: Move Editor into Right Group")
-  await sleep(1500)
+  await waitUntil(async () => (await groupCount()) >= 3, 5000)
   await command(page, "View: Focus First Editor Group")
-  await sleep(800)
+  await waitUntil(() => page.evaluate(() => document.querySelector(".editor-group-container")?.classList.contains("active")), 3000)
   await command(page, "View: Move Editor into Right Group")
-  await sleep(4000)
+  // All three panels visible, ready and on distinct generations (the assertion below), within 10s.
+  await waitUntil(async () => {
+    const vis = (await state()).panels.filter((p) => p.visible && p.ready && p.generation > 0)
+    return vis.length === 3 && new Set(vis.map((p) => p.generation)).size === 3
+  }, 10000, 200)
   const [A, B, C] = ids
   run.setEnv({ sessions: { A, B, C } })
   let st = await state()
@@ -241,18 +246,18 @@ try {
   await command(page, "Go to File", { input: "math.ts" })
   const editorLines = page.locator(".editor-group-container.active .monaco-editor .view-lines").first()
   await editorLines.waitFor({ timeout: 20000 })
-  await sleep(600)
+  await sleep(300)
   await editorLines.click()
   await page.keyboard.press("Meta+ArrowDown")
   await page.keyboard.type("\n// unsaved-ident-555\n")
   await page.keyboard.press("Meta+a")
   const editorHasMarker = (await editorLines.innerText()).includes("unsaved-ident-555")
-  await command(page, "oco: Add Selection to Session Draft")
-  await sleep(900)
-  await page.keyboard.type(A)
-  await sleep(400)
-  await page.keyboard.press("Enter")
-  await sleep(3000)
+  await command(page, "oco: Add Selection to Session Draft", { input: A })
+  // The draft is delivered once A's page acknowledges it and shows it in the composer.
+  await waitUntil(async () => {
+    const p = await panelOf(A)
+    return p?.panel.draftAcks >= 1 && p.pendingDrafts === 0 && (await composer(await frameFor(A, 2000))).includes("unsaved-ident-555")
+  }, 10000, 200)
   const fA5 = await frameFor(A)
   const aDraft = await composer(fA5)
   st = await state()
@@ -323,7 +328,7 @@ try {
   await openSession(C)
   const fC2 = await frameFor(C)
   await type(fC2, "unsent-draft-CHARLIE")
-  await sleep(1500)
+  await sleep(1500) // draft persistence is debounced by the page
   const cBefore = (await state()).panels.find((p) => p.sessionId === C)
   // A new session opens in the active group (C's) and hides C: its document is destroyed.
   await command(page, "oco: New Session")
@@ -352,14 +357,15 @@ try {
   const pre = await state()
   const tabsBefore = await tabLabels()
   await command(page, "Developer: Reload Window")
-  await sleep(5000)
+  // The old window's host state keeps its activation id until the new extension host starts.
+  await waitUntil(async () => (await state().catch(() => null))?.activationId !== pre.activationId, 30000, 300)
   await page.waitForSelector(".monaco-workbench", { timeout: 60000 })
   let post
   const tR = Date.now()
   while (Date.now() - tR < 60000) {
     post = await state().catch(() => null)
     if (post && post.activationId !== pre.activationId && post.panels.filter((p) => p.visible && p.ready).length >= 3) break
-    await sleep(1000)
+    await sleep(300)
   }
   const restoredVisible = post.panels.filter((p) => p.visible && p.ready).map((p) => p.sessionId)
   const tabsAfter = await tabLabels()
@@ -432,9 +438,10 @@ try {
     dt.items.add(new File([bytes], "oco-test.png", { type: "image/png" }))
     document.querySelector('[data-component="prompt-input"]').dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }))
   }, png.toString("base64"))
-  await sleep(1200)
+  await sleep(1200) // attachment is read asynchronously by the composer
+  const usersBeforeImage = (await messages(A)).filter((m) => m.info.role === "user").length
   await type(fA8, "What is in this image? One sentence.", true)
-  await sleep(4000)
+  await waitUntil(async () => (await messages(A)).filter((m) => m.info.role === "user").length > usersBeforeImage, 15000, 200)
   const u = (await messages(A)).filter((m) => m.info.role === "user").at(-1)
   const img = (u?.parts ?? []).find((p) => p.type === "file" && String(p.mime).startsWith("image/"))
   const got = img?.url?.startsWith("data:") ? Buffer.from(img.url.split(",")[1], "base64") : null

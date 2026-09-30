@@ -169,3 +169,11 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 验证：verify:brief --build PASS（unit 136/0）；E2E 定向 `t014-connection` 6/6、`c2-diff-unavailable` 3/3、`t010-recover` 2/2、`c1-open-file` 6/6（另 16 次连跑 15 PASS，1 次为模型未出 Diff 的无关 FAIL）。详见 docs/evidence/t014-connection-c2-close.md。
 - NOT RUN：其余 E2E 套件、设置密码输入流程、受限模式、真实快照缺失全链路。
 - 未标记 T014/A15 完成。
+
+## C1 焦点收尾 + T010 错误恢复（2026-09-30）
+
+- 基线 main 33433bb + main 检出里未提交的脚本模型测试改动（复制进 worktree `claude/c1-focus-t010-recovery-a216bc`，main 检出未动）。未提交。主线程实现，未委派；model/provider unknown。全部 E2E 用脚本模型。
+- C1：定位 VS Code 1.139.1 webview 250 ms 焦点轮询为迟到激活来源；旧 `refocus` 误伤主动回到聊天已复现（6/6）。改为页面报 `focusAgeMs`、宿主等焦点上报后再打开，删除 `refocus`。`c1-focus` 3/3（100 次 0 迟到激活），去等待变异 FAIL。
+- T010：补丁 0008 `platform.recoveryView`；`recovery.tsx` 三种界面 + 宿主 `connection` 通知提示条；修复不可达恢复后模型不加载（重新加载面板）与原始错误外泄；中途发现并修复重载循环。`t010-recover` 5/5 ×2。
+- 检查：verify:brief --build PASS（unit 140/0）；上游 tsgo exit 0；0001–0008 重放一致；回归 c1-open-file 6/6、t014-connection 6/6、p1b-reconnect 4/5（search-scope-hint 既有 FAIL，HEAD 对照同样）。
+- NOT RUN：真实模型 E2E、其余 E2E 套件、其他 VS Code 版本。证据：docs/evidence/c1-focus-t010-recovery.md。

@@ -5,7 +5,7 @@
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { launch, command, chatFrames, frameSession, sleep, runShot } from "./vscode.mjs"
-import { messages, waitReply } from "./server.mjs"
+import { messages, waitReply, MODEL } from "./server.mjs"
 
 const run = createRun({ suite: "p1b-ime", required: ["ime-composition-enter"], scriptPath: fileURLToPath(import.meta.url) })
 const { app, page } = await launch({ profile: "p1b-ime", run })
@@ -18,7 +18,7 @@ try {
     for (const x of await chatFrames(page)) if (await x.$('[data-component="prompt-input"]').catch(() => null)) (f = x), (sid = await frameSession(x))
     if (!f) await sleep(200)
   }
-  await f.getByText("Big Pickle").first().waitFor({ timeout: 60000 })
+  await f.getByText(MODEL.label).first().waitFor({ timeout: 60000 })
   await sleep(2000)
   await f.evaluate(() => {
     window.__ocoIme = []
