@@ -97,6 +97,9 @@ try {
   summary.replySeconds = Math.round((Date.now() - r0) / 1000)
   await sleep(2000)
   summary.replyOnServer = assistantTexts().some((m) => m.text.includes("OCO-REMOTE-OK"))
+  await frame.getByText("Reply with exactly", { exact: false }).first().hover().catch(() => {})
+  await sleep(800)
+  summary.forkButtonsVisible = await frame.evaluate(() => document.querySelectorAll('[aria-label*="ork" i], [title*="ork" i], [data-slot*="fork"]').length).catch(() => null)
   await shot("chat-reply")
 
   // 3. click the path in the reply (Markdown inline path handling needs it in code; plain text is only checked if present as link)

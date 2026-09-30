@@ -7,7 +7,7 @@
 ## 1. 登记与收口（小，先做）
 
 - [TODO] fork 批次提交后，把 `t007-managed`、`t013-agents`、`t015-diagnostics` 加入 `tests/e2e/run.mjs` 的 `DEFAULT_SUITES`（合计 19 个），同步 `tests/unit/e2e-results.test.ts` 标题和 `docs/TEST-SCOPE.md`（计数、全量列表，以及 managed-server / agents / diagnostics 三行改动范围）。PROGRESS 追加 v0.1 批次条目。
-- [TODO] 用 fork 批次和本批合并后的同一提交重新构建 VSIX，部署 gcp-workstation 并用 `scripts/remote-look.mjs` 复看。
+- [DONE] fork 批次（未提交）+ 本批的 main 工作树已构建 `oco-0.0.1-1a6b2c7.vsix` 并部署 gcp-workstation，远端复验通过。fork 批次提交后如有改动，按 `scripts/package-vsix.sh` + `scripts/deploy-remote.sh` 重做。
 
 ## 2. 真实模型回归（缺环境时标 BLOCKED）
 

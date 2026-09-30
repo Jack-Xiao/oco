@@ -70,3 +70,21 @@ NOT RUN（远端）：断网恢复、本机粘贴图片、托管模式（远端�
 - 面板数保持 4（1 主 + 3 固定），不随会话数增长；每个面板 1 条宿主事件流，共 4 条；固定面板 generation 不变（隐藏期间不重载）。
 - 原地切换（命令到输入框可见）中位 251 ms（230–356 ms）；新开面板 1.2–1.9 s。
 - 首次与末次切换之间合计 RSS 增长 8.9%（上一轮 16.5%），阈值 25%。增长主要在渲染进程；长时间运行的趋势未测。
+
+## 集成回归（main，2026-10-01 01:1x–01:4x，mock）
+
+对象：main `dbf6ef9`/`1a6b2c7`（两者之间只改了测试）加上 fork 按钮批次的未提交改动（补丁 0011，由另一会话完成、待用户确认提交；本批未提交它）。`bun run verify:brief -- --build`：typecheck 0 errors，unit 161/0，build PASS。
+
+| 运行 | 结果 |
+| --- | --- |
+| 默认 16 个套件（含 c3-fork） | 14 个 exit 0；`p1b-sidebar`、`t010-recover` FAIL |
+| 失败原因 | 都是本批加入 Agents 视图的副作用，在测试侧：同一容器有两个视图后，VS Code 只在悬停/聚焦时显示 Sessions 标题按钮；侧栏标题变成容器名 “OpenCode”。测试已改为先悬停 Sessions 标题、并接受 “OpenCode” 标题（`1a6b2c7`） |
+| 复跑 | `p1b-sidebar`、`t010-recover`、`t007-managed`、`t013-agents`、`t015-diagnostics`、`perf` 全部 exit 0 |
+
+产品影响：Sessions 的新建/搜索按钮需要悬停标题才出现（VS Code 多视图容器的标准行为）；命令面板和空列表欢迎页的入口不变。
+
+## 最终部署（gcp-workstation）
+
+- 包：`oco-0.0.1-1a6b2c7.vsix`（main 工作树构建，含未提交的补丁 0011 界面改动），`extension.js` SHA-256 `4021332d…895d`，远端覆盖安装哈希一致。
+- `scripts/remote-chat-check.mjs` 复跑：连接 11 s；回复 3 s；用户消息上 fork 按钮可见（Revert 与 Copy 之间）；点击远端文件定位第 3 行；Escape 取消 → `MessageAbortedError`；测试会话已删除。截图 [remote-final-build.png](v01-remote/remote-final-build.png)。
+- 用户自己的 VS Code 窗口需执行一次 “Developer: Reload Window” 才会加载新扩展代码。
