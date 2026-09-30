@@ -4,7 +4,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-export const DEFAULT_SUITES = ["p1a-chat", "p1a-identity", "p1b-sidebar", "p1b-narrow", "p1b-theme-load", "p1b-ime", "p1b-reconnect", "p1b-pending-send"]; // t004/t005 are the historical P0 suites
+export const DEFAULT_SUITES = ["p1a-chat", "p1a-identity", "p1b-sidebar", "p1b-narrow", "p1b-theme-load", "p1b-ime", "p1b-reconnect", "p1b-pending-send", "p1b-switch-pending", "c1-open-file"]; // t004/t005 are the historical P0 suites
 export const EXCLUDED_FILES = new Set(["vscode.mjs", "server.mjs", "run.mjs", "perf.mjs", "smoke.mjs"]);
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));

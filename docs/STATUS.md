@@ -4,11 +4,11 @@
 
 ## 基线与并行工作
 
-- 本文件更新于 2026-09-30。产品代码 `6343f7b`，文档与 brief 工具 `b2f6514`，工作树干净；实时版本以 `bun run brief` 为准。
+- 本文件更新于 2026-09-30。已提交基线 `7fdc693`（产品代码 `6343f7b`）；C1 与切换连接补测为其上的未提交改动（worktree `review-planning-c-phase-a242fb`），提交后以提交号为准。实时版本以 `bun run brief` 为准。
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
-- 没有未提交的产品改动，也没有其他进行中的产品实施。
+- 进行中：C1 已实现并验证，待本地提交；C2 未开始。
 
-## P1b 稳定性收尾（`6343f7b`）
+## P1b 稳定性收尾（代码提交 `6343f7b`；测试运行于 dirty `e67129d`）
 
 | 项目 | 状态 | 证据 |
 | --- | --- | --- |
@@ -17,10 +17,22 @@
 | 模型加载可见提示 | 完成（加载超过 800 ms 的提示 + 待发横幅） | `p1b-pending-send` loading-hint |
 | 受控断流：重连后快照与增量一致 | 完成（硬断、增量、静默断流） | `p1b-reconnect` 5/5 |
 | 搜索只覆盖最近 200 个会话 | 侧栏与搜索框明确提示；分页/服务端搜索未做 | `p1b-reconnect` search-scope-hint |
-| 等待中切换连接 | 只做代码核查（旧面板请求在宿主被拒），无 E2E | — |
+| 等待中切换连接 | E2E 补测通过：旧待发请求未提交到任何端点，草稿保留；机制是宿主拒绝旧绑定的提交（待发意图本身仍会触发）。变异对照（去掉宿主绑定检查）FAIL | [`p1b-switch-pending`](evidence/p1b-switch-pending.md) 2/2 |
 | 会话消失/服务不可达的可恢复错误界面、未知类型兜底 | 未做 | — |
 
-在 `6343f7b` 的构建上：typecheck PASS；单元测试 100/100；默认 8 个 E2E 套件均有 exit 0 的运行。首轮 p1a-chat `stream-locked` 与 p1b-narrow `question-260` 因测试模型输出失败，各重跑一次通过。p1b-ime 的真实输入法用例 NOT RUN。明细见 [运行记录](evidence/p1b-stability-runs.md)。
+以下结果运行于 dirty `e67129d` 工作树（改动随后提交为 `6343f7b`），**未对干净的 `6343f7b` 全量复验**：typecheck PASS；单元测试 100/100；默认 8 个 E2E 套件均有 exit 0 的运行。首轮 p1a-chat `stream-locked` 与 p1b-narrow `question-260` 因测试模型输出失败，各重跑一次通过。p1b-ime 的真实输入法用例 NOT RUN。明细见 [运行记录](evidence/p1b-stability-runs.md)。
+
+## C1 编辑器联动（未提交，基于 `7fdc693`）
+
+| 项目 | 状态 | 证据 |
+| --- | --- | --- |
+| 工具部件文件名点击 → VS Code 打开并定位 | 完成：read（含上下文分组，按 offset 行）、edit/write 标题、edit/write/apply_patch 文件头。补丁 0005 | `c1-open-file` 3/3 |
+| 宿主路径校验 | 完成：须在会话目录内（含符号链接）、会话目录须映射本地工作区、只开普通文件、连接变化拒绝 | 单元 13 + E2E 拒绝 5/5 |
+| 选区/当前文件上下文进入请求 | 复验通过（P1a 功能，本批未改） | `p1a-identity` draft-after-attacks `serverReceived: true` |
+| Diff 摘要、Markdown 路径点击 | 未做 | — |
+| C2 可信 Diff | 未开始 | — |
+
+本批检查（最终产品代码）：typecheck PASS；unit 117/117；上游 tsgo 0 错误；补丁 0001–0005 在 `51ef4be` 重放一致。默认 10 个 E2E 套件均有 exit 0 的运行，但不是同一次全绿：首轮全量中 p1a-chat、p1b-theme-load、p1b-ime、p1b-pending-send、p1b-switch-pending、c1-open-file 为 exit 0；p1b-sidebar、p1b-reconnect 因 worktree 符号链接路径与服务 realpath 不一致而失败（测试夹具问题，已改为 realpath），重跑 exit 0；p1b-narrow 首轮 `question-260` 失败（已知测试模型波动），重跑 exit 0；p1a-identity 两次因模型服务 `unknown certificate verification error` 导致回复未完成（提示均送达、无串会话），第三次 exit 0。p1b-ime 的真实输入法用例 NOT RUN。明细见 [C1 证据](evidence/c1-editor.md)。
 
 ## 省 token 工作流
 

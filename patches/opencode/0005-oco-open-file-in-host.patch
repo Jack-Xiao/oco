@@ -1,0 +1,209 @@
+diff --git a/packages/app/src/context/platform.tsx b/packages/app/src/context/platform.tsx
+index 785c23a..92dc253 100644
+--- a/packages/app/src/context/platform.tsx
++++ b/packages/app/src/context/platform.tsx
+@@ -41,6 +41,11 @@ type PlatformBase = {
+   /** Open a local file URL in its default app (desktop only) */
+   openLocalFile?(url: string): void
+ 
++  /** oco (patches/opencode/0005): ask the embedding host to open a file of the bound session in its editor.
++   * `path` is as the tool reported it (relative to the session directory or absolute); `line` is 1-based.
++   * The host validates the path. Undefined everywhere except the oco VS Code webview. */
++  openFileInHost?(path: string, line?: number): void
++
+   /** Reveal a local path in the system file manager; false when the path does not exist (desktop only) */
+   revealPath?(path: string): Promise<boolean>
+ 
+diff --git a/packages/app/src/pages/directory-layout.tsx b/packages/app/src/pages/directory-layout.tsx
+index a0b3576..0e8f068 100644
+--- a/packages/app/src/pages/directory-layout.tsx
++++ b/packages/app/src/pages/directory-layout.tsx
+@@ -12,6 +12,7 @@ import { Schema } from "effect"
+ import type { ServerConnection } from "@/context/server"
+ import { sessionHref } from "@/utils/session-route"
+ import { useServerSync } from "@/context/server-sync"
++import { usePlatform } from "@/context/platform"
+ 
+ export function DirectoryDataProvider(
+   props: ParentProps<{
+@@ -24,6 +25,7 @@ export function DirectoryDataProvider(
+   const navigate = useNavigate()
+   const params = useParams()
+   const sync = useSync()
++  const platform = usePlatform()
+   const serverSync = useServerSync()
+   const directory = () => (typeof props.directory === "function" ? props.directory() : props.directory)
+   const slug = createMemo(() => base64Encode(directory()))
+@@ -66,6 +68,7 @@ export function DirectoryDataProvider(
+           sessionID={params.id}
+           onNavigateToSession={(sessionID: string) => navigate(href(sessionID))}
+           onSessionHref={href}
++          onOpenFile={platform.openFileInHost ? (path, line) => platform.openFileInHost!(path, line) : undefined}
+         >
+           <LocalProvider>{props.children}</LocalProvider>
+         </DataProvider>
+diff --git a/packages/session-ui/src/context/data.tsx b/packages/session-ui/src/context/data.tsx
+index 6bede42..77bab63 100644
+--- a/packages/session-ui/src/context/data.tsx
++++ b/packages/session-ui/src/context/data.tsx
+@@ -46,6 +46,9 @@ export type NavigateToSessionFn = (sessionID: string) => void
+ 
+ export type SessionHrefFn = (sessionID: string) => string
+ 
++/** oco (patches/opencode/0005): open a file of this session in the embedding host's editor. */
++export type OpenFileFn = (path: string, line?: number) => void
++
+ export const { use: useData, provider: DataProvider } = createSimpleContext({
+   name: "Data",
+   init: (props: {
+@@ -54,6 +57,7 @@ export const { use: useData, provider: DataProvider } = createSimpleContext({
+     sessionID?: string
+     onNavigateToSession?: NavigateToSessionFn
+     onSessionHref?: SessionHrefFn
++    onOpenFile?: OpenFileFn
+   }) => {
+     return {
+       get store() {
+@@ -67,6 +71,7 @@ export const { use: useData, provider: DataProvider } = createSimpleContext({
+       },
+       navigateToSession: props.onNavigateToSession,
+       sessionHref: props.onSessionHref,
++      openFile: props.onOpenFile,
+     }
+   },
+ })
+diff --git a/packages/session-ui/src/components/message-part.tsx b/packages/session-ui/src/components/message-part.tsx
+index d2a00b9..c99ee5a 100644
+--- a/packages/session-ui/src/components/message-part.tsx
++++ b/packages/session-ui/src/components/message-part.tsx
+@@ -1047,6 +1047,7 @@ export function ContextToolGroup(props: {
+   onOpenChange?: (open: boolean) => void
+   onSizeChange?: () => void
+ }) {
++  const data = useData()
+   const i18n = useI18n()
+   const [localOpen, setLocalOpen] = createSignal(false)
+   const open = () => props.open ?? localOpen()
+@@ -1128,7 +1129,23 @@ export function ContextToolGroup(props: {
+                               <TextShimmer text={trigger().title} active={running()} />
+                             </span>
+                             <Show when={trigger().subtitle}>
+-                              <span data-slot="basic-tool-tool-subtitle">{trigger().subtitle}</span>
++                              {(() => {
++                                const input = (partAccessor().state.input ?? {}) as Record<string, unknown>
++                                const file =
++                                  partAccessor().tool === "read" && typeof input.filePath === "string" ? input.filePath : undefined
++                                const line = typeof input.offset === "number" ? input.offset : undefined
++                                return (
++                                  <span
++                                    data-slot="basic-tool-tool-subtitle"
++                                    data-oco-open-file={data.openFile && file ? file : undefined}
++                                    classList={{ clickable: !!data.openFile && !!file }}
++                                    style={data.openFile && file ? { cursor: "pointer" } : undefined}
++                                    onClick={openInHost(data.openFile, file, line)}
++                                  >
++                                    {trigger().subtitle}
++                                  </span>
++                                )
++                              })()}
+                             </Show>
+                             <Show when={trigger().args?.length}>
+                               <For each={trigger().args}>
+@@ -1495,7 +1512,18 @@ export const ToolRegistry = {
+   render: getTool,
+ }
+ 
++/** oco (patches/opencode/0005): click handler that opens `path` in the embedding host, or undefined. */
++function openInHost(open: ((path: string, line?: number) => void) | undefined, path: string | undefined, line?: number) {
++  if (!open || !path) return undefined
++  return (e: MouseEvent) => {
++    e.stopPropagation()
++    e.preventDefault()
++    open(path, line)
++  }
++}
++
+ function ToolFileAccordion(props: { path: string; actions?: JSX.Element; children: JSX.Element }) {
++  const data = useData()
+   const value = createMemo(() => props.path || "tool-file")
+ 
+   return (
+@@ -1515,7 +1543,15 @@ function ToolFileAccordion(props: { path: string; actions?: JSX.Element; childre
+                   <Show when={props.path.includes("/")}>
+                     <span data-slot="apply-patch-directory">{`\u202A${getDirectory(props.path)}\u202C`}</span>
+                   </Show>
+-                  <span data-slot="apply-patch-filename">{getFilename(props.path)}</span>
++                  <span
++                    data-slot="apply-patch-filename"
++                    data-oco-open-file={data.openFile ? props.path : undefined}
++                    classList={{ clickable: !!data.openFile }}
++                    style={data.openFile ? { cursor: "pointer" } : undefined}
++                    onClick={openInHost(data.openFile, props.path)}
++                  >
++                    {getFilename(props.path)}
++                  </span>
+                 </div>
+               </div>
+               <div data-slot="apply-patch-trigger-actions">
+@@ -1797,6 +1833,11 @@ ToolRegistry.register({
+             subtitle: props.input.filePath ? getFilename(props.input.filePath) : "",
+             args,
+           }}
++          onSubtitleClick={
++            data.openFile && props.input.filePath
++              ? () => data.openFile!(props.input.filePath, typeof props.input.offset === "number" ? props.input.offset : undefined)
++              : undefined
++          }
+         />
+         <For each={loaded()}>
+           {(filepath) => (
+@@ -2155,6 +2196,7 @@ ToolRegistry.register({
+ ToolRegistry.register({
+   name: "edit",
+   render(props) {
++    const data = useData()
+     const i18n = useI18n()
+     const fileComponent = useFileComponent()
+     const diagnostics = createMemo(() => getDiagnostics(props.metadata.diagnostics, props.input.filePath))
+@@ -2214,7 +2256,15 @@ ToolRegistry.register({
+                     <TextShimmer text={i18n.t("ui.messagePart.title.edit")} active={pending()} />
+                   </span>
+                   <Show when={!pending()}>
+-                    <span data-slot="message-part-title-filename">{filename()}</span>
++                    <span
++                      data-slot="message-part-title-filename"
++                      data-oco-open-file={data.openFile ? props.input.filePath : undefined}
++                      classList={{ clickable: !!data.openFile && !!props.input.filePath }}
++                      style={data.openFile && props.input.filePath ? { cursor: "pointer" } : undefined}
++                      onClick={openInHost(data.openFile, props.input.filePath)}
++                    >
++                      {filename()}
++                    </span>
+                   </Show>
+                 </div>
+                 <Show when={!pending() && props.input.filePath?.includes("/")}>
+@@ -2261,6 +2311,7 @@ ToolRegistry.register({
+ ToolRegistry.register({
+   name: "write",
+   render(props) {
++    const data = useData()
+     const i18n = useI18n()
+     const fileComponent = useFileComponent()
+     const diagnostics = createMemo(() => getDiagnostics(props.metadata.diagnostics, props.input.filePath))
+@@ -2281,7 +2332,15 @@ ToolRegistry.register({
+                     <TextShimmer text={i18n.t("ui.messagePart.title.write")} active={pending()} />
+                   </span>
+                   <Show when={!pending()}>
+-                    <span data-slot="message-part-title-filename">{filename()}</span>
++                    <span
++                      data-slot="message-part-title-filename"
++                      data-oco-open-file={data.openFile ? props.input.filePath : undefined}
++                      classList={{ clickable: !!data.openFile && !!props.input.filePath }}
++                      style={data.openFile && props.input.filePath ? { cursor: "pointer" } : undefined}
++                      onClick={openInHost(data.openFile, props.input.filePath)}
++                    >
++                      {filename()}
++                    </span>
+                   </Show>
+                 </div>
+                 <Show when={!pending() && props.input.filePath?.includes("/")}>

@@ -4,7 +4,7 @@ import path from "node:path"
 const root = path.resolve(import.meta.dirname, "../..")
 const base = process.env.OCO_TEST_URL ?? "http://127.0.0.1:4517"
 const auth = "Basic " + Buffer.from("opencode:" + fs.readFileSync(path.join(root, ".oco-test/secret"), "utf8").trim()).toString("base64")
-const dir = path.join(root, ".oco-test/workspace")
+const dir = path.join(fs.realpathSync(path.join(root, ".oco-test")), "workspace")
 export async function api(method, p, body) {
   const r = await fetch(base + p, { method, headers: { authorization: auth, "content-type": "application/json", "x-opencode-directory": encodeURIComponent(dir) }, body: body ? JSON.stringify(body) : undefined })
   const t = await r.text()

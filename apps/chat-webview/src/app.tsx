@@ -63,6 +63,8 @@ const platform: Platform = {
   embedded: true, // patches/opencode/0002: no tabs/home/new-session/terminal entry points
   windowID: init.panelId,
   openExternal: (url) => ui("openExternal", { url }),
+  // patches/opencode/0005: file names in tool parts open in VS Code; the host validates the path.
+  openFileInHost: (path, line) => ui("openFile", { path, line: Number.isInteger(line) && line! >= 1 ? line : undefined }),
   restart: async () => location.reload(),
   notify: async (title, body) => ui("notify", { title, body }),
   fetch: bridgeFetch,
@@ -175,6 +177,7 @@ installSubmitStatus()
   storage: storageStats,
   theme: themeStats,
   submit: submitStats,
+  openFile: (path: string, line?: number) => platform.openFileInHost?.(path, line),
 }
 
 vscode.setState({ binding: bound })

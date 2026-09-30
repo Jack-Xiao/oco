@@ -5,6 +5,7 @@ import { BRIDGE_ORIGIN, type SessionBinding, type WebviewInit } from "@oco/contr
 import { BlobStore, createBridge } from "./bridge-host"
 import type { Connection } from "./connection"
 import type { KvStore } from "./host-store"
+import { decideOpenFile } from "./open-file-policy"
 
 export const VIEW_TYPE = "oco.chat"
 
@@ -22,7 +23,9 @@ export type Entry = {
   panelKey: string
   ready: boolean
   route?: string
-  stats: { blockedNavigations: number; openRequests: number; draftAcks: number; draftRejects: number; titles: number }
+  stats: { blockedNavigations: number; openRequests: number; draftAcks: number; draftRejects: number; titles: number; fileOpens: number; fileRejects: number }
+  /** Last refused openFile (reason only; for diagnostics and tests). */
+  lastFileReject?: string
 }
 
 /** One editor tab per session; identity = connectionId + directory + sessionId. */
@@ -115,7 +118,7 @@ export class PanelRegistry {
       panelKey,
       panel,
       ready: false,
-      stats: { blockedNavigations: 0, openRequests: 0, draftAcks: 0, draftRejects: 0, titles: 0 },
+      stats: { blockedNavigations: 0, openRequests: 0, draftAcks: 0, draftRejects: 0, titles: 0, fileOpens: 0, fileRejects: 0 },
     } as Entry
     entry.bridge = createBridge({
       webview: panel.webview,
@@ -165,6 +168,7 @@ export class PanelRegistry {
               entry.stats.openRequests++
               this.onOpenSession(entry, msg.sessionId)
             }
+            if (msg.action === "openFile" && msg.path) void this.openFile(entry, msg.path, msg.line, msg.column)
             return
         }
       },
@@ -260,6 +264,46 @@ export class PanelRegistry {
     this.flushDrafts(entry)
   }
 
+  /** A page asked to open a file. The host decides; see open-file-policy.ts. */
+  private async openFile(entry: Entry, p: string, line?: number, column?: number) {
+    const reject = (reason: string) => {
+      entry.stats.fileRejects++
+      entry.lastFileReject = reason
+      this.log.info(`openFile refused in ${entry.binding.sessionId}: ${reason}`)
+      void vscode.window.showWarningMessage(`oco: 无法打开文件（${reason}）`)
+    }
+    let current: string | undefined
+    try {
+      current = this.conn.endpoint().connectionId
+    } catch {
+      current = undefined
+    }
+    if (current !== entry.binding.connectionId) return reject("连接已变化，请重新打开会话")
+    const d = await decideOpenFile(
+      { path: p, line, column },
+      {
+        directory: entry.binding.directory,
+        workspaceRoots: (vscode.workspace.workspaceFolders ?? []).filter((f) => f.uri.scheme === "file").map((f) => f.uri.fsPath),
+        realpath: (x) => fs.promises.realpath(x).catch(() => null),
+        isFile: (x) => fs.promises.stat(x).then((st) => st.isFile(), () => false),
+        caseInsensitive: process.platform === "darwin" || process.platform === "win32",
+      },
+    )
+    if (!d.ok) return reject(d.reason)
+    const pos = d.line ? new vscode.Position(d.line - 1, (d.column ?? 1) - 1) : undefined
+    try {
+      await vscode.window.showTextDocument(vscode.Uri.file(d.fsPath), {
+        preview: true,
+        preserveFocus: false,
+        viewColumn: vscode.ViewColumn.Beside,
+        selection: pos ? new vscode.Range(pos, pos) : undefined,
+      })
+      entry.stats.fileOpens++
+    } catch (e) {
+      reject(e instanceof Error ? e.message.slice(0, 200) : "打开失败")
+    }
+  }
+
   debugState() {
     return this.list().map((e) => ({
       sessionId: e.binding.sessionId,
@@ -274,6 +318,7 @@ export class PanelRegistry {
       core: e.bridge.core.stats,
       policy: e.bridge.policy.stats,
       panel: e.stats,
+      lastFileReject: e.lastFileReject,
       pendingDrafts: this.pending(e).length,
     }))
   }

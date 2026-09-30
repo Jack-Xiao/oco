@@ -31,7 +31,7 @@ export type WebviewInit = {
 type Envelope<T extends string, P> = { v: typeof PROTOCOL_VERSION; gen: number; type: T } & P
 export type Omit2<T> = T extends unknown ? Omit<T, "v" | "gen"> : never
 
-export type UiAction = "openExternal" | "notify" | "title" | "openSession" | "blockedNavigation"
+export type UiAction = "openExternal" | "notify" | "title" | "openSession" | "blockedNavigation" | "openFile"
 
 // webview -> host
 export type Hello = Envelope<"hello", { docId: string }>
@@ -45,7 +45,12 @@ export type StoreOp = Envelope<
   { id: string; op: "get" | "set" | "remove" | "clear" | "keys" | "snapshot"; name: string; key?: string; value?: string }
 >
 export type BlobOp = Envelope<"blob.op", { id: string; op: "put" | "get"; blobId?: string; data?: ArrayBuffer }>
-export type Ui = Envelope<"ui", { action: UiAction; url?: string; title?: string; body?: string; sessionId?: string; route?: string }>
+/** `openFile`: `path` is relative to the bound session directory (or absolute inside it); the host
+ * validates it and never opens anything outside that directory. `line`/`column` are 1-based. */
+export type Ui = Envelope<
+  "ui",
+  { action: UiAction; url?: string; title?: string; body?: string; sessionId?: string; route?: string; path?: string; line?: number; column?: number }
+>
 export type DraftAck = Envelope<"draft.ack", { id: string; ok: boolean; reason?: string }>
 export type Ready = Envelope<"ready", { route: string }>
 export type WebviewToHost = Hello | FetchRequest | FetchAbort | StoreOp | BlobOp | Ui | DraftAck | Ready
@@ -74,7 +79,8 @@ const isHeaders = (v: unknown): v is [string, string][] =>
 
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"])
 const STORE_OPS = new Set(["get", "set", "remove", "clear", "keys", "snapshot"])
-const UI_ACTIONS = new Set<UiAction>(["openExternal", "notify", "title", "openSession", "blockedNavigation"])
+const UI_ACTIONS = new Set<UiAction>(["openExternal", "notify", "title", "openSession", "blockedNavigation", "openFile"])
+const isPos = (v: unknown) => v === undefined || (typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 10_000_000)
 
 /** Runtime validation of untrusted webview messages. Returns null when invalid. */
 export function parseWebviewMessage(raw: unknown): WebviewToHost | null {
@@ -107,6 +113,9 @@ export function parseWebviewMessage(raw: unknown): WebviewToHost | null {
       if (!isStr(raw.action) || !UI_ACTIONS.has(raw.action as UiAction)) return null
       for (const k of ["url", "title", "body", "sessionId", "route"] as const)
         if (raw[k] !== undefined && (!isStr(raw[k]) || (raw[k] as string).length > 2000)) return null
+      if (raw.path !== undefined && (!isStr(raw.path) || raw.path.length > 4096)) return null
+      if (!isPos(raw.line) || !isPos(raw.column)) return null
+      if (raw.action === "openFile" && !isStr(raw.path)) return null
       return raw as unknown as Ui
     case "draft.ack":
       return isId(raw.id) && typeof raw.ok === "boolean" ? (raw as unknown as DraftAck) : null

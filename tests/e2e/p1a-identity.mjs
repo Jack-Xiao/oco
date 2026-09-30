@@ -34,7 +34,7 @@ page.on("console", (m) => {
 })
 const png = fs.readFileSync(path.join(root, "tests/fixtures/oco-test.png"))
 const state = () => hostState(page, stateFile)
-const DIR = path.join(root, ".oco-test/workspace")
+const DIR = path.join(fs.realpathSync(path.join(root, ".oco-test")), "workspace")
 
 /** Visible chat frame for a session (by binding), waiting until its composer or a dock is present. */
 async function frameFor(sid, timeout = 60000) {

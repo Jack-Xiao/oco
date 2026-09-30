@@ -187,7 +187,10 @@ export function blobGet(blobId: string) {
   })
 }
 
-export const ui = (action: UiAction, extra: { url?: string; title?: string; body?: string; sessionId?: string; route?: string } = {}) =>
+export const ui = (
+  action: UiAction,
+  extra: { url?: string; title?: string; body?: string; sessionId?: string; route?: string; path?: string; line?: number; column?: number } = {},
+) =>
   post({ type: "ui", action, ...extra })
 
 export const ready = (route: string) => post({ type: "ready", route })

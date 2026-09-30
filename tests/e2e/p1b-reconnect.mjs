@@ -21,8 +21,8 @@ const DIRECT = process.env.OCO_TEST_URL ?? "http://127.0.0.1:4517"
 const secret = fs.readFileSync(path.join(root, ".oco-test/secret"), "utf8").trim()
 const health = await api("GET", "/global/health").catch(() => null)
 run.setEnv({ serverVersion: health?.version ?? null })
-const dir = path.join(root, ".oco-test/workspace")
-const manyDir = path.join(root, ".oco-test/workspace-many")
+const dir = path.join(fs.realpathSync(path.join(root, ".oco-test")), "workspace")
+const manyDir = path.join(fs.realpathSync(path.join(root, ".oco-test")), "workspace-many")
 const rand = Math.random().toString(36).slice(2, 7)
 const STALL_MS = 4000
 // Read by the extension host at launch (dev builds only): shortens the 35 s heartbeat watchdog.

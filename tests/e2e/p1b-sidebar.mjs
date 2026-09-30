@@ -27,7 +27,7 @@ const REQUIRED = [
 const run = createRun({ suite: "p1b-sidebar", required: REQUIRED, scriptPath: fileURLToPath(import.meta.url) })
 const health = await api("GET", "/global/health").catch(() => null)
 run.setEnv({ serverVersion: health?.version ?? null })
-const dir = path.join(root, ".oco-test/workspace")
+const dir = path.join(fs.realpathSync(path.join(root, ".oco-test")), "workspace")
 const rand = Math.random().toString(36).slice(2, 7)
 
 // Leftover pending requests from earlier model runs would make the badge/status nondeterministic.
