@@ -31,7 +31,7 @@ export type WebviewInit = {
 type Envelope<T extends string, P> = { v: typeof PROTOCOL_VERSION; gen: number; type: T } & P
 export type Omit2<T> = T extends unknown ? Omit<T, "v" | "gen"> : never
 
-export type UiAction = "openExternal" | "notify" | "title" | "openSession" | "blockedNavigation" | "openFile"
+export type UiAction = "openExternal" | "notify" | "title" | "openSession" | "blockedNavigation" | "openFile" | "reload"
 
 // webview -> host
 export type Hello = Envelope<"hello", { docId: string }>
@@ -81,7 +81,7 @@ const isHeaders = (v: unknown): v is [string, string][] =>
 
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"])
 const STORE_OPS = new Set(["get", "set", "remove", "clear", "keys", "snapshot"])
-const UI_ACTIONS = new Set<UiAction>(["openExternal", "notify", "title", "openSession", "blockedNavigation", "openFile"])
+const UI_ACTIONS = new Set<UiAction>(["openExternal", "notify", "title", "openSession", "blockedNavigation", "openFile", "reload"])
 const isPos = (v: unknown) => v === undefined || (typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 10_000_000)
 
 /** Runtime validation of untrusted webview messages. Returns null when invalid. */

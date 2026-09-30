@@ -47,13 +47,23 @@ async function newPanel(page) {
   return f
 }
 
-/** Active editor tab label and cursor position from the workbench DOM. */
+/**
+ * Active editor tab label and cursor position from the workbench DOM. `groups` is diagnostic: every editor group
+ * with its active flag and active tab, and which group holds the focused element, so a failure shows whether the
+ * product opened the file in another group or the DOM read was stale. The verdict never clicks or refocuses anything.
+ */
 const editorState = (page) =>
   page.evaluate(() => {
+    const groups = [...document.querySelectorAll(".editor-group-container")].map((g) => ({
+      active: g.classList.contains("active"),
+      hasFocus: g.contains(document.activeElement),
+      activeTab: g.querySelector(".tab.active .label-name")?.textContent ?? null,
+      tabs: [...g.querySelectorAll(".tab .label-name")].map((e) => e.textContent),
+    }))
     const tab = document.querySelector(".editor-group-container.active .tab.active .label-name")?.textContent ?? null
     const pos = document.querySelector('[id="status.editor.selection"]')?.textContent ?? null
     const tabs = [...document.querySelectorAll(".tab .label-name")].map((e) => e.textContent)
-    return { tab, pos, tabs }
+    return { tab, pos, tabs, groups }
   })
 
 const lineOf = (pos) => Number(/Ln (\d+)/.exec(pos ?? "")?.[1] ?? NaN)
@@ -209,6 +219,7 @@ try {
       editor: st ?? (await editorState(page)),
       fileOpens: ps?.panel.fileOpens,
       lastReject: ps?.lastFileReject,
+      focusTrace: ps?.focusTrace,
     })
   } catch (e) {
     run.record("markdown-path", "FAIL", { error: String(e?.message ?? e).slice(0, 400) })
@@ -244,8 +255,12 @@ try {
     const afterChevron = await panelStats(p.sid)
     const chevronOpened = afterChevron.panel.fileOpens - before.panel.fileOpens
     if (found) await row.click()
+    // Diagnostic timeline (read-only): which group is active and the status-bar cursor, sampled after the click.
+    const timeline = []
+    const t0 = Date.now()
     const st = await waitFor(async () => {
       const s = await editorState(page)
+      timeline.push({ ms: Date.now() - t0, active: s.groups.findIndex((g) => g.active), tab: s.tab, pos: s.pos })
       return s.tab && NOTE.startsWith(s.tab) ? s : null
     }, 10000, 200)
     await runShot(page, run, "diff-summary")
@@ -263,6 +278,8 @@ try {
       editor: st ?? (await editorState(page)),
       fileOpens: ps?.panel.fileOpens,
       lastReject: ps?.lastFileReject,
+      focusTrace: ps?.focusTrace,
+      timeline: timeline.slice(0, 6),
     })
   } catch (e) {
     run.record("diff-summary", "FAIL", { error: String(e?.message ?? e).slice(0, 400) })

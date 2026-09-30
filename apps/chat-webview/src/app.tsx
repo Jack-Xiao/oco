@@ -65,7 +65,9 @@ const platform: Platform = {
   openExternal: (url) => ui("openExternal", { url }),
   // patches/opencode/0005: file names in tool parts open in VS Code; the host validates the path.
   openFileInHost: (path, line) => ui("openFile", { path, line: Number.isInteger(line) && line! >= 1 ? line : undefined }),
-  restart: async () => location.reload(),
+  // A plain location.reload() leaves a VS Code webview blank (its inner frame has no URL to reload), so the host
+  // resets the panel HTML instead (T010: the error page's Restart must actually recover the chat).
+  restart: async () => ui("reload"),
   notify: async (title, body) => ui("notify", { title, body }),
   fetch: bridgeFetch,
   storage: (name = "default.dat") => {

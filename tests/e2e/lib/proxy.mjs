@@ -14,6 +14,9 @@ export async function startProxy({ target = "http://127.0.0.1:4517", keepaliveMs
   const streams = new Set() // live /event streams
   const stats = { eventConnections: 0, snapshotRequests: 0, requests: 0, refusedConnections: 0, refusedRequests: 0, cuts: 0, stalledClosedByClient: 0 }
   let refusing = false
+  // Optional fixtures: intercept(fn) with fn(method, url) -> {status?, json} answers a request locally instead of
+  // forwarding it. None registered by default, so existing suites see a transparent proxy.
+  const intercepts = []
   let stallNew = false
   const waiters = []
 
@@ -25,6 +28,16 @@ export async function startProxy({ target = "http://127.0.0.1:4517", keepaliveMs
     }
     stats.requests++
     const url = new URL(req.url, "http://proxy")
+    for (const fn of intercepts) {
+      const hit = fn(req.method, url)
+      if (!hit) continue
+      stats.intercepted = (stats.intercepted ?? 0) + 1
+      const body = JSON.stringify(hit.json)
+      res.writeHead(hit.status ?? 200, { "content-type": "application/json", "content-length": Buffer.byteLength(body) })
+      res.end(body)
+      req.resume()
+      return
+    }
     const isEvent = req.method === "GET" && url.pathname === "/event"
     // A session-list snapshot is exactly GET /session?...&roots=true (the sidebar feed's first request).
     if (req.method === "GET" && url.pathname === "/session" && url.searchParams.get("roots") === "true") stats.snapshotRequests++
@@ -92,6 +105,11 @@ export async function startProxy({ target = "http://127.0.0.1:4517", keepaliveMs
     url: `http://127.0.0.1:${port}`,
     port,
     stats,
+    /** Answer matching requests locally (test fixture). Returns a function that removes the interceptor. */
+    intercept(fn) {
+      intercepts.push(fn)
+      return () => void intercepts.splice(intercepts.indexOf(fn), 1)
+    },
     /** Destroy every in-flight /event stream (the client sees the connection drop). */
     cutStreams() {
       stats.cuts += streams.size

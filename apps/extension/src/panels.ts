@@ -1,6 +1,7 @@
 import * as vscode from "vscode"
 import * as crypto from "node:crypto"
 import * as fs from "node:fs"
+import * as nodePath from "node:path"
 import { BRIDGE_ORIGIN, type SessionBinding, type WebviewInit } from "@oco/contracts"
 import { BlobStore, createBridge } from "./bridge-host"
 import type { Connection } from "./connection"
@@ -24,9 +25,13 @@ export type Entry = {
   panelKey: string
   ready: boolean
   route?: string
-  stats: { blockedNavigations: number; openRequests: number; draftAcks: number; draftRejects: number; titles: number; fileOpens: number; fileRejects: number }
+  stats: { blockedNavigations: number; openRequests: number; draftAcks: number; draftRejects: number; titles: number; fileOpens: number; fileRejects: number; refocuses: number }
   /** Last refused openFile (reason only; for diagnostics and tests). */
   lastFileReject?: string
+  /** Diagnostics: ms-stamped focus events around the last file open (panel active flips, active editor). */
+  focusTrace?: string[]
+  /** One-shot: re-reveal the opened file if the chat panel re-activates right after an open. */
+  refocus?: { until: number; run: () => void }
 }
 
 /** One editor tab per session; identity = connectionId + directory + sessionId. */
@@ -119,7 +124,7 @@ export class PanelRegistry {
       panelKey,
       panel,
       ready: false,
-      stats: { blockedNavigations: 0, openRequests: 0, draftAcks: 0, draftRejects: 0, titles: 0, fileOpens: 0, fileRejects: 0 },
+      stats: { blockedNavigations: 0, openRequests: 0, draftAcks: 0, draftRejects: 0, titles: 0, fileOpens: 0, fileRejects: 0, refocuses: 0 },
     } as Entry
     entry.bridge = createBridge({
       webview: panel.webview,
@@ -169,6 +174,13 @@ export class PanelRegistry {
               entry.stats.openRequests++
               this.onOpenSession(entry, msg.sessionId)
             }
+            if (msg.action === "reload") {
+              // Same binding, new document: the bridge starts a new generation when the page says ready again.
+              entry.ready = false
+              entry.bridge.core.retire()
+              panel.webview.html = ""
+              panel.webview.html = this.html(panel.webview, { panelId, binding, serverUrl: BRIDGE_ORIGIN, locale: vscode.env.language, colorScheme: colorScheme() })
+            }
             if (msg.action === "openFile" && msg.path) void this.openFile(entry, msg.path, msg.line, msg.column)
             return
         }
@@ -177,6 +189,15 @@ export class PanelRegistry {
     this.entries.set(key, entry)
     panel.webview.html = this.html(panel.webview, { panelId, binding, serverUrl: BRIDGE_ORIGIN, locale: vscode.env.language, colorScheme: colorScheme() })
     panel.onDidChangeViewState((e) => {
+      if (entry.focusTrace) entry.focusTrace.push(`${Date.now() % 100000} panel.active=${e.webviewPanel.active}`)
+      if (e.webviewPanel.active && entry.refocus) {
+        const r = entry.refocus
+        entry.refocus = undefined
+        if (Date.now() < r.until) {
+          entry.stats.refocuses++
+          r.run()
+        }
+      }
       if (e.webviewPanel.active) this.lastActive = key
       // retainContextWhenHidden=false: a hidden webview's document is destroyed. Retire its generation
       // so its streams close now and nothing it sends late is accepted.
@@ -296,14 +317,23 @@ export class PanelRegistry {
     )
     if (!d.ok) return reject(d.reason)
     const pos = d.line ? new vscode.Position(d.line - 1, (d.column ?? 1) - 1) : undefined
+    const trace = (entry.focusTrace = [`${Date.now() % 100000} open-start`])
     try {
-      await vscode.window.showTextDocument(vscode.Uri.file(d.fsPath), {
+      const opts: vscode.TextDocumentShowOptions = {
         preview: true,
         preserveFocus: false,
         viewColumn: vscode.ViewColumn.Beside,
         selection: pos ? new vscode.Range(pos, pos) : undefined,
-      })
+      }
+      const uri = vscode.Uri.file(d.fsPath)
+      const editor = await vscode.window.showTextDocument(uri, opts)
       entry.stats.fileOpens++
+      // The click that requested the open can still deliver its own focus event from the webview right
+      // after this returns, re-activating the chat group over the file. Observed ~16 ms later (trace below).
+      // Re-reveal once, in the column the file landed in, if that happens within a short window.
+      entry.refocus = { until: Date.now() + 1000, run: () => void vscode.window.showTextDocument(uri, { ...opts, viewColumn: editor.viewColumn }) }
+      trace.push(`${Date.now() % 100000} open-done panel.active=${entry.panel.active} editor=${nodePath.basename(vscode.window.activeTextEditor?.document.fileName ?? "-")}`)
+      setTimeout(() => trace.push(`${Date.now() % 100000} +500ms panel.active=${entry.panel.active} editor=${nodePath.basename(vscode.window.activeTextEditor?.document.fileName ?? "-")}`), 500)
     } catch (e) {
       reject(e instanceof Error ? e.message.slice(0, 200) : "打开失败")
     }
@@ -324,6 +354,7 @@ export class PanelRegistry {
       policy: e.bridge.policy.stats,
       panel: e.stats,
       lastFileReject: e.lastFileReject,
+      focusTrace: e.focusTrace,
       pendingDrafts: this.pending(e).length,
     }))
   }
