@@ -252,8 +252,8 @@ try {
     })
   }
 
-  // 8. Switch/restore in one group: B opens over A (A's document is destroyed); clicking A's row
-  //    brings A back with its unsent draft, B keeps its own; no duplicate panels.
+  // 8. Switch/restore in the main panel: B replaces A in place (ADR-007); clicking A's row brings A back
+  //    with its unsent draft, B keeps its own; no duplicate panels.
   let B
   {
     const fa = await frameFor(A)
@@ -301,7 +301,12 @@ try {
 
   // 9. Two visible groups: clicking a row focuses the group that already shows it (no new panel).
   {
-    // B is active: move it to a new right group -> A shows in group 1, B in group 2.
+    // The main panel shows B. Switch it back to A, open B in a new (pinned) panel and move that panel to a
+    // new right group -> A shows in group 1 (main), B in group 2 (pinned). ADR-007.
+    await row(newTitle).click()
+    await until(() => frameFor(A))
+    await command(page, "oco: Open in New Panel", { input: B })
+    await until(() => frameFor(B))
     await command(page, "View: Move Editor into Right Group")
     await sleep(2500)
     const before = await state()

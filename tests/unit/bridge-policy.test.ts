@@ -303,3 +303,16 @@ describe("BridgePolicy.forwardHeaders", () => {
     expect(headers.get("x-oco-auth")).toBe("yes")
   })
 })
+
+describe("retarget (ADR-007: main panel switches session in place)", () => {
+  test("writes follow the new session; the previous session and its children are dropped", async () => {
+    const { policy } = harness({ sessionParent: async (id) => (id === "ses_A_child" ? { exists: true, parentID: "ses_A", directory: "/w" } : { exists: false }) })
+    expect((await policy.decide("POST", "/session/ses_A_child/abort", search())).ok).toBe(true)
+    policy.retarget("ses_B")
+    expect((await policy.decide("POST", "/session/ses_B/prompt_async", search())).ok).toBe(true)
+    expect((await policy.decide("POST", "/session/ses_A/prompt_async", search())).ok).toBe(false)
+    expect((await policy.decide("POST", "/session/ses_A_child/abort", search())).ok).toBe(false)
+    // The directory binding is unchanged: another directory stays refused.
+    expect((await policy.decide("GET", "/event", search("directory=/other"))).ok).toBe(false)
+  })
+})

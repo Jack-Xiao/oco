@@ -48,6 +48,13 @@ export class BridgePolicy {
     this.allowed.add(binding.sessionId)
   }
 
+  /** The panel now shows another session of the same directory (ADR-007): only it (and its verified
+   *  children) may be acted on from now on; the previous session's grants are dropped. */
+  retarget(sessionId: string) {
+    this.allowed.clear()
+    this.allowed.add(sessionId)
+  }
+
   private reject(status: number, reason: string): Decision {
     this.stats.rejected++
     return { ok: false, status, reason }

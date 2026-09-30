@@ -68,7 +68,9 @@ export function createBridge(opts: {
   /** Development/test only (never set in production): delay responses whose path matches. */
   devSlow?: { pattern: RegExp; ms: number }
 }) {
-  // Title tap: parse session.updated events for the bound session out of proxied SSE streams.
+  // The session this panel currently shows (a main panel switches sessions in place, ADR-007).
+  let sessionId = opts.binding.sessionId
+  // Title tap: parse session.updated events for the current session out of proxied SSE streams.
   const buffers = new Map<string, string>()
   const decoder = new TextDecoder()
   const onSseChunk = (key: string, chunk: Uint8Array) => {
@@ -78,7 +80,7 @@ export function createBridge(opts: {
     while ((i = buf.indexOf("\n\n")) >= 0) {
       const raw = buf.slice(0, i)
       buf = buf.slice(i + 2)
-      if (!raw.includes("session.updated") || !raw.includes(opts.binding.sessionId)) continue
+      if (!raw.includes("session.updated") || !raw.includes(sessionId)) continue
       try {
         const data = raw
           .split("\n")
@@ -88,7 +90,7 @@ export function createBridge(opts: {
         const ev = JSON.parse(data)
         const payload = ev.payload ?? ev
         const info = payload?.properties?.info
-        if (payload?.type === "session.updated" && info?.id === opts.binding.sessionId && typeof info.title === "string") opts.onSessionTitle(info.title)
+        if (payload?.type === "session.updated" && info?.id === sessionId && typeof info.title === "string") opts.onSessionTitle(info.title)
       } catch {}
     }
     buffers.set(key, buf.length > 1_000_000 ? "" : buf)
@@ -133,6 +135,11 @@ export function createBridge(opts: {
   return {
     core,
     policy,
+    /** Same connection and directory, another session: requests and titles follow it. */
+    retarget(id: string) {
+      sessionId = id
+      policy.retarget(id)
+    },
     dispose() {
       sub.dispose()
       core.retire() // closes this panel's streams; never stops the server or the session's run

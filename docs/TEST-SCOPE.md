@@ -10,7 +10,7 @@
 | 构建 | `bun run verify:brief -- --build` | 另加约 12 秒 | 改到 webview、扩展打包、上游补丁，或准备跑 E2E 前 |
 | 定向 E2E（mock） | 服务用 `OCO_E2E_MODEL=mock bash scripts/test-server.sh`，再 `node tests/e2e/run.mjs <套件…>` | 单套件 10–130 秒 | 改到下表对应范围 |
 | 定向 E2E（真实模型） | 服务不带该变量启动，同一命令 | 比 mock 慢，受模型与网络影响 | 发送、取消、流式、权限/问答链路的改动收尾 |
-| 全量（真实模型） | `node tests/e2e/run.mjs`（默认 14 个套件） | 真实模型本轮实测合计见 STATUS | 阶段交付、公共等待逻辑、桥接协议、上游升级 |
+| 全量（真实模型） | `node tests/e2e/run.mjs`（默认 15 个套件） | 真实模型本轮实测合计见 STATUS | 阶段交付、公共等待逻辑、桥接协议、上游升级 |
 
 mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为特殊运行，不算验收。mock 证明不了真实流式输出、取消时序和模型协议兼容。
 
@@ -27,7 +27,7 @@ mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为�
 | `session-feed.ts`、`session-store.ts` | session-feed、session-store | p1b-sidebar、p1b-reconnect | mock |
 | `sessions-view.ts` | session-store | p1b-sidebar、p1b-reconnect、t014-connection | mock |
 | `connection.ts`、`endpoint.ts`、`apps/extension/package.json` 设置项 | endpoint、settings-contribution | t014-connection、p1b-switch-pending、p1b-reconnect | mock |
-| `panels.ts`、`host-store.ts`（面板、草稿、恢复） | host-store | p1a-identity、t010-recover、p1b-pending-send | mock |
+| `panels.ts`、`host-store.ts`（面板、草稿、恢复、主面板切换） | host-store | p1a-identity、p1b-main-panel、p1b-sidebar、t010-recover、p1b-pending-send | mock |
 | `extension.ts`（命令注册、接线） | 全部单元 | p1a-identity、p1b-sidebar、t014-connection | mock |
 | 补丁 0001–0002（草稿、单会话嵌入） | — | p1a-identity、p1a-chat | mock |
 | 补丁 0003（窄 dock） | — | p1b-narrow | mock |
@@ -42,7 +42,7 @@ mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为�
 
 ## 全量的定义
 
-`tests/e2e/run.mjs` 的 `DEFAULT_SUITES`，共 14 个：p1a-chat、p1a-identity、p1b-sidebar、p1b-narrow、p1b-theme-load、p1b-ime、p1b-reconnect、p1b-pending-send、p1b-switch-pending、c1-open-file、c1-focus、c2-diff-unavailable、t010-recover、t014-connection。
+`tests/e2e/run.mjs` 的 `DEFAULT_SUITES`，共 15 个：p1a-chat、p1a-identity、p1b-sidebar、p1b-narrow、p1b-theme-load、p1b-ime、p1b-reconnect、p1b-pending-send、p1b-switch-pending、c1-open-file、c1-focus、c2-diff-unavailable、t010-recover、t014-connection、p1b-main-panel。
 
 不在默认列表中：t004、t005（P0 历史套件）、perf、smoke。p1b-ime 的 `ime-real-macos` 需要真人使用系统输入法，自动运行时恒为 NOT RUN。
 

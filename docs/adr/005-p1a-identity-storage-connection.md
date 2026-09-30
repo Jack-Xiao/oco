@@ -11,7 +11,7 @@
 
 ## 2. 单会话绑定（P1a-01）
 
-- 路由守卫（`apps/chat-webview/src/app.tsx`）：MemoryRouter 的 history 只接受绑定会话的路由。其他会话 → 向宿主发 `openSession`，由宿主校验（同连接、同项目）后在自己的面板打开；其他路由 → 拒绝并计数。因 solid-router 在 `history.set` 之外也会写入自身位置信号，拒绝后会把绑定路由推回监听器。
+- 路由守卫（`apps/chat-webview/src/app.tsx`）：MemoryRouter 的 history 只接受绑定会话的路由（2026-09-30 起为宿主最后通过 `navigate` 下发的会话，见 ADR-007）。其他会话 → 向宿主发 `openSession`，由宿主校验（同连接、同项目）后打开（ADR-007 起：主面板原地切换，或聚焦已显示它的面板）；其他路由 → 拒绝并计数。因 solid-router 在 `history.set` 之外也会写入自身位置信号，拒绝后会把绑定路由推回监听器。
 - 上游补丁 `0002-oco-embedded-single-session.patch`：`Platform.embedded` 为真时不渲染也不注册内部标签条、home、新建标签/会话命令与终端命令，终端状态恒为关闭。对应快捷键不再被官方应用占用，交还 VS Code。
 - 草稿插入：宿主消息带目标 sessionId；页面与（补丁 0001 的）composer 各自再核对一次，结果以 `draft.ack` 回报；待插入队列持久化在 workspaceState，确认后删除，拒绝时提示用户、从不改投其他会话。
 - 标题：官方应用不设置 `document.title`，宿主在面板就绪时读取会话标题，并从代理的事件流中解析绑定会话的 `session.updated`。

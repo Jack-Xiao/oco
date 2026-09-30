@@ -1,6 +1,6 @@
 import * as vscode from "vscode"
 import * as fs from "node:fs"
-import type { OpenSessionRequest, SessionBinding } from "@oco/contracts"
+import type { OpenSessionRequest, PanelRole, SessionBinding } from "@oco/contracts"
 import { Connection, type SessionInfo } from "./connection"
 import { SessionStore } from "./session-store"
 import { SessionFeed } from "./session-feed"
@@ -64,22 +64,24 @@ export function activate(context: vscode.ExtensionContext) {
     return { connectionId: conn.id, directory: s.directory, sessionId: s.id }
   }
 
-  /** open-session contract: same connection and workspace only; reveals the group already showing it. */
-  const openSession = (req: OpenSessionRequest) => {
+  /** open-session contract: same connection and workspace only; reveals the panel already showing it,
+   *  otherwise switches the main panel (or, with newPanel, opens a pinned one). ADR-007. */
+  const openSession = (req: OpenSessionRequest, newPanel = false) => {
     if (req.connectionId !== conn.id) throw new Error("连接已变化")
     if (!conn.ownsDirectory(req.directory)) throw new Error("会话不属于当前工作区")
-    return panels.open({ connectionId: req.connectionId, directory: req.directory, sessionId: req.sessionId }, req.title, vscode.ViewColumn.Active, req.focus ?? true)
+    return panels.open({ connectionId: req.connectionId, directory: req.directory, sessionId: req.sessionId }, req.title, vscode.ViewColumn.Active, req.focus ?? true, newPanel)
   }
 
-  const openById = async (sessionId: string) => {
+  const openById = async (sessionId: string, newPanel = false) => {
     const known = store.list().find((i) => i.id === sessionId)
-    if (known && feed.state.state === "connected") return openSession({ connectionId: conn.id, directory: known.directory, sessionId, title: known.title })
+    if (known && feed.state.state === "connected") return openSession({ connectionId: conn.id, directory: known.directory, sessionId, title: known.title }, newPanel)
     const s = await conn.request<SessionInfo>("GET", `/session/${encodeURIComponent(sessionId)}`)
-    return openSession({ connectionId: conn.id, directory: s.directory, sessionId: s.id, title: s.title || s.id })
+    return openSession({ connectionId: conn.id, directory: s.directory, sessionId: s.id, title: s.title || s.id }, newPanel)
   }
 
   // A page asked to show another session (internal tab, child session link, shortcut...): the host
-  // decides, and only for a session of the same connection and project. It opens its own panel.
+  // decides, and only for a session of the same connection and project. The main panel switches to it
+  // (a pinned panel's link also goes to the main panel); a panel already showing it is focused.
   panels.onOpenSession = (from: Entry, sessionId: string) => {
     void (async () => {
       try {
@@ -111,6 +113,16 @@ export function activate(context: vscode.ExtensionContext) {
         if (typeof sessionId === "string") return void (await openById(sessionId))
         const s = await pickSession("选择要打开的 OpenCode 会话")
         if (s) panels.open(bindingFor(s), s.title || s.id)
+      } catch (e) {
+        fail("无法打开会话", e)
+      }
+    }),
+    vscode.commands.registerCommand("oco.openSessionInNewPanel", async (arg?: string | SessionItem) => {
+      try {
+        const sessionId = arg instanceof SessionItem ? arg.session.id : arg
+        if (typeof sessionId === "string") return void (await openById(sessionId, true))
+        const s = await pickSession("在新面板打开哪个 OpenCode 会话？")
+        if (s) panels.open(bindingFor(s), s.title || s.id, vscode.ViewColumn.Active, true, true)
       } catch (e) {
         fail("无法打开会话", e)
       }
@@ -196,7 +208,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.onDidChangeWorkspaceFolders(() => feed.restart()),
     vscode.workspace.onDidGrantWorkspaceTrust(() => feed.restart()),
     vscode.window.registerWebviewPanelSerializer(VIEW_TYPE, {
-      async deserializeWebviewPanel(panel, state: { binding?: SessionBinding } | undefined) {
+      async deserializeWebviewPanel(panel, state: { binding?: SessionBinding; role?: PanelRole } | undefined) {
         const b = state?.binding
         // Restore only panels of the currently configured connection and this workspace.
         if (!b?.sessionId || b.connectionId !== conn.id || !conn.ownsDirectory(b.directory)) {
@@ -205,7 +217,7 @@ export function activate(context: vscode.ExtensionContext) {
           return
         }
         panel.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "media")] }
-        panels.attach(panel, b, panel.title)
+        panels.attach(panel, b, panel.title, state?.role === "pinned" ? "pinned" : "main")
       },
     }),
   )

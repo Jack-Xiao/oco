@@ -42,7 +42,7 @@ async function frameFor(sid, timeout = 60000) {
   while (Date.now() < end) {
     for (const f of await chatFrames(page)) {
       const ok = await f
-        .evaluate((id) => window.__OCO_INIT__.binding.sessionId === id && document.visibilityState === "visible" && !!document.querySelector('[data-component="prompt-input"], [data-component="dock-prompt"]'), sid)
+        .evaluate((id) => (window.__OCO_DEBUG__?.sessionId?.() ?? window.__OCO_INIT__.binding.sessionId) === id && document.visibilityState === "visible" && !!document.querySelector('[data-component="prompt-input"], [data-component="dock-prompt"]'), sid)
         .catch(() => false)
       if (ok) return f
     }
@@ -87,10 +87,12 @@ const assistantText = async (sid) =>
   (await messages(sid)).filter((m) => m.info.role === "assistant").flatMap((m) => m.parts).filter((p) => p.type === "text").map((p) => p.text).join("\n")
 
 try {
-  // 1. Three sessions in three editor groups, all visible at the same time.
+  // 1. Three sessions in three editor groups, all visible at the same time. The first is the main panel;
+  //    the others are pinned panels ("Open in New Panel"), since the main panel switches in place (ADR-007).
   const ids = []
   for (let i = 0; i < 3; i++) {
-    await command(page, "oco: New Session")
+    if (i === 0) await command(page, "oco: New Session")
+    else await command(page, "oco: Open in New Panel", { input: (await api("POST", "/session", {})).id })
     // Identify the new panel from its frame (querying host state here would race the webview for focus).
     let sid
     const t0 = Date.now()
@@ -178,16 +180,19 @@ try {
   await clickLink(fA, `/server/${b64("http://oco.bridge")}/session/${other.id}`)
   await sleep(3000)
   st = await state()
-  const aEntry = st.panels.find((p) => p.sessionId === A)
-  const openedOther = st.panels.some((p) => p.sessionId === other.id)
-  // The host opens the requested session in the active editor group (A's), which hides A; bring A back
-  // and check that A itself never changed session.
+  // ADR-007: A is the main panel, so the host switches it in place (same document, same generation).
+  const mainBefore = beforeNav.panels.find((p) => p.role === "main")
+  const mainAfter = st.panels.find((p) => p.role === "main")
+  const openedOther = mainAfter?.sessionId === other.id && mainAfter.generation === mainBefore?.generation && mainBefore?.sessionId === A
+  const aEntry = mainAfter
+  // Switch back and check that A's own conversation is shown again.
   await openSession(A)
   const fA2 = await frameFor(A)
+  await ready(fA2)
   const aRoute = await fA2.evaluate(() => window.__OCO_DEBUG__.route())
   const aBody = await fA2.evaluate(() => document.body.innerText)
-  run.record("nav-link-other-session", openedOther && aRoute.endsWith(`/session/${A}`) && aBody.includes("TAG-ALPHA") && aEntry.panel.openRequests > (beforeNav.panels.find((p) => p.sessionId === A)?.panel.openRequests ?? 0) ? "PASS" : "FAIL", {
-    hostOpenedTargetPanel: openedOther,
+  run.record("nav-link-other-session", openedOther && aRoute.endsWith(`/session/${A}`) && aBody.includes("TAG-ALPHA") && aEntry.panel.openRequests > (mainBefore?.panel.openRequests ?? 0) ? "PASS" : "FAIL", {
+    mainSwitchedInPlace: openedOther,
     panelARoute: aRoute.split("/").pop(),
     panelAStillShowsItsMessages: aBody.includes("TAG-ALPHA"),
     openRequests: aEntry.panel.openRequests,
@@ -331,8 +336,8 @@ try {
   await type(fC2, "unsent-draft-CHARLIE")
   await sleep(1500) // draft persistence is debounced by the page
   const cBefore = (await state()).panels.find((p) => p.sessionId === C)
-  // A new session opens in the active group (C's) and hides C; its document must survive.
-  await command(page, "oco: New Session")
+  // Another editor opens in C's group and hides C; its document must survive.
+  await command(page, "File: New Untitled Text File")
   await sleep(4000)
   const cHidden = (await state()).panels.find((p) => p.sessionId === C)
   await openSession(C)

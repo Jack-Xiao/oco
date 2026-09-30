@@ -8,6 +8,16 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
+## 单主面板会话切换（ADR-007 第 2–4 步，2026-09-30；验证运行于 `fe20a44` + 本批未提交改动）
+
+- 行为：最多一个主面板，点侧栏会话、打开会话、新建会话都在主面板里原地切换（宿主发 `navigate`，页面不重载）；右键或命令 `oco: Open in New Panel` 开固定面板；已显示的会话只聚焦所在面板；Reload Window 后角色保留。跨目录切换改为重建桥并重载文档（无专门 E2E）。
+- 实测（mock，本机）：原地切换 254–398 ms（含命令面板操作），新开面板冷启动 2296–2477 ms。
+- 检查：typecheck PASS；unit 141/141（新增 policy retarget）；构建 PASS。
+- E2E 全量 15 套件（mock，构建不含最后一处 `ready` 竞态修复）：14 个 exit 0，`p1b-narrow` 失败（测试仍用"新建会话"开三个面板），已改测试。
+- 竞态修复加上之后重新构建，重跑 `p1b-narrow` 12/12、`p1b-main-panel` 6/6、`p1a-identity` 14/14、`t010-recover` 5/5，均 exit 0。
+- 测试适配：`frameSession` 改读页面当前会话；需要同时开多个面板的套件（p1a-identity、p1b-narrow、p1b-sidebar 第 9 步）改用 `Open in New Panel`；`nav-link-other-session` 改为断言主面板原地切换。
+- 未运行：真实模型全量；跨目录切换；常驻内存测量。
+
 ## 面板保持存活（ADR-007 第 1 步，2026-09-30；验证运行于 main `3036c00` + 本批未提交改动）
 
 - 用户反馈：每次切换编辑器 tab 回到聊天都要重新加载。原因：`retainContextWhenHidden:false`，隐藏即销毁文档，再显示时冷启动。

@@ -24,8 +24,10 @@ async function frameFor(page, sid) {
   throw new Error("no frame for " + sid)
 }
 
+/** First session: the main panel. Later ones: pinned panels, since the main panel switches in place (ADR-007). */
 async function newSession(page, known) {
-  await command(page, "oco: New Session")
+  if (known.length === 0) await command(page, "oco: New Session")
+  else await command(page, "oco: Open in New Panel", { input: (await api("POST", "/session", {})).id })
   const t0 = Date.now()
   while (Date.now() - t0 < 60000) {
     for (const f of await chatFrames(page)) {

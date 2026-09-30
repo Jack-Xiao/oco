@@ -4,6 +4,18 @@
 
 更新时间：2026-09-30（P1b 稳定性收尾后）。
 
+## 单主面板会话切换 — ADR-007 第 2–4 步（2026-09-30）
+
+```text
+日期 / 负责人: 2026-09-30 / 集成 AI（Claude Code 主线程），未委派
+领取任务与写入范围: 主面板原地切换 + 在新面板打开。packages/contracts/src/bridge.ts；apps/extension/src/{panels,bridge-host,bridge-policy,extension}.ts、package.json；apps/chat-webview/src/{app.tsx,bridge.ts}；tests/e2e/{p1b-main-panel(新),p1a-identity,p1b-narrow,p1b-sidebar,vscode,run,perf,t005}.mjs；tests/unit/{bridge-policy,e2e-results}.test.ts；docs
+已完成行为: 见 ADR-007
+已运行检查及结果: typecheck PASS；unit 141/141；构建 PASS；mock 全量 15 套件 14 exit 0（p1b-narrow 测试未适配）；ready 竞态修复后重跑 p1b-narrow 12/12、p1b-main-panel 6/6、p1a-identity 14/14、t010-recover 5/5
+未运行/被阻塞检查: 真实模型全量 NOT RUN；跨目录切换 NOT RUN；内存未测
+证据与 ADR: docs/evidence/runs/20260930-1*；ADR-007
+下一批任务: 真实模型全量回归（NEXT 3c）
+```
+
 ## 面板保持存活 — ADR-007 第 1 步（2026-09-30）
 
 ```text

@@ -42,6 +42,13 @@ export const onDraftInsert = (fn: (m: Extract<HostToWebview, { type: "draft.inse
 
 export const currentGeneration = () => generation
 
+type NavigateMsg = Extract<HostToWebview, { type: "navigate" }>
+const navigateListeners = new Set<(m: NavigateMsg) => void>()
+export const onNavigate = (fn: (m: NavigateMsg) => void) => {
+  navigateListeners.add(fn)
+  return () => navigateListeners.delete(fn)
+}
+
 type ConnectionNotice = Extract<HostToWebview, { type: "connection" }>
 let lastConnection: ConnectionNotice | undefined
 const connectionListeners = new Set<(m: ConnectionNotice) => void>()
@@ -68,6 +75,10 @@ window.addEventListener("message", (event) => {
   if (!generation || msg.gen !== generation) return
   if (msg.type === "draft.insert") {
     for (const fn of draftListeners) fn(msg)
+    return
+  }
+  if (msg.type === "navigate") {
+    for (const fn of navigateListeners) fn(msg)
     return
   }
   if (msg.type === "connection") {

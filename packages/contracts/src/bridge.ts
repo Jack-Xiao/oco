@@ -26,7 +26,11 @@ export type WebviewInit = {
   locale?: string
   /** VS Code theme kind when the page was generated (the page then follows the body theme class). */
   colorScheme?: "light" | "dark"
+  /** ADR-007: "main" follows the sidebar (the host may switch its session), "pinned" keeps one session. */
+  role?: PanelRole
 }
+
+export type PanelRole = "main" | "pinned"
 
 type Envelope<T extends string, P> = { v: typeof PROTOCOL_VERSION; gen: number; type: T } & P
 export type Omit2<T> = T extends unknown ? Omit<T, "v" | "gen"> : never
@@ -92,7 +96,10 @@ export type ConnectionNotice = Envelope<
   "connection",
   { state: "connected" | "connecting" | "reconnecting" | "error" | "unauthorized" | "unconfigured"; bound: boolean }
 >
-export type HostToWebview = Welcome | FetchHead | FetchChunk | FetchEnd | FetchError | StoreResult | DraftInsert | ConnectionNotice
+/** ADR-007: the host switched this panel to another session of the same connection and directory. The page's
+ * route guard accepts only the session the host last sent; the page never picks its own session. */
+export type Navigate = Envelope<"navigate", { sessionId: string }>
+export type HostToWebview = Welcome | FetchHead | FetchChunk | FetchEnd | FetchError | StoreResult | DraftInsert | ConnectionNotice | Navigate
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v)
 const isStr = (v: unknown): v is string => typeof v === "string"

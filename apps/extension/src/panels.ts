@@ -2,7 +2,7 @@ import * as vscode from "vscode"
 import * as crypto from "node:crypto"
 import * as fs from "node:fs"
 import * as nodePath from "node:path"
-import { BRIDGE_ORIGIN, type ConnectionSummary, type SessionBinding, type WebviewInit } from "@oco/contracts"
+import { BRIDGE_ORIGIN, type ConnectionSummary, type PanelRole, type SessionBinding, type WebviewInit } from "@oco/contracts"
 import { BlobStore, createBridge } from "./bridge-host"
 import type { Connection } from "./connection"
 import type { KvStore } from "./host-store"
@@ -25,11 +25,16 @@ type PendingDraft = { id: string; text: string; source: DraftSource }
 export type Entry = {
   panel: vscode.WebviewPanel
   bridge: ReturnType<typeof createBridge>
+  /** Unique per panel (one document lineage); the registry key. */
+  panelId: string
+  /** ADR-007: "main" follows the sidebar and switches session in place; "pinned" keeps one session. */
+  role: PanelRole
+  /** The session the panel currently shows (a main panel's binding changes on switch). */
   binding: SessionBinding
   panelKey: string
   ready: boolean
   route?: string
-  stats: { blockedNavigations: number; openRequests: number; draftAcks: number; draftRejects: number; titles: number; fileOpens: number; fileRejects: number; focusWaits: number; lateActivations: number }
+  stats: { blockedNavigations: number; openRequests: number; draftAcks: number; draftRejects: number; titles: number; fileOpens: number; fileRejects: number; focusWaits: number; lateActivations: number; switches: number; switchReloads: number }
   /** Last refused openFile (reason only; for diagnostics and tests). */
   lastFileReject?: string
   /** Diagnostics: ms-stamped focus events around the last file open (panel active flips, active editor). */
@@ -38,7 +43,8 @@ export type Entry = {
   openedAt?: number
 }
 
-/** One editor tab per session; identity = connectionId + directory + sessionId. */
+/** Chat panels (ADR-007): at most one "main" panel that switches sessions in place, plus "pinned" panels
+ *  opened with "Open in New Panel". A session is shown by at most one panel. */
 export class PanelRegistry {
   private readonly entries = new Map<string, Entry>()
   private lastActive: string | undefined
@@ -71,21 +77,38 @@ export class PanelRegistry {
     return [...this.entries.values()]
   }
 
+  /** The panel currently showing this session, if any. */
   get(binding: SessionBinding) {
-    return this.entries.get(PanelRegistry.key(binding))
+    const key = PanelRegistry.key(binding)
+    return this.list().find((e) => PanelRegistry.key(e.binding) === key)
+  }
+
+  get main() {
+    return this.list().find((e) => e.role === "main")
   }
 
   get active(): Entry | undefined {
     return this.list().find((e) => e.panel.active) ?? (this.lastActive ? this.entries.get(this.lastActive) : undefined)
   }
 
-  /** Open-or-focus: an already open session is revealed in the editor group that shows it. */
-  open(binding: SessionBinding, title?: string, column: vscode.ViewColumn = vscode.ViewColumn.Active, focus = true) {
+  /**
+   * Show a session (ADR-007), in this order: the panel already showing it is revealed; otherwise the main
+   * panel switches to it; otherwise a new main panel opens. `newPanel` opens a pinned panel instead of
+   * switching the main one (still revealing a panel that already shows the session).
+   */
+  open(binding: SessionBinding, title?: string, column: vscode.ViewColumn = vscode.ViewColumn.Active, focus = true, newPanel = false) {
     const existing = this.get(binding)
     if (existing) {
       existing.panel.reveal(undefined, !focus)
       return existing
     }
+    const main = this.main
+    if (!newPanel && main) {
+      this.switchTo(main, binding, title)
+      main.panel.reveal(undefined, !focus)
+      return main
+    }
+    const role: PanelRole = main ? "pinned" : "main"
     const panel = vscode.window.createWebviewPanel(VIEW_TYPE, title ?? "OpenCode", { viewColumn: column, preserveFocus: !focus }, {
       enableScripts: true,
       // Keep the app alive while its tab is hidden: a destroyed document means a full cold boot (bundle,
@@ -93,7 +116,39 @@ export class PanelRegistry {
       retainContextWhenHidden: true,
       localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, "media")],
     })
-    return this.attach(panel, binding, title)
+    return this.attach(panel, binding, title, role)
+  }
+
+  /**
+   * Switch a panel to another session in place. Same directory: the live app navigates (no reload) and the
+   * bridge policy follows the new session. Another directory: the bridge is rebuilt for it and the document
+   * reloaded (the policy pins every request to one directory).
+   */
+  private switchTo(entry: Entry, binding: SessionBinding, title?: string) {
+    const sameDirectory = binding.connectionId === entry.binding.connectionId && binding.directory === entry.binding.directory
+    entry.stats.switches++
+    entry.binding = binding
+    entry.panel.title = title ?? entry.panel.title
+    if (sameDirectory) {
+      entry.ready = false // the page says ready again once the new route rendered; drafts wait for it
+      entry.bridge.retarget(binding.sessionId)
+      entry.bridge.core.sendCurrent({ type: "navigate", sessionId: binding.sessionId })
+    } else {
+      entry.stats.switchReloads++
+      entry.ready = false
+      entry.bridge.dispose()
+      entry.bridge = this.bridgeFor(entry)
+      entry.panel.webview.html = this.html(entry.panel.webview, this.initFor(entry))
+    }
+    void this.conn
+      .request<{ title?: string }>("GET", `/session/${encodeURIComponent(binding.sessionId)}`, undefined, binding.directory)
+      .then((s) => entry.binding.sessionId === binding.sessionId && s.title && this.setTitle(entry, s.title))
+      .catch(() => undefined)
+    this.onChange()
+  }
+
+  private initFor(entry: Entry): WebviewInit {
+    return { panelId: entry.panelId, binding: entry.binding, serverUrl: BRIDGE_ORIGIN, locale: vscode.env.language, colorScheme: colorScheme(), role: entry.role }
   }
 
   /** E2E hook for the first-load race: OCO_DEV_SLOW_PATHS / OCO_DEV_SLOW_MS, outside production only. */
@@ -103,8 +158,9 @@ export class PanelRegistry {
     return { pattern: new RegExp(paths), ms: Number(process.env.OCO_DEV_SLOW_MS ?? 4000) }
   }
 
+  /** Pending drafts belong to a session, not a panel (a main panel changes session). */
   private pendingKey(e: Entry) {
-    return `oco.pendingDrafts.v1/${e.panelKey}`
+    return `oco.pendingDrafts.v1/${PanelRegistry.panelKey(e.binding)}`
   }
 
   private pending(e: Entry): PendingDraft[] {
@@ -122,26 +178,54 @@ export class PanelRegistry {
   }
 
   /** Used by open() and by the serializer after Reload Window. */
-  attach(panel: vscode.WebviewPanel, binding: SessionBinding, title?: string) {
-    const key = PanelRegistry.key(binding)
-    const panelKey = PanelRegistry.panelKey(binding)
+  attach(panel: vscode.WebviewPanel, binding: SessionBinding, title?: string, role: PanelRole = "main") {
+    // A restored second "main" (e.g. two main panels from an older layout) becomes pinned.
+    if (role === "main" && this.main) role = "pinned"
     const panelId = crypto.randomUUID()
     panel.title = title ?? panel.title ?? "OpenCode"
     panel.iconPath = vscode.Uri.joinPath(this.context.extensionUri, "media", "icon.svg")
     const entry = {
+      panelId,
+      role,
       binding,
-      panelKey,
+      // Panel-scoped storage namespace (opencode.window.*): fixed for the panel's lifetime.
+      panelKey: PanelRegistry.panelKey(binding),
       panel,
       ready: false,
-      stats: { blockedNavigations: 0, openRequests: 0, draftAcks: 0, draftRejects: 0, titles: 0, fileOpens: 0, fileRejects: 0, focusWaits: 0, lateActivations: 0 },
+      stats: { blockedNavigations: 0, openRequests: 0, draftAcks: 0, draftRejects: 0, titles: 0, fileOpens: 0, fileRejects: 0, focusWaits: 0, lateActivations: 0, switches: 0, switchReloads: 0 },
     } as Entry
-    entry.bridge = createBridge({
+    entry.bridge = this.bridgeFor(entry)
+    this.entries.set(panelId, entry)
+    panel.webview.html = this.html(panel.webview, this.initFor(entry))
+    panel.onDidChangeViewState((e) => {
+      if (entry.focusTrace) entry.focusTrace.push(`${Date.now() % 100000} panel.active=${e.webviewPanel.active}`)
+      if (e.webviewPanel.active && entry.openedAt !== undefined && Date.now() - entry.openedAt < 1000) entry.stats.lateActivations++
+      if (e.webviewPanel.active) this.lastActive = panelId
+      // retainContextWhenHidden: a hidden document stays alive with its generation and streams; drafts
+      // queued while it was hidden are delivered once it shows again.
+      if (e.webviewPanel.visible) this.flushDrafts(entry)
+    })
+    panel.onDidDispose(() => {
+      entry.bridge.dispose() // aborts this panel's requests/streams only; the session keeps running on the server
+      this.entries.delete(panelId)
+      if (this.lastActive === panelId) this.lastActive = undefined
+      this.onChange()
+    })
+    if (panel.active) this.lastActive = panelId
+    this.onChange()
+    return entry
+  }
+
+  /** The panel's bridge for its current binding (rebuilt when a switch changes directory). */
+  private bridgeFor(entry: Entry) {
+    const panel = entry.panel
+    const bridge = createBridge({
       webview: panel.webview,
       conn: this.conn,
       kv: this.kv,
       blobs: this.blobs,
-      binding,
-      panelKey,
+      binding: entry.binding,
+      panelKey: entry.panelKey,
       log: this.log,
       onGeneration: () => {
         entry.ready = false
@@ -149,24 +233,33 @@ export class PanelRegistry {
       onSessionTitle: (t) => this.setTitle(entry, t),
       devSlow: this.devSlow(),
       onUi: (msg) => {
+        if (entry.bridge !== bridge) return // replaced by a cross-directory switch
         switch (msg.type) {
-          case "ready":
+          case "ready": {
+            // A ready for another session: a switch happened before this document could receive "navigate"
+            // (still loading), or it is late from before the switch. Either way, (re)send the current session.
+            if (!msg.route.endsWith(`/session/${entry.binding.sessionId}`)) {
+              entry.bridge.core.sendCurrent({ type: "navigate", sessionId: entry.binding.sessionId })
+              return
+            }
             entry.ready = true
             entry.route = msg.route
-            this.log.info(`panel ready ${binding.sessionId} gen ${entry.bridge.core.generation}`)
+            this.log.info(`panel ready ${entry.binding.sessionId} gen ${entry.bridge.core.generation}`)
             this.flushDrafts(entry)
             this.sendConnection(entry)
+            const b = entry.binding
             void this.conn
-              .request<{ title?: string }>("GET", `/session/${encodeURIComponent(binding.sessionId)}`, undefined, binding.directory)
-              .then((s) => s.title && this.setTitle(entry, s.title))
+              .request<{ title?: string }>("GET", `/session/${encodeURIComponent(b.sessionId)}`, undefined, b.directory)
+              .then((s) => entry.binding.sessionId === b.sessionId && s.title && this.setTitle(entry, s.title))
               .catch(() => undefined)
             return
+          }
           case "draft.ack": {
             if (msg.ok) entry.stats.draftAcks++
             else {
               // The page refused (e.g. not showing the bound session): surface it, never retarget.
               entry.stats.draftRejects++
-              this.log.warn(`draft insert rejected in ${binding.sessionId}: ${msg.reason}`)
+              this.log.warn(`draft insert rejected in ${entry.binding.sessionId}: ${msg.reason}`)
               void vscode.window.showWarningMessage(`oco: 未能加入草稿（${msg.reason ?? "unknown"}）`)
             }
             void this.setPending(entry, this.pending(entry).filter((d) => d.id !== msg.id))
@@ -178,7 +271,7 @@ export class PanelRegistry {
             if (msg.action === "title" && msg.title) this.setTitle(entry, msg.title)
             if (msg.action === "blockedNavigation") {
               entry.stats.blockedNavigations++
-              this.log.info(`blocked in-panel navigation in ${binding.sessionId}: ${msg.route ?? ""}`)
+              this.log.info(`blocked in-panel navigation in ${entry.binding.sessionId}: ${msg.route ?? ""}`)
             }
             if (msg.action === "openSession" && msg.sessionId) {
               entry.stats.openRequests++
@@ -189,7 +282,7 @@ export class PanelRegistry {
               entry.ready = false
               entry.bridge.core.retire()
               panel.webview.html = ""
-              panel.webview.html = this.html(panel.webview, { panelId, binding, serverUrl: BRIDGE_ORIGIN, locale: vscode.env.language, colorScheme: colorScheme() })
+              panel.webview.html = this.html(panel.webview, this.initFor(entry))
             }
             if (msg.action === "retryConnection" || msg.action === "openSettings" || msg.action === "showSessions" || msg.action === "newSession")
               this.onRecoveryAction(msg.action)
@@ -199,25 +292,7 @@ export class PanelRegistry {
         }
       },
     })
-    this.entries.set(key, entry)
-    panel.webview.html = this.html(panel.webview, { panelId, binding, serverUrl: BRIDGE_ORIGIN, locale: vscode.env.language, colorScheme: colorScheme() })
-    panel.onDidChangeViewState((e) => {
-      if (entry.focusTrace) entry.focusTrace.push(`${Date.now() % 100000} panel.active=${e.webviewPanel.active}`)
-      if (e.webviewPanel.active && entry.openedAt !== undefined && Date.now() - entry.openedAt < 1000) entry.stats.lateActivations++
-      if (e.webviewPanel.active) this.lastActive = key
-      // retainContextWhenHidden: a hidden document stays alive with its generation and streams; drafts
-      // queued while it was hidden are delivered once it shows again.
-      if (e.webviewPanel.visible) this.flushDrafts(entry)
-    })
-    panel.onDidDispose(() => {
-      entry.bridge.dispose() // aborts this panel's requests/streams only; the session keeps running on the server
-      this.entries.delete(key)
-      if (this.lastActive === key) this.lastActive = undefined
-      this.onChange()
-    })
-    if (panel.active) this.lastActive = key
-    this.onChange()
-    return entry
+    return bridge
   }
 
   private html(webview: vscode.Webview, init: WebviewInit) {
@@ -379,6 +454,7 @@ export class PanelRegistry {
 
   debugState() {
     return this.list().map((e) => ({
+      role: e.role,
       sessionId: e.binding.sessionId,
       directory: e.binding.directory,
       connectionId: e.binding.connectionId,

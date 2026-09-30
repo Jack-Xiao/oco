@@ -29,7 +29,7 @@ async function focusSession(sid) {
   const end = Date.now() + 60000
   while (Date.now() < end) {
     for (const f of await chatFrames(page)) {
-      const ok = await f.evaluate((id) => window.__OCO_INIT__.binding.sessionId === id && document.visibilityState === "visible" && !!document.querySelector('[data-component="prompt-input"], [data-component="dock-prompt"]'), sid).catch(() => false)
+      const ok = await f.evaluate((id) => (window.__OCO_DEBUG__?.sessionId?.() ?? window.__OCO_INIT__.binding.sessionId) === id && document.visibilityState === "visible" && !!document.querySelector('[data-component="prompt-input"], [data-component="dock-prompt"]'), sid).catch(() => false)
       if (ok) {
         if (await f.$('[data-component="prompt-input"]')) await f.getByText(MODEL.label).first().waitFor({ timeout: 60000 })
         await sleep(2500)

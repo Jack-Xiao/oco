@@ -169,7 +169,8 @@ export async function waitForChatFrame(page, count = 1, timeout = 60000, selecto
 }
 
 /** Session id bound to a chat frame. */
-export const frameSession = (f) => f.evaluate(() => window.__OCO_INIT__.binding.sessionId)
+/** The session a chat frame currently shows (a main panel switches in place, ADR-007). */
+export const frameSession = (f) => f.evaluate(() => window.__OCO_DEBUG__?.sessionId?.() ?? window.__OCO_INIT__.binding.sessionId)
 
 export async function shot(page, name) {
   const p = path.join(evidenceDir, `${name}.png`)

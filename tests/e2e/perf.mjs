@@ -49,7 +49,7 @@ async function showSession(sid) {
   const typed = Date.now() - t0
   while (Date.now() - t0 < 60000) {
     for (const f of await chatFrames(page)) {
-      const ok = await f.evaluate((id) => window.__OCO_INIT__.binding.sessionId === id && document.visibilityState === "visible" && !!document.querySelector('[data-component="prompt-input"]'), sid).catch(() => false)
+      const ok = await f.evaluate((id) => (window.__OCO_DEBUG__?.sessionId?.() ?? window.__OCO_INIT__.binding.sessionId) === id && document.visibilityState === "visible" && !!document.querySelector('[data-component="prompt-input"]'), sid).catch(() => false)
       if (ok) return { totalMs: Date.now() - t0, afterPaletteMs: Date.now() - t0 - typed }
     }
     await sleep(50)

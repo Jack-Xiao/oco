@@ -23,6 +23,12 @@
         "icon": "$(go-to-file)"
       },
       {
+        "command": "oco.openSessionInNewPanel",
+        "title": "Open in New Panel",
+        "category": "oco",
+        "icon": "$(split-horizontal)"
+      },
+      {
         "command": "oco.newSession",
         "title": "New Session",
         "category": "oco",
@@ -119,6 +125,11 @@
           "command": "oco.openSession",
           "when": "view == oco.sessions && viewItem == oco.session",
           "group": "1_open@1"
+        },
+        {
+          "command": "oco.openSessionInNewPanel",
+          "when": "view == oco.sessions && viewItem == oco.session",
+          "group": "1_open@2"
         },
         {
           "command": "oco.renameSession",

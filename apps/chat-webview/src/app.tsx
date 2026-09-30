@@ -2,10 +2,11 @@
 // Loaded by main.tsx after the panel-scoped localStorage shim is installed.
 // Modelled on vendor/opencode/packages/desktop/src/renderer/index.tsx, with a VS Code Platform.
 //
-// Panel identity (P1a-01): the memory router only ever holds the bound session route. Any navigation
-// (internal tabs, shortcuts, deep links, child-session links, persisted tabs) is intercepted in the
-// router history: another session becomes a host "openSession" request (the host validates and
-// opens its own panel); everything else is refused. The page itself never changes session.
+// Panel identity (P1a-01, ADR-007): the memory router only ever holds the current session route. Any
+// navigation (internal tabs, shortcuts, deep links, child-session links, persisted tabs) is intercepted
+// in the router history: another session becomes a host "openSession" request (the host validates it
+// and either switches this panel with a "navigate" message or opens/focuses another panel); everything
+// else is refused. The page itself never changes session: only the host's "navigate" does.
 import {
   AppBaseProviders,
   AppInterface,
@@ -17,7 +18,7 @@ import {
 import { base64Decode, base64Encode } from "@opencode-ai/core/util/encode"
 import { createMemoryHistory, MemoryRouter, type BaseRouterProps } from "@solidjs/router"
 import { render } from "solid-js/web"
-import { blobGet, blobPut, bridgeFetch, currentGeneration, draftAck, hostStorage, init, onDraftInsert, ready, ui, vscode } from "./bridge"
+import { blobGet, blobPut, bridgeFetch, currentGeneration, draftAck, hostStorage, init, onDraftInsert, onNavigate, ready, ui, vscode } from "./bridge"
 import { storageStats } from "./local-storage"
 import { ConnectionBanner, RecoveryView } from "./recovery"
 import { installSubmitStatus, submitStats } from "./submit-status"
@@ -25,11 +26,14 @@ import { themeStats } from "./theme"
 
 const root = document.getElementById("root")!
 const serverKey = ServerConnection.Key.make(init.serverUrl)
-const bound = init.binding
-const boundRoute = `/server/${base64Encode(serverKey)}/session/${bound.sessionId}`
+// The session this panel shows. Starts at the init binding; changed only by the host's "navigate".
+const bound = { ...init.binding }
+const routeFor = (sessionId: string) => `/server/${base64Encode(serverKey)}/session/${sessionId}`
+const boundRoute = routeFor(bound.sessionId)
 const stats = ((window as unknown as { __OCO_STATS__: Record<string, number> }).__OCO_STATS__ ??= {})
 stats.blockedNavigation = 0
 stats.openSessionRequests = 0
+stats.navigations = 0
 
 type RouteClass = { kind: "bound" } | { kind: "session"; id: string } | { kind: "other" }
 
@@ -99,10 +103,10 @@ const platform: Platform = {
 }
 
 let currentRoute = boundRoute
+const inner = createMemoryHistory()
+inner.set({ value: boundRoute, replace: true, scroll: false })
 
 function PanelRouter(props: BaseRouterProps) {
-  const inner = createMemoryHistory()
-  inner.set({ value: boundRoute, replace: true, scroll: false })
   const guard = (value: string) => {
     const c = classifyRoute(value)
     if (c.kind === "bound") return true
@@ -186,6 +190,7 @@ installSubmitStatus()
   fetch: bridgeFetch,
   classifyRoute,
   route: () => currentRoute,
+  sessionId: () => bound.sessionId,
   generation: currentGeneration,
   storage: storageStats,
   theme: themeStats,
@@ -193,5 +198,19 @@ installSubmitStatus()
   openFile: (path: string, line?: number) => platform.openFileInHost?.(path, line),
 }
 
-vscode.setState({ binding: bound })
+const saveState = () => vscode.setState({ binding: { ...bound }, role: init.role })
+
+// Host -> switch to another session (ADR-007). Same connection and directory, validated by the host.
+onNavigate((msg) => {
+  if (msg.sessionId === bound.sessionId) return void ready(currentRoute)
+  stats.navigations++
+  bound.sessionId = msg.sessionId
+  currentRoute = routeFor(msg.sessionId)
+  inner.set({ value: currentRoute, replace: true, scroll: false })
+  saveState()
+  // Report ready once the new route has rendered, so drafts for the new session reach its composer.
+  requestAnimationFrame(() => requestAnimationFrame(() => ready(currentRoute)))
+})
+
+saveState()
 ready(boundRoute)
