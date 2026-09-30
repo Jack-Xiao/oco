@@ -137,3 +137,12 @@
 ## 当前推荐交接
 
 P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的指示（见 [HANDOFF](HANDOFF.md) 当前轮交接）；在此之前不扩大到 managed 进程、多根工作区、Agent 或设置页。简单、独立的调查、机械修改和测试委派给子代理，集成人保留公共契约、同文件集成和验收责任。
+
+## C2 模块边界验证（2026-09-30）
+
+- 基线：main d1a3607；上游 51ef4be；本轮未提交、未推送。提取 fe04641 的两份来源调查文档，未合并该提交。
+- 主线程实现 tests/integration/c2-diff-runtime.{mjs,test.ts}；Grok/Gemini 委派无产物，记录于 docs/evidence/c2-runtime-delegation.md，model/provider unknown。
+- 命令 node tests/integration/c2-diff-runtime.mjs：8 PASS / 0 FAIL，31 断言，exit 0；上游 diffFull 定向探测 5 PASS / 0 FAIL，30 断言。Bun 1.3.10。
+- 来源建议已收紧：哈希存在不是 blob 完整性证明；FileDiff 无 binary 标记；空 Diff 不能断言没有修改。
+- NOT RUN：HTTP/模型 E2E、summary 持久化、blob 缺失负测、工具元数据、oco 全量验证/构建。没有改产品代码。
+- 证据：docs/evidence/c2-runtime.md；下一步补 HTTP/持久化与 blob 缺失负测，再决定展示方案。
