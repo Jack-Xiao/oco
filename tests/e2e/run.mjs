@@ -4,7 +4,8 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-export const DEFAULT_SUITES = ["p1a-chat", "p1a-identity", "p1b-sidebar", "p1b-narrow", "p1b-theme-load", "p1b-ime", "p1b-reconnect", "p1b-pending-send", "p1b-switch-pending", "c1-open-file"]; // t004/t005 are the historical P0 suites
+// The full acceptance set (docs/TEST-SCOPE.md). t004/t005 are the historical P0 suites.
+export const DEFAULT_SUITES = ["p1a-chat", "p1a-identity", "p1b-sidebar", "p1b-narrow", "p1b-theme-load", "p1b-ime", "p1b-reconnect", "p1b-pending-send", "p1b-switch-pending", "c1-open-file", "c2-diff-unavailable", "t010-recover", "t014-connection"];
 export const EXCLUDED_FILES = new Set(["vscode.mjs", "server.mjs", "run.mjs", "perf.mjs", "smoke.mjs"]);
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));

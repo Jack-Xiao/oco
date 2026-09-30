@@ -318,8 +318,10 @@ describe("installCrashHandlers", () => {
 });
 
 describe("run.mjs 套件管理", () => {
-  test("DEFAULT_SUITES 为 P1a + P1b 套件", () => {
-    expect(DEFAULT_SUITES).toEqual(["p1a-chat", "p1a-identity", "p1b-sidebar", "p1b-narrow", "p1b-theme-load", "p1b-ime", "p1b-reconnect", "p1b-pending-send", "p1b-switch-pending", "c1-open-file"]);
+  test("DEFAULT_SUITES 为全量验收的 13 个套件（docs/TEST-SCOPE.md）", () => {
+    expect(DEFAULT_SUITES).toEqual(["p1a-chat", "p1a-identity", "p1b-sidebar", "p1b-narrow", "p1b-theme-load", "p1b-ime", "p1b-reconnect", "p1b-pending-send", "p1b-switch-pending", "c1-open-file", "c2-diff-unavailable", "t010-recover", "t014-connection"]);
+    const available = getAvailableSuites();
+    expect(DEFAULT_SUITES.every((s) => available.includes(s))).toBe(true);
   });
 
   test("EXCLUDED_FILES 排除内部工具脚本", () => {

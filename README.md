@@ -67,7 +67,7 @@ OCO_E2E_MODEL=mock bash scripts/test-server.sh
 
 套件会从服务读取当前模型，并把 `modelMode`（`mock` / `real`）写进 `results.json`。`bun run brief` 把 mock 运行归为特殊运行（`mock-model`），不计入真实模型验收。验收前仍须用真实模型（不带该变量启动服务）跑一次。
 
-默认套件：`p1a-chat`、`p1a-identity`、`p1b-sidebar`、`p1b-narrow`、`p1b-theme-load`、`p1b-ime`（真实模型，约 1 小时）。只跑部分套件时把名字作为参数传入，例如：
+默认套件是全量验收的 13 个（列表见 `tests/e2e/run.mjs` 的 `DEFAULT_SUITES`）。改了哪些文件该跑哪些套件、何时需要真实模型，见 [测试范围](docs/TEST-SCOPE.md)。只跑部分套件时把名字作为参数传入，例如：
 
 ```bash
 node tests/e2e/run.mjs p1b-sidebar

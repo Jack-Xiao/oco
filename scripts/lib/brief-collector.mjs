@@ -2,14 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 
-export const DEFAULT_SUITES = [
-  "p1a-chat",
-  "p1a-identity",
-  "p1b-sidebar",
-  "p1b-narrow",
-  "p1b-theme-load",
-  "p1b-ime",
-];
+// One definition of the full acceptance set, shared with the E2E runner (docs/TEST-SCOPE.md).
+import { DEFAULT_SUITES } from "../../tests/e2e/run.mjs";
+export { DEFAULT_SUITES };
 
 export const EXCLUDED_SUITES = new Set([
   "perf",
