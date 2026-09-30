@@ -55,6 +55,12 @@
         "icon": "$(refresh)"
       },
       {
+        "command": "oco.openSettings",
+        "title": "Open Settings",
+        "category": "oco",
+        "icon": "$(gear)"
+      },
+      {
         "command": "oco.addSelectionToDraft",
         "title": "Add Selection to Session Draft",
         "category": "oco"
@@ -91,6 +97,11 @@
           "command": "oco.reconnect",
           "when": "view == oco.sessions",
           "group": "navigation@4"
+        },
+        {
+          "command": "oco.openSettings",
+          "when": "view == oco.sessions",
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [
@@ -134,13 +145,14 @@
         "oco.serverUrl": {
           "type": "string",
           "default": "http://127.0.0.1:4096",
-          "description": "Attached OpenCode v1 server origin (machine scope: a workspace cannot override it). oco never starts or stops it.",
-          "scope": "machine"
+          "scope": "machine",
+          "markdownDescription": "已运行的 OpenCode 服务地址，只写 origin，例如 `http://127.0.0.1:4096` 或 `https://oc.example.com`；不要带路径、账号密码。仅在用户设置中生效（machine 范围），工作区/仓库不能覆盖。oco 只连接该服务，不会启动、停止或修改它。修改后自动重连；已打开的会话标签页保持绑定原地址，不会迁移到新地址。"
         },
         "oco.serverUsername": {
           "type": "string",
           "default": "opencode",
-          "scope": "machine"
+          "scope": "machine",
+          "markdownDescription": "连接服务使用的 HTTP Basic 用户名，默认 `opencode`，与服务端设置的用户名一致。**密码不在这里填写**：执行命令“oco: Set Server Password”，密码保存在 VS Code SecretStorage（按地址+用户名区分），不写入 settings.json。"
         }
       }
     },
@@ -165,8 +177,13 @@
     "viewsWelcome": [
       {
         "view": "oco.sessions",
-        "when": "oco.connState == unconfigured",
-        "contents": "oco 未就绪：需要打开一个工作区文件夹，并在用户设置中配置 OpenCode 服务地址。\n[打开文件夹](command:workbench.action.files.openFolder)\n[打开设置](command:workbench.action.openSettings?%5B%22oco.serverUrl%22%5D)"
+        "when": "oco.connState == unconfigured && oco.connIssue == folder",
+        "contents": "oco 未就绪：需要先打开一个工作区文件夹。\n[打开文件夹](command:workbench.action.files.openFolder)"
+      },
+      {
+        "view": "oco.sessions",
+        "when": "oco.connState == unconfigured && oco.connIssue != folder",
+        "contents": "服务地址设置无效（见上方原因）。\n[打开设置](command:oco.openSettings)"
       },
       {
         "view": "oco.sessions",
@@ -176,17 +193,17 @@
       {
         "view": "oco.sessions",
         "when": "oco.connState == unauthorized",
-        "contents": "服务要求认证，密码未设置或不正确。\n[设置密码](command:oco.setServerPassword)"
+        "contents": "服务要求认证，用户名或密码不正确（密码未设置也会如此）。\n[设置密码](command:oco.setServerPassword)\n[打开设置](command:oco.openSettings)"
       },
       {
         "view": "oco.sessions",
         "when": "oco.connState == error",
-        "contents": "无法连接 OpenCode 服务，正在按退避间隔重试。\n[立即重试](command:oco.reconnect)\n[打开设置](command:workbench.action.openSettings?%5B%22oco.serverUrl%22%5D)"
+        "contents": "无法连接 OpenCode 服务（服务离线或地址不对），正在按退避间隔重试。\n[立即重连](command:oco.reconnect)\n[打开设置](command:oco.openSettings)"
       },
       {
         "view": "oco.sessions",
         "when": "oco.connState == reconnecting",
-        "contents": "连接中断，正在重连……\n[立即重试](command:oco.reconnect)"
+        "contents": "连接中断，正在重连……\n[立即重连](command:oco.reconnect)\n[打开设置](command:oco.openSettings)"
       },
       {
         "view": "oco.sessions",

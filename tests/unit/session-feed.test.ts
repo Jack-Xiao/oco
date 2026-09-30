@@ -386,7 +386,7 @@ describe("SessionFeed", () => {
     try {
       h.feed.start()
       await until(() => h.feed.state.state === "unauthorized", h, "401")
-      expect(h.feed.state.error).toBe(`认证失败（${ORIGIN}），请执行 oco: Set Server Password`)
+      expect(h.feed.state.error).toBe(`认证失败（${ORIGIN}）：用户名或密码不正确。请执行“oco: Set Server Password”，或在设置中检查用户名`)
       expect(h.feed.state.retryAt).toBeUndefined()
       expect(h.feed.state.attempt).toBe(0)
       expect(h.timers).toHaveLength(0)
@@ -426,7 +426,7 @@ describe("SessionFeed", () => {
       h.feed.start()
       await until(() => h.feed.state.state === "error" && h.timers.length === 1, h, "network error")
       expect(h.feed.state.attempt).toBe(1)
-      expect(h.feed.state.error).toBe("network down")
+      expect(h.feed.state.error).toBe("无法连接服务（离线或地址/端口不对）：network down")
       expect(h.timers[0].ms).toBe(1000)
       expect(h.feed.state.retryAt).toBe(NOW + 1000)
 
@@ -785,4 +785,29 @@ describe("SessionFeed: stale attempts and limits", () => {
       }
     })
   }
+})
+
+describe("SessionFeed: connection settings diagnostics", () => {
+  test("invalid endpoint is issue=endpoint, missing folder is issue=folder", () => {
+    const a = harness()
+    a.failEndpoint("oco.serverUrl 不是有效 URL")
+    a.feed.start()
+    expect(a.feed.state).toMatchObject({ state: "unconfigured", issue: "endpoint" })
+    const b = harness({ noDirectory: true })
+    b.feed.start()
+    expect(b.feed.state).toMatchObject({ state: "unconfigured", issue: "folder" })
+  })
+
+  test("HTTP error from a wrong server and an offline fetch failure read differently and neither is unauthorized", async () => {
+    const h = harness()
+    h.handle = () => new Response("nope", { status: 404 })
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "error" && h.timers.length === 1, h, "404")
+      expect(h.feed.state.error).toContain("HTTP 404")
+      expect(h.feed.state.error).toContain("不是 OpenCode 服务")
+    } finally {
+      h.feed.stop()
+    }
+  })
 })

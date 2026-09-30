@@ -147,7 +147,7 @@ export function activate(context: vscode.ExtensionContext) {
       try {
         const ep = conn.endpoint()
         const value = await vscode.window.showInputBox({
-          prompt: `${ep.origin}（用户 ${ep.username}）的密码，保存在 VS Code SecretStorage，仅用于该地址`,
+          prompt: `${ep.origin}（用户 ${ep.username}）的密码，保存在 VS Code SecretStorage（不写入 settings），仅用于该地址和用户名`,
           password: true,
         })
         if (value !== undefined) {
@@ -180,6 +180,7 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("oco.clearSearch", () => view.setSearch("")),
     vscode.commands.registerCommand("oco.reconnect", () => feed.restart()),
+    vscode.commands.registerCommand("oco.openSettings", () => vscode.commands.executeCommand("workbench.action.openSettings", "oco")),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("oco")) feed.restart()
     }),

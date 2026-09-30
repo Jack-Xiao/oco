@@ -19,7 +19,7 @@ export function endpointFromSetting(raw: string, username: string): Endpoint {
     throw new Error(`oco.serverUrl 不是有效 URL`)
   }
   if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("oco.serverUrl 只支持 http/https")
-  if (u.username || u.password) throw new Error("oco.serverUrl 不能包含账号密码，请用 oco: Set Server Password")
+  if (u.username || u.password) throw new Error("oco.serverUrl 不能包含账号密码，请用“oco: Set Server Password”命令")
   if ((u.pathname && u.pathname !== "/") || u.search || u.hash) throw new Error("oco.serverUrl 只能是 origin（如 http://127.0.0.1:4096）")
   const user = username.trim() || "opencode"
   const origin = u.origin

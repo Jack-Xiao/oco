@@ -19,6 +19,8 @@ export type ConnectionSummary = {
   state: ConnectionState
   /** User-facing reason for error / unauthorized / unconfigured. */
   error?: string
+  /** For `unconfigured`: which setting is missing/invalid (the URL/user setting, or no workspace folder). */
+  issue?: "endpoint" | "folder"
   /** Consecutive failed attempts since the last successful connect (0 when connected). */
   attempt: number
   /** Epoch ms of the next retry while reconnecting / error. */

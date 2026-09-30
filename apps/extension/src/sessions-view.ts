@@ -86,6 +86,7 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
   setConnection(s: ConnectionSummary) {
     this.summary = s
     void vscode.commands.executeCommand("setContext", "oco.connState", s.state)
+    void vscode.commands.executeCommand("setContext", "oco.connIssue", s.issue ?? "")
     this.refresh()
   }
 
@@ -155,8 +156,8 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
         break
       default:
         st.text = `$(circle-slash) oco`
-        st.tooltip = s?.error ?? "oco 未配置"
-        st.command = "oco.sessions.focus"
+        st.tooltip = `${s?.error ?? "oco 未配置"}\n点击${s?.issue === "endpoint" ? "打开设置" : "查看侧栏"}`
+        st.command = s?.issue === "endpoint" ? "oco.openSettings" : "oco.sessions.focus"
         st.backgroundColor = undefined
     }
     st.show()
@@ -165,7 +166,7 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
   debugState() {
     const s = this.summary
     return {
-      connection: s ? { state: s.state, attempt: s.attempt, error: s.error, label: s.label, trusted: s.trusted } : null,
+      connection: s ? { state: s.state, attempt: s.attempt, error: s.error, issue: s.issue, label: s.label, trusted: s.trusted } : null,
       search: this.query,
       message: this.view.message ?? null,
       badge: this.view.badge?.value ?? 0,

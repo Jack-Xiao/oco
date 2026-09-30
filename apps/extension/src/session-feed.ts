@@ -36,6 +36,13 @@ class HttpError extends Error {
   }
 }
 
+/** Offline and wrong-server failures read differently from bad settings (invalid URL) and 401 (auth). */
+function describeFailure(e: unknown) {
+  if (e instanceof HttpError) return `服务返回 HTTP ${e.status}（${e.message.split(":")[0]}），地址可能不是 OpenCode 服务`
+  const m = (e as Error)?.message ?? String(e)
+  return /^事件流/.test(m) ? m : `无法连接服务（离线或地址/端口不对）：${m}`
+}
+
 /** Incremental text/event-stream parser: returns the JSON `data` payload of each complete event. */
 export class SseParser {
   private buf = ""
@@ -131,9 +138,9 @@ export class SessionFeed {
     try {
       ep = this.d.endpoint()
     } catch (e) {
-      return this.set({ state: "unconfigured", error: (e as Error).message, connectionId: null, label: "", directory: directory ?? null })
+      return this.set({ state: "unconfigured", issue: "endpoint", error: (e as Error).message, connectionId: null, label: "", directory: directory ?? null })
     }
-    if (!directory) return this.set({ state: "unconfigured", error: "需要先打开一个工作区文件夹", connectionId: ep.connectionId, label: ep.origin, directory: null })
+    if (!directory) return this.set({ state: "unconfigured", issue: "folder", error: "需要先打开一个工作区文件夹", connectionId: ep.connectionId, label: ep.origin, directory: null })
     if (this.summary.connectionId !== ep.connectionId || this.summary.directory !== directory) {
       // Another server or workspace: never show the previous one's sessions, even while connecting.
       this.d.store.applySnapshot({ sessions: [], status: {}, permissions: [], questions: [] })
@@ -141,7 +148,7 @@ export class SessionFeed {
       this.d.onChange()
     }
     const had = this.summary.lastConnectedAt !== undefined
-    this.set({ state: had ? "reconnecting" : "connecting", error: undefined, retryAt: undefined, connectionId: ep.connectionId, label: ep.origin, directory })
+    this.set({ state: had ? "reconnecting" : "connecting", issue: undefined, error: undefined, retryAt: undefined, connectionId: ep.connectionId, label: ep.origin, directory })
     this.stats.attempts++
     void this.run(token, abort, ep, directory).catch((e) => {
       if (token !== this.token) return
@@ -152,7 +159,7 @@ export class SessionFeed {
         abort.abort()
         this.abort = undefined
         this.clear()
-        return this.set({ state: "unauthorized", error: `认证失败（${ep.origin}），请执行 oco: Set Server Password`, retryAt: undefined })
+        return this.set({ state: "unauthorized", error: `认证失败（${ep.origin}）：用户名或密码不正确。请执行“oco: Set Server Password”，或在设置中检查用户名`, retryAt: undefined })
       }
       this.fail(token, e)
     })
@@ -166,7 +173,7 @@ export class SessionFeed {
     const attempt = this.summary.attempt + 1
     const base = Math.min(30000, 1000 * 2 ** Math.min(attempt - 1, 5))
     const delay = Math.round(base * (0.8 + 0.4 * (this.d.random ?? Math.random)()))
-    const msg = (e as Error)?.message ?? String(e)
+    const msg = describeFailure(e)
     this.d.log?.(`feed: attempt ${attempt} failed (${msg}); retry in ${delay} ms`)
     const had = this.summary.lastConnectedAt !== undefined
     this.set({ state: had ? "reconnecting" : "error", error: msg, attempt, retryAt: this.now() + delay })

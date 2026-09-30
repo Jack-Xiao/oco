@@ -80,7 +80,7 @@ export class Connection {
     if (directory) headers["x-opencode-directory"] = encodeURIComponent(directory)
     const res = await fetch(ep.origin + path, { method, headers, body: body ? JSON.stringify(body) : undefined, redirect: "manual" })
     this.log.info(`${method} ${path.split("?")[0]} -> ${res.status}`)
-    if (res.status === 401) throw new Error(`认证失败（${ep.origin}），请执行 oco: Set Server Password`)
+    if (res.status === 401) throw new Error(`认证失败（${ep.origin}），请执行“oco: Set Server Password”`)
     if (!res.ok) throw new Error(`${method} ${path.split("?")[0]} failed: HTTP ${res.status}`)
     const text = await res.text()
     return (text ? JSON.parse(text) : undefined) as T
