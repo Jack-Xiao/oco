@@ -1,0 +1,242 @@
+diff --git a/packages/app/src/pages/session/timeline/timeline-row.ts b/packages/app/src/pages/session/timeline/timeline-row.ts
+index 3905254..07cd38c 100644
+--- a/packages/app/src/pages/session/timeline/timeline-row.ts
++++ b/packages/app/src/pages/session/timeline/timeline-row.ts
+@@ -32,6 +32,11 @@ export namespace TimelineRow {
+     userMessageID: string
+     diffs: SummaryDiff[]
+   }> {}
++  // oco (patches/opencode/0007): stored turn diff is empty but the turn ran file-writing tools.
++  export class DiffUnavailable extends Data.TaggedClass("DiffUnavailable")<{
++    userMessageID: string
++    files: string[]
++  }> {}
+   export class Error extends Data.TaggedClass("Error")<{
+     userMessageID: string
+     text: string
+@@ -48,6 +53,7 @@ export namespace TimelineRow {
+     | AssistantPart
+     | Thinking
+     | DiffSummary
++    | DiffUnavailable
+     | Error
+     | Retry
+ 
+@@ -67,6 +73,8 @@ export namespace TimelineRow {
+         return `thinking:${row.userMessageID}`
+       case "DiffSummary":
+         return `diff-summary:${row.userMessageID}`
++      case "DiffUnavailable":
++        return `diff-unavailable:${row.userMessageID}`
+       case "Error":
+         return `error:${row.userMessageID}`
+       case "Retry":
+diff --git a/packages/app/src/pages/session/timeline/rows.ts b/packages/app/src/pages/session/timeline/rows.ts
+index 1f9472a..42ea6dc 100644
+--- a/packages/app/src/pages/session/timeline/rows.ts
++++ b/packages/app/src/pages/session/timeline/rows.ts
+@@ -3,7 +3,7 @@ import type { SessionMessageInfo } from "@opencode-ai/client/promise"
+ import { AssistantMessage, Part, SessionStatus, UserMessage } from "@opencode-ai/sdk/v2"
+ import { groupParts, renderable, type PartGroup } from "@opencode-ai/session-ui/message-part"
+ import { TimelineRow, type SummaryDiff } from "./timeline-row"
+-import { uniqueSummaryDiffs } from "./summary-diffs"
++import { turnToolFiles, uniqueSummaryDiffs } from "./summary-diffs"
+ import { compareMessages } from "@/utils/session-message"
+ 
+ export { TimelineRow, type SummaryDiff } from "./timeline-row"
+@@ -216,6 +216,14 @@ export namespace Timeline {
+       )
+     }
+ 
++    // oco (patches/opencode/0007): an empty stored turn diff proves nothing (no change, snapshots off,
++    // missing step snapshot and an unreadable snapshot blob all store []). If the turn ran file-writing
++    // tools, say the diff is unavailable and list only those files; never imply "no changes".
++    if (diffs.length === 0 && (status === "idle" || !isActive)) {
++      const files = turnToolFiles(assistantMessages.flatMap((message) => getMessageParts(message.id)))
++      if (files.length > 0) rows.push(new TimelineRow.DiffUnavailable({ userMessageID: userMessage.id, files }))
++    }
++
+     if (error) {
+       const data = error.data?.message
+       rows.push(
+diff --git a/packages/app/src/pages/session/timeline/summary-diffs.ts b/packages/app/src/pages/session/timeline/summary-diffs.ts
+index 2df37af..8e0fe74 100644
+--- a/packages/app/src/pages/session/timeline/summary-diffs.ts
++++ b/packages/app/src/pages/session/timeline/summary-diffs.ts
+@@ -1,4 +1,4 @@
+-import type { SnapshotFileDiff } from "@opencode-ai/sdk/v2"
++import type { Part, SnapshotFileDiff } from "@opencode-ai/sdk/v2"
+ import type { SummaryDiff } from "./timeline-row"
+ 
+ export function uniqueSummaryDiffs(diffs: SnapshotFileDiff[] | undefined) {
+@@ -18,3 +18,22 @@ export function uniqueSummaryDiffs(diffs: SnapshotFileDiff[] | undefined) {
+ function isSummaryDiff(diff: SnapshotFileDiff): diff is SummaryDiff {
+   return typeof diff.file === "string"
+ }
++
++// oco (patches/opencode/0007): files named by this turn's completed file-writing tools. Used only to
++// list files when the stored turn diff is empty; it is not a diff and carries no before/after content.
++export function turnToolFiles(parts: Part[]) {
++  const files = new Set<string>()
++  for (const part of parts) {
++    if (part.type !== "tool" || part.state.status !== "completed") continue
++    const input = part.state.input as { filePath?: unknown }
++    if ((part.tool === "edit" || part.tool === "write") && typeof input.filePath === "string") files.add(input.filePath)
++    if (part.tool === "apply_patch") {
++      const changed = (part.state.metadata as { files?: { filePath?: unknown; relativePath?: unknown }[] } | undefined)?.files
++      for (const f of changed ?? []) {
++        const file = typeof f.relativePath === "string" ? f.relativePath : f.filePath
++        if (typeof file === "string") files.add(file)
++      }
++    }
++  }
++  return [...files]
++}
+diff --git a/packages/app/src/pages/session/timeline/summary-diffs.test.ts b/packages/app/src/pages/session/timeline/summary-diffs.test.ts
+index 9b66bf6..363e9b7 100644
+--- a/packages/app/src/pages/session/timeline/summary-diffs.test.ts
++++ b/packages/app/src/pages/session/timeline/summary-diffs.test.ts
+@@ -1,6 +1,6 @@
+ import { describe, expect, test } from "bun:test"
+ import type { SnapshotFileDiff } from "@opencode-ai/sdk/v2"
+-import { uniqueSummaryDiffs } from "./summary-diffs"
++import { turnToolFiles, uniqueSummaryDiffs } from "./summary-diffs"
+ 
+ const diff = (file: string, additions: number) =>
+   ({
+@@ -40,3 +40,25 @@ describe("uniqueSummaryDiffs", () => {
+     expect(result[2]).toBe(newBeta)
+   })
+ })
++
++// oco (patches/opencode/0007)
++describe("turnToolFiles", () => {
++  const tool = (tool: string, status: string, input: object, metadata?: object) =>
++    ({ type: "tool", tool, state: { status, input, metadata } }) as any
++  test("lists completed edit/write/apply_patch files once, ignores others", () => {
++    expect(
++      turnToolFiles([
++        tool("edit", "completed", { filePath: "/w/a.ts" }),
++        tool("write", "completed", { filePath: "/w/b.ts" }),
++        tool("edit", "completed", { filePath: "/w/a.ts" }),
++        tool("apply_patch", "completed", {}, { files: [{ filePath: "/w/c.ts", relativePath: "c.ts" }] }),
++        tool("edit", "error", { filePath: "/w/failed.ts" }),
++        tool("read", "completed", { filePath: "/w/read.ts" }),
++        { type: "text", text: "x" } as any,
++      ]),
++    ).toEqual(["/w/a.ts", "/w/b.ts", "c.ts"])
++  })
++  test("empty when no file-writing tool ran", () => {
++    expect(turnToolFiles([tool("read", "completed", { filePath: "/w/a.ts" })])).toEqual([])
++  })
++})
+diff --git a/packages/app/src/pages/session/timeline/message-timeline.tsx b/packages/app/src/pages/session/timeline/message-timeline.tsx
+index c68d847..23ae2fa 100644
+--- a/packages/app/src/pages/session/timeline/message-timeline.tsx
++++ b/packages/app/src/pages/session/timeline/message-timeline.tsx
+@@ -176,6 +176,12 @@ function TimelineDiffSummaryRow(props: { diffs: SummaryDiff[] }) {
+           {language.plural("ui.sessionTurn.diffs.changed", props.diffs.length)}
+         </span>
+         <DiffChanges changes={props.diffs} />
++        {/* oco (patches/opencode/0007): this is the turn's snapshot window, not an authorship claim. */}
++        <Show when={platform.embedded}>
++          <span data-slot="oco-turn-diff-scope" class="text-12-regular text-text-weak">
++            本轮工作区变化（含期间外部修改）
++          </span>
++        </Show>
+         <Show when={overflow() > 0}>
+           <span data-slot="session-turn-diffs-toggle" onClick={() => setState("showAll", !showAll())}>
+             {showAll() ? language.t("ui.sessionTurn.diffs.showLess") : language.t("ui.sessionTurn.diffs.showAll")}
+@@ -240,6 +246,29 @@ function TimelineDiffSummaryRow(props: { diffs: SummaryDiff[] }) {
+   )
+ }
+ 
++// oco (patches/opencode/0007): the stored turn diff is empty but tools wrote files. Without a reliable
++// before/after pair only the file names are shown; clicking one opens it in the host like the diff row.
++function TimelineDiffUnavailableRow(props: { files: string[] }) {
++  const platform = usePlatform()
++  return (
++    <div data-slot="oco-turn-diff-unavailable" class="flex flex-col gap-1 text-12-regular text-text-weak">
++      <span>本轮 Diff 不可用（快照缺失或读取失败）。以下文件由本轮工具写入，未显示前后内容：</span>
++      <For each={props.files}>
++        {(file) => (
++          <span
++            data-oco-open-file={platform.embedded && platform.openFileInHost ? file : undefined}
++            class="text-text-strong"
++            classList={{ "cursor-pointer hover:underline": !!(platform.embedded && platform.openFileInHost) }}
++            onClick={() => platform.embedded && platform.openFileInHost?.(file)}
++          >
++            {file}
++          </span>
++        )}
++      </For>
++    </div>
++  )
++}
++
+ function TimelineDiffView(props: { diff: SummaryDiff }) {
+   const fileComponent = useFileComponent()
+   const view = normalize(props.diff)
+@@ -1227,6 +1256,16 @@ export function MessageTimeline(props: {
+           </TimelineRowFrame>
+         )
+       }
++      case "DiffUnavailable": {
++        const unavailableRow = row as Accessor<TimelineRowByTag<"DiffUnavailable">>
++        return (
++          <TimelineRowFrame row={unavailableRow}>
++            <div data-slot="session-turn-message-container" class="w-full px-4 md:px-5">
++              <TimelineDiffUnavailableRow files={unavailableRow().files} />
++            </div>
++          </TimelineRowFrame>
++        )
++      }
+       case "Error": {
+         const errorRow = row as Accessor<TimelineRowByTag<"Error">>
+         return (
+diff --git a/packages/app/src/pages/session/timeline/rows-oco-diff.test.ts b/packages/app/src/pages/session/timeline/rows-oco-diff.test.ts
+new file mode 100644
+index 0000000..0a241f0
+--- /dev/null
++++ b/packages/app/src/pages/session/timeline/rows-oco-diff.test.ts
+@@ -0,0 +1,40 @@
++// oco (patches/opencode/0007): turn diff row selection.
++import { describe, expect, mock, test } from "bun:test"
++
++mock.module("@opencode-ai/session-ui/message-part", () => ({
++  groupParts: () => [],
++  renderable: () => false,
++}))
++
++const { Timeline } = await import("./rows")
++
++const user = (diffs?: unknown[]) => ({ id: "u1", role: "user", sessionID: "s", time: { created: 1 }, summary: diffs ? { diffs } : undefined }) as any
++const assistant = { id: "a1", role: "assistant", sessionID: "s", parentID: "u1", time: { created: 2 } } as any
++const edit = { type: "tool", tool: "edit", state: { status: "completed", input: { filePath: "/w/a.ts" } } }
++const tags = (diffs: unknown[] | undefined, parts: unknown[], status = "idle") =>
++  Timeline.constructMessageRows(user(diffs), (id) => (id === "a1" ? (parts as any) : []), [assistant], 0, false, status as any, true, false)
++    .map((row) => row._tag)
++
++describe("oco turn diff rows", () => {
++  test("non-empty stored diff renders DiffSummary only", () => {
++    const t = tags([{ file: "a.ts", patch: "", additions: 1, deletions: 0, status: "modified" }], [edit])
++    expect(t).toContain("DiffSummary")
++    expect(t).not.toContain("DiffUnavailable")
++  })
++  test("empty stored diff with a file-writing tool renders DiffUnavailable", () => {
++    for (const diffs of [[], undefined]) {
++      const rows = Timeline.constructMessageRows(user(diffs), () => [edit] as any, [assistant], 0, false, "idle", true, false)
++      const row = rows.find((r) => r._tag === "DiffUnavailable") as any
++      expect(row?.files).toEqual(["/w/a.ts"])
++      expect(rows.some((r) => r._tag === "DiffSummary")).toBe(false)
++    }
++  })
++  test("empty stored diff without file-writing tools renders neither", () => {
++    const t = tags([], [])
++    expect(t).not.toContain("DiffUnavailable")
++    expect(t).not.toContain("DiffSummary")
++  })
++  test("no unavailable row while the active turn is still busy", () => {
++    expect(tags([], [edit], "busy")).not.toContain("DiffUnavailable")
++  })
++})

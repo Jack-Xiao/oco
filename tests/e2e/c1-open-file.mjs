@@ -8,7 +8,7 @@
 //   position-parse      `math.ts:2` / `math.ts#L3` (no separate line) open math.ts at that line (host splitPosition).
 //   markdown-path       inline code `math.ts:4` in an assistant reply is clickable and opens math.ts at Ln 4;
 //                       non-path inline code is not intercepted (patches/opencode/0006).
-//   diff-summary        after a write, the turn's Diff summary row: clicking the file name opens the file;
+//   diff-summary        after a write, the turn's Diff summary row shows its scope label (0007); clicking the file name opens the file;
 //                       clicking the chevron only expands the inline diff and opens nothing (0006).
 import fs from "node:fs"
 import path from "node:path"
@@ -250,7 +250,11 @@ try {
     }, 10000, 200)
     await runShot(page, run, "diff-summary")
     const ps = await panelStats(p.sid)
-    run.record("diff-summary", found && st && expanded && chevronOpened === 0 && ps?.panel.fileOpens === 1 ? "PASS" : "FAIL", {
+    // patches/opencode/0007: the turn diff row states its scope (snapshot window, not authorship).
+    const scope = await p.f.locator('[data-slot="oco-turn-diff-scope"]').first().textContent({ timeout: 3000 }).catch(() => null)
+    const scoped = !!scope?.includes("本轮工作区变化")
+    run.record("diff-summary", found && st && expanded && chevronOpened === 0 && ps?.panel.fileOpens === 1 && scoped ? "PASS" : "FAIL", {
+      scope,
       permissionAsked: asked,
       found,
       file,
