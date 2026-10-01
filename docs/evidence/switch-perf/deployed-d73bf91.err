@@ -1,0 +1,30 @@
+10:25:07 status " SSH: gcp-workstation 0 0 0 oco 启动服务中" 12068 ms
+10:25:13 sidebar rows 22
+10:25:17 r0 #0 Fork功能测试 (fork #2)           done  2037 ms  shown  1998  reload no   blank 2  first
+10:25:20 r0 #1 轻松打招呼 (fork #1)              done   973 ms  shown   941  reload no   blank 0  first
+10:25:23 r0 #2 Fork功能测试 (fork #1)           done   632 ms  shown   621  reload no   blank 0  first
+10:25:25 r0 #3 Fork功能测试                     done   450 ms  shown   421  reload no   blank 0  first
+10:25:27 r0 #4 今日的心情 (fork #2)              done   543 ms  shown   502  reload no   blank 0  first
+10:25:29 r0 #5 今日的心情 (fork #1)              done   432 ms  shown   408  reload no   blank 0  first
+10:25:32 r0 #6 今日的心情                        done   471 ms  shown   424  reload no   blank 0  first
+10:25:34 r0 #7 轻松打招呼 (fork #1)              done   464 ms  shown   432  reload no   blank 0  first
+10:25:36 r0 #8 轻松打招呼                        done   425 ms  shown   415  reload no   blank 0  first
+10:25:39 r0 #9 今日测试记录                       done   409 ms  shown   403  reload no   blank 0  first
+10:25:41 r0 #10 ceshi                        done   396 ms  shown   392  reload no   blank 0  first
+10:25:43 r0 #11 ttttt                        done   234 ms  shown   220  reload no   blank 0  first
+10:25:45 r0 #12 vvvvv                        done   420 ms  shown   386  reload no   blank 0  first
+10:25:47 r0 #13 每秒输出数字持续30秒                  done   571 ms  shown   528  reload no   blank 0  first
+10:25:50 r1 #0 Fork功能测试 (fork #2)           done   243 ms  shown   237  reload no   blank 0  revisit
+10:25:52 r1 #1 轻松打招呼 (fork #1)              done   206 ms  shown   198  reload no   blank 0  revisit
+10:25:54 r1 #2 Fork功能测试 (fork #1)           done   251 ms  shown   200  reload no   blank 0  revisit
+10:25:56 r1 #3 Fork功能测试                     done   214 ms  shown   209  reload no   blank 0  revisit
+10:25:58 r1 #4 今日的心情 (fork #2)              done   205 ms  shown   199  reload no   blank 0  revisit
+10:26:00 r1 #5 今日的心情 (fork #1)              done   211 ms  shown   206  reload no   blank 0  revisit
+10:26:02 r1 #6 今日的心情                        done   196 ms  shown   186  reload no   blank 0  revisit
+10:26:04 r1 #7 轻松打招呼 (fork #1)              done   208 ms  shown   204  reload no   blank 0  revisit
+10:26:06 r1 #8 轻松打招呼                        done   273 ms  shown   209  reload no   blank 0  revisit
+10:26:08 r1 #9 今日测试记录                       done   206 ms  shown   191  reload no   blank 0  revisit
+10:26:10 r1 #10 ceshi                        done   207 ms  shown   190  reload no   blank 0  revisit
+10:26:12 r1 #11 ttttt                        done   263 ms  shown   248  reload no   blank 0  revisit
+10:26:14 r1 #12 vvvvv                        done   199 ms  shown   189  reload no   blank 0  revisit
+10:26:16 r1 #13 每秒输出数字持续30秒                  done   294 ms  shown   261  reload no   blank 0  revisit

@@ -62,10 +62,15 @@
   - `switch-uncached-no-blank`：只扣 3 s 会话信息（模拟 Remote：消息先回）的会话 D1，要求 D1 在信息到达前上屏且没有空白帧。**限制**：本机上游代码（撤掉 0015 的目录记忆）也通过（D1 在 55 ms 上屏、无空白帧）。在本机没能复现“整页卸载”的条件，原因未查明（时间盒用完）。所以此项只是回归防护，消除黑屏的证据是上面的 Remote 数据。
 - 全量 E2E（mock，21 套件）：18 个 exit 0；`p1b-sidebar`（改名、搜索）和 `t007-multiroot`（new-session-in-folder）失败，单独重跑均通过；`t013-agents` 的 `duplicate-preserves-bytes` 失败，为已记录的环境问题（`.oco-test` 是链接目录）。`OCO_BRIDGE_GZIP=1` 下 `p1a-identity` 14/14、`p1a-chat` 8/8。
 
+## 合入与部署后复验
+
+- 合入与部署：原补丁号 0014 与 main 上另一批次的 0014（轨迹）重号，改为 0015，rebase 到 main 后提交 `d73bf91` 并快进合入 main。集成后 `verify:brief --build` PASS（typecheck 0 错误、unit 168/168、build）；E2E（mock）`p1b-main-panel` 8/8、`c4-trajectory` 14/14；补丁 0001–0015 在固定 SHA 上重放与 vendor 树一致。`oco-0.0.1-d73bf91.vsix` 部署 gcp-workstation，远端 `extension.js` 哈希一致（`7aaf9981…`）。
+- Remote 复验（已安装扩展，探针 `deployed-d73bf91`，14 个会话 × 2 轮）：首访空白帧 0/12；首开后第一次切换 941 ms；其余首访中位 415 / 最大 621 ms；回访中位 200 ms；页面收到的 `/provider` 为 556 KB（原 6.56 MB）。用户已打开的 Remote 窗口需 Reload Window 后才加载新代码。与修复前已装版本（`ab-base2`–`ab-base4`：每组 9/12，首开后第一次切换 5.7–6.3 s）对照。
+
 ## 限制与未解决
 
 - 大会话：新会话数据到达前，屏上保留的是上一个会话的内容（上游 transition 行为），没有加载提示。472 KB 的会话在快隧道下约 0.5 s。
 - 首开后约 1.5 s 内的第一次点击，仍要等服务端算完一次 `/provider`（1.2–1.4 s）。缓存 `/provider` 结果曾导致 `p1a-identity` 失败（见 [首开提速证据](first-open-perf.md)），这次没有再做。
 - 首开仍有健康检查一个往返；窗口内第一次加载静态资源（约 4.5 MB）仍要经过隧道。
 - 跨目录切换仍会重载文档（工作站上只有一个会话在 `/home/user`）。
-- NOT RUN：真实模型 E2E；慢隧道状态下的交替对比；用户已安装扩展上的复验（未部署）。
+- NOT RUN：真实模型 E2E；慢隧道状态下的交替对比。已安装扩展上的复验见上节。
