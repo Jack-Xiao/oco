@@ -2,7 +2,7 @@
   "name": "oco",
   "displayName": "oco (OpenCode for VS Code)",
   "description": "OpenCode v1 sessions in the VS Code sidebar and editor tabs (attached server).",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "oco-local-test",
   "icon": "media/icon.png",
   "private": true,
@@ -227,7 +227,7 @@
       "activitybar": [
         {
           "id": "oco",
-          "title": "OpenCode",
+          "title": "oco",
           "icon": "media/icon.svg"
         }
       ]
@@ -237,12 +237,12 @@
         {
           "id": "oco.sessions",
           "name": "Sessions",
-          "contextualTitle": "OpenCode"
+          "contextualTitle": "oco"
         },
         {
           "id": "oco.connection",
           "name": "Connection",
-          "contextualTitle": "OpenCode",
+          "contextualTitle": "oco",
           "visibility": "collapsed"
         }
       ]

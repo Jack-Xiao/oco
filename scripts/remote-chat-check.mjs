@@ -47,11 +47,11 @@ try {
   const shot = (n) => page.screenshot({ path: path.join(shots, `${n}.png`) })
   const t0 = Date.now()
   while (Date.now() - t0 < 300000) {
-    if (/\$?\(?plug|oco/.test(await page.locator(".part.statusbar").innerText().catch(() => "")) && (await page.locator('.activitybar [aria-label^="OpenCode"]').count())) break
+    if (/\$?\(?plug|oco/.test(await page.locator(".part.statusbar").innerText().catch(() => "")) && (await page.locator('.activitybar [aria-label^="oco"]').count())) break
     await sleep(2000)
   }
   summary.connectSeconds = Math.round((Date.now() - t0) / 1000)
-  await page.locator('.activitybar [aria-label^="OpenCode"]').first().click()
+  await page.locator('.activitybar [aria-label^="oco"]').first().click()
   await sleep(3000)
   // Never type into an existing (real) session: the new frame must show a session that did not exist before.
   const before = new Set((remote("GET", `/session?directory=${encodeURIComponent(FOLDER)}&limit=1000`) ?? []).map((s) => s.id))

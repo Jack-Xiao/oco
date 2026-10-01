@@ -109,7 +109,7 @@ export class PanelRegistry {
       return main
     }
     const role: PanelRole = main ? "pinned" : "main"
-    const panel = vscode.window.createWebviewPanel(VIEW_TYPE, title ?? "OpenCode", { viewColumn: column, preserveFocus: !focus }, {
+    const panel = vscode.window.createWebviewPanel(VIEW_TYPE, title ?? "oco", { viewColumn: column, preserveFocus: !focus }, {
       enableScripts: true,
       // Keep the app alive while its tab is hidden: a destroyed document means a full cold boot (bundle,
       // bridge handshake, session sync) on every tab switch. Memory is bounded by the few open panels.
@@ -190,7 +190,7 @@ export class PanelRegistry {
     // A restored second "main" (e.g. two main panels from an older layout) becomes pinned.
     if (role === "main" && this.main) role = "pinned"
     const panelId = crypto.randomUUID()
-    panel.title = title ?? panel.title ?? "OpenCode"
+    panel.title = title ?? panel.title ?? "oco"
     panel.iconPath = vscode.Uri.joinPath(this.context.extensionUri, "media", "icon.svg")
     const entry = {
       panelId,
