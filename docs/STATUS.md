@@ -15,7 +15,7 @@
 - 检查：先写用例，未修复时 `c4-trajectory` 新项 `subagent-link` FAIL（`openExternal` 收到 https 网址），修复后英文 15/15、中文 15/15；回归 `p1a-identity` 14/14、`p1b-main-panel` 8/8（mock，独立服务 4547）。上游 app `tsgo -b` exit 0；`verify:brief` typecheck 0 错误、unit 168/168；补丁 0001–0016 在固定 SHA 上重放一致。
 - 限制：失败的子智能体卡片副标题不再是链接（无法从失败卡片跳转）；轨迹里的子智能体行仍不跳转。NOT RUN：真实模型。证据见 [subagent-link-0016](evidence/subagent-link-0016.md)。
 - 合入与部署：快进合入 main（`37f2634`）；主检出 `vendor/opencode` 补应用 0015、0016，与 0001–0016 重放结果一致。`oco-0.0.1-37f2634.vsix` 部署 gcp-workstation：extension.js 哈希一致（`7aaf9981…`，本批未改宿主），webview 538 个 JS 文件摘要与本地包一致。需在 Remote 窗口 Reload Window。Remote 上的点击 NOT RUN。
-- 追加（点击后的长条焦点框）：VS Code 的 webview 默认样式给获得焦点的 `<a>` 画 1px 外框，卡片触发元素是整行宽的 `<a>`，点击就出现长条框；撤掉 0016 的构建上同样存在，不是 0016 引入的，之前被跳浏览器掩盖。`apps/chat-webview/index.html` 加一层样式让 `a:focus` 回到浏览器默认（只在键盘焦点显示，应用样式优先）。`c4-trajectory` 15/15（`subagent-link` 新增点击外框为 `none`）、`p1a-chat` 8/8、`c1-open-file` 6/6。
+- 追加（点击后的长条焦点框）：VS Code 的 webview 默认样式给获得焦点的 `<a>` 画 1px 外框，卡片触发元素是整行宽的 `<a>`，点击就出现长条框；撤掉 0016 的构建上同样存在，不是 0016 引入的，之前被跳浏览器掩盖。`apps/chat-webview/index.html` 加一层样式让 `a:focus` 回到浏览器默认（只在键盘焦点显示，应用样式优先）。`c4-trajectory` 15/15（`subagent-link` 新增点击外框为 `none`）、`p1a-chat` 8/8、`c1-open-file` 6/6。提交 `7809eea`，快进合入 main；`oco-0.0.1-7809eea.vsix` 部署 gcp-workstation，远端 `index.html` 与包一致（extension.js 未变，`7aaf9981…`）；需 Reload Window，Remote 上的点击 NOT RUN。
 
 ## 会话切换黑屏与首开提速（补丁 0015，提交 `d73bf91`，2026-10-01；已快进合入 main 并部署 gcp-workstation；本地，未推送）
 
