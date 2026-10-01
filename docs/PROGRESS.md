@@ -325,3 +325,4 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 本 worktree 的 `.oco-test` 链接到主检出 `.oco-test/wt-sublink`（避开 IPC socket 路径长度限制）。`scripts/setup.sh` 重置 vendor 时只还原已跟踪文件，补丁新增的文件残留会让 0012–0014 应用失败；本批手动 `git clean` 后重放，脚本未改。
 - 检查与结果见 [subagent-link-0016](evidence/subagent-link-0016.md)。NOT RUN：真实模型。
 - 追加（提交与部署）：提交 `37f2634` 快进合入 main；主检出 vendor 补应用 0015、0016（此前停在 0014）。`oco-0.0.1-37f2634.vsix` 部署 gcp-workstation，extension.js 与 webview 产物哈希均与本地一致。Remote 上的点击 NOT RUN。
+- 追加（点击后的长条焦点框）：用户反馈点卡片出现整行长条框。来源是 VS Code webview 默认样式的 `a:focus` 外框，0016 之前就有（探针在撤掉 0016 的构建上复现），被跳浏览器掩盖。`apps/chat-webview/index.html` 加 `@layer oco-webview` 让 `a:focus` 回到浏览器默认；`subagent-link` 增加点击外框检查。c4-trajectory 15/15、p1a-chat 8/8、c1-open-file 6/6。

@@ -13,8 +13,8 @@
 //   switch-resets      switching sessions in the main panel returns to 对话
 //   tools-tab          the system row's 工具 tab lists the server's tools for the session model; a tool expands
 //   narrow-detail      in a ~480 px panel the detail covers the list, nothing scrolls sideways, ✕ closes it
-//   subagent-link      the chat view's subagent card is not an <a href>; a click opens the child session in the panel,
-//                      its parent title returns to A, and nothing is opened outside VS Code (patch 0016)
+//   subagent-link      the chat view's subagent card is not an <a href> and a click draws no focus box; it opens the
+//                      child session in the panel, its parent title returns to A, nothing opens outside VS Code (0016)
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, fitGroups } from "./vscode.mjs"
@@ -388,7 +388,14 @@ try {
     globalThis.__ocoOpened = []
     shell.openExternal = async (url) => void globalThis.__ocoOpened.push(String(url))
   })
+  // VS Code's default webview styles outline every focused <a>: a click boxed the full-width row. Read the outline
+  // when the click focuses it (the panel switches right after).
+  await card.evaluate((el) => {
+    const a = el.closest("a")
+    a.addEventListener("focus", () => (window.__ocoCardOutline = getComputedStyle(a).outlineStyle), { once: true })
+  })
   await card.click()
+  link.clickOutline = await fA.evaluate(() => window.__ocoCardOutline ?? null).catch(() => null)
   link.switched = await waitUntil(async () => {
     for (const f of await chatFrames(page)) if ((await frameSession(f).catch(() => null)) === child) return true
     return false
@@ -402,7 +409,9 @@ try {
   link.opened = await app.evaluate(() => globalThis.__ocoOpened)
   run.record(
     "subagent-link",
-    !!child && link.href === null && link.role === "button" && link.switched && link.back && link.opened.length === 0 ? "PASS" : "FAIL",
+    !!child && link.href === null && link.role === "button" && link.clickOutline === "none" && link.switched && link.back && link.opened.length === 0
+      ? "PASS"
+      : "FAIL",
     link,
   )
 } catch (e) {

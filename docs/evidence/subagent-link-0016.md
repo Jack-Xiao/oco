@@ -28,3 +28,12 @@
 - 上游 app `tsgo -b` exit 0；`verify:brief` typecheck 0 错误、unit 168/168。
 - E2E（mock，独立测试服务 4547/4548）：`c4-trajectory` 英文 15/15、中文（`OCO_E2E_LOCALE=zh-cn`）15/15；回归 `p1a-identity` 14/14、`p1b-main-panel` 8/8。
 - NOT RUN：真实模型下的子智能体、失败子智能体卡片。
+
+## 追加：点击后的长条焦点框（2026-10-01）
+
+- 用户反馈：点子智能体卡片时出现一个整行宽的浅蓝色长条框，OpenCode web 没有。
+- 原因：VS Code 给 webview 注入默认样式（`@layer vscode-default`，插在 `<head>` 最前），其中 `a:focus { outline: 1px solid -webkit-focus-ring-color; outline-offset: -1px }`。卡片的触发元素是整行宽的 `<a>`（730 px，卡片本身 238 px），鼠标点击获得焦点就画框。浏览器里只有 `:focus-visible` 才画，上游对这个触发元素的 `:focus-visible` 用背景高亮代替外框。
+- 不是 0016 引入的：探针在撤掉 0016（仍是 `<a href>`）的构建上点击，同样是 `solid 1px rgb(153, 200, 255)`、宽 730 px。之前点击同时会跳到浏览器，框被掩盖。
+- 修复：`apps/chat-webview/index.html` 在 `<head>` 里加 `@layer oco-webview { a:focus { outline: revert; outline-offset: revert } }`。这个层排在 VS Code 默认层之后、应用样式（Vite 追加在 head 末尾）之前：盖过 VS Code 的默认外框，应用自己的焦点样式仍然优先，结果与浏览器一致。
+- 检查：探针（修复后）点击时 outline `none`；键盘聚焦 `:focus-visible` 为 true，outline 为 `none`，由上游背景高亮表示焦点，与 web 一致。`c4-trajectory` 的 `subagent-link` 增加 `clickOutline === "none"`：修复前探针为 `solid`，修复后 15/15；回归 `p1a-chat` 8/8、`c1-open-file` 6/6（mock，独立服务 4547）。
+- 未改：VS Code 默认样式里 `input/select/textarea:focus` 的外框（未见问题）。

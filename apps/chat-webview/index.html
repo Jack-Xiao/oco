@@ -4,6 +4,18 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>oco</title>
+    <style>
+      /* VS Code's default webview styles (@layer vscode-default, put first in <head>) outline every focused <a>, so a
+         mouse click on a link-like row (the subagent card) boxes the whole row. Give anchors the browser's own focus
+         ring back, as in the OpenCode web app: keyboard focus only. This layer sits between VS Code's and the app's
+         (Vite appends the app stylesheet after it), so the app's own focus styles still win. */
+      @layer oco-webview {
+        a:focus {
+          outline: revert;
+          outline-offset: revert;
+        }
+      }
+    </style>
     <script id="oc-theme-preload-script" src="/oc-theme-preload.js"></script>
   </head>
   <body class="antialiased overscroll-none text-12-regular overflow-hidden bg-v2-background-bg-deep">
