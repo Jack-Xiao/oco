@@ -17,3 +17,4 @@ docs/evidence/p0-artifacts/*.png
 docs/evidence/runs/*
 !docs/evidence/runs/README.md
 .oco-reports/
+.vscode/
