@@ -30,8 +30,9 @@
 
 ## 5. 对话 / 轨迹（补丁 0012）
 
-- [DONE] 第 1 阶段只读轨迹（未提交、未部署），见 [c4-trajectory](evidence/c4-trajectory.md)。
-- [TODO] 用户确认后提交；`scripts/package-vsix.sh` + `scripts/deploy-remote.sh` 部署 gcp-workstation，Remote 上看一次长会话。
+- [DONE] 第 1 阶段只读轨迹，提交 `3979333`、`09ce32a`（分支，未合入 main），已部署 gcp-workstation 并在 Remote 只读查看，见 [c4-trajectory](evidence/c4-trajectory.md)。
+- [TODO] 合入 main（之后的部署以 main 为准，否则会丢掉本功能）。
+- [TODO] 数千行长会话的滚动与内存（工作站上最长只有 12 次请求）。
 - [TODO] 第 2 阶段（按需）：子代理会话嵌套查看；订阅模型按 API 价目估算费用（标“估算”）；长会话列表虚拟化。
 - [不做，除非用户另行决定] 记录实际系统提示词/原始请求：需往 OpenCode 加插件（experimental 钩子），只能在托管模式注入。
 
