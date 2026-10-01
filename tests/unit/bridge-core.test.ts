@@ -139,3 +139,98 @@ describe("bridge request lifecycle across remounts", () => {
     expect(h.core.stats.rejectedMessages).toBe(3)
   })
 })
+
+describe("bridge prefetch", () => {
+  function setup(status: number) {
+    const posted: HostToWebview[] = []
+    const calls: string[] = []
+    const policy = new BridgePolicy(
+      { directory: "/w", sessionId: "ses_A" },
+      { sessionParent: async () => ({ exists: false }), permissionSession: async () => undefined, questionSession: async () => undefined },
+      () => true,
+    )
+    const core = new BridgeCore({
+      post: (m) => posted.push(m),
+      fetch: (async (url: string) => {
+        calls.push(url)
+        return new Response(JSON.stringify({ n: calls.length }), { status, headers: { "content-type": "application/json" } })
+      }) as unknown as typeof fetch,
+      baseUrl: () => "http://127.0.0.1:1",
+      auth: async () => ({}),
+      policy,
+      store: { op: async () => ({}), putBlob: async () => "b", getBlob: async () => null },
+      log: { info() {}, warn() {} },
+      onUi() {},
+    })
+    core.handle({ v: PROTOCOL_VERSION, gen: 0, type: "hello", docId: "d" })
+    const get = async (id: string, path: string) => {
+      core.handle({ v: PROTOCOL_VERSION, gen: core.generation, type: "fetch.request", id, url: `${BRIDGE_ORIGIN}${path}`, method: "GET", headers: [] })
+      for (let i = 0; i < 100 && !posted.some((m) => m.type === "fetch.end" && m.id === id); i++) await new Promise((r) => setTimeout(r, 5))
+      const chunks = posted.filter((m) => m.type === "fetch.chunk" && m.id === id).map((m) => (m as Extract<HostToWebview, { type: "fetch.chunk" }>).data)
+      return new Response(new Blob(chunks as BlobPart[])).text()
+    }
+    return { core, calls, get }
+  }
+
+  test("the first matching page request takes the prefetched response; later ones go to the server", async () => {
+    const { core, calls, get } = setup(200)
+    core.prefetch(["/provider", "/provider?directory=%2Fw"])
+    expect(await get("1", "/provider?directory=%2Fw")).toBe(JSON.stringify({ n: 2 }))
+    expect(await get("2", "/provider")).toBe(JSON.stringify({ n: 1 }))
+    expect(calls.length).toBe(2)
+    expect(core.stats.prefetchHits).toBe(2)
+    expect(await get("3", "/provider")).toBe(JSON.stringify({ n: 3 }))
+    expect(calls.length).toBe(3)
+  })
+
+  test("a non-200 prefetch is not served: the page request is sent normally", async () => {
+    const { core, calls, get } = setup(500)
+    core.prefetch(["/provider"])
+    await get("1", "/provider")
+    expect(calls.length).toBe(2)
+    expect(core.stats.prefetchHits).toBe(0)
+  })
+})
+
+describe("bridge compression", () => {
+  async function run(compress: boolean, body: string, contentType = "application/json") {
+    const posted: HostToWebview[] = []
+    const core = new BridgeCore({
+      post: (m) => posted.push(m),
+      fetch: (async () =>
+        new Response(body, { status: 200, headers: { "content-type": contentType, "content-length": String(Buffer.byteLength(body)) } })) as unknown as typeof fetch,
+      baseUrl: () => "http://127.0.0.1:1",
+      auth: async () => ({}),
+      policy: new BridgePolicy(
+        { directory: "/w", sessionId: "ses_A" },
+        { sessionParent: async () => ({ exists: false }), permissionSession: async () => undefined, questionSession: async () => undefined },
+        () => true,
+      ),
+      store: { op: async () => ({}), putBlob: async () => "b", getBlob: async () => null },
+      log: { info() {}, warn() {} },
+      onUi() {},
+      compress,
+    })
+    core.handle({ v: PROTOCOL_VERSION, gen: 0, type: "hello", docId: "d" })
+    core.handle({ v: PROTOCOL_VERSION, gen: core.generation, type: "fetch.request", id: "1", url: `${BRIDGE_ORIGIN}/provider`, method: "GET", headers: [] })
+    for (let i = 0; i < 200 && !posted.some((m) => m.type === "fetch.end"); i++) await new Promise((r) => setTimeout(r, 5))
+    const head = posted.find((m) => m.type === "fetch.head") as Extract<HostToWebview, { type: "fetch.head" }>
+    const chunks = posted.filter((m) => m.type === "fetch.chunk").map((m) => (m as Extract<HostToWebview, { type: "fetch.chunk" }>).data)
+    let stream = new Response(new Blob(chunks as BlobPart[])).body!
+    if (head.encoding === "gzip") stream = stream.pipeThrough(new DecompressionStream("gzip"))
+    return { head, bytes: chunks.reduce((n, c) => n + c.byteLength, 0), text: await new Response(stream).text() }
+  }
+  const big = JSON.stringify({ all: Array.from({ length: 20000 }, (_, i) => ({ id: `model-${i}`, name: "Model" })) })
+
+  test("a large JSON body is sent gzipped and the page gets the same bytes back", async () => {
+    const r = await run(true, big)
+    expect(r.head.encoding).toBe("gzip")
+    expect(r.head.headers.some(([k]) => k === "content-length")).toBe(false)
+    expect(r.bytes).toBeLessThan(big.length / 5)
+    expect(r.text).toBe(big)
+  })
+
+  test("small bodies, non-JSON bodies and local panels are sent as is", async () => {
+    for (const r of [await run(true, '{"a":1}'), await run(true, big, "text/plain"), await run(false, big)]) expect(r.head.encoding).toBeUndefined()
+  })
+})

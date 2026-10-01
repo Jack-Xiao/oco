@@ -78,7 +78,8 @@ export type WebviewToHost = Hello | FetchRequest | FetchAbort | StoreOp | BlobOp
 
 // host -> webview
 export type Welcome = Envelope<"welcome", { docId: string }>
-export type FetchHead = Envelope<"fetch.head", { id: string; status: number; statusText: string; headers: [string, string][] }>
+/** `encoding: "gzip"`: the chunks are the gzip of the body (large responses over Remote; the page decompresses). */
+export type FetchHead = Envelope<"fetch.head", { id: string; status: number; statusText: string; headers: [string, string][]; encoding?: "gzip" }>
 export type FetchChunk = Envelope<"fetch.chunk", { id: string; data: Uint8Array }>
 export type FetchEnd = Envelope<"fetch.end", { id: string }>
 export type FetchError = Envelope<"fetch.error", { id: string; message: string; aborted?: boolean; status?: number }>

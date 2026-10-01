@@ -100,18 +100,26 @@ reg = json.load(open(os.path.expanduser("~/.vscode-server/extensions/extensions.
 hit = [e for e in reg if (e.get("identifier") or {}).get("id") == f"{pkg['publisher']}.{pkg['name']}"]
 if len(hit) != 1 or hit[0]["location"]["path"] != dest:
     raise SystemExit("extensions.json 的登记路径与目标目录不一致，停止覆盖。")
-fresh = dest + ".new"
+# 暂存目录必须在扩展目录之外：运行中的 VS Code Server 会把扩展目录里新出现的
+# "<名字>.new" 登记为这个扩展，改名后登记指向不存在的目录，扩展就从窗口里消失。
+work = os.path.expanduser("~/.oco-ext-stage")
+os.makedirs(work, exist_ok=True)
+fresh = os.path.join(work, remote_name + ".new")
 shutil.rmtree(fresh, ignore_errors=True)
 shutil.copytree(ext, fresh)
 installed = hashlib.sha256(open(os.path.join(fresh, "dist", "extension.js"), "rb").read()).hexdigest()
 if installed != expect:
     shutil.rmtree(fresh)
     raise SystemExit(f"装上之前哈希不一致: {installed}")
-old = dest + ".old"
+old = os.path.join(work, remote_name + ".old")
 shutil.rmtree(old, ignore_errors=True)
 os.rename(dest, old)
 os.rename(fresh, dest)
 shutil.rmtree(old)
+reg = json.load(open(os.path.expanduser("~/.vscode-server/extensions/extensions.json")))
+hit = [e for e in reg if (e.get("identifier") or {}).get("id") == f"{pkg['publisher']}.{pkg['name']}"]
+if len(hit) != 1 or hit[0]["location"]["path"] != dest:
+    raise SystemExit("替换后 extensions.json 的登记路径变了，需要人工检查。")
 print("NEW_JS", installed)
 print("REGISTERED", hit[0]["identifier"]["id"], hit[0]["version"], dest)
 shutil.rmtree(stage)

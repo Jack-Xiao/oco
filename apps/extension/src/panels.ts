@@ -312,6 +312,11 @@ export class PanelRegistry {
       `connect-src ${src} data: blob:`,
     ].join("; ")
     let html = fs.readFileSync(vscode.Uri.joinPath(media, "index.html").fsPath, "utf8")
+    // The pre-paint theme script is render-blocking: inline it so the first paint (and the loading skeleton)
+    // does not wait for a resource round trip, which over Remote-SSH queues behind the app bundle.
+    const themePreload = fs.readFileSync(vscode.Uri.joinPath(media, "oc-theme-preload.js").fsPath, "utf8")
+    html = html.replace(/<script id="oc-theme-preload-script" src="\.\/oc-theme-preload\.js"><\/script>/, () =>
+      `<script id="oc-theme-preload-script">${themePreload.replace(/<\/script/gi, "<\\/script")}</script>`)
     html = html.replace(/(src|href)="\.\//g, `$1="${base}`)
     html = html.replace(/<script /g, `<script nonce="${nonce}" `)
     // Workers in a webview cannot fetch from the resource origin (requests never resolve), so the
@@ -325,7 +330,13 @@ export class PanelRegistry {
       try { if (window.__OCO_INIT__.colorScheme) localStorage.setItem("opencode-color-scheme", window.__OCO_INIT__.colorScheme); } catch {}
       (() => {
         const Native = window.Worker;
-        const boot = "let ready=false;const q=[];self.addEventListener('message',(e)=>{const d=e.data;" +
+        // Worker side: runs the code it is sent, queues app messages until then, and offers
+        // self.__ocoAsset(path) — text of a bundle file, fetched by the main thread (lazy shiki grammars).
+        const boot = "let ready=false;const q=[];let seq=0;const assets=new Map();" +
+          "self.__ocoAsset=(path)=>new Promise((resolve,reject)=>{const id=++seq;assets.set(id,{resolve,reject});self.postMessage({__ocoAsset:path,id})});" +
+          "self.addEventListener('message',(e)=>{const d=e.data;" +
+          "if(d&&d.__ocoAssetId){e.stopImmediatePropagation();const p=assets.get(d.__ocoAssetId);assets.delete(d.__ocoAssetId);" +
+          "if(p)typeof d.text==='string'?p.resolve(d.text):p.reject(new Error(d.error||'asset load failed'));return}" +
           "if(d&&d.__ocoWorkerCode){e.stopImmediatePropagation();try{importScripts(d.__ocoWorkerCode)}catch(err){setTimeout(()=>{throw err})}" +
           "ready=true;for(const m of q.splice(0))self.dispatchEvent(new MessageEvent('message',{data:m}));return}" +
           "if(!ready){e.stopImmediatePropagation();q.push(d)}});";
@@ -335,6 +346,16 @@ export class PanelRegistry {
             const href = new URL(String(url), document.baseURI).href;
             if (href.startsWith(location.origin) || href.startsWith("blob:") || href.startsWith("data:")) { super(url, opts); return; }
             super(bootUrl, { name: opts && opts.name });
+            // Registered before the app's own listeners, so asset requests never reach the app.
+            this.addEventListener("message", (e) => {
+              const d = e.data;
+              if (!d || typeof d.__ocoAsset !== "string") return;
+              e.stopImmediatePropagation();
+              const reply = (m) => Native.prototype.postMessage.call(this, { __ocoAssetId: d.id, ...m });
+              if (!/^shiki-langs\\/[a-z0-9-]+\\.json$/.test(d.__ocoAsset)) return reply({ error: "asset not allowed" });
+              fetch(new URL(d.__ocoAsset, document.baseURI)).then((r) => { if (!r.ok) throw new Error("asset load failed: " + r.status); return r.text(); })
+                .then((text) => reply({ text }), (err) => reply({ error: String(err && err.message || err) }));
+            });
             fetch(href).then((r) => { if (!r.ok) throw new Error("worker load failed: " + r.status); return r.text(); })
               .then((code) => Native.prototype.postMessage.call(this, { __ocoWorkerCode: URL.createObjectURL(new Blob([code], { type: "text/javascript" })) }))
               .catch((err) => this.dispatchEvent(new ErrorEvent("error", { message: String(err && err.message || err) })));

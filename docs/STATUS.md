@@ -8,6 +8,13 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
+## 首次打开会话提速（2026-10-01）
+
+- 改动：markdown worker 语法按需加载（9.9 MB → 2.17 MB）；静态骨架屏 + 内联主题预载 + 主包 modulepreload；宿主在面板创建时预取 `GET /provider`（只用一次）；Remote 下宿主对 ≥256 KB 的 JSON 响应做 gzip 再发给面板（`/provider` 6.5 MB → 约 0.57 MB，面板用 `DecompressionStream` 解压）。详情、撤回的尝试和原始数据见 [首开提速证据](evidence/first-open-perf.md)。
+- Remote 实测（gcp-workstation，隧道快，逐轮交替，每组 4 轮有效）：输入框出现中位 2979 → 2383 ms，内容完成中位 3237 → 2304 ms；骨架屏 336–395 ms 出现（旧版在此之前空白）。慢隧道下未做交替对比。
+- gzip：用户真实会话日志（慢隧道）里首个会话约 17 s，其中 `/provider` 返回后约 5.7 s 无请求，与 6.5 MB 经隧道传输吻合。gzip 的 Remote 交替对比 NOT RUN（测试中工作站重启，用户的 4096 服务未运行）。
+- 检查：typecheck PASS；unit 145/145；E2E（mock）`p1a-identity` 连续 6 次 14/14，`p1b-theme-load`、`p1a-chat`、`t010-recover`、`p1b-main-panel` 全部通过；`OCO_BRIDGE_GZIP=1`（所有 JSON 都压缩）下这 5 个套件无失败。NOT RUN：其余 E2E、真实模型。[remote-install](remote-install.md) 已修正：暂存目录不能放在扩展目录里（否则会被 VS Code Server 登记，扩展从窗口消失）。
+
 ## 消息 fork 按钮（补丁 0011，2026-09-30；验证运行于 `d3ec2e9` + 本批改动）
 
 - 用户消息：在 Revert 与 Copy 之间加 fork 按钮，行为同 `/fork`（新会话止于该消息之前，原文回填输入框）。

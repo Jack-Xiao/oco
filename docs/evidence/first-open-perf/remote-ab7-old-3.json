@@ -1,0 +1,56 @@
+{
+ "label": "ab7-old-3",
+ "docCreatedMs": 272,
+ "marks": {
+  "root": 1159,
+  "prompt": 2908
+ },
+ "stats": {},
+ "res": [
+  [
+   8,
+   86,
+   "oc-theme-preload.js"
+  ],
+  [
+   8,
+   86,
+   "index-CMZYNvlb.js"
+  ],
+  [
+   8,
+   86,
+   "theme-CMMcYrEd.js"
+  ],
+  [
+   228,
+   751,
+   "app-fcdmPZJF.js"
+  ],
+  [
+   228,
+   398,
+   "app-BBZy8gy0.css"
+  ],
+  [
+   866,
+   985,
+   "zh-D74Y4t1y.js"
+  ],
+  [
+   866,
+   985,
+   "zh-C5pDW30z.js"
+  ],
+  [
+   2592,
+   2905,
+   "Inter.ttf"
+  ],
+  [
+   2614,
+   3238,
+   "markdown.worker-CsnQq30E.js"
+  ]
+ ]
+}

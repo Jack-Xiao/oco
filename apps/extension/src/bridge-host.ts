@@ -130,7 +130,16 @@ export function createBridge(opts: {
     onUi: opts.onUi,
     onGeneration: opts.onGeneration,
     onSseChunk,
+    // The webview runs on the UI side; under Remote its traffic crosses the tunnel. Tests force it for every
+    // JSON body with OCO_BRIDGE_GZIP=1.
+    compress: !!vscode.env.remoteName || process.env.OCO_BRIDGE_GZIP === "1",
+    compressMinBytes: process.env.OCO_BRIDGE_GZIP === "1" ? 0 : undefined,
   })
+  // On a server with many models the provider list is several MB and about a second of (single-threaded)
+  // server time, and the page needs it before it renders. Measured over Remote-SSH: prefetching it while the
+  // webview loads shortens the first open; also prefetching "?directory" (needed only after first paint)
+  // held up the page's first requests behind server work and made it slower.
+  core.prefetch(["/provider"])
   const sub = opts.webview.onDidReceiveMessage((raw) => core.handle(raw))
   return {
     core,

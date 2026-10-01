@@ -265,3 +265,12 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 
 - 补丁 0011 增加两条 CSS：元信息文字一侧补 5px，与图标按钮内的空白对齐，使“文字↔图标”和“图标↔图标”的视觉间距一致（回复行与用户消息行都改）。见 [证据](evidence/c3-fork.md#按钮间距2026-10-01)。
 - 检查：build:webview 通过；`c3-fork` 3/3；`p1b-narrow` 第 1 次 layout-480 FAIL，复跑 exit 0（mock）。NOT RUN：真实模型。
+
+## 首次打开会话提速（2026-10-01）
+
+- Remote 实测定位：隧道吞吐在两种状态间跳变（0.6–1 MB/s 或 6–19 MB/s）；markdown worker 9.9 MB（内联了 shiki 全部语法和主题）；远端 `/provider` 6.5 MB、服务端约 1.2 s，在首屏关键路径上；主题预载脚本阻塞首次绘制。
+- 改动：worker 构建换成按需加载语法（2.17 MB，其余 236 个语法 JSON 经 `__ocoAsset` 获取）；骨架屏、内联主题预载、主包 modulepreload；宿主预取 `/provider`（只用一次）；页面请求计数/日志。撤回：GET 合并（读到旧数据的风险）、桥接 gzip（快隧道下更慢）、预取 `?directory`（堵住服务端，慢 0.9 s）、预取复用（`p1a-identity` 3/6 失败）。
+- 结果（Remote，快隧道，交替）：输入框出现中位 2979 → 2383 ms，内容完成中位 3237 → 2304 ms。unit 143/143；E2E（mock）`p1a-identity` 6×14/14，另 4 套件通过。NOT RUN：其余 E2E、真实模型、慢隧道交替对比。证据：[first-open-perf](evidence/first-open-perf.md)。
+- 部署中发现 remote-install 暂存目录的问题并已修正文档；另一会话（`2b40651`）同时往同一工作站安装，本批改为用 `--extensionDevelopmentPath` 测试。未提交。
+
+- 追加（第二轮）：Remote 下宿主对大 JSON 响应 gzip 后再发给面板（`/provider` 6.5 MB → 0.57 MB）。依据是用户真实会话日志中 `/provider` 之后 5.7 s 的传输空档。unit 145/145；`OCO_BRIDGE_GZIP=1` 下 5 个相关 E2E 套件无失败。Remote 交替对比 NOT RUN（工作站重启，用户服务未运行）。详见 [首开提速证据](evidence/first-open-perf.md)。

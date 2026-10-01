@@ -8,6 +8,18 @@
   </head>
   <body class="antialiased overscroll-none text-12-regular overflow-hidden bg-v2-background-bg-deep">
     <div id="root" class="flex flex-col h-dvh bg-v2-background-bg-deep"></div>
+    <!-- Painted before the app bundle arrives; src/main.tsx removes it once the app renders into #root. -->
+    <div id="oco-boot" aria-busy="true" aria-label="Loading">
+      <style>
+        #oco-boot { position: fixed; inset: 0; display: flex; flex-direction: column; gap: 14px; padding: 24px 20px 16px; pointer-events: none; }
+        #oco-boot i { display: block; height: 10px; border-radius: 5px; background: rgba(127, 127, 127, 0.14); animation: oco-boot 1.2s ease-in-out infinite alternate; }
+        #oco-boot .p { margin-top: auto; height: 88px; border-radius: 10px; background: none; border: 1px solid rgba(127, 127, 127, 0.22); animation: none; }
+        @keyframes oco-boot { to { opacity: 0.45; } }
+        @media (prefers-reduced-motion: reduce) { #oco-boot i { animation: none; } }
+      </style>
+      <i style="width: 38%"></i><i style="width: 72%"></i><i style="width: 64%"></i><i style="width: 46%"></i>
+      <i class="p"></i>
+    </div>
     <script src="./src/main.tsx" type="module"></script>
   </body>
 </html>

@@ -112,10 +112,20 @@ window.addEventListener("message", (event) => {
 
 vscode.postMessage({ v: PROTOCOL_VERSION, gen: 0, type: "hello", docId })
 
+const stats = ((window as unknown as { __OCO_STATS__: Record<string, unknown> }).__OCO_STATS__ ??= {})
+stats.fetchRequests = 0
+// First requests of the document (ms since navigation start, method, path + query keys): startup profiling only.
+const fetchLog: [number, string, string][] = (stats.fetchLog = [])
+
 /** fetch() replacement: serialises the request, streams the response body back incrementally. */
 export const bridgeFetch: typeof fetch = async (input, init2) => {
   const req = input instanceof Request ? input : new Request(input, init2)
   const signal = init2?.signal ?? req.signal
+  stats.fetchRequests = (stats.fetchRequests as number) + 1
+  if (fetchLog.length < 200) {
+    const u = new URL(req.url)
+    fetchLog.push([Math.round(performance.now()), req.method, u.pathname + (u.search ? "?" + [...u.searchParams.keys()].join("&") : "")])
+  }
   if (signal?.aborted) throw new DOMException("Aborted", "AbortError")
   const body = req.method === "GET" || req.method === "HEAD" ? undefined : await req.arrayBuffer()
   const id = nextId()
@@ -147,7 +157,8 @@ export const bridgeFetch: typeof fetch = async (input, init2) => {
       head: (h) => {
         settled = true
         const nullBody = h.status === 204 || h.status === 205 || h.status === 304 || req.method === "HEAD"
-        resolve(new Response(nullBody ? null : stream, { status: h.status, statusText: h.statusText, headers: h.headers }))
+        const body = h.encoding === "gzip" ? stream.pipeThrough(new DecompressionStream("gzip")) : stream
+        resolve(new Response(nullBody ? null : body, { status: h.status, statusText: h.statusText, headers: h.headers }))
       },
       chunk: (c) => controller.enqueue(c),
       end: () => {
