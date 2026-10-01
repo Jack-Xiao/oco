@@ -324,3 +324,4 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 改动：补丁 0016，嵌入模式不提供会话 href；`c4-trajectory` 新增 `subagent-link`（先 FAIL 后 PASS）。
 - 本 worktree 的 `.oco-test` 链接到主检出 `.oco-test/wt-sublink`（避开 IPC socket 路径长度限制）。`scripts/setup.sh` 重置 vendor 时只还原已跟踪文件，补丁新增的文件残留会让 0012–0014 应用失败；本批手动 `git clean` 后重放，脚本未改。
 - 检查与结果见 [subagent-link-0016](evidence/subagent-link-0016.md)。NOT RUN：真实模型。
+- 追加（提交与部署）：提交 `37f2634` 快进合入 main；主检出 vendor 补应用 0015、0016（此前停在 0014）。`oco-0.0.1-37f2634.vsix` 部署 gcp-workstation，extension.js 与 webview 产物哈希均与本地一致。Remote 上的点击 NOT RUN。
