@@ -2,11 +2,11 @@
 
 本文件是唯一的当前队列。状态只看 [STATUS](STATUS.md)。不要执行 HANDOFF 或 P1B-NEXT-STEPS 里的旧提示词。
 
-进度：P1b、C1、C2、T014 连接子集、ADR-007 面板、设置页修复（补丁 0009/0010）已完成。2026-10-01 的 v0.1 收尾批次（[计划](V01-COMPLETION-PLAN.md)、[证据](evidence/v01-completion.md)）完成了托管模式（T007）、Agents 视图（T013）、诊断与状态栏（T015）、打包部署脚本与使用说明（T018），并在 gcp-workstation Remote 上查看了已安装扩展。消息 fork 按钮（补丁 0011）由另一会话完成，等待用户确认提交。
+进度：P1b、C1、C2、T014 连接子集、ADR-007 面板、设置页修复（补丁 0009/0010）已完成。2026-10-01 的 v0.1 收尾批次（[计划](V01-COMPLETION-PLAN.md)、[证据](evidence/v01-completion.md)）完成了托管模式（T007）、Agents 视图（T013）、诊断与状态栏（T015）、打包部署脚本与使用说明（T018），并在 gcp-workstation Remote 上查看了已安装扩展。消息 fork 按钮（补丁 0011）由另一会话完成并已提交（`7a1e54d`）。
 
 ## 1. 登记与收口（小，先做）
 
-- [TODO] fork 批次提交后，把 `t007-managed`、`t013-agents`、`t015-diagnostics`、`t007-multiroot` 加入 `tests/e2e/run.mjs` 的 `DEFAULT_SUITES`（合计 20 个），同步 `tests/unit/e2e-results.test.ts` 标题和 `docs/TEST-SCOPE.md`（计数、全量列表，以及 managed-server / agents / diagnostics 三行改动范围）。PROGRESS 追加 v0.1 批次条目（正文已备好：[v01-progress-entry](evidence/v01-progress-entry.md)，fork 批次提交后原样追加到文件末尾）。
+- [DONE] fork 批次已提交（`7a1e54d`）；四个新套件登记进 `DEFAULT_SUITES`（共 20 个），TEST-SCOPE 同步，PROGRESS 已追加 v0.1 批次条目。
 - [DONE] fork 批次（未提交）+ 本批的 main 工作树已构建 `oco-0.0.1-44e4b8a.vsix` 并部署 gcp-workstation，远端复验通过。fork 批次提交后如有改动，按 `scripts/package-vsix.sh` + `scripts/deploy-remote.sh` 重做。
 
 ## 2. 真实模型回归（缺环境时标 BLOCKED）
