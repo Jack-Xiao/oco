@@ -149,10 +149,25 @@ try {
   // 1. Open the trajectory from the header toggle.
   const toTrajectory = fA.locator('[data-oco-view="trajectory"]')
   await toTrajectory.waitFor({ state: "visible", timeout: 30000 })
+  // Patch 0017: no titlebar row; the review-panel toggle sits beside the 对话/轨迹 toggle, and the context ring is gone.
+  const headerRow = (f) =>
+    f.evaluate(() => {
+      const row = document.querySelector('[data-oco-view="trajectory"]')?.closest(".shrink-0.flex")?.parentElement
+      const bar = document.querySelector('[data-slot="titlebar-v2"]')
+      return {
+        titlebarHidden: !bar || bar.getBoundingClientRect().height === 0,
+        reviewInRow: !!row?.querySelector('[aria-controls="review-panel"]'),
+        ringInRow: !!row?.querySelector('[data-component^="progress-circle"]'),
+      }
+    })
+  const chatHeader = await headerRow(fA)
+  run.record("header-actions-chat", chatHeader.titlebarHidden && chatHeader.reviewInRow && !chatHeader.ringInRow ? "PASS" : "FAIL", chatHeader)
   await toTrajectory.click()
   const opened = await fA.locator("[data-oco-trajectory]").waitFor({ state: "visible", timeout: 10000 }).then(() => true, () => false)
   const composerVisible = await fA.locator('[data-component="prompt-input"]').isVisible()
   await runShot(page, run, "1-trajectory")
+  const trajHeader = await fA.evaluate(() => !!document.querySelector('[data-oco-trajectory] [aria-controls="review-panel"]'))
+  run.record("header-actions-trajectory", trajHeader ? "PASS" : "FAIL", { reviewInHeader: trajHeader })
   run.record("toggle-open", opened && composerVisible && (await count(fA, '[data-component="user-message"]')) === 0 ? "PASS" : "FAIL", { opened, composerVisible })
 
   const copy = {

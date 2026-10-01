@@ -1,0 +1,140 @@
+diff --git a/packages/app/src/components/session/session-header.tsx b/packages/app/src/components/session/session-header.tsx
+index dc6cdaa..a92f3d2 100644
+--- a/packages/app/src/components/session/session-header.tsx
++++ b/packages/app/src/components/session/session-header.tsx
+@@ -319,7 +319,9 @@ export function SessionHeader() {
+           </Portal>
+         )}
+       </Show>
+-      <Show when={rightMount()} keyed>
++      {/* oco: an embedded host has no titlebar row; these actions render in the session header instead
++          (SessionHeaderEmbeddedActions). */}
++      <Show when={!platform.embedded && rightMount()} keyed>
+         {(mount) => (
+           <Portal mount={mount}>
+             <Show
+@@ -566,3 +568,23 @@ function SessionHeaderV2Actions(props: { state: SessionHeaderV2ActionsState }) {
+     </div>
+   )
+ }
++
++// oco: the status + review-panel actions for an embedded host, rendered inline in the session (chat / trajectory)
++// header row instead of the hidden titlebar.
++export function SessionHeaderEmbeddedActions() {
++  const command = useCommand()
++  const language = useLanguage()
++  const settings = useSettings()
++  const { view } = useSessionLayout()
++  const isDesktop = createMediaQuery("(min-width: 768px)")
++  const state = createMemo<SessionHeaderV2ActionsState>(() => ({
++    statusVisible: settings.visibility.status(),
++    statusLabel: language.t("status.popover.trigger"),
++    reviewLabel: language.t("command.review.toggle"),
++    reviewKeybind: reviewTooltipKeybind(command),
++    reviewVisible: isDesktop(),
++    reviewOpened: view().reviewPanel.opened(),
++    onReviewToggle: () => view().reviewPanel.toggle(),
++  }))
++  return <SessionHeaderV2Actions state={state()} />
++}
+diff --git a/packages/app/src/components/session/session-trajectory.tsx b/packages/app/src/components/session/session-trajectory.tsx
+index 7b15441..939d645 100644
+--- a/packages/app/src/components/session/session-trajectory.tsx
++++ b/packages/app/src/components/session/session-trajectory.tsx
+@@ -219,7 +219,7 @@ function Pre(props: { text: string }) {
+   )
+ }
+ 
+-export function SessionTrajectory(props: { sessionID: string; onChat: () => void }) {
++export function SessionTrajectory(props: { sessionID: string; onChat: () => void; actions?: JSX.Element }) {
+   const sync = useSync()
+   const sdk = useSDK()
+   const language = trajectoryText(useLanguage())
+@@ -497,7 +497,10 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+     <div ref={root} data-oco-trajectory class="relative flex flex-col h-full min-h-0">
+       <div class="shrink-0 h-12 flex items-center justify-between gap-2 pl-4 pr-3">
+         <div class="min-w-0 truncate text-14-medium text-text-strong">{info()?.title ?? ""}</div>
+-        <SessionViewToggle value="trajectory" onChange={(value) => value === "chat" && props.onChat()} />
++        <div class="shrink-0 flex items-center gap-2">
++          <SessionViewToggle value="trajectory" onChange={(value) => value === "chat" && props.onChat()} />
++          {props.actions}
++        </div>
+       </div>
+ 
+       <div class="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 pb-2 text-12-regular text-text-weak" data-oco-trajectory-totals>
+diff --git a/packages/app/src/components/titlebar.tsx b/packages/app/src/components/titlebar.tsx
+index d1cfbdc..df21b36 100644
+--- a/packages/app/src/components/titlebar.tsx
++++ b/packages/app/src/components/titlebar.tsx
+@@ -176,6 +176,8 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
+         "h-9 bg-v2-background-bg-deep overflow-visible": useV2Titlebar(),
+         "h-10 bg-background-base overflow-hidden": !useV2Titlebar(),
+         "order-last": bottom(),
++        // oco: an embedded session page moves its titlebar actions into the session header; drop the empty row.
++        hidden: !!platform.embedded && !!params.id,
+       }}
+       style={{
+         "min-height": minHeight(),
+diff --git a/packages/app/src/pages/session.tsx b/packages/app/src/pages/session.tsx
+index c581f6b..0de8b86 100644
+--- a/packages/app/src/pages/session.tsx
++++ b/packages/app/src/pages/session.tsx
+@@ -40,6 +40,7 @@ import { showToast } from "@/utils/toast"
+ import { base64Encode, checksum } from "@opencode-ai/core/util/encode"
+ import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router"
+ import { NewSessionView, SessionHeader } from "@/components/session"
++import { SessionHeaderEmbeddedActions } from "@/components/session/session-header"
+ import { SessionTrajectory, SessionViewToggle, type SessionViewMode } from "@/components/session/session-trajectory"
+ import { ErrorPage } from "@/pages/error"
+ import { CommentsProvider, useComments } from "@/context/comments"
+@@ -2122,13 +2123,26 @@ export default function Page() {
+             </div>
+           </Match>
+           <Match when={params.id && store.view === "trajectory" ? params.id : undefined}>
+-            {(id) => <SessionTrajectory sessionID={id()} onChat={() => setStore("view", "chat")} />}
++            {(id) => (
++              <SessionTrajectory
++                sessionID={id()}
++                onChat={() => setStore("view", "chat")}
++                actions={platform.embedded ? <SessionHeaderEmbeddedActions /> : undefined}
++              />
++            )}
+           </Match>
+           <Match when={params.id}>
+             <Show when={messagesReady() ? params.id : undefined} keyed>
+               {(_id) => (
+                 <MessageTimeline
+-                  headerExtra={<SessionViewToggle value="chat" onChange={(view) => setStore("view", view)} />}
++                  headerExtra={
++                    <>
++                      <SessionViewToggle value="chat" onChange={(view) => setStore("view", view)} />
++                      <Show when={platform.embedded}>
++                        <SessionHeaderEmbeddedActions />
++                      </Show>
++                    </>
++                  }
+                   actions={actions}
+                   scroll={ui.scroll}
+                   onResumeScroll={resumeScroll}
+diff --git a/packages/app/src/pages/session/timeline/message-timeline.tsx b/packages/app/src/pages/session/timeline/message-timeline.tsx
+index 842a82d..4af2d45 100644
+--- a/packages/app/src/pages/session/timeline/message-timeline.tsx
++++ b/packages/app/src/pages/session/timeline/message-timeline.tsx
+@@ -1533,10 +1533,13 @@ export function MessageTimeline(props: {
+                     }}
+                   >
+                     {props.headerExtra}
+-                    <SessionContextUsage
+-                      placement="bottom"
+-                      buttonAppearance={settings.general.newLayoutDesigns() ? "v2" : "default"}
+-                    />
++                    {/* oco: embedded hosts drop the context ring; the trajectory view shows the same usage. */}
++                    <Show when={!platform.embedded}>
++                      <SessionContextUsage
++                        placement="bottom"
++                        buttonAppearance={settings.general.newLayoutDesigns() ? "v2" : "default"}
++                      />
++                    </Show>
+                     <Show when={!parentID()}>
+                       <Show
+                         when={settings.general.newLayoutDesigns()}
