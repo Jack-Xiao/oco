@@ -1,0 +1,298 @@
+diff --git a/packages/app/src/components/session/session-trajectory-i18n.ts b/packages/app/src/components/session/session-trajectory-i18n.ts
+index 7f12d73..0be722d 100644
+--- a/packages/app/src/components/session/session-trajectory-i18n.ts
++++ b/packages/app/src/components/session/session-trajectory-i18n.ts
+@@ -24,6 +24,7 @@ const en = {
+   "kind.attachment": "Attachment",
+   "kind.agent": "Agent",
+   "kind.subtask": "Subtask",
++  "kind.subagent": "Subagent",
+   "kind.compaction": "Compaction",
+   "kind.patch": "Changes",
+   "kind.retry": "Retry",
+@@ -92,6 +93,7 @@ const en = {
+   "section.tokens": "Tokens",
+   "section.timing": "Request timing",
+   "field.status": "Status",
++  "field.childSession": "Child session",
+   "field.startTime": "Start time",
+   "field.duration": "Duration",
+   "field.agent": "Agent",
+@@ -145,6 +147,7 @@ const zh: Record<Key, string> = {
+   "kind.attachment": "附件",
+   "kind.agent": "智能体",
+   "kind.subtask": "子任务",
++  "kind.subagent": "子智能体",
+   "kind.compaction": "压缩",
+   "kind.patch": "变更",
+   "kind.retry": "重试",
+@@ -213,6 +216,7 @@ const zh: Record<Key, string> = {
+   "section.tokens": "Token",
+   "section.timing": "请求计时",
+   "field.status": "状态",
++  "field.childSession": "子会话",
+   "field.startTime": "开始时间",
+   "field.duration": "耗时",
+   "field.agent": "智能体",
+@@ -261,6 +265,7 @@ const zht: Record<Key, string> = {
+   "kind.attachment": "附件",
+   "kind.agent": "代理程式",
+   "kind.subtask": "子任務",
++  "kind.subagent": "子代理程式",
+   "kind.compaction": "壓縮",
+   "kind.patch": "變更",
+   "kind.retry": "重試",
+@@ -329,6 +334,7 @@ const zht: Record<Key, string> = {
+   "section.tokens": "Token",
+   "section.timing": "請求計時",
+   "field.status": "狀態",
++  "field.childSession": "子工作階段",
+   "field.startTime": "開始時間",
+   "field.duration": "耗時",
+   "field.agent": "代理程式",
+diff --git a/packages/app/src/components/session/session-trajectory-model.test.ts b/packages/app/src/components/session/session-trajectory-model.test.ts
+index 2315b65..acb2dbd 100644
+--- a/packages/app/src/components/session/session-trajectory-model.test.ts
++++ b/packages/app/src/components/session/session-trajectory-model.test.ts
+@@ -188,6 +188,41 @@ describe("groupRows", () => {
+   })
+ })
+ 
++describe("subagent calls", () => {
++  const u = user(T0)
++  const a = assistant(u, T0 + 100)
++  const task = {
++    id: id("prt", T0 + 300),
++    type: "tool",
++    tool: "task",
++    callID: "t1",
++    state: {
++      status: "completed",
++      input: { subagent_type: "explore", description: "Find the fork code", prompt: "..." },
++      output: '<task id="ses_child" state="completed">\n<task_result>\nfound it\n</task_result>\n</task>',
++      title: "",
++      metadata: { sessionId: "ses_child", parentSessionId: "ses_parent" },
++      time: { start: T0 + 300, end: T0 + 900 },
++    },
++  }
++  const read = { ...task, id: id("prt", T0 + 200), tool: "read", callID: "r1", state: { ...task.state, input: {}, metadata: {} } }
++  const tr = buildTrajectory({ messages: [u, a], parts: (m) => (m === a.id ? [read, task] : [text(T0, "hi")]), now: T0 + 2000, language })
++
++  test("a task call is labelled with its agent and child session", () => {
++    const rows = tr.rows.filter((r) => r.kind === "tool") as any[]
++    expect(rows.map((r) => r.subagent)).toEqual([
++      undefined,
++      { agent: "explore", description: "Find the fork code", session: "ses_child" },
++    ])
++    expect(rows[1].output).toBe("found it")
++  })
++
++  test("subagent calls stay visible in the compact list", () => {
++    const items = groupRows(tr.rows)
++    expect(items.map((i) => (i.kind === "row" ? i.row.kind : "group"))).toEqual(["system", "user", "group", "tool"])
++  })
++})
++
+ describe("createTimeScale", () => {
+   const u1 = user(T0)
+   const a1 = assistant(u1, T0 + 10, { time: { created: T0 + 10, completed: T0 + 1000 } })
+diff --git a/packages/app/src/components/session/session-trajectory-model.ts b/packages/app/src/components/session/session-trajectory-model.ts
+index 2aa2ba0..3fcde92 100644
+--- a/packages/app/src/components/session/session-trajectory-model.ts
++++ b/packages/app/src/components/session/session-trajectory-model.ts
+@@ -59,12 +59,37 @@ export type TrajectoryRow =
+       interrupted: boolean
+       input: string
+       output: string
++      /** Set when this is a `task` call, which is how OpenCode runs a subagent. */
++      subagent?: TrajectorySubagent
+       part: ToolPart
+       start?: number
+       end?: number
+     })
+   | (RowBase & { kind: "event"; label: string; text: string; part?: Part; error?: boolean })
+ 
++export type TrajectorySubagent = { agent: string; description: string; session?: string }
++
++/** OpenCode has no tool per subagent: the `task` tool names the agent in `subagent_type` and
++ *  records the child session it created in `metadata.sessionId`. */
++export function subagentOf(part: ToolPart): TrajectorySubagent | undefined {
++  if (part.tool !== "task") return
++  const input = part.state.input as Record<string, unknown> | undefined
++  const agent = input?.subagent_type
++  if (typeof agent !== "string" || !agent) return
++  const metadata = "metadata" in part.state ? (part.state.metadata as Record<string, unknown> | undefined) : undefined
++  return {
++    agent,
++    description: typeof input?.description === "string" ? input.description : "",
++    session: typeof metadata?.sessionId === "string" ? metadata.sessionId : undefined,
++  }
++}
++
++/** A `task` call's output wraps the subagent's answer in `<task …><task_result>…</task_result></task>`. */
++function taskResult(part: ToolPart) {
++  if (part.tool !== "task" || part.state.status !== "completed") return ""
++  return /<task_result>([\s\S]*?)<\/task_result>/.exec(part.state.output)?.[1]?.trim() ?? ""
++}
++
+ export type Trajectory = {
+   turns: TrajectoryTurn[]
+   requests: TrajectoryRequest[]
+@@ -284,10 +309,11 @@ export function buildTrajectory(input: {
+           turn: turnIndex,
+           request: index,
+           tool: part.tool,
++          subagent: subagentOf(part),
+           status: part.state.status,
+           interrupted: open && !live,
+           input: oneLine(stringify(part.state.input), 160),
+-          output: oneLine(toolOutput(part) || (open ? t(live ? "tool.running" : "tool.unfinished") : "")),
++          output: oneLine(taskResult(part) || toolOutput(part) || (open ? t(live ? "tool.running" : "tool.unfinished") : "")),
+           part,
+           start,
+           end,
+@@ -378,13 +404,13 @@ export type TrajectoryGroup = {
+ export type TrajectoryItem = { kind: "row"; row: TrajectoryRow } | { kind: "group"; group: TrajectoryGroup }
+ 
+ /** Compact list: within a turn, each run of thinking, tool calls and file changes folds into one
+- *  summary item. User input, context, replies, retries and errors stay visible. */
++ *  summary item. User input, context, replies, subagent calls, retries and errors stay visible. */
+ export function groupRows(rows: TrajectoryRow[]): TrajectoryItem[] {
+   const items: TrajectoryItem[] = []
+   let open: TrajectoryGroup | undefined
+   for (const row of rows) {
+     const fold =
+-      row.request !== undefined && (row.kind === "reasoning" || row.kind === "tool" || (row.kind === "event" && !row.error))
++      row.request !== undefined && (row.kind === "reasoning" || (row.kind === "tool" && !row.subagent) || (row.kind === "event" && !row.error))
+     if (!fold) {
+       open = undefined
+       items.push({ kind: "row", row })
+diff --git a/packages/app/src/components/session/session-trajectory.tsx b/packages/app/src/components/session/session-trajectory.tsx
+index 89eb461..7b15441 100644
+--- a/packages/app/src/components/session/session-trajectory.tsx
++++ b/packages/app/src/components/session/session-trajectory.tsx
+@@ -52,6 +52,7 @@ const COLOR = {
+   input: "var(--syntax-success)",
+   model: "var(--syntax-property)",
+   tool: "var(--syntax-warning)",
++  subagent: "var(--syntax-keyword)",
+   user: "var(--syntax-info)",
+   system: "var(--syntax-comment)",
+   error: "var(--syntax-critical)",
+@@ -142,8 +143,15 @@ function badge(language: Language, row: TrajectoryRow): { label: string; color:
+       return { label: language.t("kind.text"), color: COLOR.model }
+     case "tool":
+       return {
+-        label: language.t("kind.tool"),
+-        color: row.status === "error" ? COLOR.error : row.interrupted ? COLOR.system : COLOR.tool,
++        label: language.t(row.subagent ? "kind.subagent" : "kind.tool"),
++        color:
++          row.status === "error"
++            ? COLOR.error
++            : row.interrupted
++              ? COLOR.system
++              : row.subagent
++                ? COLOR.subagent
++                : COLOR.tool,
+       }
+     case "event":
+       return { label: row.label, color: row.error ? COLOR.error : COLOR.system }
+@@ -173,8 +181,14 @@ function Badge(props: { label: string; color: string }) {
+   )
+ }
+ 
++/** Tool name as shown in lists and the lane; a subagent call shows the agent it ran. */
++function toolName(row: Extract<TrajectoryRow, { kind: "tool" }>) {
++  return row.subagent ? `@${row.subagent.agent}` : row.tool
++}
++
+ function rowSearchText(row: TrajectoryRow) {
+-  if (row.kind === "tool") return `${row.tool} ${row.input} ${row.output}`
++  if (row.kind === "tool")
++    return `${row.tool} ${row.subagent ? `${row.subagent.agent} ${row.subagent.description} ` : ""}${row.input} ${row.output}`
+   if (row.kind === "context" || row.kind === "event") return `${row.label} ${row.text}`
+   return row.text
+ }
+@@ -426,6 +440,16 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+                 <Show when={row().kind === "tool" ? (row() as Extract<TrajectoryRow, { kind: "tool" }>) : undefined}>
+                   {(tool) => (
+                     <Section title={language.t("section.toolTiming")}>
++                      <Show when={tool().subagent}>
++                        {(sub) => (
++                          <>
++                            <Field label={language.t("kind.subagent")}>{sub().agent}</Field>
++                            <Field label={language.t("field.childSession")}>
++                              <span class="font-mono">{sub().session ?? "-"}</span>
++                            </Field>
++                          </>
++                        )}
++                      </Show>
+                       <Field label={language.t("field.status")}>
+                         {toolStatus(language, tool().status, tool().interrupted)}
+                       </Field>
+@@ -453,14 +477,15 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+     </span>
+   )
+ 
+-  const toggleButton = (active: boolean, attrs: Record<string, string>, label: string, onClick: () => void) => (
++  const toggleButton = (active: () => boolean, attrs: Record<string, string>, label: string, onClick: () => void) => (
+     <button
+       type="button"
+       {...attrs}
+       class="h-6 px-2 rounded-md text-12-medium"
++      aria-pressed={active()}
+       classList={{
+-        "bg-surface-base-active text-text-strong": active,
+-        "text-text-weak hover:text-text-base": !active,
++        "bg-surface-base-active text-text-strong": active(),
++        "text-text-weak hover:text-text-base": !active(),
+       }}
+       onClick={onClick}
+     >
+@@ -491,16 +516,16 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+       <div class="shrink-0 flex flex-wrap items-center gap-2 px-4 pb-2">
+         <For each={["duration", "turn", "request"] as const}>
+           {(value) =>
+-            toggleButton(scale() === value, { "data-oco-scale": value }, language.t(`scale.${value}`), () =>
++            toggleButton(() => scale() === value, { "data-oco-scale": value }, language.t(`scale.${value}`), () =>
+               setScale(value),
+             )
+           }
+         </For>
+         <div class="w-px h-4 bg-border-weak-base" />
+-        {toggleButton(folded(), { "data-oco-rows-mode": "compact" }, language.t("rows.compact"), () =>
++        {toggleButton(folded, { "data-oco-rows-mode": "compact" }, language.t("rows.compact"), () =>
+           setFolded(true),
+         )}
+-        {toggleButton(!folded(), { "data-oco-rows-mode": "full" }, language.t("rows.full"), () =>
++        {toggleButton(() => !folded(), { "data-oco-rows-mode": "full" }, language.t("rows.full"), () =>
+           setFolded(false),
+         )}
+         <div class="flex-1" />
+@@ -564,8 +589,8 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+                       {(row) => (
+                         <button
+                           type="button"
+-                          aria-label={language.t("lane.toolCall", { tool: row.tool })}
+-                          title={`${row.tool} · ${duration(language, row.end !== undefined && row.start !== undefined ? row.end - row.start : undefined)}`}
++                          aria-label={language.t("lane.toolCall", { tool: toolName(row) })}
++                          title={`${toolName(row)} · ${duration(language, row.end !== undefined && row.start !== undefined ? row.end - row.start : undefined)}`}
+                           class="absolute top-0 h-full rounded-[2px]"
+                           classList={{ "outline outline-1 outline-[var(--text-strong)]": selected() === row.id }}
+                           style={{
+@@ -754,8 +779,13 @@ function RowLine(props: { row: TrajectoryRow }) {
+       <Match when={props.row.kind === "tool" ? (props.row as Extract<TrajectoryRow, { kind: "tool" }>) : undefined}>
+         {(row) => (
+           <span class="min-w-0 flex-1 truncate text-13-regular">
+-            <span class="font-mono text-text-strong">{row().tool}</span>{" "}
+-            <span class="font-mono text-text-weak">{row().input}</span>
++            <span class="font-mono text-text-strong">{toolName(row())}</span>{" "}
++            <Show
++              when={row().subagent}
++              fallback={<span class="font-mono text-text-weak">{row().input}</span>}
++            >
++              {(sub) => <span class="text-text-base">{sub().description}</span>}
++            </Show>
+             <Show when={row().output}>
+               <span class="text-text-weaker"> → </span>
+               <span class="font-mono" classList={{ "text-text-base": row().status !== "error" }} style={row().status === "error" ? { color: COLOR.error } : undefined}>

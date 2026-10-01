@@ -298,3 +298,11 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - E2E 发现测试竞态：发送后服务端还没存下用户消息，`waitReply` 就返回了。已修复。
 - 检查结果见 [c4-trajectory-0013](evidence/c4-trajectory-0013.md)。NOT RUN：真实模型、Remote。未提交。
 - 追加（提交与部署）：提交 `dc9ecc2`；`oco-0.0.1-dc9ecc2.vsix` 部署 gcp-workstation（哈希一致）。Remote 上的界面查看 NOT RUN。
+
+## 轨迹比例按钮选中状态、子智能体行（补丁 0014，2026-10-01）
+
+- 用户反馈：比例按钮点击后图会变但高亮不变；子智能体只显示成 `task`。中途按用户要求删过比例按钮，随后用户撤回，已恢复；不加「合计」标注。
+- 原因：按钮在 `For` 中生成，选中状态只算一次。改为访问函数并加 `aria-pressed`。
+- 子智能体：识别 `task` 的 `subagent_type` 和 `metadata.sessionId`，单独标签和配色，精简模式不折叠，回答从 `<task_result>` 中取出。
+- mock 模型新增 `task` 指令；E2E 新增 `scale-toggle`、`subagent-row`。共用测试服务被其他会话占用，改用临时目录里的独立服务（4537/4538），测完关闭。
+- 检查结果见 [c4-trajectory-0014](evidence/c4-trajectory-0014.md)。NOT RUN：真实模型、Remote 部署。

@@ -23,6 +23,7 @@ const REQUIRED = [
   "locale-copy",
   "compact-groups",
   "rows-match-server",
+  "scale-toggle",
   "tool-detail",
   "request-timing",
   "raw-content",
@@ -31,6 +32,7 @@ const REQUIRED = [
   "back-to-chat",
   "switch-resets",
   "narrow-detail",
+  "subagent-row",
 ]
 const run = createRun({ suite: "c4-trajectory", required: REQUIRED, scriptPath: fileURLToPath(import.meta.url) })
 const health = await api("GET", "/global/health").catch(() => null)
@@ -54,6 +56,8 @@ const COPY = {
     durationAny: /ms|s/,
     request: /^Request #\d+$/,
     completed: "Completed",
+    subagent: "Subagent",
+    childSession: "Child session",
   },
   zh: {
     trajectory: "轨迹",
@@ -70,6 +74,8 @@ const COPY = {
     durationAny: /毫秒|秒/,
     request: /^请求 #\d+$/,
     completed: "已完成",
+    subagent: "子智能体",
+    childSession: "子会话",
   },
 }
 const L = /^zh(-cn|-sg|-hans)?$/i.test(LOCALE) ? COPY.zh : COPY.en
@@ -198,6 +204,31 @@ try {
     { server, ui },
   )
 
+  // Axis buttons: the pressed state must follow the click, and "request" gives every bar the same width.
+  const scales = {}
+  for (const value of ["turn", "request", "duration"]) {
+    await fA.locator(`[data-oco-scale="${value}"]`).click()
+    await fA.waitForTimeout(150)
+    scales[value] = {
+      pressed: await fA.locator("[data-oco-scale]").evaluateAll((els) =>
+        els.filter((e) => e.getAttribute("aria-pressed") === "true").map((e) => e.getAttribute("data-oco-scale")),
+      ),
+      lefts: await fA
+        .locator("[data-oco-trajectory-lanes] [data-oco-request]")
+        .evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().left))),
+    }
+  }
+  const gaps = scales.request.lefts.slice(1).map((l, i) => l - scales.request.lefts[i])
+  run.record(
+    "scale-toggle",
+    Object.entries(scales).every(([k, v]) => v.pressed.length === 1 && v.pressed[0] === k) &&
+      gaps.length >= 2 && Math.max(...gaps) - Math.min(...gaps) <= 2 &&
+      scales.request.lefts.join() !== scales.duration.lefts.join()
+      ? "PASS"
+      : "FAIL",
+    { scales, gaps },
+  )
+
   // 3. Tool row detail.
   await fA.locator(`${rowsSel} [data-kind="tool"]`).first().click()
   await fA.locator("[data-oco-trajectory-detail]").waitFor({ state: "visible", timeout: 5000 })
@@ -311,6 +342,34 @@ try {
   await fA.locator("[data-oco-trajectory-detail] [data-oco-detail-close]").click()
   const closed = (await count(fA, "[data-oco-trajectory-detail]")) === 0
   run.record("narrow-detail", narrow.detail >= narrow.root - 2 && narrow.overflow <= 1 && closed ? "PASS" : "FAIL", { widths, ...narrow, closed })
+
+  // 10. Subagent: OpenCode runs it through the `task` tool; the row names the agent and the detail the child session.
+  await send(fA, "Use the task tool with the explore agent: Find the fork code")
+  await waitReply(A)
+  const taskPart = ((await messages(A)) ?? []).flatMap((m) => m.parts).find((p) => p.type === "tool" && p.tool === "task")
+  const child = taskPart?.state?.metadata?.sessionId ?? null
+  await fA.locator('[data-oco-rows-mode="compact"]').click()
+  const subRow = fA.locator(`${rowsSel} [data-kind="tool"]`, { hasText: "@explore" })
+  await subRow.first().waitFor({ state: "visible", timeout: 10000 }).catch(() => {})
+  const sub = {
+    child,
+    status: taskPart?.state?.status ?? null,
+    rows: await subRow.count(),
+    nested: (await subRow.first().getAttribute("data-nested").catch(() => null)) !== null,
+    text: (await subRow.first().innerText().catch(() => "")).replace(/\s+/g, " "),
+  }
+  await subRow.first().click().catch(() => {})
+  await fA.locator("[data-oco-trajectory-detail]").waitFor({ state: "visible", timeout: 5000 }).catch(() => {})
+  sub.childField = await field(fA, L.childSession)
+  await runShot(page, run, "10-subagent-row")
+  run.record(
+    "subagent-row",
+    !!child && sub.rows === 1 && !sub.nested && sub.text.includes(L.subagent) && sub.text.includes("Find the fork code") &&
+      sub.text.includes("subagent-ok") && !sub.text.includes("<task") && sub.childField === child
+      ? "PASS"
+      : "FAIL",
+    sub,
+  )
 } catch (e) {
   run.record("run", "FAIL", { error: String(e?.message ?? e).slice(0, 500) })
   await runShot(page, run, "error")

@@ -43,6 +43,9 @@ export function plan(body) {
   let m
   if (tools.has("bash") && (m = /use the bash tool to run(?: exactly)?(?: this command)?:\s*(.+?)(?:\s\.(?:\s|$)| and tell|$)/im.exec(prompt)))
     return { tool: "bash", args: { command: m[1], description: "Run the requested command" } }
+  // "Use the task tool with the explore agent: <description>" starts a subagent (child session).
+  if (tools.has("task") && (m = /use the task tool with the (\S+) agent:\s*(.+)$/im.exec(prompt)))
+    return { tool: "task", args: { subagent_type: m[1], description: m[2].trim(), prompt: "Reply with exactly this line and nothing else: subagent-ok" } }
   if (tools.has("question") && /question tool/i.test(prompt))
     return {
       tool: "question",

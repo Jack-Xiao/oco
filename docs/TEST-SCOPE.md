@@ -33,6 +33,7 @@ mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为�
 | 补丁 0011（消息 fork 按钮）、`session.tsx` 消息操作 | — | c3-fork、p1b-main-panel | mock |
 | 补丁 0012（对话 / 轨迹视图）、`message-timeline.tsx` 标题栏 | app `session-trajectory-model.test.ts` | c4-trajectory、c3-fork、p1b-main-panel、p1b-narrow | mock；计时与费用口径用真实模型抽查 |
 | 补丁 0013（轨迹多语言、工具页签、折叠）、`apps/chat-webview/src/app.tsx` 语言映射 | app `session-trajectory-model.test.ts` | c4-trajectory（默认英文，再用 `OCO_E2E_LOCALE=zh-cn` 跑一次）、p1a-chat | mock |
+| 补丁 0014（比例按钮状态、子智能体行）、`tests/e2e/lib/mock-llm.mjs` 的 `task` 指令 | app `session-trajectory-model.test.ts` | c4-trajectory（英文 + `OCO_E2E_LOCALE=zh-cn`） | mock |
 | `managed-server.ts`、`connection.ts`（托管模式、多根工作区当前文件夹） | managed-server | t007-managed、t007-multiroot、t014-connection | mock |
 | `agents.ts`、`agents-view.ts`（Agents 视图） | agents | t013-agents | mock |
 | `diagnostics.ts`、状态栏、诊断导出 | diagnostics | t015-diagnostics、t014-connection | mock |
