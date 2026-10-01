@@ -188,12 +188,12 @@ describe("bridge provider deferral", () => {
 })
 
 describe("bridge compression", () => {
-  async function run(compress: boolean, body: string, contentType = "application/json") {
+  async function run(compress: boolean, body: string, contentType = "application/json", extra: Record<string, string> = {}) {
     const posted: HostToWebview[] = []
     const core = new BridgeCore({
       post: (m) => posted.push(m),
       fetch: (async () =>
-        new Response(body, { status: 200, headers: { "content-type": contentType, "content-length": String(Buffer.byteLength(body)) } })) as unknown as typeof fetch,
+        new Response(body, { status: 200, headers: { "content-type": contentType, "content-length": String(Buffer.byteLength(body)), ...extra } })) as unknown as typeof fetch,
       baseUrl: () => "http://127.0.0.1:1",
       auth: async () => ({}),
       policy: new BridgePolicy(
@@ -225,7 +225,94 @@ describe("bridge compression", () => {
     expect(r.text).toBe(big)
   })
 
+  // The server gzips for fetch's default Accept-Encoding and fetch hands over the decoded body: content-length is
+  // the compressed size and content-encoding no longer describes the bytes. Real server: 482 KB arrives as 283 KB.
+  test("a body the server compressed (decoded by fetch) is gzipped again, without the stale headers", async () => {
+    const r = await run(true, big, "application/json", { "content-encoding": "gzip", "content-length": "9000" })
+    expect(r.head.encoding).toBe("gzip")
+    expect(r.head.headers.some(([k]) => k === "content-length" || k === "content-encoding")).toBe(false)
+    expect(r.bytes).toBeLessThan(big.length / 5)
+    expect(r.text).toBe(big)
+  })
+
+  test("a mid-size JSON body (64 KB) is gzipped", async () => {
+    const mid = big.slice(0, 64 * 1024)
+    const r = await run(true, mid)
+    expect(r.head.encoding).toBe("gzip")
+    expect(r.text).toBe(mid)
+  })
+
   test("small bodies, non-JSON bodies and local panels are sent as is", async () => {
     for (const r of [await run(true, '{"a":1}'), await run(true, big, "text/plain"), await run(false, big)]) expect(r.head.encoding).toBeUndefined()
+  })
+})
+
+describe("bridge provider sharing", () => {
+  function setup() {
+    const posted: HostToWebview[] = []
+    const calls: string[] = []
+    let n = 0
+    const core = new BridgeCore({
+      post: (m) => posted.push(m),
+      fetch: (async (url: string) => {
+        const u = new URL(url)
+        calls.push(u.pathname)
+        const body = JSON.stringify({ n: ++n, path: u.pathname, search: u.search })
+        await new Promise((r) => setTimeout(r, 30)) // the server takes a while (1-1.4 s for a real provider list)
+        return new Response(body, { status: 200, headers: { "content-type": "application/json" } })
+      }) as unknown as typeof fetch,
+      baseUrl: () => "http://127.0.0.1:1",
+      auth: async () => ({}),
+      policy: new BridgePolicy(
+        { directory: "/w", sessionId: "ses_A" },
+        { sessionParent: async () => ({ exists: false }), permissionSession: async () => undefined, questionSession: async () => undefined },
+        () => true,
+      ),
+      store: { op: async () => ({}), putBlob: async () => "b", getBlob: async () => null },
+      log: { info() {}, warn() {} },
+      onUi() {},
+    })
+    core.handle({ v: PROTOCOL_VERSION, gen: 0, type: "hello", docId: "d" })
+    const send = (id: string, path: string, method = "GET") =>
+      core.handle({ v: PROTOCOL_VERSION, gen: core.generation, type: "fetch.request", id, url: `${BRIDGE_ORIGIN}${path}`, method, headers: [] })
+    const body = async (id: string) => {
+      for (let i = 0; i < 200 && !posted.some((m) => (m.type === "fetch.end" || m.type === "fetch.error") && m.id === id); i++) await new Promise((r) => setTimeout(r, 5))
+      const chunks = posted.filter((m) => m.type === "fetch.chunk" && m.id === id).map((m) => (m as Extract<HostToWebview, { type: "fetch.chunk" }>).data)
+      return new TextDecoder().decode(Buffer.concat(chunks.map((c) => Buffer.from(c))))
+    }
+    const providerCalls = () => calls.filter((c) => c === "/provider").length
+    return { send, body, providerCalls }
+  }
+
+  // The policy turns ?directory=<bound> into the directory header, so all of a booting page's provider requests are
+  // the same server request.
+  test("identical provider requests in flight together reach the server once; each page gets the whole body", async () => {
+    const { send, body, providerCalls } = setup()
+    send("m", "/session/ses_A/message?limit=80") // first paint, so nothing below is held back
+    await body("m")
+    send("p1", "/provider?directory=%2Fw")
+    send("p2", "/provider?directory=%2Fw")
+    send("p3", "/provider")
+    const [b1, b2, b3] = await Promise.all(["p1", "p2", "p3"].map(body))
+    expect(providerCalls()).toBe(1)
+    expect(JSON.parse(b1).path).toBe("/provider")
+    expect(b2).toBe(b1)
+    expect(b3).toBe(b1)
+  })
+
+  test("nothing is shared once the response is in, nor with a request started before a write", async () => {
+    const { send, body, providerCalls } = setup()
+    send("m", "/session/ses_A/message?limit=80")
+    await body("m")
+    send("p1", "/provider")
+    await body("p1")
+    send("p2", "/provider")
+    await body("p2")
+    expect(providerCalls()).toBe(2)
+    send("p3", "/provider")
+    send("w", "/session/ses_A/abort", "POST")
+    send("p4", "/provider")
+    await Promise.all(["p3", "p4"].map(body))
+    expect(providerCalls()).toBe(4)
   })
 })

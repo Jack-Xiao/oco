@@ -1,0 +1,853 @@
+{
+ "label": "open-fix5-1",
+ "variant": "fix5",
+ "rows": [
+  "Fork功能测试 (fork #2)",
+  "轻松打招呼 (fork #1)",
+  "Fork功能测试 (fork #1)",
+  "Fork功能测试",
+  "今日的心情 (fork #2)",
+  "今日的心情 (fork #1)",
+  "今日的心情",
+  "轻松打招呼 (fork #1)",
+  "轻松打招呼",
+  "今日测试记录",
+  "ceshi",
+  "ttttt",
+  "vvvvv",
+  "每秒输出数字持续30秒",
+  "每秒输出数字持续30秒",
+  "每秒输出数字持续30秒",
+  "你好呀",
+  "build，primary，内置",
+  "lll，all，用户文件",
+  "plan，primary，内置",
+  "explore，subagent，内置",
+  "general，subagent，内置"
+ ],
+ "results": [
+  {
+   "round": 0,
+   "i": 0,
+   "name": "Fork功能测试 (fork #2)",
+   "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+   "origin": 1790844050096.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 1852,
+   "turnsMs": 1826,
+   "blankFrames": 2,
+   "blankFirstMs": 422,
+   "samples": [
+    {
+     "t": 422,
+     "sid": "",
+     "turns": 0,
+     "prompt": false,
+     "boot": true,
+     "text": 0,
+     "first": "",
+     "title": "oco"
+    },
+    {
+     "t": 1154,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 0,
+     "prompt": false,
+     "boot": false,
+     "text": 0,
+     "first": "",
+     "title": "oco"
+    },
+    {
+     "t": 1826,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 20,
+     "prompt": true,
+     "boot": false,
+     "text": 1729,
+     "first": "msg_0f5a53a06001OUr0BnER94uXIl",
+     "title": "oco"
+    },
+    {
+     "t": 1840,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 10,
+     "prompt": true,
+     "boot": false,
+     "text": 819,
+     "first": "msg_0f66c01d2001vGWhXfsgGf7dsD",
+     "title": "oco"
+    },
+    {
+     "t": 2540,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 21,
+     "prompt": true,
+     "boot": false,
+     "text": 1706,
+     "first": "msg_0f5a53a06001OUr0BnER94uXIl",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     1135,
+     1302,
+     1302,
+     36,
+     "GET /global/health"
+    ],
+    [
+     1140,
+     1302,
+     1302,
+     16,
+     "GET /api/health"
+    ],
+    [
+     1303,
+     1507,
+     1507,
+     45,
+     "GET /global/config"
+    ],
+    [
+     1304,
+     null,
+     null,
+     0,
+     "GET /provider"
+    ],
+    [
+     1304,
+     1507,
+     1507,
+     146,
+     "GET /path"
+    ],
+    [
+     1304,
+     1507,
+     1507,
+     2,
+     "GET /session/status"
+    ],
+    [
+     1304,
+     1567,
+     1568,
+     104,
+     "GET /project"
+    ],
+    [
+     1304,
+     1568,
+     null,
+     3548,
+     "GET /global/event"
+    ],
+    [
+     1328,
+     1569,
+     1570,
+     2,
+     "GET /lsp?directory"
+    ],
+    [
+     1328,
+     1570,
+     1570,
+     494,
+     "GET /session/ses_f0a5af1a3ffe07qdYrPMAyX27d"
+    ],
+    [
+     1328,
+     1570,
+     1570,
+     494,
+     "GET /session/ses_f0a5af1a3ffe07qdYrPMAyX27d"
+    ],
+    [
+     1328,
+     1596,
+     1746,
+     44421,
+     "GET /session/ses_f0a5af1a3ffe07qdYrPMAyX27d/message?limit"
+    ],
+    [
+     1328,
+     1602,
+     1744,
+     3386,
+     "GET /agent?directory"
+    ],
+    [
+     1328,
+     null,
+     null,
+     0,
+     "GET /provider"
+    ],
+    [
+     1328,
+     null,
+     null,
+     0,
+     "GET /provider?directory"
+    ],
+    [
+     1328,
+     1611,
+     1611,
+     2,
+     "GET /mcp?directory"
+    ],
+    [
+     1328,
+     1744,
+     1744,
+     2,
+     "GET /experimental/resource?directory"
+    ],
+    [
+     1328,
+     1746,
+     1746,
+     146,
+     "GET /path?directory"
+    ],
+    [
+     1328,
+     null,
+     null,
+     0,
+     "GET /provider?directory"
+    ],
+    [
+     1328,
+     3320,
+     3320,
+     94,
+     "GET /api/reference?directory&location[directory]"
+    ],
+    [
+     1330,
+     1746,
+     1841,
+     1808,
+     "GET /session?directory&roots&limit"
+    ],
+    [
+     1330,
+     1841,
+     1841,
+     3386,
+     "GET /agent?directory"
+    ],
+    [
+     1330,
+     1841,
+     1841,
+     325,
+     "GET /config?directory"
+    ],
+    [
+     1330,
+     1841,
+     1841,
+     2,
+     "GET /session/status?directory"
+    ],
+    [
+     1330,
+     1841,
+     1841,
+     102,
+     "GET /project/current?directory"
+    ],
+    [
+     1330,
+     1841,
+     1841,
+     37,
+     "GET /vcs?directory"
+    ],
+    [
+     1330,
+     1841,
+     1842,
+     10606,
+     "GET /command?directory"
+    ],
+    [
+     1330,
+     1841,
+     1841,
+     2,
+     "GET /permission?directory"
+    ],
+    [
+     1330,
+     1841,
+     1841,
+     2,
+     "GET /question?directory"
+    ],
+    [
+     1576,
+     3117,
+     3117,
+     325,
+     "GET /config?directory"
+    ],
+    [
+     1576,
+     3126,
+     3127,
+     2,
+     "GET /session/status?directory"
+    ],
+    [
+     1576,
+     3151,
+     3151,
+     102,
+     "GET /project/current?directory"
+    ],
+    [
+     1576,
+     3151,
+     3151,
+     37,
+     "GET /vcs?directory"
+    ],
+    [
+     1576,
+     3156,
+     3164,
+     10606,
+     "GET /command?directory"
+    ],
+    [
+     1576,
+     3164,
+     3164,
+     2,
+     "GET /permission?directory"
+    ],
+    [
+     1576,
+     3165,
+     3165,
+     2,
+     "GET /question?directory"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 1,
+   "name": "轻松打招呼 (fork #1)",
+   "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+   "origin": 1790844050096.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 646,
+   "turnsMs": 613,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 183,
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+     "turns": 21,
+     "prompt": true,
+     "boot": false,
+     "text": 1706,
+     "first": "msg_0f5a53a06001OUr0BnER94uXIl",
+     "title": "oco"
+    },
+    {
+     "t": 613,
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+     "turns": 14,
+     "prompt": true,
+     "boot": false,
+     "text": 1846,
+     "first": "msg_0f58a313e001d2FZLvP8C4sPdb",
+     "title": "oco"
+    },
+    {
+     "t": 630,
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 860,
+     "first": "msg_0f6358eb0001pZd3wMT3piFWRV",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     183,
+     527,
+     565,
+     95900,
+     "GET /session/ses_f0a75cecfffetDvgGdvvj8cv7o/message?limit"
+    ],
+    [
+     183,
+     527,
+     527,
+     490,
+     "GET /session/ses_f0a75cecfffetDvgGdvvj8cv7o"
+    ],
+    [
+     440,
+     1829,
+     1830,
+     94,
+     "GET /api/reference?directory&location[directory]"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 2,
+   "name": "Fork功能测试 (fork #1)",
+   "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+   "origin": 1790844050096.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 477,
+   "turnsMs": 447,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 210,
+     "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 888,
+     "first": "msg_0f6358eb0001pZd3wMT3piFWRV",
+     "title": "oco"
+    },
+    {
+     "t": 447,
+     "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+     "turns": 7,
+     "prompt": true,
+     "boot": false,
+     "text": 841,
+     "first": "msg_0f5a4741b001OMaluQwF6ndlKp",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     210,
+     420,
+     420,
+     493,
+     "GET /session/ses_f0a5b8bebffeKL2zfvDl4r31Cd"
+    ],
+    [
+     210,
+     420,
+     421,
+     14831,
+     "GET /session/ses_f0a5b8bebffeKL2zfvDl4r31Cd/message?limit"
+    ]
+   ]
+  }
+ ],
+ "mem": [
+  {
+   "type": "Browser",
+   "pid": 57923,
+   "mb": 180
+  },
+  {
+   "type": "GPU",
+   "pid": 57924,
+   "mb": 84
+  },
+  {
+   "type": "Utility",
+   "pid": 57925,
+   "mb": 46
+  },
+  {
+   "type": "Tab",
+   "pid": 57928,
+   "mb": 281
+  },
+  {
+   "type": "Utility",
+   "pid": 58080,
+   "mb": 103
+  },
+  {
+   "type": "Utility",
+   "pid": 58081,
+   "mb": 61
+  },
+  {
+   "type": "Utility",
+   "pid": 58082,
+   "mb": 111
+  },
+  {
+   "type": "Tab",
+   "pid": 58189,
+   "mb": 271
+  }
+ ],
+ "stats": [
+  {
+   "stats": {
+    "websocketBlocked": 0,
+    "fetchRequests": 41,
+    "fetchRecent": [
+     {
+      "t": 741,
+      "bytes": 36,
+      "method": "GET",
+      "path": "/global/health",
+      "head": 908,
+      "end": 908
+     },
+     {
+      "t": 746,
+      "bytes": 16,
+      "method": "GET",
+      "path": "/api/health",
+      "head": 908,
+      "end": 908
+     },
+     {
+      "t": 909,
+      "bytes": 45,
+      "method": "GET",
+      "path": "/global/config",
+      "head": 1113,
+      "end": 1113
+     },
+     {
+      "t": 910,
+      "bytes": 555596,
+      "method": "GET",
+      "path": "/provider",
+      "head": 5407,
+      "end": 5737
+     },
+     {
+      "t": 910,
+      "bytes": 146,
+      "method": "GET",
+      "path": "/path",
+      "head": 1113,
+      "end": 1113
+     },
+     {
+      "t": 910,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/session/status",
+      "head": 1113,
+      "end": 1113
+     },
+     {
+      "t": 910,
+      "bytes": 104,
+      "method": "GET",
+      "path": "/project",
+      "head": 1173,
+      "end": 1174
+     },
+     {
+      "t": 910,
+      "bytes": 7029,
+      "method": "GET",
+      "path": "/global/event",
+      "head": 1174
+     },
+     {
+      "t": 934,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/lsp?directory",
+      "head": 1175,
+      "end": 1176
+     },
+     {
+      "t": 934,
+      "bytes": 494,
+      "method": "GET",
+      "path": "/session/ses_f0a5af1a3ffe07qdYrPMAyX27d",
+      "head": 1176,
+      "end": 1176
+     },
+     {
+      "t": 934,
+      "bytes": 494,
+      "method": "GET",
+      "path": "/session/ses_f0a5af1a3ffe07qdYrPMAyX27d",
+      "head": 1176,
+      "end": 1176
+     },
+     {
+      "t": 934,
+      "bytes": 44421,
+      "method": "GET",
+      "path": "/session/ses_f0a5af1a3ffe07qdYrPMAyX27d/message?limit",
+      "head": 1202,
+      "end": 1352
+     },
+     {
+      "t": 934,
+      "bytes": 3386,
+      "method": "GET",
+      "path": "/agent?directory",
+      "head": 1208,
+      "end": 1350
+     },
+     {
+      "t": 934,
+      "bytes": 555596,
+      "method": "GET",
+      "path": "/provider",
+      "head": 5407,
+      "end": 5729
+     },
+     {
+      "t": 934,
+      "bytes": 555596,
+      "method": "GET",
+      "path": "/provider?directory",
+      "head": 5407,
+      "end": 5733
+     },
+     {
+      "t": 934,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/mcp?directory",
+      "head": 1217,
+      "end": 1217
+     },
+     {
+      "t": 934,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/experimental/resource?directory",
+      "head": 1350,
+      "end": 1350
+     },
+     {
+      "t": 934,
+      "bytes": 146,
+      "method": "GET",
+      "path": "/path?directory",
+      "head": 1352,
+      "end": 1352
+     },
+     {
+      "t": 934,
+      "bytes": 555596,
+      "method": "GET",
+      "path": "/provider?directory",
+      "head": 5408,
+      "end": 5845
+     },
+     {
+      "t": 934,
+      "bytes": 94,
+      "method": "GET",
+      "path": "/api/reference?directory&location[directory]",
+      "head": 2926,
+      "end": 2926
+     },
+     {
+      "t": 936,
+      "bytes": 1808,
+      "method": "GET",
+      "path": "/session?directory&roots&limit",
+      "head": 1352,
+      "end": 1447
+     },
+     {
+      "t": 936,
+      "bytes": 3386,
+      "method": "GET",
+      "path": "/agent?directory",
+      "head": 1447,
+      "end": 1447
+     },
+     {
+      "t": 936,
+      "bytes": 325,
+      "method": "GET",
+      "path": "/config?directory",
+      "head": 1447,
+      "end": 1447
+     },
+     {
+      "t": 936,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/session/status?directory",
+      "head": 1447,
+      "end": 1447
+     },
+     {
+      "t": 936,
+      "bytes": 102,
+      "method": "GET",
+      "path": "/project/current?directory",
+      "head": 1447,
+      "end": 1447
+     },
+     {
+      "t": 936,
+      "bytes": 37,
+      "method": "GET",
+      "path": "/vcs?directory",
+      "head": 1447,
+      "end": 1447
+     },
+     {
+      "t": 936,
+      "bytes": 10606,
+      "method": "GET",
+      "path": "/command?directory",
+      "head": 1447,
+      "end": 1448
+     },
+     {
+      "t": 936,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/permission?directory",
+      "head": 1447,
+      "end": 1447
+     },
+     {
+      "t": 936,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/question?directory",
+      "head": 1447,
+      "end": 1447
+     },
+     {
+      "t": 1182,
+      "bytes": 325,
+      "method": "GET",
+      "path": "/config?directory",
+      "head": 2723,
+      "end": 2723
+     },
+     {
+      "t": 1182,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/session/status?directory",
+      "head": 2732,
+      "end": 2733
+     },
+     {
+      "t": 1182,
+      "bytes": 102,
+      "method": "GET",
+      "path": "/project/current?directory",
+      "head": 2757,
+      "end": 2757
+     },
+     {
+      "t": 1182,
+      "bytes": 37,
+      "method": "GET",
+      "path": "/vcs?directory",
+      "head": 2757,
+      "end": 2757
+     },
+     {
+      "t": 1182,
+      "bytes": 10606,
+      "method": "GET",
+      "path": "/command?directory",
+      "head": 2762,
+      "end": 2770
+     },
+     {
+      "t": 1182,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/permission?directory",
+      "head": 2770,
+      "end": 2770
+     },
+     {
+      "t": 1182,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/question?directory",
+      "head": 2771,
+      "end": 2771
+     },
+     {
+      "t": 3608,
+      "bytes": 95900,
+      "method": "GET",
+      "path": "/session/ses_f0a75cecfffetDvgGdvvj8cv7o/message?limit",
+      "head": 3952,
+      "end": 3990
+     },
+     {
+      "t": 3608,
+      "bytes": 490,
+      "method": "GET",
+      "path": "/session/ses_f0a75cecfffetDvgGdvvj8cv7o",
+      "head": 3952,
+      "end": 3952
+     },
+     {
+      "t": 3865,
+      "bytes": 94,
+      "method": "GET",
+      "path": "/api/reference?directory&location[directory]",
+      "head": 5254,
+      "end": 5255
+     },
+     {
+      "t": 6108,
+      "bytes": 493,
+      "method": "GET",
+      "path": "/session/ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+      "head": 6318,
+      "end": 6318
+     },
+     {
+      "t": 6108,
+      "bytes": 14831,
+      "method": "GET",
+      "path": "/session/ses_f0a5b8bebffeKL2zfvDl4r31Cd/message?limit",
+      "head": 6318,
+      "end": 6319
+     }
+    ],
+    "recoveryViews": 1,
+    "blockedNavigation": 0,
+    "openSessionRequests": 0,
+    "navigations": 2
+   },
+   "heapMB": 55,
+   "nodes": 5030
+  }
+ ]
+}

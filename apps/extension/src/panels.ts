@@ -129,6 +129,7 @@ export class PanelRegistry {
     entry.stats.switches++
     entry.binding = binding
     entry.panel.title = title ?? entry.panel.title
+    this.log.info(`switch ${sameDirectory ? "in place" : "with reload"} to ${binding.sessionId}`)
     if (sameDirectory) {
       entry.ready = false // the page says ready again once the new route rendered; drafts wait for it
       entry.bridge.retarget(binding.sessionId)

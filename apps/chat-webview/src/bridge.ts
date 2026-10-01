@@ -116,16 +116,20 @@ const stats = ((window as unknown as { __OCO_STATS__: Record<string, unknown> })
 stats.fetchRequests = 0
 // First requests of the document (ms since navigation start, method, path + query keys): startup profiling only.
 const fetchLog: [number, string, string][] = (stats.fetchLog = [])
+// Latest requests with timing (start, head, end: ms since navigation start; response bytes): switch profiling only.
+const fetchRecent: { t: number; head?: number; end?: number; bytes: number; method: string; path: string }[] = (stats.fetchRecent = [])
 
 /** fetch() replacement: serialises the request, streams the response body back incrementally. */
 export const bridgeFetch: typeof fetch = async (input, init2) => {
   const req = input instanceof Request ? input : new Request(input, init2)
   const signal = init2?.signal ?? req.signal
   stats.fetchRequests = (stats.fetchRequests as number) + 1
-  if (fetchLog.length < 200) {
-    const u = new URL(req.url)
-    fetchLog.push([Math.round(performance.now()), req.method, u.pathname + (u.search ? "?" + [...u.searchParams.keys()].join("&") : "")])
-  }
+  const u = new URL(req.url)
+  const path = u.pathname + (u.search ? "?" + [...u.searchParams.keys()].join("&") : "")
+  if (fetchLog.length < 200) fetchLog.push([Math.round(performance.now()), req.method, path])
+  const timing = { t: Math.round(performance.now()), bytes: 0, method: req.method, path } as (typeof fetchRecent)[number]
+  fetchRecent.push(timing)
+  if (fetchRecent.length > 300) fetchRecent.shift()
   if (signal?.aborted) throw new DOMException("Aborted", "AbortError")
   const body = req.method === "GET" || req.method === "HEAD" ? undefined : await req.arrayBuffer()
   const id = nextId()
@@ -156,12 +160,17 @@ export const bridgeFetch: typeof fetch = async (input, init2) => {
     pending.set(id, {
       head: (h) => {
         settled = true
+        timing.head = Math.round(performance.now())
         const nullBody = h.status === 204 || h.status === 205 || h.status === 304 || req.method === "HEAD"
         const body = h.encoding === "gzip" ? stream.pipeThrough(new DecompressionStream("gzip")) : stream
         resolve(new Response(nullBody ? null : body, { status: h.status, statusText: h.statusText, headers: h.headers }))
       },
-      chunk: (c) => controller.enqueue(c),
+      chunk: (c) => {
+        timing.bytes += c.byteLength
+        controller.enqueue(c)
+      },
       end: () => {
+        timing.end = Math.round(performance.now())
         signal?.removeEventListener("abort", onAbort)
         try {
           controller.close()

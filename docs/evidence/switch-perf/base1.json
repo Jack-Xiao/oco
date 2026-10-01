@@ -1,0 +1,929 @@
+{
+ "label": "base1",
+ "variant": "installed",
+ "rows": [
+  "Fork功能测试 (fork #2)",
+  "轻松打招呼 (fork #1)",
+  "Fork功能测试 (fork #1)",
+  "Fork功能测试",
+  "今日的心情 (fork #2)",
+  "今日的心情 (fork #1)",
+  "今日的心情",
+  "轻松打招呼 (fork #1)",
+  "轻松打招呼",
+  "今日测试记录",
+  "ceshi",
+  "ttttt",
+  "vvvvv",
+  "每秒输出数字持续30秒",
+  "每秒输出数字持续30秒",
+  "每秒输出数字持续30秒",
+  "你好呀",
+  "build，primary，内置",
+  "lll，all，用户文件",
+  "plan，primary，内置",
+  "explore，subagent，内置",
+  "general，subagent，内置"
+ ],
+ "results": [
+  {
+   "round": 0,
+   "i": 0,
+   "name": "Fork功能测试 (fork #2)",
+   "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 6223,
+   "turnsMs": 6151,
+   "blankFrames": 2,
+   "blankFirstMs": 578,
+   "samples": [
+    {
+     "t": 578,
+     "sid": "",
+     "turns": 0,
+     "prompt": false,
+     "boot": true,
+     "text": 0,
+     "title": "oco"
+    },
+    {
+     "t": 5145,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 0,
+     "prompt": false,
+     "boot": false,
+     "text": 0,
+     "title": "oco"
+    },
+    {
+     "t": 6151,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 20,
+     "prompt": true,
+     "boot": false,
+     "text": 1729,
+     "title": "oco"
+    },
+    {
+     "t": 6175,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 10,
+     "prompt": true,
+     "boot": false,
+     "text": 819,
+     "title": "oco"
+    },
+    {
+     "t": 7690,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 21,
+     "prompt": true,
+     "boot": false,
+     "text": 1706,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 0,
+   "i": 1,
+   "name": "轻松打招呼 (fork #1)",
+   "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 244,
+   "turnsMs": 186,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 186,
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+     "turns": 21,
+     "prompt": true,
+     "boot": false,
+     "text": 1706,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 0,
+   "i": 2,
+   "name": "Fork功能测试 (fork #1)",
+   "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 319,
+   "turnsMs": 253,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 253,
+     "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+     "turns": 21,
+     "prompt": true,
+     "boot": false,
+     "text": 1706,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 0,
+   "i": 3,
+   "name": "Fork功能测试",
+   "sid": "ses_f0a5c992bffehvng14SZUcTLEt",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 200,
+   "turnsMs": 179,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 179,
+     "sid": "ses_f0a5c992bffehvng14SZUcTLEt",
+     "turns": 21,
+     "prompt": true,
+     "boot": false,
+     "text": 1706,
+     "title": "oco"
+    },
+    {
+     "t": 1106,
+     "sid": "ses_f0a5c992bffehvng14SZUcTLEt",
+     "turns": 7,
+     "prompt": true,
+     "boot": false,
+     "text": 856,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 0,
+   "i": 4,
+   "name": "今日的心情 (fork #2)",
+   "sid": "ses_f0b2dcc91ffeWVMlQltuYNznoe",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 199,
+   "turnsMs": 177,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 177,
+     "sid": "ses_f0b2dcc91ffeWVMlQltuYNznoe",
+     "turns": 7,
+     "prompt": true,
+     "boot": false,
+     "text": 853,
+     "title": "oco"
+    },
+    {
+     "t": 405,
+     "sid": "ses_f0b2dcc91ffeWVMlQltuYNznoe",
+     "turns": 9,
+     "prompt": true,
+     "boot": false,
+     "text": 1044,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 0,
+   "i": 5,
+   "name": "今日的心情 (fork #1)",
+   "sid": "ses_f0b2e668effeKJDXM5KNAfJVOY",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 761,
+   "turnsMs": 746,
+   "blankFrames": 1,
+   "blankFirstMs": 184,
+   "samples": [
+    {
+     "t": 184,
+     "sid": "ses_f0b2e668effeKJDXM5KNAfJVOY",
+     "turns": 0,
+     "prompt": false,
+     "boot": false,
+     "text": 0,
+     "title": "oco"
+    },
+    {
+     "t": 746,
+     "sid": "ses_f0b2e668effeKJDXM5KNAfJVOY",
+     "turns": 11,
+     "prompt": true,
+     "boot": false,
+     "text": 1974,
+     "title": "oco"
+    },
+    {
+     "t": 756,
+     "sid": "ses_f0b2e668effeKJDXM5KNAfJVOY",
+     "turns": 8,
+     "prompt": true,
+     "boot": false,
+     "text": 1736,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 0,
+   "i": 6,
+   "name": "今日的心情",
+   "sid": "ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 862,
+   "turnsMs": 755,
+   "blankFrames": 1,
+   "blankFirstMs": 174,
+   "samples": [
+    {
+     "t": 174,
+     "sid": "ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+     "turns": 0,
+     "prompt": false,
+     "boot": false,
+     "text": 0,
+     "title": "oco"
+    },
+    {
+     "t": 755,
+     "sid": "ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+     "turns": 12,
+     "prompt": true,
+     "boot": false,
+     "text": 1955,
+     "title": "oco"
+    },
+    {
+     "t": 767,
+     "sid": "ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+     "turns": 9,
+     "prompt": true,
+     "boot": false,
+     "text": 1738,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 0,
+   "i": 7,
+   "name": "轻松打招呼 (fork #1)",
+   "sid": "ses_f0d08bf7effepmCSDH4Y6kFDgF",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 686,
+   "turnsMs": 662,
+   "blankFrames": 1,
+   "blankFirstMs": 172,
+   "samples": [
+    {
+     "t": 172,
+     "sid": "ses_f0d08bf7effepmCSDH4Y6kFDgF",
+     "turns": 0,
+     "prompt": false,
+     "boot": false,
+     "text": 0,
+     "title": "oco"
+    },
+    {
+     "t": 662,
+     "sid": "ses_f0d08bf7effepmCSDH4Y6kFDgF",
+     "turns": 4,
+     "prompt": true,
+     "boot": false,
+     "text": 289,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 0,
+   "i": 8,
+   "name": "轻松打招呼",
+   "sid": "ses_f0d1e9e7cffejE4BCbLnysC4B1",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 734,
+   "turnsMs": 696,
+   "blankFrames": 1,
+   "blankFirstMs": 173,
+   "samples": [
+    {
+     "t": 173,
+     "sid": "ses_f0d1e9e7cffejE4BCbLnysC4B1",
+     "turns": 0,
+     "prompt": false,
+     "boot": false,
+     "text": 0,
+     "title": "oco"
+    },
+    {
+     "t": 696,
+     "sid": "ses_f0d1e9e7cffejE4BCbLnysC4B1",
+     "turns": 8,
+     "prompt": true,
+     "boot": false,
+     "text": 623,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 0,
+   "i": 9,
+   "name": "今日测试记录",
+   "sid": "ses_f0d0c79f3ffepowy5EPR4mLDuM",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 614,
+   "turnsMs": 614,
+   "blankFrames": 1,
+   "blankFirstMs": 183,
+   "samples": [
+    {
+     "t": 183,
+     "sid": "ses_f0d0c79f3ffepowy5EPR4mLDuM",
+     "turns": 0,
+     "prompt": false,
+     "boot": false,
+     "text": 0,
+     "title": "oco"
+    },
+    {
+     "t": 614,
+     "sid": "ses_f0d0c79f3ffepowy5EPR4mLDuM",
+     "turns": 2,
+     "prompt": true,
+     "boot": false,
+     "text": 144,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 0,
+   "i": 10,
+   "name": "ceshi",
+   "sid": "ses_f0d0c9448ffeqSDRIyUWONy0h3",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 8020,
+   "turnsMs": null,
+   "blankFrames": 2,
+   "blankFirstMs": 174,
+   "samples": [
+    {
+     "t": 174,
+     "sid": "ses_f0d0c9448ffeqSDRIyUWONy0h3",
+     "turns": 0,
+     "prompt": false,
+     "boot": false,
+     "text": 0,
+     "title": "oco"
+    },
+    {
+     "t": 589,
+     "sid": "ses_f0d0c9448ffeqSDRIyUWONy0h3",
+     "turns": 0,
+     "prompt": true,
+     "boot": false,
+     "text": 80,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 0,
+   "i": 11,
+   "name": "ttttt",
+   "sid": "ses_f0d0ca80effe4oILnigFs3bdrx",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 8026,
+   "turnsMs": null,
+   "blankFrames": 2,
+   "blankFirstMs": 224,
+   "samples": [
+    {
+     "t": 224,
+     "sid": "ses_f0d0ca80effe4oILnigFs3bdrx",
+     "turns": 0,
+     "prompt": false,
+     "boot": false,
+     "text": 0,
+     "title": "oco"
+    },
+    {
+     "t": 660,
+     "sid": "ses_f0d0ca80effe4oILnigFs3bdrx",
+     "turns": 0,
+     "prompt": true,
+     "boot": false,
+     "text": 80,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 0,
+   "i": 12,
+   "name": "vvvvv",
+   "sid": "ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 843,
+   "turnsMs": 771,
+   "blankFrames": 1,
+   "blankFirstMs": 178,
+   "samples": [
+    {
+     "t": 178,
+     "sid": "ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+     "turns": 0,
+     "prompt": false,
+     "boot": false,
+     "text": 0,
+     "title": "oco"
+    },
+    {
+     "t": 771,
+     "sid": "ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+     "turns": 4,
+     "prompt": true,
+     "boot": false,
+     "text": 286,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 0,
+   "i": 13,
+   "name": "每秒输出数字持续30秒",
+   "sid": "ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 3307,
+   "turnsMs": 3243,
+   "blankFrames": 1,
+   "blankFirstMs": 219,
+   "samples": [
+    {
+     "t": 219,
+     "sid": "ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+     "turns": 0,
+     "prompt": false,
+     "boot": false,
+     "text": 0,
+     "title": "oco"
+    },
+    {
+     "t": 3243,
+     "sid": "ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+     "turns": 11,
+     "prompt": true,
+     "boot": false,
+     "text": 1976,
+     "title": "oco"
+    },
+    {
+     "t": 3256,
+     "sid": "ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 1600,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 0,
+   "name": "Fork功能测试 (fork #2)",
+   "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 186,
+   "turnsMs": 180,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 180,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 8,
+     "prompt": true,
+     "boot": false,
+     "text": 596,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 1,
+   "name": "轻松打招呼 (fork #1)",
+   "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 306,
+   "turnsMs": 241,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 241,
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+     "turns": 14,
+     "prompt": true,
+     "boot": false,
+     "text": 1874,
+     "title": "oco"
+    },
+    {
+     "t": 254,
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 888,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 2,
+   "name": "Fork功能测试 (fork #1)",
+   "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 231,
+   "turnsMs": 219,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 219,
+     "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+     "turns": 7,
+     "prompt": true,
+     "boot": false,
+     "text": 841,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 3,
+   "name": "Fork功能测试",
+   "sid": "ses_f0a5c992bffehvng14SZUcTLEt",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 199,
+   "turnsMs": 190,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 190,
+     "sid": "ses_f0a5c992bffehvng14SZUcTLEt",
+     "turns": 7,
+     "prompt": true,
+     "boot": false,
+     "text": 853,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 4,
+   "name": "今日的心情 (fork #2)",
+   "sid": "ses_f0b2dcc91ffeWVMlQltuYNznoe",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 247,
+   "turnsMs": 216,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 216,
+     "sid": "ses_f0b2dcc91ffeWVMlQltuYNznoe",
+     "turns": 9,
+     "prompt": true,
+     "boot": false,
+     "text": 1028,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 5,
+   "name": "今日的心情 (fork #1)",
+   "sid": "ses_f0b2e668effeKJDXM5KNAfJVOY",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 258,
+   "turnsMs": 240,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 240,
+     "sid": "ses_f0b2e668effeKJDXM5KNAfJVOY",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 1317,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 6,
+   "name": "今日的心情",
+   "sid": "ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 256,
+   "turnsMs": 209,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 209,
+     "sid": "ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 1282,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 7,
+   "name": "轻松打招呼 (fork #1)",
+   "sid": "ses_f0d08bf7effepmCSDH4Y6kFDgF",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 203,
+   "turnsMs": 185,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 185,
+     "sid": "ses_f0d08bf7effepmCSDH4Y6kFDgF",
+     "turns": 4,
+     "prompt": true,
+     "boot": false,
+     "text": 289,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 8,
+   "name": "轻松打招呼",
+   "sid": "ses_f0d1e9e7cffejE4BCbLnysC4B1",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 317,
+   "turnsMs": 256,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 256,
+     "sid": "ses_f0d1e9e7cffejE4BCbLnysC4B1",
+     "turns": 8,
+     "prompt": true,
+     "boot": false,
+     "text": 600,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 9,
+   "name": "今日测试记录",
+   "sid": "ses_f0d0c79f3ffepowy5EPR4mLDuM",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 233,
+   "turnsMs": 213,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 213,
+     "sid": "ses_f0d0c79f3ffepowy5EPR4mLDuM",
+     "turns": 2,
+     "prompt": true,
+     "boot": false,
+     "text": 145,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 10,
+   "name": "ceshi",
+   "sid": "ses_f0d0c9448ffeqSDRIyUWONy0h3",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 8029,
+   "turnsMs": null,
+   "blankFrames": 1,
+   "blankFirstMs": 175,
+   "samples": [
+    {
+     "t": 175,
+     "sid": "ses_f0d0c9448ffeqSDRIyUWONy0h3",
+     "turns": 0,
+     "prompt": true,
+     "boot": false,
+     "text": 80,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 11,
+   "name": "ttttt",
+   "sid": "ses_f0d0ca80effe4oILnigFs3bdrx",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 8026,
+   "turnsMs": null,
+   "blankFrames": 1,
+   "blankFirstMs": 229,
+   "samples": [
+    {
+     "t": 229,
+     "sid": "ses_f0d0ca80effe4oILnigFs3bdrx",
+     "turns": 0,
+     "prompt": true,
+     "boot": false,
+     "text": 80,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 12,
+   "name": "vvvvv",
+   "sid": "ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 220,
+   "turnsMs": 196,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 196,
+     "sid": "ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+     "turns": 4,
+     "prompt": true,
+     "boot": false,
+     "text": 285,
+     "title": "oco"
+    }
+   ]
+  },
+  {
+   "round": 1,
+   "i": 13,
+   "name": "每秒输出数字持续30秒",
+   "sid": "ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+   "origin": 1790841832472.4,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 264,
+   "turnsMs": 259,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 259,
+     "sid": "ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 1600,
+     "title": "oco"
+    }
+   ]
+  }
+ ],
+ "mem": [
+  {
+   "type": "Browser",
+   "pid": 47950,
+   "mb": 182
+  },
+  {
+   "type": "GPU",
+   "pid": 47951,
+   "mb": 87
+  },
+  {
+   "type": "Utility",
+   "pid": 47952,
+   "mb": 45
+  },
+  {
+   "type": "Tab",
+   "pid": 47955,
+   "mb": 257
+  },
+  {
+   "type": "Utility",
+   "pid": 47984,
+   "mb": 70
+  },
+  {
+   "type": "Utility",
+   "pid": 47985,
+   "mb": 60
+  },
+  {
+   "type": "Utility",
+   "pid": 47986,
+   "mb": 87
+  },
+  {
+   "type": "Tab",
+   "pid": 48228,
+   "mb": 204
+  }
+ ],
+ "stats": [
+  {
+   "stats": {
+    "websocketBlocked": 0,
+    "fetchRequests": 143,
+    "recoveryViews": 1,
+    "blockedNavigation": 0,
+    "openSessionRequests": 0,
+    "navigations": 27
+   },
+   "heapMB": 51,
+   "nodes": 5133
+  }
+ ]
+}

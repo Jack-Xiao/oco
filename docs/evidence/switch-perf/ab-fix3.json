@@ -1,0 +1,2723 @@
+{
+ "label": "ab-fix3",
+ "variant": "fix3",
+ "rows": [
+  "Fork功能测试 (fork #2)",
+  "轻松打招呼 (fork #1)",
+  "Fork功能测试 (fork #1)",
+  "Fork功能测试",
+  "今日的心情 (fork #2)",
+  "今日的心情 (fork #1)",
+  "今日的心情",
+  "轻松打招呼 (fork #1)",
+  "轻松打招呼",
+  "今日测试记录",
+  "ceshi",
+  "ttttt",
+  "vvvvv",
+  "每秒输出数字持续30秒",
+  "每秒输出数字持续30秒",
+  "每秒输出数字持续30秒",
+  "你好呀",
+  "build，primary，内置",
+  "lll，all，用户文件",
+  "plan，primary，内置",
+  "explore，subagent，内置",
+  "general，subagent，内置"
+ ],
+ "results": [
+  {
+   "round": 0,
+   "i": 0,
+   "name": "Fork功能测试 (fork #2)",
+   "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 1509,
+   "turnsMs": 1495,
+   "blankFrames": 2,
+   "blankFirstMs": 407,
+   "samples": [
+    {
+     "t": 407,
+     "sid": "",
+     "turns": 0,
+     "prompt": false,
+     "boot": true,
+     "text": 0,
+     "first": "",
+     "title": "oco"
+    },
+    {
+     "t": 820,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 0,
+     "prompt": false,
+     "boot": false,
+     "text": 0,
+     "first": "",
+     "title": "oco"
+    },
+    {
+     "t": 1495,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 20,
+     "prompt": true,
+     "boot": false,
+     "text": 1729,
+     "first": "msg_0f5a53a06001OUr0BnER94uXIl",
+     "title": "oco"
+    },
+    {
+     "t": 1509,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 10,
+     "prompt": true,
+     "boot": false,
+     "text": 819,
+     "first": "msg_0f66c01d2001vGWhXfsgGf7dsD",
+     "title": "oco"
+    },
+    {
+     "t": 1938,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 21,
+     "prompt": true,
+     "boot": false,
+     "text": 1706,
+     "first": "msg_0f5a53a06001OUr0BnER94uXIl",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     802,
+     885,
+     885,
+     36,
+     "GET /global/health"
+    ],
+    [
+     807,
+     889,
+     889,
+     16,
+     "GET /api/health"
+    ],
+    [
+     886,
+     1166,
+     1166,
+     45,
+     "GET /global/config"
+    ],
+    [
+     886,
+     null,
+     null,
+     0,
+     "GET /provider"
+    ],
+    [
+     886,
+     1167,
+     1168,
+     146,
+     "GET /path"
+    ],
+    [
+     886,
+     1168,
+     1168,
+     2,
+     "GET /session/status"
+    ],
+    [
+     886,
+     1168,
+     1168,
+     104,
+     "GET /project"
+    ],
+    [
+     886,
+     1168,
+     null,
+     3548,
+     "GET /global/event"
+    ],
+    [
+     900,
+     1168,
+     1168,
+     494,
+     "GET /session/ses_f0a5af1a3ffe07qdYrPMAyX27d"
+    ],
+    [
+     900,
+     1169,
+     1169,
+     494,
+     "GET /session/ses_f0a5af1a3ffe07qdYrPMAyX27d"
+    ],
+    [
+     1189,
+     1335,
+     1335,
+     2,
+     "GET /lsp?directory"
+    ],
+    [
+     1189,
+     1335,
+     1422,
+     44421,
+     "GET /session/ses_f0a5af1a3ffe07qdYrPMAyX27d/message?limit"
+    ],
+    [
+     1189,
+     1335,
+     1336,
+     3386,
+     "GET /agent?directory"
+    ],
+    [
+     1189,
+     null,
+     null,
+     0,
+     "GET /provider"
+    ],
+    [
+     1189,
+     null,
+     null,
+     0,
+     "GET /provider?directory"
+    ],
+    [
+     1189,
+     1335,
+     1335,
+     146,
+     "GET /path?directory"
+    ],
+    [
+     1189,
+     null,
+     null,
+     0,
+     "GET /provider?directory"
+    ],
+    [
+     1189,
+     2969,
+     2970,
+     94,
+     "GET /api/reference?directory&location[directory]"
+    ],
+    [
+     1189,
+     1423,
+     1423,
+     2,
+     "GET /mcp?directory"
+    ],
+    [
+     1189,
+     1493,
+     1494,
+     2,
+     "GET /experimental/resource?directory"
+    ],
+    [
+     1193,
+     1511,
+     1511,
+     1808,
+     "GET /session?directory&roots&limit"
+    ],
+    [
+     1193,
+     1511,
+     1512,
+     3386,
+     "GET /agent?directory"
+    ],
+    [
+     1193,
+     1512,
+     1512,
+     325,
+     "GET /config?directory"
+    ],
+    [
+     1193,
+     1512,
+     1512,
+     2,
+     "GET /session/status?directory"
+    ],
+    [
+     1193,
+     1512,
+     1512,
+     102,
+     "GET /project/current?directory"
+    ],
+    [
+     1193,
+     1512,
+     1512,
+     37,
+     "GET /vcs?directory"
+    ],
+    [
+     1193,
+     1512,
+     1512,
+     10606,
+     "GET /command?directory"
+    ],
+    [
+     1193,
+     1512,
+     1512,
+     2,
+     "GET /permission?directory"
+    ],
+    [
+     1193,
+     1512,
+     1512,
+     2,
+     "GET /question?directory"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 1,
+   "name": "轻松打招呼 (fork #1)",
+   "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 1506,
+   "turnsMs": 1477,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 165,
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+     "turns": 21,
+     "prompt": true,
+     "boot": false,
+     "text": 1706,
+     "first": "msg_0f5a53a06001OUr0BnER94uXIl",
+     "title": "oco"
+    },
+    {
+     "t": 1477,
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+     "turns": 14,
+     "prompt": true,
+     "boot": false,
+     "text": 1846,
+     "first": "msg_0f58a313e001d2FZLvP8C4sPdb",
+     "title": "oco"
+    },
+    {
+     "t": 1494,
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 860,
+     "first": "msg_0f6358eb0001pZd3wMT3piFWRV",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     165,
+     1392,
+     1426,
+     95900,
+     "GET /session/ses_f0a75cecfffetDvgGdvvj8cv7o/message?limit"
+    ],
+    [
+     165,
+     1404,
+     1404,
+     490,
+     "GET /session/ses_f0a75cecfffetDvgGdvvj8cv7o"
+    ],
+    [
+     1316,
+     2175,
+     2175,
+     94,
+     "GET /api/reference?directory&location[directory]"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 2,
+   "name": "Fork功能测试 (fork #1)",
+   "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 222,
+   "turnsMs": 212,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 89,
+     "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 888,
+     "first": "msg_0f6358eb0001pZd3wMT3piFWRV",
+     "title": "oco"
+    },
+    {
+     "t": 212,
+     "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+     "turns": 7,
+     "prompt": true,
+     "boot": false,
+     "text": 841,
+     "first": "msg_0f5a4741b001OMaluQwF6ndlKp",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     89,
+     173,
+     173,
+     493,
+     "GET /session/ses_f0a5b8bebffeKL2zfvDl4r31Cd"
+    ],
+    [
+     89,
+     181,
+     190,
+     14831,
+     "GET /session/ses_f0a5b8bebffeKL2zfvDl4r31Cd/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 3,
+   "name": "Fork功能测试",
+   "sid": "ses_f0a5c992bffehvng14SZUcTLEt",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 248,
+   "turnsMs": 236,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 93,
+     "sid": "ses_f0a5c992bffehvng14SZUcTLEt",
+     "turns": 7,
+     "prompt": true,
+     "boot": false,
+     "text": 813,
+     "first": "msg_0f5a4741b001OMaluQwF6ndlKp",
+     "title": "oco"
+    },
+    {
+     "t": 236,
+     "sid": "ses_f0a5c992bffehvng14SZUcTLEt",
+     "turns": 7,
+     "prompt": true,
+     "boot": false,
+     "text": 884,
+     "first": "msg_0f5a3db13001zY90Lvs6BSeAU8",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     91,
+     212,
+     213,
+     14749,
+     "GET /session/ses_f0a5c992bffehvng14SZUcTLEt/message?limit"
+    ],
+    [
+     91,
+     213,
+     236,
+     481,
+     "GET /session/ses_f0a5c992bffehvng14SZUcTLEt"
+    ],
+    [
+     1813,
+     1890,
+     1890,
+     16,
+     "GET /api/health"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 4,
+   "name": "今日的心情 (fork #2)",
+   "sid": "ses_f0b2dcc91ffeWVMlQltuYNznoe",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 537,
+   "turnsMs": 523,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 99,
+     "sid": "ses_f0b2dcc91ffeWVMlQltuYNznoe",
+     "turns": 7,
+     "prompt": true,
+     "boot": false,
+     "text": 853,
+     "first": "msg_0f5a3db13001zY90Lvs6BSeAU8",
+     "title": "oco"
+    },
+    {
+     "t": 523,
+     "sid": "ses_f0b2dcc91ffeWVMlQltuYNznoe",
+     "turns": 9,
+     "prompt": true,
+     "boot": false,
+     "text": 1044,
+     "first": "msg_0f4d2337500136s0jTBCel19wv",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     96,
+     494,
+     494,
+     479,
+     "GET /session/ses_f0b2dcc91ffeWVMlQltuYNznoe"
+    ],
+    [
+     96,
+     494,
+     495,
+     11773,
+     "GET /session/ses_f0b2dcc91ffeWVMlQltuYNznoe/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 5,
+   "name": "今日的心情 (fork #1)",
+   "sid": "ses_f0b2e668effeKJDXM5KNAfJVOY",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 246,
+   "turnsMs": 224,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 95,
+     "sid": "ses_f0b2e668effeKJDXM5KNAfJVOY",
+     "turns": 9,
+     "prompt": true,
+     "boot": false,
+     "text": 1028,
+     "first": "msg_0f4d2337500136s0jTBCel19wv",
+     "title": "oco"
+    },
+    {
+     "t": 224,
+     "sid": "ses_f0b2e668effeKJDXM5KNAfJVOY",
+     "turns": 11,
+     "prompt": true,
+     "boot": false,
+     "text": 1974,
+     "first": "msg_0f4d1997a0011penZrHFVdsCCe",
+     "title": "oco"
+    },
+    {
+     "t": 233,
+     "sid": "ses_f0b2e668effeKJDXM5KNAfJVOY",
+     "turns": 8,
+     "prompt": true,
+     "boot": false,
+     "text": 1736,
+     "first": "msg_0f4d1997a0011penZrHFVdsCCe",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     95,
+     171,
+     171,
+     480,
+     "GET /session/ses_f0b2e668effeKJDXM5KNAfJVOY"
+    ],
+    [
+     95,
+     182,
+     196,
+     34126,
+     "GET /session/ses_f0b2e668effeKJDXM5KNAfJVOY/message?limit"
+    ],
+    [
+     95,
+     196,
+     196,
+     480,
+     "GET /session/ses_f0b2e668effeKJDXM5KNAfJVOY"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 6,
+   "name": "今日的心情",
+   "sid": "ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 250,
+   "turnsMs": 251,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 100,
+     "sid": "ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+     "turns": 8,
+     "prompt": true,
+     "boot": false,
+     "text": 1736,
+     "first": "msg_0f4d1997a0011penZrHFVdsCCe",
+     "title": "oco"
+    },
+    {
+     "t": 251,
+     "sid": "ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+     "turns": 12,
+     "prompt": true,
+     "boot": false,
+     "text": 1955,
+     "first": "msg_0f2dd741b001AxA123hv0BU6Zj",
+     "title": "oco"
+    },
+    {
+     "t": 259,
+     "sid": "ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+     "turns": 9,
+     "prompt": true,
+     "boot": false,
+     "text": 1738,
+     "first": "msg_0f2dd741b001AxA123hv0BU6Zj",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     100,
+     218,
+     219,
+     470,
+     "GET /session/ses_f0d3ea2cdffeEdPGeqa5CZG5xP"
+    ],
+    [
+     100,
+     219,
+     219,
+     470,
+     "GET /session/ses_f0d3ea2cdffeEdPGeqa5CZG5xP"
+    ],
+    [
+     100,
+     219,
+     223,
+     42265,
+     "GET /session/ses_f0d3ea2cdffeEdPGeqa5CZG5xP/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 7,
+   "name": "轻松打招呼 (fork #1)",
+   "sid": "ses_f0d08bf7effepmCSDH4Y6kFDgF",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 232,
+   "turnsMs": 216,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 107,
+     "sid": "ses_f0d08bf7effepmCSDH4Y6kFDgF",
+     "turns": 9,
+     "prompt": true,
+     "boot": false,
+     "text": 1738,
+     "first": "msg_0f2dd741b001AxA123hv0BU6Zj",
+     "title": "oco"
+    },
+    {
+     "t": 216,
+     "sid": "ses_f0d08bf7effepmCSDH4Y6kFDgF",
+     "turns": 4,
+     "prompt": true,
+     "boot": false,
+     "text": 289,
+     "first": "msg_0f2f74087001RF67Kb2y8BQhWW",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     103,
+     181,
+     181,
+     478,
+     "GET /session/ses_f0d08bf7effepmCSDH4Y6kFDgF"
+    ],
+    [
+     103,
+     197,
+     197,
+     1008,
+     "GET /session/ses_f0d08bf7effepmCSDH4Y6kFDgF/message?limit"
+    ],
+    [
+     103,
+     220,
+     220,
+     478,
+     "GET /session/ses_f0d08bf7effepmCSDH4Y6kFDgF"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 8,
+   "name": "轻松打招呼",
+   "sid": "ses_f0d1e9e7cffejE4BCbLnysC4B1",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 384,
+   "turnsMs": 325,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 94,
+     "sid": "ses_f0d1e9e7cffejE4BCbLnysC4B1",
+     "turns": 4,
+     "prompt": true,
+     "boot": false,
+     "text": 289,
+     "first": "msg_0f2f74087001RF67Kb2y8BQhWW",
+     "title": "oco"
+    },
+    {
+     "t": 325,
+     "sid": "ses_f0d1e9e7cffejE4BCbLnysC4B1",
+     "turns": 8,
+     "prompt": true,
+     "boot": false,
+     "text": 623,
+     "first": "msg_0f2e162b8001CAHqUPhX7aqaMm",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     94,
+     193,
+     193,
+     470,
+     "GET /session/ses_f0d1e9e7cffejE4BCbLnysC4B1"
+    ],
+    [
+     94,
+     193,
+     193,
+     470,
+     "GET /session/ses_f0d1e9e7cffejE4BCbLnysC4B1"
+    ],
+    [
+     94,
+     218,
+     300,
+     91753,
+     "GET /session/ses_f0d1e9e7cffejE4BCbLnysC4B1/message?limit"
+    ],
+    [
+     1147,
+     1235,
+     1235,
+     16,
+     "GET /api/health"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 9,
+   "name": "今日测试记录",
+   "sid": "ses_f0d0c79f3ffepowy5EPR4mLDuM",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 217,
+   "turnsMs": 211,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 90,
+     "sid": "ses_f0d0c79f3ffepowy5EPR4mLDuM",
+     "turns": 8,
+     "prompt": true,
+     "boot": false,
+     "text": 600,
+     "first": "msg_0f2e162b8001CAHqUPhX7aqaMm",
+     "title": "oco"
+    },
+    {
+     "t": 211,
+     "sid": "ses_f0d0c79f3ffepowy5EPR4mLDuM",
+     "turns": 2,
+     "prompt": true,
+     "boot": false,
+     "text": 144,
+     "first": "msg_0f2f3fc50001Doblpdr7dwtoLU",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     89,
+     178,
+     178,
+     469,
+     "GET /session/ses_f0d0c79f3ffepowy5EPR4mLDuM"
+    ],
+    [
+     89,
+     188,
+     194,
+     614,
+     "GET /session/ses_f0d0c79f3ffepowy5EPR4mLDuM/message?limit"
+    ],
+    [
+     90,
+     188,
+     188,
+     469,
+     "GET /session/ses_f0d0c79f3ffepowy5EPR4mLDuM"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 10,
+   "name": "ceshi",
+   "sid": "ses_f0d0c9448ffeqSDRIyUWONy0h3",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 253,
+   "turnsMs": 245,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 108,
+     "sid": "ses_f0d0c9448ffeqSDRIyUWONy0h3",
+     "turns": 2,
+     "prompt": true,
+     "boot": false,
+     "text": 145,
+     "first": "msg_0f2f3fc50001Doblpdr7dwtoLU",
+     "title": "oco"
+    },
+    {
+     "t": 245,
+     "sid": "ses_f0d0c9448ffeqSDRIyUWONy0h3",
+     "turns": 0,
+     "prompt": true,
+     "boot": false,
+     "text": 80,
+     "first": "",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     106,
+     231,
+     231,
+     309,
+     "GET /session/ses_f0d0c9448ffeqSDRIyUWONy0h3"
+    ],
+    [
+     106,
+     231,
+     231,
+     309,
+     "GET /session/ses_f0d0c9448ffeqSDRIyUWONy0h3"
+    ],
+    [
+     107,
+     234,
+     235,
+     2,
+     "GET /session/ses_f0d0c9448ffeqSDRIyUWONy0h3/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 11,
+   "name": "ttttt",
+   "sid": "ses_f0d0ca80effe4oILnigFs3bdrx",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 170,
+   "turnsMs": 160,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 160,
+     "sid": "ses_f0d0ca80effe4oILnigFs3bdrx",
+     "turns": 0,
+     "prompt": true,
+     "boot": false,
+     "text": 80,
+     "first": "",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     160,
+     264,
+     265,
+     308,
+     "GET /session/ses_f0d0ca80effe4oILnigFs3bdrx"
+    ],
+    [
+     160,
+     268,
+     269,
+     2,
+     "GET /session/ses_f0d0ca80effe4oILnigFs3bdrx/message?limit"
+    ],
+    [
+     160,
+     285,
+     286,
+     308,
+     "GET /session/ses_f0d0ca80effe4oILnigFs3bdrx"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 12,
+   "name": "vvvvv",
+   "sid": "ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 249,
+   "turnsMs": 245,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 97,
+     "sid": "ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+     "turns": 0,
+     "prompt": true,
+     "boot": false,
+     "text": 80,
+     "first": "",
+     "title": "oco"
+    },
+    {
+     "t": 245,
+     "sid": "ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+     "turns": 4,
+     "prompt": true,
+     "boot": false,
+     "text": 286,
+     "first": "msg_0f2f205be001xaToygNywoPgGj",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     95,
+     221,
+     221,
+     456,
+     "GET /session/ses_f0d8b941bffe2CORWZ8oM9AQ8v"
+    ],
+    [
+     95,
+     221,
+     221,
+     456,
+     "GET /session/ses_f0d8b941bffe2CORWZ8oM9AQ8v"
+    ],
+    [
+     95,
+     224,
+     225,
+     1192,
+     "GET /session/ses_f0d8b941bffe2CORWZ8oM9AQ8v/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 0,
+   "i": 13,
+   "name": "每秒输出数字持续30秒",
+   "sid": "ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": false,
+   "doneMs": 480,
+   "turnsMs": 374,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 136,
+     "sid": "ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+     "turns": 4,
+     "prompt": true,
+     "boot": false,
+     "text": 285,
+     "first": "msg_0f2f205be001xaToygNywoPgGj",
+     "title": "oco"
+    },
+    {
+     "t": 374,
+     "sid": "ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+     "turns": 11,
+     "prompt": true,
+     "boot": false,
+     "text": 1976,
+     "first": "msg_0f2b3330a001UV1Odsr9Psa3eT",
+     "title": "oco"
+    },
+    {
+     "t": 384,
+     "sid": "ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 1600,
+     "first": "msg_0f2b7ca3b0010xCe9YvFOl8rSO",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     136,
+     213,
+     213,
+     534,
+     "GET /session/ses_f0d4cd7b6ffeHHYlxx1GNk0C06"
+    ],
+    [
+     136,
+     244,
+     321,
+     288244,
+     "GET /session/ses_f0d4cd7b6ffeHHYlxx1GNk0C06/message?limit"
+    ],
+    [
+     136,
+     251,
+     251,
+     534,
+     "GET /session/ses_f0d4cd7b6ffeHHYlxx1GNk0C06"
+    ],
+    [
+     715,
+     838,
+     838,
+     16,
+     "GET /api/health"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 0,
+   "name": "Fork功能测试 (fork #2)",
+   "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 237,
+   "turnsMs": 158,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 158,
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+     "turns": 8,
+     "prompt": true,
+     "boot": false,
+     "text": 596,
+     "first": "msg_0f66c01d2001vGWhXfsgGf7dsD",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     139,
+     351,
+     352,
+     494,
+     "GET /session/ses_f0a5af1a3ffe07qdYrPMAyX27d"
+    ],
+    [
+     162,
+     352,
+     352,
+     494,
+     "GET /session/ses_f0a5af1a3ffe07qdYrPMAyX27d"
+    ],
+    [
+     162,
+     631,
+     638,
+     44421,
+     "GET /session/ses_f0a5af1a3ffe07qdYrPMAyX27d/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 1,
+   "name": "轻松打招呼 (fork #1)",
+   "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 132,
+   "turnsMs": 127,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 127,
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 888,
+     "first": "msg_0f6358eb0001pZd3wMT3piFWRV",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     110,
+     261,
+     262,
+     490,
+     "GET /session/ses_f0a75cecfffetDvgGdvvj8cv7o"
+    ],
+    [
+     130,
+     262,
+     262,
+     490,
+     "GET /session/ses_f0a75cecfffetDvgGdvvj8cv7o"
+    ],
+    [
+     130,
+     262,
+     277,
+     95900,
+     "GET /session/ses_f0a75cecfffetDvgGdvvj8cv7o/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 2,
+   "name": "Fork功能测试 (fork #1)",
+   "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 121,
+   "turnsMs": 115,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 115,
+     "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+     "turns": 7,
+     "prompt": true,
+     "boot": false,
+     "text": 813,
+     "first": "msg_0f5a4741b001OMaluQwF6ndlKp",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     98,
+     177,
+     177,
+     493,
+     "GET /session/ses_f0a5b8bebffeKL2zfvDl4r31Cd"
+    ],
+    [
+     118,
+     226,
+     226,
+     493,
+     "GET /session/ses_f0a5b8bebffeKL2zfvDl4r31Cd"
+    ],
+    [
+     118,
+     226,
+     226,
+     14831,
+     "GET /session/ses_f0a5b8bebffeKL2zfvDl4r31Cd/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 3,
+   "name": "Fork功能测试",
+   "sid": "ses_f0a5c992bffehvng14SZUcTLEt",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 110,
+   "turnsMs": 104,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 104,
+     "sid": "ses_f0a5c992bffehvng14SZUcTLEt",
+     "turns": 7,
+     "prompt": true,
+     "boot": false,
+     "text": 853,
+     "first": "msg_0f5a3db13001zY90Lvs6BSeAU8",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     90,
+     160,
+     161,
+     481,
+     "GET /session/ses_f0a5c992bffehvng14SZUcTLEt"
+    ],
+    [
+     107,
+     217,
+     217,
+     481,
+     "GET /session/ses_f0a5c992bffehvng14SZUcTLEt"
+    ],
+    [
+     107,
+     278,
+     311,
+     14749,
+     "GET /session/ses_f0a5c992bffehvng14SZUcTLEt/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 4,
+   "name": "今日的心情 (fork #2)",
+   "sid": "ses_f0b2dcc91ffeWVMlQltuYNznoe",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 123,
+   "turnsMs": 116,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 116,
+     "sid": "ses_f0b2dcc91ffeWVMlQltuYNznoe",
+     "turns": 9,
+     "prompt": true,
+     "boot": false,
+     "text": 1028,
+     "first": "msg_0f4d2337500136s0jTBCel19wv",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     97,
+     270,
+     270,
+     479,
+     "GET /session/ses_f0b2dcc91ffeWVMlQltuYNznoe"
+    ],
+    [
+     120,
+     270,
+     270,
+     479,
+     "GET /session/ses_f0b2dcc91ffeWVMlQltuYNznoe"
+    ],
+    [
+     120,
+     270,
+     271,
+     11773,
+     "GET /session/ses_f0b2dcc91ffeWVMlQltuYNznoe/message?limit"
+    ],
+    [
+     452,
+     524,
+     525,
+     16,
+     "GET /api/health"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 5,
+   "name": "今日的心情 (fork #1)",
+   "sid": "ses_f0b2e668effeKJDXM5KNAfJVOY",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 167,
+   "turnsMs": 112,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 112,
+     "sid": "ses_f0b2e668effeKJDXM5KNAfJVOY",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 1317,
+     "first": "msg_0f4d19a7c001N70BnkAFMMDoiO",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     98,
+     208,
+     208,
+     480,
+     "GET /session/ses_f0b2e668effeKJDXM5KNAfJVOY"
+    ],
+    [
+     114,
+     239,
+     239,
+     480,
+     "GET /session/ses_f0b2e668effeKJDXM5KNAfJVOY"
+    ],
+    [
+     114,
+     362,
+     364,
+     34126,
+     "GET /session/ses_f0b2e668effeKJDXM5KNAfJVOY/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 6,
+   "name": "今日的心情",
+   "sid": "ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 115,
+   "turnsMs": 110,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 110,
+     "sid": "ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 1282,
+     "first": "msg_0f4d12d4c001yhXB8MSkX33uGL",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     97,
+     175,
+     175,
+     470,
+     "GET /session/ses_f0d3ea2cdffeEdPGeqa5CZG5xP"
+    ],
+    [
+     112,
+     304,
+     304,
+     470,
+     "GET /session/ses_f0d3ea2cdffeEdPGeqa5CZG5xP"
+    ],
+    [
+     112,
+     304,
+     306,
+     42265,
+     "GET /session/ses_f0d3ea2cdffeEdPGeqa5CZG5xP/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 7,
+   "name": "轻松打招呼 (fork #1)",
+   "sid": "ses_f0d08bf7effepmCSDH4Y6kFDgF",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 113,
+   "turnsMs": 109,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 109,
+     "sid": "ses_f0d08bf7effepmCSDH4Y6kFDgF",
+     "turns": 4,
+     "prompt": true,
+     "boot": false,
+     "text": 289,
+     "first": "msg_0f2f74087001RF67Kb2y8BQhWW",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     96,
+     172,
+     172,
+     478,
+     "GET /session/ses_f0d08bf7effepmCSDH4Y6kFDgF"
+    ],
+    [
+     111,
+     217,
+     217,
+     478,
+     "GET /session/ses_f0d08bf7effepmCSDH4Y6kFDgF"
+    ],
+    [
+     111,
+     217,
+     218,
+     1008,
+     "GET /session/ses_f0d08bf7effepmCSDH4Y6kFDgF/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 8,
+   "name": "轻松打招呼",
+   "sid": "ses_f0d1e9e7cffejE4BCbLnysC4B1",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 158,
+   "turnsMs": 127,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 127,
+     "sid": "ses_f0d1e9e7cffejE4BCbLnysC4B1",
+     "turns": 8,
+     "prompt": true,
+     "boot": false,
+     "text": 600,
+     "first": "msg_0f2e162b8001CAHqUPhX7aqaMm",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     104,
+     178,
+     179,
+     470,
+     "GET /session/ses_f0d1e9e7cffejE4BCbLnysC4B1"
+    ],
+    [
+     130,
+     289,
+     289,
+     470,
+     "GET /session/ses_f0d1e9e7cffejE4BCbLnysC4B1"
+    ],
+    [
+     130,
+     289,
+     298,
+     91753,
+     "GET /session/ses_f0d1e9e7cffejE4BCbLnysC4B1/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 9,
+   "name": "今日测试记录",
+   "sid": "ses_f0d0c79f3ffepowy5EPR4mLDuM",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 106,
+   "turnsMs": 106,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 106,
+     "sid": "ses_f0d0c79f3ffepowy5EPR4mLDuM",
+     "turns": 2,
+     "prompt": true,
+     "boot": false,
+     "text": 145,
+     "first": "msg_0f2f3fc50001Doblpdr7dwtoLU",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     96,
+     167,
+     167,
+     469,
+     "GET /session/ses_f0d0c79f3ffepowy5EPR4mLDuM"
+    ],
+    [
+     107,
+     216,
+     216,
+     469,
+     "GET /session/ses_f0d0c79f3ffepowy5EPR4mLDuM"
+    ],
+    [
+     107,
+     216,
+     217,
+     614,
+     "GET /session/ses_f0d0c79f3ffepowy5EPR4mLDuM/message?limit"
+    ],
+    [
+     638,
+     709,
+     709,
+     16,
+     "GET /api/health"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 10,
+   "name": "ceshi",
+   "sid": "ses_f0d0c9448ffeqSDRIyUWONy0h3",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 139,
+   "turnsMs": 97,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 97,
+     "sid": "ses_f0d0c9448ffeqSDRIyUWONy0h3",
+     "turns": 0,
+     "prompt": true,
+     "boot": false,
+     "text": 80,
+     "first": "",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     92,
+     211,
+     211,
+     309,
+     "GET /session/ses_f0d0c9448ffeqSDRIyUWONy0h3"
+    ],
+    [
+     98,
+     211,
+     211,
+     309,
+     "GET /session/ses_f0d0c9448ffeqSDRIyUWONy0h3"
+    ],
+    [
+     98,
+     211,
+     211,
+     2,
+     "GET /session/ses_f0d0c9448ffeqSDRIyUWONy0h3/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 11,
+   "name": "ttttt",
+   "sid": "ses_f0d0ca80effe4oILnigFs3bdrx",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 152,
+   "turnsMs": 148,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 148,
+     "sid": "ses_f0d0ca80effe4oILnigFs3bdrx",
+     "turns": 0,
+     "prompt": true,
+     "boot": false,
+     "text": 80,
+     "first": "",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     144,
+     258,
+     259,
+     308,
+     "GET /session/ses_f0d0ca80effe4oILnigFs3bdrx"
+    ],
+    [
+     150,
+     259,
+     259,
+     308,
+     "GET /session/ses_f0d0ca80effe4oILnigFs3bdrx"
+    ],
+    [
+     150,
+     259,
+     259,
+     2,
+     "GET /session/ses_f0d0ca80effe4oILnigFs3bdrx/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 12,
+   "name": "vvvvv",
+   "sid": "ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 124,
+   "turnsMs": 108,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 108,
+     "sid": "ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+     "turns": 4,
+     "prompt": true,
+     "boot": false,
+     "text": 285,
+     "first": "msg_0f2f205be001xaToygNywoPgGj",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     98,
+     173,
+     173,
+     456,
+     "GET /session/ses_f0d8b941bffe2CORWZ8oM9AQ8v"
+    ],
+    [
+     111,
+     219,
+     219,
+     456,
+     "GET /session/ses_f0d8b941bffe2CORWZ8oM9AQ8v"
+    ],
+    [
+     111,
+     219,
+     219,
+     1192,
+     "GET /session/ses_f0d8b941bffe2CORWZ8oM9AQ8v/message?limit"
+    ]
+   ]
+  },
+  {
+   "round": 1,
+   "i": 13,
+   "name": "每秒输出数字持续30秒",
+   "sid": "ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+   "origin": 1790843619518.6,
+   "reload": false,
+   "revisit": true,
+   "doneMs": 178,
+   "turnsMs": 172,
+   "blankFrames": 0,
+   "blankFirstMs": null,
+   "samples": [
+    {
+     "t": 172,
+     "sid": "ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+     "turns": 6,
+     "prompt": true,
+     "boot": false,
+     "text": 1600,
+     "first": "msg_0f2b7ca3b0010xCe9YvFOl8rSO",
+     "title": "oco"
+    }
+   ],
+   "fetches": [
+    [
+     152,
+     341,
+     341,
+     534,
+     "GET /session/ses_f0d4cd7b6ffeHHYlxx1GNk0C06"
+    ],
+    [
+     174,
+     446,
+     447,
+     534,
+     "GET /session/ses_f0d4cd7b6ffeHHYlxx1GNk0C06"
+    ],
+    [
+     174,
+     486,
+     580,
+     288244,
+     "GET /session/ses_f0d4cd7b6ffeHHYlxx1GNk0C06/message?limit"
+    ]
+   ]
+  }
+ ],
+ "mem": [
+  {
+   "type": "Browser",
+   "pid": 55987,
+   "mb": 184
+  },
+  {
+   "type": "GPU",
+   "pid": 55989,
+   "mb": 84
+  },
+  {
+   "type": "Utility",
+   "pid": 55990,
+   "mb": 48
+  },
+  {
+   "type": "Tab",
+   "pid": 55993,
+   "mb": 278
+  },
+  {
+   "type": "Utility",
+   "pid": 56141,
+   "mb": 72
+  },
+  {
+   "type": "Utility",
+   "pid": 56142,
+   "mb": 64
+  },
+  {
+   "type": "Utility",
+   "pid": 56143,
+   "mb": 91
+  },
+  {
+   "type": "Tab",
+   "pid": 56231,
+   "mb": 226
+  }
+ ],
+ "stats": [
+  {
+   "stats": {
+    "websocketBlocked": 0,
+    "fetchRequests": 112,
+    "fetchRecent": [
+     {
+      "t": 433,
+      "bytes": 36,
+      "method": "GET",
+      "path": "/global/health",
+      "head": 516,
+      "end": 516
+     },
+     {
+      "t": 438,
+      "bytes": 16,
+      "method": "GET",
+      "path": "/api/health",
+      "head": 520,
+      "end": 520
+     },
+     {
+      "t": 517,
+      "bytes": 45,
+      "method": "GET",
+      "path": "/global/config",
+      "head": 797,
+      "end": 797
+     },
+     {
+      "t": 517,
+      "bytes": 555664,
+      "method": "GET",
+      "path": "/provider",
+      "head": 4702,
+      "end": 5141
+     },
+     {
+      "t": 517,
+      "bytes": 146,
+      "method": "GET",
+      "path": "/path",
+      "head": 798,
+      "end": 799
+     },
+     {
+      "t": 517,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/session/status",
+      "head": 799,
+      "end": 799
+     },
+     {
+      "t": 517,
+      "bytes": 104,
+      "method": "GET",
+      "path": "/project",
+      "head": 799,
+      "end": 799
+     },
+     {
+      "t": 517,
+      "bytes": 7534,
+      "method": "GET",
+      "path": "/global/event",
+      "head": 799
+     },
+     {
+      "t": 531,
+      "bytes": 494,
+      "method": "GET",
+      "path": "/session/ses_f0a5af1a3ffe07qdYrPMAyX27d",
+      "head": 799,
+      "end": 799
+     },
+     {
+      "t": 531,
+      "bytes": 494,
+      "method": "GET",
+      "path": "/session/ses_f0a5af1a3ffe07qdYrPMAyX27d",
+      "head": 800,
+      "end": 800
+     },
+     {
+      "t": 820,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/lsp?directory",
+      "head": 966,
+      "end": 966
+     },
+     {
+      "t": 820,
+      "bytes": 44421,
+      "method": "GET",
+      "path": "/session/ses_f0a5af1a3ffe07qdYrPMAyX27d/message?limit",
+      "head": 966,
+      "end": 1053
+     },
+     {
+      "t": 820,
+      "bytes": 3386,
+      "method": "GET",
+      "path": "/agent?directory",
+      "head": 966,
+      "end": 967
+     },
+     {
+      "t": 820,
+      "bytes": 555664,
+      "method": "GET",
+      "path": "/provider",
+      "head": 4702,
+      "end": 5098
+     },
+     {
+      "t": 820,
+      "bytes": 555664,
+      "method": "GET",
+      "path": "/provider?directory",
+      "head": 4702,
+      "end": 5146
+     },
+     {
+      "t": 820,
+      "bytes": 146,
+      "method": "GET",
+      "path": "/path?directory",
+      "head": 966,
+      "end": 966
+     },
+     {
+      "t": 820,
+      "bytes": 555664,
+      "method": "GET",
+      "path": "/provider?directory",
+      "head": 4702,
+      "end": 5150
+     },
+     {
+      "t": 820,
+      "bytes": 94,
+      "method": "GET",
+      "path": "/api/reference?directory&location[directory]",
+      "head": 2600,
+      "end": 2601
+     },
+     {
+      "t": 820,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/mcp?directory",
+      "head": 1054,
+      "end": 1054
+     },
+     {
+      "t": 820,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/experimental/resource?directory",
+      "head": 1124,
+      "end": 1125
+     },
+     {
+      "t": 824,
+      "bytes": 1808,
+      "method": "GET",
+      "path": "/session?directory&roots&limit",
+      "head": 1142,
+      "end": 1142
+     },
+     {
+      "t": 824,
+      "bytes": 3386,
+      "method": "GET",
+      "path": "/agent?directory",
+      "head": 1142,
+      "end": 1143
+     },
+     {
+      "t": 824,
+      "bytes": 325,
+      "method": "GET",
+      "path": "/config?directory",
+      "head": 1143,
+      "end": 1143
+     },
+     {
+      "t": 824,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/session/status?directory",
+      "head": 1143,
+      "end": 1143
+     },
+     {
+      "t": 824,
+      "bytes": 102,
+      "method": "GET",
+      "path": "/project/current?directory",
+      "head": 1143,
+      "end": 1143
+     },
+     {
+      "t": 824,
+      "bytes": 37,
+      "method": "GET",
+      "path": "/vcs?directory",
+      "head": 1143,
+      "end": 1143
+     },
+     {
+      "t": 824,
+      "bytes": 10606,
+      "method": "GET",
+      "path": "/command?directory",
+      "head": 1143,
+      "end": 1143
+     },
+     {
+      "t": 824,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/permission?directory",
+      "head": 1143,
+      "end": 1143
+     },
+     {
+      "t": 824,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/question?directory",
+      "head": 1143,
+      "end": 1143
+     },
+     {
+      "t": 3281,
+      "bytes": 95900,
+      "method": "GET",
+      "path": "/session/ses_f0a75cecfffetDvgGdvvj8cv7o/message?limit",
+      "head": 4508,
+      "end": 4542
+     },
+     {
+      "t": 3281,
+      "bytes": 490,
+      "method": "GET",
+      "path": "/session/ses_f0a75cecfffetDvgGdvvj8cv7o",
+      "head": 4520,
+      "end": 4520
+     },
+     {
+      "t": 4432,
+      "bytes": 94,
+      "method": "GET",
+      "path": "/api/reference?directory&location[directory]",
+      "head": 5291,
+      "end": 5291
+     },
+     {
+      "t": 6670,
+      "bytes": 493,
+      "method": "GET",
+      "path": "/session/ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+      "head": 6754,
+      "end": 6754
+     },
+     {
+      "t": 6670,
+      "bytes": 14831,
+      "method": "GET",
+      "path": "/session/ses_f0a5b8bebffeKL2zfvDl4r31Cd/message?limit",
+      "head": 6762,
+      "end": 6771
+     },
+     {
+      "t": 8724,
+      "bytes": 14749,
+      "method": "GET",
+      "path": "/session/ses_f0a5c992bffehvng14SZUcTLEt/message?limit",
+      "head": 8845,
+      "end": 8846
+     },
+     {
+      "t": 8724,
+      "bytes": 481,
+      "method": "GET",
+      "path": "/session/ses_f0a5c992bffehvng14SZUcTLEt",
+      "head": 8846,
+      "end": 8869
+     },
+     {
+      "t": 10446,
+      "bytes": 16,
+      "method": "GET",
+      "path": "/api/health",
+      "head": 10523,
+      "end": 10523
+     },
+     {
+      "t": 10798,
+      "bytes": 479,
+      "method": "GET",
+      "path": "/session/ses_f0b2dcc91ffeWVMlQltuYNznoe",
+      "head": 11196,
+      "end": 11196
+     },
+     {
+      "t": 10798,
+      "bytes": 11773,
+      "method": "GET",
+      "path": "/session/ses_f0b2dcc91ffeWVMlQltuYNznoe/message?limit",
+      "head": 11196,
+      "end": 11197
+     },
+     {
+      "t": 13171,
+      "bytes": 480,
+      "method": "GET",
+      "path": "/session/ses_f0b2e668effeKJDXM5KNAfJVOY",
+      "head": 13247,
+      "end": 13247
+     },
+     {
+      "t": 13171,
+      "bytes": 34126,
+      "method": "GET",
+      "path": "/session/ses_f0b2e668effeKJDXM5KNAfJVOY/message?limit",
+      "head": 13258,
+      "end": 13272
+     },
+     {
+      "t": 13171,
+      "bytes": 480,
+      "method": "GET",
+      "path": "/session/ses_f0b2e668effeKJDXM5KNAfJVOY",
+      "head": 13272,
+      "end": 13272
+     },
+     {
+      "t": 15254,
+      "bytes": 470,
+      "method": "GET",
+      "path": "/session/ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+      "head": 15372,
+      "end": 15373
+     },
+     {
+      "t": 15254,
+      "bytes": 470,
+      "method": "GET",
+      "path": "/session/ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+      "head": 15373,
+      "end": 15373
+     },
+     {
+      "t": 15254,
+      "bytes": 42265,
+      "method": "GET",
+      "path": "/session/ses_f0d3ea2cdffeEdPGeqa5CZG5xP/message?limit",
+      "head": 15373,
+      "end": 15377
+     },
+     {
+      "t": 17339,
+      "bytes": 478,
+      "method": "GET",
+      "path": "/session/ses_f0d08bf7effepmCSDH4Y6kFDgF",
+      "head": 17417,
+      "end": 17417
+     },
+     {
+      "t": 17339,
+      "bytes": 1008,
+      "method": "GET",
+      "path": "/session/ses_f0d08bf7effepmCSDH4Y6kFDgF/message?limit",
+      "head": 17433,
+      "end": 17433
+     },
+     {
+      "t": 17339,
+      "bytes": 478,
+      "method": "GET",
+      "path": "/session/ses_f0d08bf7effepmCSDH4Y6kFDgF",
+      "head": 17456,
+      "end": 17456
+     },
+     {
+      "t": 19396,
+      "bytes": 470,
+      "method": "GET",
+      "path": "/session/ses_f0d1e9e7cffejE4BCbLnysC4B1",
+      "head": 19495,
+      "end": 19495
+     },
+     {
+      "t": 19396,
+      "bytes": 470,
+      "method": "GET",
+      "path": "/session/ses_f0d1e9e7cffejE4BCbLnysC4B1",
+      "head": 19495,
+      "end": 19495
+     },
+     {
+      "t": 19396,
+      "bytes": 91753,
+      "method": "GET",
+      "path": "/session/ses_f0d1e9e7cffejE4BCbLnysC4B1/message?limit",
+      "head": 19520,
+      "end": 19602
+     },
+     {
+      "t": 20449,
+      "bytes": 16,
+      "method": "GET",
+      "path": "/api/health",
+      "head": 20537,
+      "end": 20537
+     },
+     {
+      "t": 21604,
+      "bytes": 469,
+      "method": "GET",
+      "path": "/session/ses_f0d0c79f3ffepowy5EPR4mLDuM",
+      "head": 21693,
+      "end": 21693
+     },
+     {
+      "t": 21604,
+      "bytes": 614,
+      "method": "GET",
+      "path": "/session/ses_f0d0c79f3ffepowy5EPR4mLDuM/message?limit",
+      "head": 21703,
+      "end": 21709
+     },
+     {
+      "t": 21605,
+      "bytes": 469,
+      "method": "GET",
+      "path": "/session/ses_f0d0c79f3ffepowy5EPR4mLDuM",
+      "head": 21703,
+      "end": 21703
+     },
+     {
+      "t": 23686,
+      "bytes": 309,
+      "method": "GET",
+      "path": "/session/ses_f0d0c9448ffeqSDRIyUWONy0h3",
+      "head": 23811,
+      "end": 23811
+     },
+     {
+      "t": 23686,
+      "bytes": 309,
+      "method": "GET",
+      "path": "/session/ses_f0d0c9448ffeqSDRIyUWONy0h3",
+      "head": 23811,
+      "end": 23811
+     },
+     {
+      "t": 23687,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/session/ses_f0d0c9448ffeqSDRIyUWONy0h3/message?limit",
+      "head": 23814,
+      "end": 23815
+     },
+     {
+      "t": 25828,
+      "bytes": 308,
+      "method": "GET",
+      "path": "/session/ses_f0d0ca80effe4oILnigFs3bdrx",
+      "head": 25932,
+      "end": 25933
+     },
+     {
+      "t": 25828,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/session/ses_f0d0ca80effe4oILnigFs3bdrx/message?limit",
+      "head": 25936,
+      "end": 25937
+     },
+     {
+      "t": 25828,
+      "bytes": 308,
+      "method": "GET",
+      "path": "/session/ses_f0d0ca80effe4oILnigFs3bdrx",
+      "head": 25953,
+      "end": 25954
+     },
+     {
+      "t": 27753,
+      "bytes": 456,
+      "method": "GET",
+      "path": "/session/ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+      "head": 27879,
+      "end": 27879
+     },
+     {
+      "t": 27753,
+      "bytes": 456,
+      "method": "GET",
+      "path": "/session/ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+      "head": 27879,
+      "end": 27879
+     },
+     {
+      "t": 27753,
+      "bytes": 1192,
+      "method": "GET",
+      "path": "/session/ses_f0d8b941bffe2CORWZ8oM9AQ8v/message?limit",
+      "head": 27882,
+      "end": 27883
+     },
+     {
+      "t": 29868,
+      "bytes": 534,
+      "method": "GET",
+      "path": "/session/ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+      "head": 29945,
+      "end": 29945
+     },
+     {
+      "t": 29868,
+      "bytes": 288244,
+      "method": "GET",
+      "path": "/session/ses_f0d4cd7b6ffeHHYlxx1GNk0C06/message?limit",
+      "head": 29976,
+      "end": 30053
+     },
+     {
+      "t": 29868,
+      "bytes": 534,
+      "method": "GET",
+      "path": "/session/ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+      "head": 29983,
+      "end": 29983
+     },
+     {
+      "t": 30447,
+      "bytes": 16,
+      "method": "GET",
+      "path": "/api/health",
+      "head": 30570,
+      "end": 30570
+     },
+     {
+      "t": 32205,
+      "bytes": 494,
+      "method": "GET",
+      "path": "/session/ses_f0a5af1a3ffe07qdYrPMAyX27d",
+      "head": 32417,
+      "end": 32418
+     },
+     {
+      "t": 32228,
+      "bytes": 494,
+      "method": "GET",
+      "path": "/session/ses_f0a5af1a3ffe07qdYrPMAyX27d",
+      "head": 32418,
+      "end": 32418
+     },
+     {
+      "t": 32228,
+      "bytes": 44421,
+      "method": "GET",
+      "path": "/session/ses_f0a5af1a3ffe07qdYrPMAyX27d/message?limit",
+      "head": 32697,
+      "end": 32704
+     },
+     {
+      "t": 34231,
+      "bytes": 490,
+      "method": "GET",
+      "path": "/session/ses_f0a75cecfffetDvgGdvvj8cv7o",
+      "head": 34382,
+      "end": 34383
+     },
+     {
+      "t": 34251,
+      "bytes": 490,
+      "method": "GET",
+      "path": "/session/ses_f0a75cecfffetDvgGdvvj8cv7o",
+      "head": 34383,
+      "end": 34383
+     },
+     {
+      "t": 34251,
+      "bytes": 95900,
+      "method": "GET",
+      "path": "/session/ses_f0a75cecfffetDvgGdvvj8cv7o/message?limit",
+      "head": 34383,
+      "end": 34398
+     },
+     {
+      "t": 36185,
+      "bytes": 493,
+      "method": "GET",
+      "path": "/session/ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+      "head": 36264,
+      "end": 36264
+     },
+     {
+      "t": 36205,
+      "bytes": 493,
+      "method": "GET",
+      "path": "/session/ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+      "head": 36313,
+      "end": 36313
+     },
+     {
+      "t": 36205,
+      "bytes": 14831,
+      "method": "GET",
+      "path": "/session/ses_f0a5b8bebffeKL2zfvDl4r31Cd/message?limit",
+      "head": 36313,
+      "end": 36313
+     },
+     {
+      "t": 38137,
+      "bytes": 481,
+      "method": "GET",
+      "path": "/session/ses_f0a5c992bffehvng14SZUcTLEt",
+      "head": 38207,
+      "end": 38208
+     },
+     {
+      "t": 38154,
+      "bytes": 481,
+      "method": "GET",
+      "path": "/session/ses_f0a5c992bffehvng14SZUcTLEt",
+      "head": 38264,
+      "end": 38264
+     },
+     {
+      "t": 38154,
+      "bytes": 14749,
+      "method": "GET",
+      "path": "/session/ses_f0a5c992bffehvng14SZUcTLEt/message?limit",
+      "head": 38325,
+      "end": 38358
+     },
+     {
+      "t": 40092,
+      "bytes": 479,
+      "method": "GET",
+      "path": "/session/ses_f0b2dcc91ffeWVMlQltuYNznoe",
+      "head": 40265,
+      "end": 40265
+     },
+     {
+      "t": 40115,
+      "bytes": 479,
+      "method": "GET",
+      "path": "/session/ses_f0b2dcc91ffeWVMlQltuYNznoe",
+      "head": 40265,
+      "end": 40265
+     },
+     {
+      "t": 40115,
+      "bytes": 11773,
+      "method": "GET",
+      "path": "/session/ses_f0b2dcc91ffeWVMlQltuYNznoe/message?limit",
+      "head": 40265,
+      "end": 40266
+     },
+     {
+      "t": 40447,
+      "bytes": 16,
+      "method": "GET",
+      "path": "/api/health",
+      "head": 40519,
+      "end": 40520
+     },
+     {
+      "t": 42044,
+      "bytes": 480,
+      "method": "GET",
+      "path": "/session/ses_f0b2e668effeKJDXM5KNAfJVOY",
+      "head": 42154,
+      "end": 42154
+     },
+     {
+      "t": 42060,
+      "bytes": 480,
+      "method": "GET",
+      "path": "/session/ses_f0b2e668effeKJDXM5KNAfJVOY",
+      "head": 42185,
+      "end": 42185
+     },
+     {
+      "t": 42060,
+      "bytes": 34126,
+      "method": "GET",
+      "path": "/session/ses_f0b2e668effeKJDXM5KNAfJVOY/message?limit",
+      "head": 42308,
+      "end": 42310
+     },
+     {
+      "t": 44032,
+      "bytes": 470,
+      "method": "GET",
+      "path": "/session/ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+      "head": 44110,
+      "end": 44110
+     },
+     {
+      "t": 44047,
+      "bytes": 470,
+      "method": "GET",
+      "path": "/session/ses_f0d3ea2cdffeEdPGeqa5CZG5xP",
+      "head": 44239,
+      "end": 44239
+     },
+     {
+      "t": 44047,
+      "bytes": 42265,
+      "method": "GET",
+      "path": "/session/ses_f0d3ea2cdffeEdPGeqa5CZG5xP/message?limit",
+      "head": 44239,
+      "end": 44241
+     },
+     {
+      "t": 45970,
+      "bytes": 478,
+      "method": "GET",
+      "path": "/session/ses_f0d08bf7effepmCSDH4Y6kFDgF",
+      "head": 46046,
+      "end": 46046
+     },
+     {
+      "t": 45985,
+      "bytes": 478,
+      "method": "GET",
+      "path": "/session/ses_f0d08bf7effepmCSDH4Y6kFDgF",
+      "head": 46091,
+      "end": 46091
+     },
+     {
+      "t": 45985,
+      "bytes": 1008,
+      "method": "GET",
+      "path": "/session/ses_f0d08bf7effepmCSDH4Y6kFDgF/message?limit",
+      "head": 46091,
+      "end": 46092
+     },
+     {
+      "t": 47919,
+      "bytes": 470,
+      "method": "GET",
+      "path": "/session/ses_f0d1e9e7cffejE4BCbLnysC4B1",
+      "head": 47993,
+      "end": 47994
+     },
+     {
+      "t": 47945,
+      "bytes": 470,
+      "method": "GET",
+      "path": "/session/ses_f0d1e9e7cffejE4BCbLnysC4B1",
+      "head": 48104,
+      "end": 48104
+     },
+     {
+      "t": 47945,
+      "bytes": 91753,
+      "method": "GET",
+      "path": "/session/ses_f0d1e9e7cffejE4BCbLnysC4B1/message?limit",
+      "head": 48104,
+      "end": 48113
+     },
+     {
+      "t": 49906,
+      "bytes": 469,
+      "method": "GET",
+      "path": "/session/ses_f0d0c79f3ffepowy5EPR4mLDuM",
+      "head": 49977,
+      "end": 49977
+     },
+     {
+      "t": 49917,
+      "bytes": 469,
+      "method": "GET",
+      "path": "/session/ses_f0d0c79f3ffepowy5EPR4mLDuM",
+      "head": 50026,
+      "end": 50026
+     },
+     {
+      "t": 49917,
+      "bytes": 614,
+      "method": "GET",
+      "path": "/session/ses_f0d0c79f3ffepowy5EPR4mLDuM/message?limit",
+      "head": 50026,
+      "end": 50027
+     },
+     {
+      "t": 50448,
+      "bytes": 16,
+      "method": "GET",
+      "path": "/api/health",
+      "head": 50519,
+      "end": 50519
+     },
+     {
+      "t": 51831,
+      "bytes": 309,
+      "method": "GET",
+      "path": "/session/ses_f0d0c9448ffeqSDRIyUWONy0h3",
+      "head": 51950,
+      "end": 51950
+     },
+     {
+      "t": 51837,
+      "bytes": 309,
+      "method": "GET",
+      "path": "/session/ses_f0d0c9448ffeqSDRIyUWONy0h3",
+      "head": 51950,
+      "end": 51950
+     },
+     {
+      "t": 51837,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/session/ses_f0d0c9448ffeqSDRIyUWONy0h3/message?limit",
+      "head": 51950,
+      "end": 51950
+     },
+     {
+      "t": 53845,
+      "bytes": 308,
+      "method": "GET",
+      "path": "/session/ses_f0d0ca80effe4oILnigFs3bdrx",
+      "head": 53959,
+      "end": 53960
+     },
+     {
+      "t": 53851,
+      "bytes": 308,
+      "method": "GET",
+      "path": "/session/ses_f0d0ca80effe4oILnigFs3bdrx",
+      "head": 53960,
+      "end": 53960
+     },
+     {
+      "t": 53851,
+      "bytes": 2,
+      "method": "GET",
+      "path": "/session/ses_f0d0ca80effe4oILnigFs3bdrx/message?limit",
+      "head": 53960,
+      "end": 53960
+     },
+     {
+      "t": 55777,
+      "bytes": 456,
+      "method": "GET",
+      "path": "/session/ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+      "head": 55852,
+      "end": 55852
+     },
+     {
+      "t": 55790,
+      "bytes": 456,
+      "method": "GET",
+      "path": "/session/ses_f0d8b941bffe2CORWZ8oM9AQ8v",
+      "head": 55898,
+      "end": 55898
+     },
+     {
+      "t": 55790,
+      "bytes": 1192,
+      "method": "GET",
+      "path": "/session/ses_f0d8b941bffe2CORWZ8oM9AQ8v/message?limit",
+      "head": 55898,
+      "end": 55898
+     },
+     {
+      "t": 57789,
+      "bytes": 534,
+      "method": "GET",
+      "path": "/session/ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+      "head": 57978,
+      "end": 57978
+     },
+     {
+      "t": 57811,
+      "bytes": 534,
+      "method": "GET",
+      "path": "/session/ses_f0d4cd7b6ffeHHYlxx1GNk0C06",
+      "head": 58083,
+      "end": 58084
+     },
+     {
+      "t": 57811,
+      "bytes": 288244,
+      "method": "GET",
+      "path": "/session/ses_f0d4cd7b6ffeHHYlxx1GNk0C06/message?limit",
+      "head": 58123,
+      "end": 58217
+     }
+    ],
+    "recoveryViews": 1,
+    "blockedNavigation": 0,
+    "openSessionRequests": 0,
+    "navigations": 27
+   },
+   "heapMB": 49,
+   "nodes": 5133
+  }
+ ]
+}

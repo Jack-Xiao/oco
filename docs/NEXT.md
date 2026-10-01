@@ -19,6 +19,8 @@
 
 - [DONE] `tests/e2e/perf.mjs` 已按 ADR-007 改写并记录基线（见[证据](evidence/v01-completion.md)）。
 - [TODO] 长时间（数小时）运行与长会话的内存趋势；真实模型下的切换耗时。
+- [DONE，未提交] 会话切换黑屏与首开提速（补丁 0015、桥接 gzip 修正、在途 `/provider` 合并），见 [switch-perf](evidence/switch-perf.md)。待用户决定是否提交并部署 gcp-workstation。
+- [TODO，按需] 切换到大会话时，新数据到达前没有加载提示（上游 transition 保留旧内容）；首开后第一次点击仍可能等一次 `/provider`（1.2–1.4 s）；首开的健康检查往返。
 
 ## 4. 仍未做的 v0.1 项（按需单独立项）
 

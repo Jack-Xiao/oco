@@ -6,15 +6,35 @@
 //   pinned-unaffected      a pinned panel keeps its session while the main panel switches
 //   open-shown-focuses     opening a session a pinned panel already shows focuses it (main unchanged)
 //   reload-keeps-roles     Reload Window restores one main panel on its last session and the pinned one
+//   switch-uncached-ready  switching to a session the page has not cached (not among the 5 most recent when it
+//                          loaded; its requests held 3 s): the page reports ready only once its composer is shown
+//   switch-uncached-no-blank  same, with only the session info held (as over Remote): no frame of an empty panel
+//                          (patch 0015; upstream closes the whole workspace until the info arrives)
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, hostState } from "./vscode.mjs"
 import { api, messages, waitReply, MODEL } from "./server.mjs"
 
-const REQUIRED = ["switch-in-place", "send-after-switch", "draft-per-session", "pinned-unaffected", "open-shown-focuses", "reload-keeps-roles"]
+const REQUIRED = ["switch-in-place", "send-after-switch", "draft-per-session", "switch-uncached-ready", "switch-uncached-no-blank", "pinned-unaffected", "open-shown-focuses", "reload-keeps-roles"]
 const run = createRun({ suite: "p1b-main-panel", required: REQUIRED, scriptPath: fileURLToPath(import.meta.url) })
 const health = await api("GET", "/global/health").catch(() => null)
 run.setEnv({ serverVersion: health?.version ?? null, modelMode: MODEL.mode })
+// D1, D2: created before five newer sessions, so the page's first session list (the 5 most recent) holds neither.
+const rand0 = Math.random().toString(36).slice(2, 7)
+const D1 = (await api("POST", "/session", { title: `oco uncached D1 ${rand0}` })).id
+const D2 = (await api("POST", "/session", { title: `oco uncached D2 ${rand0}` })).id
+// D1 gets one exchange, so its own rows tell when it is on screen (D2 and D1 would otherwise look the same).
+await api("POST", `/session/${D1}/prompt_async`, {
+  model: { providerID: MODEL.providerID, modelID: MODEL.modelID },
+  parts: [{ type: "text", text: `Reply with exactly this line and nothing else: UNCACHED-D1-${rand0}` }],
+})
+await waitReply(D1)
+const d1Messages = new Set((await messages(D1)).map((m) => m.info.id))
+for (let i = 0; i < 5; i++) await api("POST", "/session", { title: `oco filler ${i} ${rand0}` })
+const SLOW_MS = 3000
+process.env.OCO_DEV_SLOW_PATHS = `^/session/(${D1}|${D2})$|^/session/${D2}/message$`
+process.env.OCO_DEV_SLOW_MS = String(SLOW_MS)
+run.setEnv({ uncachedDelay: { paths: process.env.OCO_DEV_SLOW_PATHS, ms: SLOW_MS } })
 const { app, page, stateFile } = await launch({ profile: "p1b-main-panel", run })
 run.installCrashHandlers(() => app.close())
 const state = () => hostState(page, stateFile)
@@ -115,6 +135,70 @@ try {
     bKeptDraft: bComposer.includes(`draft-B-${rand}`),
     switchToAMs: toA.ms,
     switchToBMs: toB.ms,
+  })
+
+  // 3b/3c. Switches to sessions this page has not cached (not among the 5 most recent when it loaded).
+  //   D2: info and messages slow. The previous session stays on screen until D2 renders, and the host must not
+  //       mark the panel ready before that (a draft would reach the previous composer and be refused).
+  //   D1: only its info slow, as over Remote (the messages come back first). D1 must be on screen before its info
+  //       arrives, with no frame of an empty page (over Remote, upstream closed the whole workspace until then:
+  //       the "black flash").
+  const fB = toB.f
+  const rows = () => fB.evaluate(() => document.querySelectorAll("[data-message-id]").length)
+  const seen = (id) => fB.evaluate((d) => (window.__OCO_STATS__?.fetchRecent ?? []).filter((r) => r.path.includes(d)).length, id)
+  const showing = (id) =>
+    fB.evaluate((d) => window.__OCO_DEBUG__?.sessionId?.() === d && !!document.querySelector('[data-component="prompt-input"]') && !document.querySelector("[data-message-id]"), id)
+  const readyOn = (st, id) => byRole(st, "main")[0]?.sessionId === id && byRole(st, "main")[0]?.ready === true
+
+  const d2Seen = await seen(D2)
+  await command(page, "oco: Open Session", { input: D2 })
+  const t2 = Date.now() // the switch starts when the quick pick is accepted
+  const stMid = await state()
+  const midMs = Date.now() - t2
+  const midRows = await rows()
+  const midReady = byRole(stMid, "main")[0]?.ready
+  let shown2
+  await waitUntil(async () => (await showing(D2)) && (shown2 = Date.now() - t2), SLOW_MS + 15000, 50)
+  let st2
+  await waitUntil(async () => readyOn((st2 = await state()), D2), 15000, 200)
+  run.record(
+    "switch-uncached-ready",
+    d2Seen === 0 && midMs < SLOW_MS - 300 && midRows > 0 && midReady === false && shown2 >= SLOW_MS - 500 && readyOn(st2, D2) ? "PASS" : "FAIL",
+    { requestedBefore: d2Seen, midMs, midRowsOfB: midRows, midReady, shownMs: shown2, readyAfter: readyOn(st2, D2) },
+  )
+
+  const d1Seen = await seen(D1)
+  await fB.evaluate(() => {
+    const w = window
+    w.__ocoSwitch = { frames: 0, empty: 0, stop: false, changes: [] }
+    let last = ""
+    const tick = () => {
+      const s = w.__ocoSwitch
+      if (s.stop) return
+      s.frames++
+      const text = (document.getElementById("root")?.textContent ?? "").length
+      if (text === 0) s.empty++
+      const now = `${text > 0} ${!!document.querySelector('[data-component="prompt-input"]')} ${w.__OCO_DEBUG__?.sessionId?.().slice(-6)}`
+      if (now !== last) s.changes.push(`${Math.round(performance.now())} ${(last = now)} ${text}`)
+      requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  })
+  await command(page, "oco: Open Session", { input: D1 })
+  const t1 = Date.now()
+  let shown1
+  const showsD1 = () => fB.evaluate(() => document.querySelector("[data-message-id]")?.getAttribute("data-message-id") ?? "")
+  await waitUntil(async () => d1Messages.has(await showsD1()) && (shown1 = Date.now() - t1), SLOW_MS + 15000, 50)
+  await sleep(Math.max(0, SLOW_MS + 500 - (Date.now() - t1))) // past the held info request
+  const frames = await fB.evaluate(() => ((window.__ocoSwitch.stop = true), window.__ocoSwitch))
+  await runShot(page, run, "3c-switched-to-D1")
+  run.record("switch-uncached-no-blank", d1Seen === 0 && frames.empty === 0 && frames.frames > 30 && shown1 < SLOW_MS - 1000 ? "PASS" : "FAIL", {
+    requestedBefore: d1Seen,
+    emptyFrames: frames.empty,
+    frames: frames.frames,
+    changes: frames.changes.slice(0, 12),
+    requests: await fB.evaluate((d) => (window.__OCO_STATS__?.fetchRecent ?? []).filter((r) => r.path.includes(d)).map((r) => `${r.t}-${r.head}-${r.end} ${r.path.slice(-20)}`), D1),
+    shownMs: shown1,
   })
 
   // 4. Pinned panel: C opens in a new panel (cold open, for comparison); the main panel then switches to A

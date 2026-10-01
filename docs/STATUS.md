@@ -8,6 +8,15 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
+## 会话切换黑屏与首开提速（补丁 0015，2026-10-01；worktree `conversation-open-performance-af4fd2`，未提交、未部署）
+
+- 黑屏原因：页面启动时只缓存当前目录最近 5 个会话的信息。切到其余会话时，上游把整个会话工作区卸载，等 `GET /session/:id` 回来再重新挂载，之后才请求消息。补丁 0015 在嵌入模式下保持工作区挂载，首开直接用宿主给的目录（`Platform.embeddedDirectory`）。页面改为新会话的输入框真正显示后才向宿主报告 `ready`，避免草稿投到旧输入框。
+- 桥接 gzip 此前在真实服务上没生效：服务端自己压缩，Node fetch 解压后保留 `content-encoding`，桥因此跳过压缩，`/provider` 以 6.56 MB 原样过隧道。现在这类响应会重新 gzip，未压缩 JSON 的门槛降到 32 KiB。
+- 同一文档里同时在途、完全相同的 `GET /provider` 只发一次（启动时 4 次，计算 4 × 1.1–1.4 s → 1 次）；不缓存已返回的结果，写请求之后到达的读不合并。
+- Remote 交替实测（每组 14 个会话 × 2 轮）：首访出现整页空白的切换，基线每组 9/12，修复版 4 组均 0/12；首开后第一次切换 5.5–6.6 s → 1.5 / 2.4 s；首访中位 376–625 → 236–404 ms；首开内容上屏比不预置目录少约 200 ms（一个往返）。详见 [switch-perf](evidence/switch-perf.md)。
+- 检查：typecheck PASS；unit 168/168；上游 `tsgo -b` 0 错误；补丁 0001–0015 重放一致；E2E（mock）`p1b-main-panel` 8/8（新增 `switch-uncached-ready`，变异对照 FAIL；`switch-uncached-no-blank` 在本机对上游代码也通过，只作回归防护）。全量 E2E（mock，21 套件）：18 个 exit 0；`p1b-sidebar`（改名、搜索）和 `t007-multiroot`（new-session-in-folder）失败，单独重跑均通过；`t013-agents` 的 `duplicate-preserves-bytes` 失败，为已记录的环境问题（`.oco-test` 是链接目录）。`OCO_BRIDGE_GZIP=1` 下 `p1a-identity` 14/14、`p1a-chat` 8/8。
+- 限制：大会话在新数据到达前保留上一会话的内容，没有加载提示；首开后约 1.5 s 内的第一次点击仍要等一次 `/provider`。NOT RUN：真实模型、慢隧道对比、用户已安装扩展上的复验。
+
 ## 轨迹比例按钮选中状态、子智能体行（补丁 0014，提交 `ef87ac0`，2026-10-01；本地，未推送，未部署）
 
 - 修复「时长 / 轮次 / 调用」按钮高亮不跟随点击（选中状态只计算了一次）；按钮加 `aria-pressed`。三个按钮保留。

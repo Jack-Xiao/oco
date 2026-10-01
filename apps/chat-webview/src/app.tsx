@@ -73,6 +73,7 @@ const platform: Platform = {
   platform: "web",
   version: "oco-p1a",
   embedded: true, // patches/opencode/0002: no tabs/home/new-session/terminal entry points
+  embeddedDirectory: init.binding.directory, // patches/opencode/0015: the session mounts before its info arrives
   windowID: init.panelId,
   openExternal: (url) => ui("openExternal", { url }),
   // patches/opencode/0005: file names in tool parts open in VS Code; the host validates the path.
@@ -210,9 +211,32 @@ onNavigate((msg) => {
   currentRoute = routeFor(msg.sessionId)
   inner.set({ value: currentRoute, replace: true, scroll: false })
   saveState()
-  // Report ready once the new route has rendered, so drafts for the new session reach its composer.
-  requestAnimationFrame(() => requestAnimationFrame(() => ready(currentRoute)))
+  // Report ready once the new session's composer is on screen, so drafts for it never reach the previous one:
+  // an uncached session renders only after its data arrives (patches/opencode/0015).
+  const target = msg.sessionId
+  void composerShows(target, 5000).then(() => bound.sessionId === target && ready(currentRoute))
 })
+
+let composerSession: string | undefined
+const composerWaiters = new Set<() => void>()
+window.addEventListener("oco:composer-session", (e) => {
+  composerSession = (e as CustomEvent<{ sessionID?: string }>).detail?.sessionID
+  for (const fn of [...composerWaiters]) fn()
+})
+/** Resolves when the composer shows `sessionId`, or after `timeoutMs` (no composer, e.g. an error view). */
+function composerShows(sessionId: string, timeoutMs: number) {
+  return new Promise<void>((resolve) => {
+    const done = () => {
+      composerWaiters.delete(check)
+      clearTimeout(timer)
+      resolve()
+    }
+    const check = () => composerSession === sessionId && done()
+    const timer = setTimeout(done, timeoutMs)
+    composerWaiters.add(check)
+    check()
+  })
+}
 
 saveState()
 ready(boundRoute)

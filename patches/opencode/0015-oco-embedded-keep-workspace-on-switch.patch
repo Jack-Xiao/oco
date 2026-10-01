@@ -1,0 +1,54 @@
+diff --git a/packages/app/src/components/prompt-input-v2.tsx b/packages/app/src/components/prompt-input-v2.tsx
+index 1965fdb..b535964 100644
+--- a/packages/app/src/components/prompt-input-v2.tsx
++++ b/packages/app/src/components/prompt-input-v2.tsx
+@@ -117,6 +117,14 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
+     window.addEventListener("oco:draft-insert", onOcoInsert)
+     onCleanup(() => window.removeEventListener("oco:draft-insert", onOcoInsert))
+     queueMicrotask(() => window.dispatchEvent(new Event("oco:composer-ready")))
++    // oco (0015): the session this composer shows, once it is on screen. A switch to an uncached session
++    // renders only when its data has arrived; until then the previous session (and composer) stay visible.
++    createEffect(
++      on(
++        () => ocoParams.id,
++        (sessionID) => window.dispatchEvent(new CustomEvent("oco:composer-session", { detail: { sessionID } })),
++      ),
++    )
+   }
+   let editor: HTMLDivElement | undefined
+ 
+diff --git a/packages/app/src/context/platform.tsx b/packages/app/src/context/platform.tsx
+index 8a5752b..c0cdc82 100644
+--- a/packages/app/src/context/platform.tsx
++++ b/packages/app/src/context/platform.tsx
+@@ -86,6 +86,10 @@ type PlatformBase = {
+    * terminal entry points are rendered or registered; the host owns session switching. */
+   embedded?: boolean
+ 
++  /** oco (patches/opencode/0015): the one directory every session of this embedded document belongs to (the host
++   * reloads the document for another one). Lets a session mount before its own info has been fetched. */
++  embeddedDirectory?: string
++
+   /** oco (patches/opencode/0008): the embedding host renders its own recovery screen in place of the
+    * error page, the unreachable-server screen and the missing-session screen. */
+   recoveryView?(props: RecoveryViewProps): JSX.Element
+diff --git a/packages/app/src/pages/session.tsx b/packages/app/src/pages/session.tsx
+index d1d71ff..c581f6b 100644
+--- a/packages/app/src/pages/session.tsx
++++ b/packages/app/src/pages/session.tsx
+@@ -257,7 +257,14 @@ function ResolvedTargetSessionRoute() {
+     () => params.id,
+     () => sync().session.lineage,
+   )
+-  const directory = createMemo(() => current()?.session.directory)
++  const platform = usePlatform()
++  // oco (embedded): a panel shows sessions of one directory only (the host reloads the document for another
++  // one), so mount the workspace without waiting for an uncached target's info, and keep it mounted while that
++  // info is fetched. Closing it blanks the whole panel, then remounts every provider and only then requests the
++  // messages.
++  const directory = createMemo<string | undefined>(
++    (prev) => current()?.session.directory ?? (platform.embedded ? (prev ?? platform.embeddedDirectory) : undefined),
++  )
+   const targetDirectory = () => directory()!
+ 
+   createEffect(() => {

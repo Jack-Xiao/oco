@@ -51,15 +51,21 @@ type Inflight = { gen: number; ac: AbortController }
 const DEFER_MS = 3_000
 const DEFERRED = /^\/(api\/)?provider$/
 const FIRST_PAINT = /^\/(api\/)?session\/[^/]+\/message$/
-const COMPRESS_MIN_BYTES = 256 * 1024
+const COMPRESS_MIN_BYTES = 32 * 1024
+const NULL_BODY = new Set([101, 204, 205, 304])
 let generationSeq = 0 // process-wide: generations are never reused across panels or documents
 
 export class BridgeCore {
   private readonly inflight = new Map<string, Inflight>()
   generation = 0 // 0 = no live document
   docId: string | undefined
-  stats = { requests: 0, streamsOpen: 0, rejectedMessages: 0, rejectedRequests: 0, staleDropped: 0, retired: 0, generations: 0, deferred: 0 }
+  stats = { requests: 0, streamsOpen: 0, rejectedMessages: 0, rejectedRequests: 0, staleDropped: 0, retired: 0, generations: 0, deferred: 0, shared: 0 }
   private firstPaint?: { gen: number; done: Promise<void>; open(): void }
+  // Identical provider GETs from one document while the first is in flight share its response: a booting page asks
+  // twice per URL, and each costs the single-threaded server 1-1.4 s, delaying whatever the user opens next.
+  // Only in flight: nothing is reused once the response is in, and no read joins one that arrived before a write.
+  private shared = new Map<string, Promise<Response>>()
+  private writes = 0
 
   constructor(private readonly deps: CoreDeps) {}
 
@@ -146,6 +152,8 @@ export class BridgeCore {
     const entry: Inflight = { gen, ac: new AbortController() }
     this.inflight.set(k, entry)
     this.stats.requests++
+    if (msg.method !== "GET" && msg.method !== "HEAD") this.writes++
+    const writes = this.writes // in arrival order: policy checks below are async
     const target = bridgeTarget(msg.url)!
     const label = `${msg.method} ${target.pathname}`
     try {
@@ -175,21 +183,26 @@ export class BridgeCore {
         if (entry.ac.signal.aborted) throw new DOMException("Aborted", "AbortError")
       }
       const opensGate = !!gate && msg.method === "GET" && FIRST_PAINT.test(target.pathname)
-      const res = await this.deps.fetch(this.deps.baseUrl() + decision.path, {
+      const url = this.deps.baseUrl() + decision.path
+      const init: RequestInit = {
         method: msg.method,
         headers,
         body: msg.body ? new Uint8Array(msg.body as ArrayBuffer) : undefined,
         signal: entry.ac.signal,
         redirect: "manual", // never forward credentials to a redirect target
-      })
+      }
+      const res =
+        msg.method === "GET" && DEFERRED.test(target.pathname) ? await this.sharedFetch(`${gen}\u0000${writes}`, url, init, entry.ac.signal) : await this.deps.fetch(url, init)
       const sse = (res.headers.get("content-type") ?? "").includes("text/event-stream")
       this.deps.log.info(`${label} -> ${res.status}${sse ? " (stream)" : ""}`)
       if (opensGate) gate!.open()
       // Over Remote every body byte crosses the tunnel; a provider list is several MB of JSON (~11x smaller gzipped).
+      // The server compresses for fetch's default Accept-Encoding and fetch hands over the decoded body (content-length
+      // is then the compressed size): such a body was big enough for the server to compress, so compress it again.
       const gzip =
         !!this.deps.compress && !!res.body && !sse && (res.headers.get("content-type") ?? "").includes("json") &&
-        Number(res.headers.get("content-length")) >= (this.deps.compressMinBytes ?? COMPRESS_MIN_BYTES) && !res.headers.has("content-encoding")
-      const resHeaders = [...res.headers.entries()].filter(([k]) => !gzip || k !== "content-length")
+        (res.headers.has("content-encoding") || Number(res.headers.get("content-length")) >= (this.deps.compressMinBytes ?? COMPRESS_MIN_BYTES))
+      const resHeaders = [...res.headers.entries()].filter(([k]) => !gzip || (k !== "content-length" && k !== "content-encoding"))
       this.send(gen, { type: "fetch.head", id: msg.id, status: res.status, statusText: res.statusText, headers: resHeaders, ...(gzip ? { encoding: "gzip" as const } : {}) })
       if (res.body) {
         if (sse) this.stats.streamsOpen++
@@ -217,6 +230,22 @@ export class BridgeCore {
       // Identity check: a newer request that reused the key must not be removed by this one's cleanup.
       if (this.inflight.get(k) === entry) this.inflight.delete(k)
     }
+  }
+
+  /** One server request per identical in-flight GET (see `shared`); each caller gets its own copy of the body. */
+  private async sharedFetch(round: string, url: string, init: RequestInit, signal: AbortSignal) {
+    const key = `${round}\u0000${url}\u0000${JSON.stringify([...new Headers(init.headers).entries()])}`
+    let p = this.shared.get(key)
+    if (p) this.stats.shared++
+    else {
+      // Not tied to the first caller's signal: another caller may still want the response.
+      const done = this.deps.fetch(url, { ...init, signal: undefined }).then(async (r) => new Response(NULL_BODY.has(r.status) ? null : await r.arrayBuffer(), r))
+      p = done.finally(() => this.shared.get(key) === p && this.shared.delete(key))
+      this.shared.set(key, p)
+    }
+    const res = await p
+    if (signal.aborted) throw new DOMException("Aborted", "AbortError")
+    return res.clone()
   }
 
   private async blob(gen: number, msg: Extract<WebviewToHost, { type: "blob.op" }>) {
