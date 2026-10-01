@@ -297,3 +297,4 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 中文 E2E 发现语言来源问题：`zh-cn` 没有映射，官方界面在中文 VS Code 里也是英文。改用上游 `detectDesktopNativeLocale` 映射，并加开发用的 `OCO_DEV_LOCALE`（没装语言包时 `--locale` 不生效）。
 - E2E 发现测试竞态：发送后服务端还没存下用户消息，`waitReply` 就返回了。已修复。
 - 检查结果见 [c4-trajectory-0013](evidence/c4-trajectory-0013.md)。NOT RUN：真实模型、Remote。未提交。
+- 追加（提交与部署）：提交 `dc9ecc2`；`oco-0.0.1-dc9ecc2.vsix` 部署 gcp-workstation（哈希一致）。Remote 上的界面查看 NOT RUN。

@@ -31,8 +31,8 @@
 ## 5. 对话 / 轨迹（补丁 0012、0013）
 
 - [DONE] 第 1 阶段只读轨迹，提交 `3979333`、`09ce32a`，已快进合入 main 并部署 gcp-workstation（`fdf50a0`），在 Remote 只读查看过，见 [c4-trajectory](evidence/c4-trajectory.md)。
-- [DONE] 补丁 0013：轨迹文案多语言（en/zh/zht）、系统行「工具」页签、默认折叠步骤；修复 VS Code `zh-cn` 被当作英文的问题。未提交，见 [c4-trajectory-0013](evidence/c4-trajectory-0013.md)。
-- [TODO] 0013 提交后部署 Remote，在装有中文语言包的 VS Code 里确认官方界面和轨迹都是中文。
+- [DONE] 补丁 0013：轨迹文案多语言（en/zh/zht）、系统行「工具」页签、默认折叠步骤；修复 VS Code `zh-cn` 被当作英文的问题。已提交 `dc9ecc2` 并部署 gcp-workstation，见 [c4-trajectory-0013](evidence/c4-trajectory-0013.md)。
+- [TODO] Remote 窗口 Reload Window 后查看轨迹；在装有中文语言包的 VS Code 里确认官方界面和轨迹都是中文。
 - [TODO]（用户已决定暂不做）工具页签按会话智能体的权限标灰被禁用的工具；MCP 工具单独分组。
 - [TODO] 数千行长会话的滚动与内存（工作站上最长只有 12 次请求）。
 - [TODO] 第 2 阶段（按需）：子代理会话嵌套查看；订阅模型按 API 价目估算费用（标“估算”）；长会话列表虚拟化。

@@ -8,14 +8,15 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
-## 轨迹多语言、工具页签、折叠步骤（补丁 0013，2026-10-01；未提交）
+## 轨迹多语言、工具页签、折叠步骤（补丁 0013，提交 `dc9ecc2`，2026-10-01；本地，未推送）
 
 - 轨迹文案移入 oco 自带字典 `session-trajectory-i18n.ts`（en/zh/zht，其他语言回退英文），没有放进上游 `src/i18n`：上游的语言一致性测试要求每个键覆盖全部约 50 种语言。
 - 修复语言来源：此前宿主传给 webview 的 `zh-cn` 被应用当作未知语言，**中文 VS Code 里官方界面也显示英文**。现在用上游 `detectDesktopNativeLocale` 映射（zh-cn→zh、zh-tw→zht、pt-br→br）。开发模式下可用 `OCO_DEV_LOCALE` 覆盖，因为没装语言包时 VS Code 的 `--locale` 不改变 `vscode.env.language`。
 - 系统行新增「工具」页签：数据来自 `GET /experimental/tool`，按服务端当前配置和默认智能体列出，并标明不是当时实际发送的内容；工具可展开查看描述和参数 schema。
 - 列表默认「精简」：每轮里连续的思考和工具步骤折成一行摘要，点击展开（参照 DeepSeek）；可切到「全部」。
 - 检查：app 类型检查 0 错误；轨迹单元 15/15；app session 单元 121/121；`verify:brief --build` 0 错误、unit 164/164、build PASS；E2E（mock）`c4-trajectory` 英文 12/12、中文（`OCO_E2E_LOCALE=zh-cn`）12/12；回归 c3-fork 4/4、p1b-main-panel 6/6、p1a-chat 8/8、p1b-narrow 12/12（首次 1 项面板创建失败，复跑通过）。
-- NOT RUN：真实模型、Remote、装中文语言包的真实 VS Code。证据见 [c4-trajectory-0013](evidence/c4-trajectory-0013.md)。
+- 部署：`oco-0.0.1-dc9ecc2.vsix`（extension.js sha256 `cb95294a…`，因 `panels.ts` 改动而变化）已用 `scripts/deploy-remote.sh` 安装到 gcp-workstation，远端校验哈希一致；需在 Remote 窗口 Reload Window。
+- NOT RUN：真实模型、Remote 上的界面查看、装中文语言包的真实 VS Code。证据见 [c4-trajectory-0013](evidence/c4-trajectory-0013.md)。
 
 ## 对话 / 轨迹视图（补丁 0012，提交 `3979333`、`09ce32a`，2026-10-01；已快进合入 main `fdf50a0`，本地，未推送）
 
