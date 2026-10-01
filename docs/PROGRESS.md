@@ -340,4 +340,5 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
   - 测试端口 4548 被占，导致一整轮 E2E 作废。
   - 与另一会话共用 `.oco-test/wt-cop` 同时跑 E2E，结果互相干扰。
 - 检查和结果见 STATUS 本节和 [cold-open](evidence/cold-open.md)。
+- 追加（提交与部署）：提交 `1ad31ce`。部署：`oco-0.0.1-1ad31ce.vsix` 部署 gcp-workstation，远端 `extension.js` 哈希一致（`327d8e63…`）。Remote 复验（已安装扩展，探针 `deployed-1ad31ce-1/2`，新窗口里依次打开 3 个会话，共 2 组 6 次）：6 次画面都只有编辑区底色骨架屏到内容，没有黑屏阶段；logo 闪屏每次都渲染，但都在骨架屏下面。新窗口首开 2059 / 4069 ms，4069 那次主包 4 MB 下载用了 2.66 s（隧道慢）；消息返回到内容出现 0.26 / 0.37 s。同窗口再开 993–1339 ms。`scripts/remote-chat-check.mjs` BLOCKED：脚本要不带密码访问工作站 `127.0.0.1:4096`，该服务现在返回 401，脚本列不出会话便退出，未创建或删除任何会话。按约定不读、不改用户服务凭据。合入 main：BLOCKED，main 检出目录里有另一会话（删除 Agents 功能）未提交的 `docs/NEXT.md`、`docs/TEST-SCOPE.md` 改动，`--ff-only` 被拒；已发消息请它提交前合入 `1ad31ce`。
 
