@@ -37,7 +37,11 @@ reg = json.load(open(os.path.expanduser("~/.vscode-server/extensions/extensions.
 hit = [e for e in reg if (e.get("identifier") or {}).get("id") == f"{pkg['publisher']}.{pkg['name']}"]
 if len(hit) != 1 or hit[0]["location"]["path"] != dest:
     raise SystemExit("extensions.json 的登记路径与目标目录不一致，停止覆盖。")
-fresh, old = dest + ".new", dest + ".old"
+# Stage outside the extensions dir: a running VS Code Server registers a new "<name>.new" there as this
+# extension, and after the rename the registration points at a missing directory (oco disappears).
+stage_root = os.path.expanduser("~/.oco-ext-stage")
+os.makedirs(stage_root, exist_ok=True)
+fresh, old = os.path.join(stage_root, remote_name + ".new"), os.path.join(stage_root, remote_name + ".old")
 shutil.rmtree(fresh, ignore_errors=True)
 shutil.copytree(ext, fresh)
 if sha(os.path.join(fresh, "dist", "extension.js")) != expect:
@@ -47,6 +51,10 @@ shutil.rmtree(old, ignore_errors=True)
 os.rename(dest, old)
 os.rename(fresh, dest)
 shutil.rmtree(old)
+reg = json.load(open(os.path.expanduser("~/.vscode-server/extensions/extensions.json")))
+hit = [e for e in reg if (e.get("identifier") or {}).get("id") == f"{pkg['publisher']}.{pkg['name']}"]
+if len(hit) != 1 or hit[0]["location"]["path"] != dest:
+    raise SystemExit("替换后 extensions.json 的登记路径不是目标目录，见 docs/remote-install.md。")
 shutil.rmtree(stage)
 os.remove(src)
 print("INSTALLED", remote_name, sha(os.path.join(dest, "dist", "extension.js")))
