@@ -2,7 +2,7 @@
   "name": "oco",
   "displayName": "oco (OpenCode for VS Code)",
   "description": "OpenCode v1 sessions in the VS Code sidebar and editor tabs (attached server).",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "oco-local-test",
   "icon": "media/icon.png",
   "private": true,
