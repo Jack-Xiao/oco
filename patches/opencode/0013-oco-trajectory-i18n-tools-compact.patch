@@ -1,0 +1,1637 @@
+diff --git a/packages/app/src/components/session/session-trajectory-i18n.ts b/packages/app/src/components/session/session-trajectory-i18n.ts
+new file mode 100644
+index 0000000..7f12d73
+--- /dev/null
++++ b/packages/app/src/components/session/session-trajectory-i18n.ts
+@@ -0,0 +1,377 @@
++// oco (patches/opencode/0013): copy for the trajectory view (0012). It lives here rather than in
++// src/i18n: upstream's parity test requires every key in all of its locales, and oco maintains only
++// English and Chinese. Other locales fall back to English.
++import { pluralCategory } from "@opencode-ai/ui/context/i18n"
++import type { useLanguage } from "@/context/language"
++
++const en = {
++  "view.label": "Session view",
++  "view.chat": "Chat",
++  "view.trajectory": "Trajectory",
++  "rows.compact": "Compact",
++  "rows.full": "All rows",
++  "duration.ms": "{{value}} ms",
++  "duration.seconds": "{{value}} s",
++  "duration.minutes": "{{minutes}} min {{seconds}} s",
++  "cost.unpriced": "$0 (not priced: subscription, free or unknown price)",
++  "truncated": "…(truncated, {{count}} characters in total)",
++  "kind.system": "System",
++  "kind.user": "User",
++  "kind.reasoning": "Thinking",
++  "kind.text": "Assistant",
++  "kind.tool": "Tool",
++  "kind.context": "Context",
++  "kind.attachment": "Attachment",
++  "kind.agent": "Agent",
++  "kind.subtask": "Subtask",
++  "kind.compaction": "Compaction",
++  "kind.patch": "Changes",
++  "kind.retry": "Retry",
++  "kind.error": "Error",
++  "compaction.auto": "Automatic context compaction",
++  "compaction.manual": "Context compaction",
++  "patch.files.one": "{{count}} file · {{files}}",
++  "patch.files.other": "{{count}} files · {{files}}",
++  "retry.attempt": "Attempt {{attempt}} · {{error}}",
++  "noText": "(no text)",
++  "system.unsaved": "Agent {{agent}} · OpenCode assembles the system prompt at runtime; what was sent is not saved",
++  "system.note": "OpenCode assembles the system prompt (agent instructions, AGENTS.md, environment details) and the tool definitions for every request, but does not save what was actually sent. Only a custom system prompt stored with the session can be shown here.",
++  "tool.running": "Running…",
++  "tool.unfinished": "Unfinished (no end record)",
++  "status.pending": "Waiting",
++  "status.running": "Running",
++  "status.completed": "Completed",
++  "status.error": "Failed",
++  "status.interrupted": "Interrupted (no end record)",
++  "request.interrupted": "Interrupted (no end record; the server is no longer running this request)",
++  "request.error": "Error · {{error}}",
++  "request.done": "Completed",
++  "request.doneReason": "Completed · {{reason}}",
++  "request.number": "Request #{{index}}",
++  "request.bar": "Request #{{index}} · {{model}} · first token {{ttft}} · generation {{generation}}",
++  "turn": "Turn {{turn}}",
++  "step": "Step {{step}}",
++  "detail.close": "Close details",
++  "tab.overview": "Overview",
++  "tab.raw": "Raw",
++  "tab.prompt": "System prompt",
++  "tab.tools": "Tools",
++  "totals.requests": "Requests",
++  "totals.tools": "Tools",
++  "totals.input": "Input",
++  "totals.cacheHit": "Cache hit",
++  "totals.output": "Output",
++  "totals.reasoning": "Thinking",
++  "totals.cost": "Cost",
++  "loadingHistory": "Loading full history…",
++  "scale.duration": "Duration",
++  "scale.turn": "Turns",
++  "scale.request": "Calls",
++  "search.placeholder": "Search",
++  "search.label": "Search trajectory",
++  "lane.input": "Input",
++  "lane.model": "Model",
++  "lane.tool": "Tools",
++  "lane.turnInput": "Turn {{turn}} input",
++  "lane.toolCall": "Tool {{tool}}",
++  "list.label": "Trajectory",
++  "empty.noMatch": "No matching entries",
++  "empty.none": "No trajectory yet",
++  "group.steps.one": "{{count}} step",
++  "group.steps.other": "{{count}} steps",
++  "group.toolCalls.one": "{{count}} tool call",
++  "group.toolCalls.other": "{{count}} tool calls",
++  "section.toolTiming": "Tool timing",
++  "section.userInput": "User input",
++  "section.toolInput": "Input · {{tool}}",
++  "section.output": "Output",
++  "section.error": "Error",
++  "section.reasoning": "Thinking",
++  "section.reply": "Reply",
++  "section.request": "Request",
++  "section.tokens": "Tokens",
++  "section.timing": "Request timing",
++  "field.status": "Status",
++  "field.startTime": "Start time",
++  "field.duration": "Duration",
++  "field.agent": "Agent",
++  "field.model": "Model",
++  "field.time": "Time",
++  "field.source": "Source",
++  "field.total": "Total",
++  "field.inputUncached": "Input (uncached)",
++  "field.cacheRead": "Cache read",
++  "field.cacheWrite": "Cache write",
++  "field.cacheHit": "Cache hit",
++  "field.output": "Output",
++  "field.reasoning": "Thinking",
++  "field.cost": "Cost",
++  "field.totalDuration": "Total duration",
++  "field.ttft": "Time to first token",
++  "field.generation": "Generation",
++  "field.throughput": "Throughput",
++  "timing.note": "Derived from the timestamps OpenCode stores (first token = start of the first thinking, reply or tool input); not the provider's own timing.",
++  "tools.note": "Listed from the server's current configuration for {{model}} and the default agent. This is not a record of the tool definitions sent in this session: tools disabled by agent permissions, and MCP tools, may differ.",
++  "tools.loading": "Loading tools…",
++  "tools.unavailable": "This server does not provide a tool list ({{error}})",
++  "tools.noModel": "No model is recorded for this session, so the tools cannot be listed",
++  "tools.count.one": "{{count}} tool",
++  "tools.count.other": "{{count}} tools",
++  "tools.parameters": "Parameters",
++}
++
++type Key = keyof typeof en
++type PluralKey = "patch.files" | "group.steps" | "group.toolCalls" | "tools.count"
++type TextKey = Exclude<Key, `${PluralKey}.${string}`>
++type Params = Record<string, string | number | boolean>
++
++const zh: Record<Key, string> = {
++  "view.label": "会话视图",
++  "view.chat": "对话",
++  "view.trajectory": "轨迹",
++  "rows.compact": "精简",
++  "rows.full": "全部",
++  "duration.ms": "{{value}} 毫秒",
++  "duration.seconds": "{{value}} 秒",
++  "duration.minutes": "{{minutes}} 分 {{seconds}} 秒",
++  "cost.unpriced": "$0（未计价：订阅、免费或未知价格）",
++  "truncated": "…（已截断，共 {{count}} 字符）",
++  "kind.system": "系统",
++  "kind.user": "用户",
++  "kind.reasoning": "思考",
++  "kind.text": "助手",
++  "kind.tool": "工具",
++  "kind.context": "上下文",
++  "kind.attachment": "附件",
++  "kind.agent": "智能体",
++  "kind.subtask": "子任务",
++  "kind.compaction": "压缩",
++  "kind.patch": "变更",
++  "kind.retry": "重试",
++  "kind.error": "错误",
++  "compaction.auto": "上下文自动压缩",
++  "compaction.manual": "上下文压缩",
++  "patch.files.one": "{{count}} 个文件 · {{files}}",
++  "patch.files.other": "{{count}} 个文件 · {{files}}",
++  "retry.attempt": "第 {{attempt}} 次 · {{error}}",
++  "noText": "（无文本）",
++  "system.unsaved": "智能体 {{agent}} · 系统提示词由 OpenCode 运行时组装，未保存实际发送内容",
++  "system.note": "OpenCode 在每次请求时组装系统提示词（智能体指令、AGENTS.md、环境信息）和工具定义，但不保存实际发送的内容。这里只能显示会话里保存的自定义系统提示词。",
++  "tool.running": "运行中…",
++  "tool.unfinished": "未完成（没有结束记录）",
++  "status.pending": "等待",
++  "status.running": "运行中",
++  "status.completed": "已完成",
++  "status.error": "失败",
++  "status.interrupted": "已中断（没有结束记录）",
++  "request.interrupted": "已中断（没有结束记录，服务端已不在运行这次请求）",
++  "request.error": "错误 · {{error}}",
++  "request.done": "已完成",
++  "request.doneReason": "已完成 · {{reason}}",
++  "request.number": "请求 #{{index}}",
++  "request.bar": "请求 #{{index}} · {{model}} · 首 token {{ttft}} · 生成 {{generation}}",
++  "turn": "第 {{turn}} 轮",
++  "step": "第 {{step}} 步",
++  "detail.close": "关闭详情",
++  "tab.overview": "概述",
++  "tab.raw": "原始内容",
++  "tab.prompt": "系统提示词",
++  "tab.tools": "工具",
++  "totals.requests": "请求",
++  "totals.tools": "工具",
++  "totals.input": "输入",
++  "totals.cacheHit": "缓存命中",
++  "totals.output": "输出",
++  "totals.reasoning": "思考",
++  "totals.cost": "费用",
++  "loadingHistory": "正在加载完整历史…",
++  "scale.duration": "时长",
++  "scale.turn": "轮次",
++  "scale.request": "调用",
++  "search.placeholder": "搜索",
++  "search.label": "搜索轨迹",
++  "lane.input": "输入",
++  "lane.model": "模型",
++  "lane.tool": "工具",
++  "lane.turnInput": "第 {{turn}} 轮输入",
++  "lane.toolCall": "工具 {{tool}}",
++  "list.label": "轨迹",
++  "empty.noMatch": "没有匹配的条目",
++  "empty.none": "暂无轨迹",
++  "group.steps.one": "{{count}} 个步骤",
++  "group.steps.other": "{{count}} 个步骤",
++  "group.toolCalls.one": "{{count}} 个工具调用",
++  "group.toolCalls.other": "{{count}} 个工具调用",
++  "section.toolTiming": "工具计时",
++  "section.userInput": "用户输入",
++  "section.toolInput": "输入 · {{tool}}",
++  "section.output": "输出",
++  "section.error": "错误",
++  "section.reasoning": "思考",
++  "section.reply": "回复",
++  "section.request": "请求",
++  "section.tokens": "Token",
++  "section.timing": "请求计时",
++  "field.status": "状态",
++  "field.startTime": "开始时间",
++  "field.duration": "耗时",
++  "field.agent": "智能体",
++  "field.model": "模型",
++  "field.time": "时间",
++  "field.source": "来源",
++  "field.total": "合计",
++  "field.inputUncached": "输入（未缓存）",
++  "field.cacheRead": "缓存读取",
++  "field.cacheWrite": "缓存写入",
++  "field.cacheHit": "缓存命中",
++  "field.output": "输出",
++  "field.reasoning": "思考",
++  "field.cost": "费用",
++  "field.totalDuration": "总时长",
++  "field.ttft": "首 token 延迟",
++  "field.generation": "生成",
++  "field.throughput": "吞吐量",
++  "timing.note": "计时由 OpenCode 保存的时间戳推算（首 token = 首段思考/回复/工具输入的开始），不是服务商返回的原始计时。",
++  "tools.note": "按服务端当前配置（模型 {{model}}、默认智能体）列出，不是本会话请求实际发送的工具定义记录：被智能体权限禁用的工具和 MCP 工具可能不同。",
++  "tools.loading": "正在加载工具…",
++  "tools.unavailable": "该服务未提供工具列表（{{error}}）",
++  "tools.noModel": "会话没有记录模型，无法列出工具",
++  "tools.count.one": "{{count}} 个工具",
++  "tools.count.other": "{{count}} 个工具",
++  "tools.parameters": "参数",
++}
++
++const zht: Record<Key, string> = {
++  "view.label": "工作階段檢視",
++  "view.chat": "對話",
++  "view.trajectory": "軌跡",
++  "rows.compact": "精簡",
++  "rows.full": "全部",
++  "duration.ms": "{{value}} 毫秒",
++  "duration.seconds": "{{value}} 秒",
++  "duration.minutes": "{{minutes}} 分 {{seconds}} 秒",
++  "cost.unpriced": "$0（未計價：訂閱、免費或未知價格）",
++  "truncated": "…（已截斷，共 {{count}} 字元）",
++  "kind.system": "系統",
++  "kind.user": "使用者",
++  "kind.reasoning": "思考",
++  "kind.text": "助理",
++  "kind.tool": "工具",
++  "kind.context": "上下文",
++  "kind.attachment": "附件",
++  "kind.agent": "代理程式",
++  "kind.subtask": "子任務",
++  "kind.compaction": "壓縮",
++  "kind.patch": "變更",
++  "kind.retry": "重試",
++  "kind.error": "錯誤",
++  "compaction.auto": "上下文自動壓縮",
++  "compaction.manual": "上下文壓縮",
++  "patch.files.one": "{{count}} 個檔案 · {{files}}",
++  "patch.files.other": "{{count}} 個檔案 · {{files}}",
++  "retry.attempt": "第 {{attempt}} 次 · {{error}}",
++  "noText": "（無文字）",
++  "system.unsaved": "代理程式 {{agent}} · 系統提示詞由 OpenCode 執行時組裝，未儲存實際傳送的內容",
++  "system.note": "OpenCode 在每次請求時組裝系統提示詞（代理程式指示、AGENTS.md、環境資訊）和工具定義，但不儲存實際傳送的內容。這裡只能顯示工作階段中儲存的自訂系統提示詞。",
++  "tool.running": "執行中…",
++  "tool.unfinished": "未完成（沒有結束記錄）",
++  "status.pending": "等待",
++  "status.running": "執行中",
++  "status.completed": "已完成",
++  "status.error": "失敗",
++  "status.interrupted": "已中斷（沒有結束記錄）",
++  "request.interrupted": "已中斷（沒有結束記錄，伺服器已不再執行這次請求）",
++  "request.error": "錯誤 · {{error}}",
++  "request.done": "已完成",
++  "request.doneReason": "已完成 · {{reason}}",
++  "request.number": "請求 #{{index}}",
++  "request.bar": "請求 #{{index}} · {{model}} · 首 token {{ttft}} · 生成 {{generation}}",
++  "turn": "第 {{turn}} 輪",
++  "step": "第 {{step}} 步",
++  "detail.close": "關閉詳細資料",
++  "tab.overview": "概覽",
++  "tab.raw": "原始內容",
++  "tab.prompt": "系統提示詞",
++  "tab.tools": "工具",
++  "totals.requests": "請求",
++  "totals.tools": "工具",
++  "totals.input": "輸入",
++  "totals.cacheHit": "快取命中",
++  "totals.output": "輸出",
++  "totals.reasoning": "思考",
++  "totals.cost": "費用",
++  "loadingHistory": "正在載入完整歷史…",
++  "scale.duration": "時長",
++  "scale.turn": "輪次",
++  "scale.request": "呼叫",
++  "search.placeholder": "搜尋",
++  "search.label": "搜尋軌跡",
++  "lane.input": "輸入",
++  "lane.model": "模型",
++  "lane.tool": "工具",
++  "lane.turnInput": "第 {{turn}} 輪輸入",
++  "lane.toolCall": "工具 {{tool}}",
++  "list.label": "軌跡",
++  "empty.noMatch": "沒有符合的項目",
++  "empty.none": "尚無軌跡",
++  "group.steps.one": "{{count}} 個步驟",
++  "group.steps.other": "{{count}} 個步驟",
++  "group.toolCalls.one": "{{count}} 個工具呼叫",
++  "group.toolCalls.other": "{{count}} 個工具呼叫",
++  "section.toolTiming": "工具計時",
++  "section.userInput": "使用者輸入",
++  "section.toolInput": "輸入 · {{tool}}",
++  "section.output": "輸出",
++  "section.error": "錯誤",
++  "section.reasoning": "思考",
++  "section.reply": "回覆",
++  "section.request": "請求",
++  "section.tokens": "Token",
++  "section.timing": "請求計時",
++  "field.status": "狀態",
++  "field.startTime": "開始時間",
++  "field.duration": "耗時",
++  "field.agent": "代理程式",
++  "field.model": "模型",
++  "field.time": "時間",
++  "field.source": "來源",
++  "field.total": "合計",
++  "field.inputUncached": "輸入（未快取）",
++  "field.cacheRead": "快取讀取",
++  "field.cacheWrite": "快取寫入",
++  "field.cacheHit": "快取命中",
++  "field.output": "輸出",
++  "field.reasoning": "思考",
++  "field.cost": "費用",
++  "field.totalDuration": "總時長",
++  "field.ttft": "首 token 延遲",
++  "field.generation": "生成",
++  "field.throughput": "吞吐量",
++  "timing.note": "計時由 OpenCode 儲存的時間戳記推算（首 token = 首段思考/回覆/工具輸入的開始），不是服務供應商回傳的原始計時。",
++  "tools.note": "依伺服器目前設定（模型 {{model}}、預設代理程式）列出，不是本工作階段請求實際傳送的工具定義記錄：被代理程式權限停用的工具和 MCP 工具可能不同。",
++  "tools.loading": "正在載入工具…",
++  "tools.unavailable": "此伺服器未提供工具清單（{{error}}）",
++  "tools.noModel": "工作階段沒有記錄模型，無法列出工具",
++  "tools.count.one": "{{count}} 個工具",
++  "tools.count.other": "{{count}} 個工具",
++  "tools.parameters": "參數",
++}
++
++const dicts: Partial<Record<string, Record<Key, string>>> = { zh, zht }
++
++export type TrajectoryText = ReturnType<typeof trajectoryText>
++
++/** Reads the app language reactively; call t / plural inside tracked scopes. */
++export function trajectoryText(language: Pick<ReturnType<typeof useLanguage>, "locale" | "intl">) {
++  const dict = () => dicts[language.locale()] ?? en
++  const fill = (text: string, params: Params = {}) =>
++    text.replace(/{{\s*(\w+)\s*}}/g, (_, name: string) => String(params[name] ?? ""))
++  return {
++    intl: language.intl,
++    t: (key: TextKey, params?: Params) => fill(dict()[key], params),
++    plural: (key: PluralKey, count: number, params?: Params) => {
++      const current = dict() as Record<string, string>
++      return fill(current[`${key}.${pluralCategory(language.intl(), count)}`] ?? current[`${key}.other`]!, { ...params, count })
++    },
++  }
++}
+diff --git a/packages/app/src/components/session/session-trajectory-model.test.ts b/packages/app/src/components/session/session-trajectory-model.test.ts
+index 44de93d..2315b65 100644
+--- a/packages/app/src/components/session/session-trajectory-model.test.ts
++++ b/packages/app/src/components/session/session-trajectory-model.test.ts
+@@ -1,6 +1,15 @@
+ // oco (patches/opencode/0012): trajectory view data model.
+ import { describe, expect, test } from "bun:test"
+-import { buildTrajectory, createTimeScale, idTime, requestTiming } from "./session-trajectory-model"
++import {
++  buildTrajectory,
++  createTimeScale,
++  groupRows,
++  idTime,
++  requestTiming,
++} from "./session-trajectory-model"
++import { trajectoryText } from "./session-trajectory-i18n"
++
++const language = trajectoryText({ locale: () => "zh", intl: () => "zh-Hans" })
+ 
+ const T0 = 1_790_000_000_000
+ 
+@@ -70,7 +79,7 @@ describe("buildTrajectory", () => {
+     ],
+     [a2.id]: [text(T0 + 2600, "done", T0 + 2900)],
+   }
+-  const tr = buildTrajectory({ messages: [u, a1, a2], parts: (m) => parts[m] ?? [], now: T0 + 10_000 })
++  const tr = buildTrajectory({ messages: [u, a1, a2], parts: (m) => parts[m] ?? [], now: T0 + 10_000, language })
+ 
+   test("rows follow the session order with request boundaries", () => {
+     expect(tr.rows.map((r) => r.kind)).toEqual(["system", "user", "context", "context", "reasoning", "text", "tool", "text"])
+@@ -107,7 +116,7 @@ describe("buildTrajectory", () => {
+     const open = assistant(u, T0 + 100, { time: { created: T0 + 100 } })
+     const tool = { id: id("prt", T0 + 400), type: "tool", tool: "read", callID: "c", state: { status: "running", input: {}, time: { start: T0 + 400 } } }
+     const build = (messages: any[], busy?: boolean) =>
+-      buildTrajectory({ messages, parts: (m) => (m === open.id ? ([tool] as any) : []), now: T0 + 5000, busy })
++      buildTrajectory({ messages, parts: (m) => (m === open.id ? ([tool] as any) : []), now: T0 + 5000, busy, language })
+     const busy = build([u, failed, open], true)
+     expect(busy.requests[0]).toMatchObject({ status: "error", error: "APIError: rate limited" })
+     expect(busy.rows.find((r) => r.kind === "event")).toMatchObject({ label: "错误", error: true })
+@@ -123,15 +132,59 @@ describe("buildTrajectory", () => {
+   })
+ 
+   test("a message held twice in the store is listed once", () => {
+-    const out = buildTrajectory({ messages: [u, a1, u, a2], parts: (m) => parts[m] ?? [], now: T0 + 10_000 })
++    const out = buildTrajectory({ messages: [u, a1, u, a2], parts: (m) => parts[m] ?? [], now: T0 + 10_000, language })
+     expect(out.rows.filter((r) => r.kind === "user")).toHaveLength(1)
+     expect(out.turns).toHaveLength(1)
+     expect(out.requests.map((r) => r.step)).toEqual([1, 2])
+   })
+ 
+   test("records a stored custom system prompt", () => {
+-    const out = buildTrajectory({ messages: [user(T0, { system: "be brief" })], parts: () => [], now: T0 })
+-    expect(out.rows[0]).toMatchObject({ kind: "system", text: "be brief" })
++    const out = buildTrajectory({ messages: [user(T0, { system: "be brief" })], parts: () => [], now: T0, language })
++    expect(out.rows[0]).toMatchObject({ kind: "system", text: "be brief", custom: true })
++    expect(tr.rows[0]).toMatchObject({ kind: "system", custom: false, text: expect.stringContaining("智能体 build") })
++  })
++
++  test("labels come from the dictionary", () => {
++    expect(tr.rows.filter((r) => r.kind === "context").map((r) => (r as any).label)).toEqual(["上下文", "附件"])
++    const patch = { id: id("prt", T0 + 2050), type: "patch", hash: "h", files: ["a.ts", "b.ts"] }
++    const out = buildTrajectory({ messages: [u, a1], parts: (m) => (m === a1.id ? [patch] : parts[m] ?? []) as any, now: T0, language })
++    expect(out.rows.at(-1)).toMatchObject({ kind: "event", label: "变更", text: "2 个文件 · a.ts, b.ts" })
++  })
++})
++
++describe("groupRows", () => {
++  const u = user(T0)
++  const a1 = assistant(u, T0 + 100)
++  const a2 = assistant(u, T0 + 2300)
++  const a3 = assistant(u, T0 + 4000, { error: { name: "APIError", data: { message: "boom" } } })
++  const tool = (ms: number, name: string) => ({
++    id: id("prt", ms),
++    type: "tool",
++    tool: name,
++    callID: `c${ms}`,
++    state: { status: "completed", input: {}, output: "", title: "", metadata: {}, time: { start: ms, end: ms + 10 } },
++  })
++  const parts: Record<string, any[]> = {
++    [u.id]: [text(T0, "hi")],
++    [a1.id]: [{ id: id("prt", T0 + 200), type: "reasoning", text: "plan", time: { start: T0 + 200, end: T0 + 300 } }, tool(T0 + 400, "read")],
++    [a2.id]: [tool(T0 + 2400, "edit"), tool(T0 + 2500, "read"), text(T0 + 2600, "done", T0 + 2700)],
++    [a3.id]: [tool(T0 + 4100, "bash")],
++  }
++  const tr = buildTrajectory({ messages: [u, a1, a2, a3], parts: (m) => parts[m] ?? [], now: T0 + 10_000, language })
++  const items = groupRows(tr.rows)
++
++  test("folds thinking and tool runs across requests until a reply or error", () => {
++    expect(items.map((i) => (i.kind === "row" ? i.row.kind : "group"))).toEqual(["system", "user", "group", "text", "group", "event"])
++    const groups = items.flatMap((i) => (i.kind === "group" ? [i.group] : []))
++    expect(groups.map((g) => [g.steps, g.tools, g.firstOfRequest])).toEqual([
++      [2, ["read", "edit", "read"], true],
++      [1, ["bash"], true],
++    ])
++    expect(groups.flatMap((g) => g.rows).length + items.filter((i) => i.kind === "row").length).toBe(tr.rows.length)
++  })
++
++  test("errors stay visible", () => {
++    expect(items.at(-1)).toMatchObject({ kind: "row", row: { kind: "event", error: true } })
+   })
+ })
+ 
+@@ -140,7 +193,7 @@ describe("createTimeScale", () => {
+   const a1 = assistant(u1, T0 + 10, { time: { created: T0 + 10, completed: T0 + 1000 } })
+   const u2 = user(T0 + 3_600_000)
+   const a2 = assistant(u2, T0 + 3_600_010, { time: { created: T0 + 3_600_010, completed: T0 + 3_603_000 } })
+-  const tr = buildTrajectory({ messages: [u1, a1, u2, a2], parts: () => [], now: T0 + 4_000_000 })
++  const tr = buildTrajectory({ messages: [u1, a1, u2, a2], parts: () => [], now: T0 + 4_000_000, language })
+ 
+   test("duration scale collapses idle time between turns", () => {
+     const { x } = createTimeScale(tr, "duration")
+@@ -157,3 +210,14 @@ describe("createTimeScale", () => {
+     expect(x(T0 + 505)).toBeCloseTo(0.25)
+   })
+ })
++
++describe("trajectoryText", () => {
++  test("English plurals, Chinese copy and English fallback for other locales", () => {
++    const en = trajectoryText({ locale: () => "en", intl: () => "en" })
++    expect(en.plural("patch.files", 1, { files: "a.ts" })).toBe("1 file · a.ts")
++    expect(en.plural("group.toolCalls", 3)).toBe("3 tool calls")
++    expect(language.plural("group.toolCalls", 1)).toBe("1 个工具调用")
++    expect(trajectoryText({ locale: () => "zht", intl: () => "zh-Hant" }).t("view.trajectory")).toBe("軌跡")
++    expect(trajectoryText({ locale: () => "fr", intl: () => "fr" }).t("turn", { turn: 2 })).toBe("Turn 2")
++  })
++})
+diff --git a/packages/app/src/components/session/session-trajectory-model.ts b/packages/app/src/components/session/session-trajectory-model.ts
+index 76ff1d8..2aa2ba0 100644
+--- a/packages/app/src/components/session/session-trajectory-model.ts
++++ b/packages/app/src/components/session/session-trajectory-model.ts
+@@ -1,6 +1,8 @@
+ // oco (patches/opencode/0012): trajectory view data model. Pure functions over the session's stored
+ // messages and parts; no network, no Solid. One assistant message is one model request (one step).
++// Labels come from the caller's translator (patch 0013, session-trajectory-i18n.ts).
+ import type { AssistantMessage, Message, Part, ToolPart, UserMessage } from "@opencode-ai/sdk/v2/client"
++import type { TrajectoryText } from "./session-trajectory-i18n"
+ 
+ export type TrajectoryTokens = {
+   input: number
+@@ -45,7 +47,7 @@ export type TrajectoryTurn = {
+ type RowBase = { id: string; turn: number; request?: number; firstOfRequest?: boolean }
+ 
+ export type TrajectoryRow =
+-  | (RowBase & { kind: "system"; text: string })
++  | (RowBase & { kind: "system"; text: string; custom: boolean })
+   | (RowBase & { kind: "user"; text: string; message: UserMessage })
+   | (RowBase & { kind: "context"; label: string; text: string; part: Part })
+   | (RowBase & { kind: "reasoning" | "text"; text: string; part: Part; start?: number; end?: number })
+@@ -159,15 +161,15 @@ export function requestTiming(r: TrajectoryRequest) {
+   return { ttft, generation, throughput, total }
+ }
+ 
+-const CONTEXT_LABEL = "上下文"
+-
+ export function buildTrajectory(input: {
+   messages: Message[]
+   parts: (messageID: string) => Part[]
+   now: number
+   /** Session is busy (or retrying). Only its latest request can still be running; default true. */
+   busy?: boolean
++  language: TrajectoryText
+ }): Trajectory {
++  const t = input.language.t
+   const turns: TrajectoryTurn[] = []
+   const requests: TrajectoryRequest[] = []
+   const rows: TrajectoryRow[] = []
+@@ -180,9 +182,8 @@ export function buildTrajectory(input: {
+     id: "system",
+     kind: "system",
+     turn: -1,
+-    text: system
+-      ? oneLine(system)
+-      : `智能体 ${firstUser?.agent ?? "-"} · 系统提示词由 OpenCode 运行时组装，未保存实际发送内容`,
++    text: system ? oneLine(system) : t("system.unsaved", { agent: firstUser?.agent ?? "-" }),
++    custom: !!system,
+   })
+ 
+   // The sync store can briefly hold a message twice (optimistic copy + server copy, same id): keep the
+@@ -201,28 +202,28 @@ export function buildTrajectory(input: {
+         .filter((p) => p.type === "text" && !p.synthetic && !p.ignored)
+         .map((p) => (p.type === "text" ? p.text : ""))
+         .join("\n")
+-      rows.push({ id: message.id, kind: "user", turn: index, text: oneLine(typed || "（无文本）"), message })
++      rows.push({ id: message.id, kind: "user", turn: index, text: oneLine(typed || t("noText")), message })
+       for (const part of parts) {
+         if (part.type === "text" && (part.synthetic || part.ignored)) {
+           if (!part.text.trim()) continue
+-          rows.push({ id: part.id, kind: "context", turn: index, label: CONTEXT_LABEL, text: oneLine(part.text), part })
++          rows.push({ id: part.id, kind: "context", turn: index, label: t("kind.context"), text: oneLine(part.text), part })
+         } else if (part.type === "file") {
+           rows.push({
+             id: part.id,
+             kind: "context",
+             turn: index,
+-            label: "附件",
++            label: t("kind.attachment"),
+             text: oneLine(`${part.filename ?? part.url} · ${part.mime}`),
+             part,
+           })
+         } else if (part.type === "agent") {
+-          rows.push({ id: part.id, kind: "event", turn: index, label: "智能体", text: `@${part.name}`, part })
++          rows.push({ id: part.id, kind: "event", turn: index, label: t("kind.agent"), text: `@${part.name}`, part })
+         } else if (part.type === "subtask") {
+           rows.push({
+             id: part.id,
+             kind: "event",
+             turn: index,
+-            label: "子任务",
++            label: t("kind.subtask"),
+             text: oneLine(`${part.agent} · ${part.description}`),
+             part,
+           })
+@@ -231,8 +232,8 @@ export function buildTrajectory(input: {
+             id: part.id,
+             kind: "event",
+             turn: index,
+-            label: "压缩",
+-            text: part.auto ? "上下文自动压缩" : "上下文压缩",
++            label: t("kind.compaction"),
++            text: t(part.auto ? "compaction.auto" : "compaction.manual"),
+             part,
+           })
+         }
+@@ -286,7 +287,7 @@ export function buildTrajectory(input: {
+           status: part.state.status,
+           interrupted: open && !live,
+           input: oneLine(stringify(part.state.input), 160),
+-          output: oneLine(toolOutput(part) || (open ? (live ? "运行中…" : "未完成（没有结束记录）") : "")),
++          output: oneLine(toolOutput(part) || (open ? t(live ? "tool.running" : "tool.unfinished") : "")),
+           part,
+           start,
+           end,
+@@ -299,8 +300,10 @@ export function buildTrajectory(input: {
+           kind: "event",
+           turn: turnIndex,
+           request: index,
+-          label: "变更",
+-          text: oneLine(`${part.files.length} 个文件 · ${part.files.join(", ")}`),
++          label: t("kind.patch"),
++          text: oneLine(
++            input.language.plural("patch.files", part.files.length, { files: part.files.join(", ") }),
++          ),
+           part,
+         })
+       } else if (part.type === "retry") {
+@@ -309,8 +312,8 @@ export function buildTrajectory(input: {
+           kind: "event",
+           turn: turnIndex,
+           request: index,
+-          label: "重试",
+-          text: oneLine(`第 ${part.attempt} 次 · ${errorText(part.error) ?? ""}`),
++          label: t("kind.retry"),
++          text: oneLine(t("retry.attempt", { attempt: part.attempt, error: errorText(part.error) ?? "" })),
+           part,
+           error: true,
+         })
+@@ -318,7 +321,7 @@ export function buildTrajectory(input: {
+     }
+ 
+     const error = errorText(message.error)
+-    if (error) push({ id: `${message.id}:error`, kind: "event", turn: turnIndex, request: index, label: "错误", text: oneLine(error), error: true })
++    if (error) push({ id: `${message.id}:error`, kind: "event", turn: turnIndex, request: index, label: t("kind.error"), text: oneLine(error), error: true })
+ 
+     const end = message.time.completed ?? finishAt
+     const status: TrajectoryRequest["status"] = error ? "error" : end !== undefined ? "done" : live ? "running" : "interrupted"
+@@ -361,6 +364,44 @@ export function buildTrajectory(input: {
+   return { turns, requests, rows, start, end, totals }
+ }
+ 
++export type TrajectoryGroup = {
++  id: string
++  turn: number
++  rows: TrajectoryRow[]
++  /** Requests the folded rows belong to. */
++  steps: number
++  /** Tool names in call order, repeats included. */
++  tools: string[]
++  firstOfRequest: boolean
++}
++
++export type TrajectoryItem = { kind: "row"; row: TrajectoryRow } | { kind: "group"; group: TrajectoryGroup }
++
++/** Compact list: within a turn, each run of thinking, tool calls and file changes folds into one
++ *  summary item. User input, context, replies, retries and errors stay visible. */
++export function groupRows(rows: TrajectoryRow[]): TrajectoryItem[] {
++  const items: TrajectoryItem[] = []
++  let open: TrajectoryGroup | undefined
++  for (const row of rows) {
++    const fold =
++      row.request !== undefined && (row.kind === "reasoning" || row.kind === "tool" || (row.kind === "event" && !row.error))
++    if (!fold) {
++      open = undefined
++      items.push({ kind: "row", row })
++      continue
++    }
++    if (!open || open.turn !== row.turn) {
++      open = { id: `group:${row.id}`, turn: row.turn, rows: [], steps: 0, tools: [], firstOfRequest: false }
++      items.push({ kind: "group", group: open })
++    }
++    if (open.rows.at(-1)?.request !== row.request) open.steps++
++    open.rows.push(row)
++    if (row.kind === "tool") open.tools.push(row.tool)
++    if (row.firstOfRequest) open.firstOfRequest = true
++  }
++  return items
++}
++
+ export type TrajectoryScale = "duration" | "turn" | "request"
+ 
+ type Window = { t0: number; t1: number; weight: number }
+diff --git a/packages/app/src/components/session/session-trajectory.tsx b/packages/app/src/components/session/session-trajectory.tsx
+index 2c45187..89eb461 100644
+--- a/packages/app/src/components/session/session-trajectory.tsx
++++ b/packages/app/src/components/session/session-trajectory.tsx
+@@ -1,18 +1,37 @@
+-// oco (patches/opencode/0012): 对话 / 轨迹 — a read-only trajectory of the session built from the
++// oco (patches/opencode/0012, 0013): 对话 / 轨迹 — a read-only trajectory of the session built from the
+ // messages and parts already in the sync store: turns, model requests, reasoning, tool calls, tokens,
+-// cache, cost and derived timings. Labels are Chinese like the other oco additions.
+-import { createEffect, createMemo, createSignal, For, Index, Match, on, onCleanup, onMount, Show, Switch } from "solid-js"
++// cache, cost and derived timings. 0013: copy comes from session-trajectory-i18n.ts (en/zh/zht), the system
++// row lists the server's current tools, and the list folds thinking and tool steps by default.
++import {
++  createEffect,
++  createMemo,
++  createResource,
++  createSignal,
++  For,
++  Index,
++  Match,
++  on,
++  onCleanup,
++  onMount,
++  Show,
++  Switch,
++} from "solid-js"
+ import type { JSX } from "solid-js"
++import { createStore } from "solid-js/store"
+ import type { Message, Part } from "@opencode-ai/sdk/v2/client"
+ import { useSync } from "@/context/sync"
++import { useSDK } from "@/context/sdk"
+ import { useLanguage } from "@/context/language"
++import { trajectoryText, type TrajectoryText } from "./session-trajectory-i18n"
+ import {
+   buildTrajectory,
+   createTimeScale,
++  groupRows,
+   promptTokens,
+   requestTiming,
+   totalTokens,
+   type Trajectory,
++  type TrajectoryGroup,
+   type TrajectoryRequest,
+   type TrajectoryRow,
+   type TrajectoryScale,
+@@ -20,6 +39,10 @@ import {
+ 
+ export type SessionViewMode = "chat" | "trajectory"
+ 
++type Language = TrajectoryText
++type ToolInfo = { id: string; description: string; parameters: unknown }
++type ListItem = { kind: "row"; row: TrajectoryRow; nested?: boolean } | { kind: "group"; group: TrajectoryGroup }
++
+ const emptyMessages: Message[] = []
+ const emptyParts: Part[] = []
+ const RAW_LIMIT = 200_000
+@@ -35,6 +58,7 @@ const COLOR = {
+ }
+ 
+ export function SessionViewToggle(props: { value: SessionViewMode; onChange: (value: SessionViewMode) => void }) {
++  const language = trajectoryText(useLanguage())
+   const item = (value: SessionViewMode, label: string) => (
+     <button
+       type="button"
+@@ -52,9 +76,13 @@ export function SessionViewToggle(props: { value: SessionViewMode; onChange: (va
+     </button>
+   )
+   return (
+-    <div role="tablist" aria-label="会话视图" class="shrink-0 flex items-center gap-0.5 rounded-md p-0.5 bg-surface-inset-base">
+-      {item("chat", "对话")}
+-      {item("trajectory", "轨迹")}
++    <div
++      role="tablist"
++      aria-label={language.t("view.label")}
++      class="shrink-0 flex items-center gap-0.5 rounded-md p-0.5 bg-surface-inset-base"
++    >
++      {item("chat", language.t("view.chat"))}
++      {item("trajectory", language.t("view.trajectory"))}
+     </div>
+   )
+ }
+@@ -63,12 +91,12 @@ function compact(value: number, locale: string) {
+   return new Intl.NumberFormat(locale, { notation: value >= 10_000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(value)
+ }
+ 
+-function duration(ms: number | undefined) {
++function duration(language: Language, ms: number | undefined) {
+   if (ms === undefined || !Number.isFinite(ms) || ms < 0) return "-"
+-  if (ms < 1000) return `${Math.round(ms)} 毫秒`
+-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)} 秒`
++  if (ms < 1000) return language.t("duration.ms", { value: Math.round(ms) })
++  if (ms < 60_000) return language.t("duration.seconds", { value: (ms / 1000).toFixed(1) })
+   const s = Math.round(ms / 1000)
+-  return `${Math.floor(s / 60)} 分 ${s % 60} 秒`
++  return language.t("duration.minutes", { minutes: Math.floor(s / 60), seconds: s % 60 })
+ }
+ 
+ function clock(ms: number | undefined) {
+@@ -78,13 +106,18 @@ function clock(ms: number | undefined) {
+   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(d.getMilliseconds(), 3)}`
+ }
+ 
+-function money(value: number, tokens: number) {
++function dollars(value: number) {
+   if (value > 0) return `$${value < 0.01 ? value.toFixed(4) : value.toFixed(2)}`
+-  return tokens > 0 ? "$0（未计价：订阅、免费或未知价格）" : "$0"
++  return "$0"
++}
++
++function money(language: Language, value: number, tokens: number) {
++  return value <= 0 && tokens > 0 ? language.t("cost.unpriced") : dollars(value)
+ }
+ 
+-function clip(text: string, limit: number) {
+-  return text.length > limit ? `${text.slice(0, limit)}\n…（已截断，共 ${text.length} 字符）` : text
++function clip(language: Language, text: string, limit: number) {
++  if (text.length <= limit) return text
++  return `${text.slice(0, limit)}\n${language.t("truncated", { count: text.length })}`
+ }
+ 
+ function pretty(value: unknown) {
+@@ -95,25 +128,40 @@ function pretty(value: unknown) {
+   }
+ }
+ 
+-function badge(row: TrajectoryRow): { label: string; color: string } {
++function badge(language: Language, row: TrajectoryRow): { label: string; color: string } {
+   switch (row.kind) {
+     case "system":
+-      return { label: "系统", color: COLOR.system }
++      return { label: language.t("kind.system"), color: COLOR.system }
+     case "user":
+-      return { label: "用户", color: COLOR.user }
++      return { label: language.t("kind.user"), color: COLOR.user }
+     case "context":
+       return { label: row.label, color: COLOR.input }
+     case "reasoning":
+-      return { label: "思考", color: COLOR.model }
++      return { label: language.t("kind.reasoning"), color: COLOR.model }
+     case "text":
+-      return { label: "助手", color: COLOR.model }
++      return { label: language.t("kind.text"), color: COLOR.model }
+     case "tool":
+-      return { label: "工具", color: row.status === "error" ? COLOR.error : row.interrupted ? COLOR.system : COLOR.tool }
++      return {
++        label: language.t("kind.tool"),
++        color: row.status === "error" ? COLOR.error : row.interrupted ? COLOR.system : COLOR.tool,
++      }
+     case "event":
+       return { label: row.label, color: row.error ? COLOR.error : COLOR.system }
+   }
+ }
+ 
++function groupSummary(language: Language, group: TrajectoryGroup) {
++  const names = [...new Set(group.tools)]
++  return [
++    group.steps > 1 ? language.plural("group.steps", group.steps) : undefined,
++    group.tools.length ? language.plural("group.toolCalls", group.tools.length) : undefined,
++    names.length ? names.slice(0, 4).join(", ") + (names.length > 4 ? ", …" : "") : undefined,
++    names.length ? undefined : [...new Set(group.rows.map((row) => badge(language, row).label))].join(", "),
++  ]
++    .filter(Boolean)
++    .join(" · ")
++}
++
+ function Badge(props: { label: string; color: string }) {
+   return (
+     <span
+@@ -159,11 +207,14 @@ function Pre(props: { text: string }) {
+ 
+ export function SessionTrajectory(props: { sessionID: string; onChat: () => void }) {
+   const sync = useSync()
+-  const language = useLanguage()
++  const sdk = useSDK()
++  const language = trajectoryText(useLanguage())
+   const [scale, setScale] = createSignal<TrajectoryScale>("duration")
++  const [folded, setFolded] = createSignal(true)
++  const [expanded, setExpanded] = createStore<Record<string, boolean>>({})
+   const [query, setQuery] = createSignal("")
+   const [selected, setSelected] = createSignal<string | undefined>()
+-  const [tab, setTab] = createSignal<"overview" | "raw">("overview")
++  const [tab, setTab] = createSignal<"overview" | "raw" | "tools">("overview")
+   const [now, setNow] = createSignal(Date.now())
+   const [wide, setWide] = createSignal(true)
+   let root: HTMLDivElement | undefined
+@@ -173,11 +224,33 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+   const messages = createMemo(() => (sync().data.message[props.sessionID] ?? emptyMessages) as Message[])
+   const parts = (messageID: string) => (sync().data.part[messageID] ?? emptyParts) as Part[]
+   const busy = createMemo(() => (sync().data.session_status[props.sessionID]?.type ?? "idle") !== "idle")
+-  const trajectory = createMemo<Trajectory>(() => buildTrajectory({ messages: messages(), parts, now: now(), busy: busy() }))
++  const trajectory = createMemo<Trajectory>(() =>
++    buildTrajectory({ messages: messages(), parts, now: now(), busy: busy(), language }),
++  )
+   const running = createMemo(() => trajectory().requests.some((r) => r.status === "running"))
+   const time = createMemo(() => createTimeScale(trajectory(), scale()))
+   const locale = () => language.intl()
+ 
++  // The tools tab asks the server for the tools it would offer the session's first model right now.
++  const firstModel = createMemo(() => messages().find((m) => m.role === "user")?.model)
++  const toolProvider = createMemo(() => firstModel()?.providerID)
++  const toolModel = createMemo(() => firstModel()?.modelID)
++  const toolLists = new Map<string, Promise<ToolInfo[]>>()
++  const loadTools = (provider: string, model: string) => {
++    const key = `${provider}\n${model}`
++    const hit = toolLists.get(key)
++    if (hit) return hit
++    const next = sdk()
++      .client.tool.list({ provider, model })
++      .then((res) => {
++        if (!res.data) throw new Error(res.response ? `HTTP ${res.response.status}` : pretty(res.error))
++        return [...res.data].sort((a, b) => a.id.localeCompare(b.id))
++      })
++    next.catch(() => toolLists.delete(key))
++    toolLists.set(key, next)
++    return next
++  }
++
+   // The chat view pages history on scroll; the trajectory needs the whole session.
+   const [loadingHistory, setLoadingHistory] = createSignal(false)
+   createEffect(
+@@ -213,6 +286,17 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+     const all = trajectory().rows
+     return q ? all.filter((row) => rowSearchText(row).toLowerCase().includes(q)) : all
+   })
++  const groups = createMemo(() => groupRows(trajectory().rows))
++  // A search, or the "all rows" mode, lists every row; otherwise folded groups expand in place.
++  const items = createMemo<ListItem[]>(() => {
++    if (query().trim() || !folded()) return rows().map((row) => ({ kind: "row", row }))
++    return groups().flatMap((item): ListItem[] => {
++      if (item.kind === "row") return [item]
++      if (!expanded[item.group.id]) return [item]
++      return [item, ...item.group.rows.map((row) => ({ kind: "row" as const, row, nested: true }))]
++    })
++  })
++  const visibleRows = createMemo(() => items().flatMap((item) => (item.kind === "row" ? [item.row] : [])))
+   const selectedRow = createMemo(() => trajectory().rows.find((row) => row.id === selected()))
+   const selectedRequest = createMemo(() => {
+     const row = selectedRow()
+@@ -221,7 +305,10 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+ 
+   const select = (id: string | undefined) => {
+     setSelected(id)
+-    if (!id || !list) return
++    if (!id) return
++    const group = groups().find((item) => item.kind === "group" && item.group.rows.some((row) => row.id === id))
++    if (group?.kind === "group") setExpanded(group.group.id, true)
++    if (!list) return
+     requestAnimationFrame(() => list?.querySelector(`[data-row="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "nearest" }))
+   }
+   const selectRequest = (index: number) => select(trajectory().rows.find((row) => row.request === index)?.id)
+@@ -233,7 +320,7 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+       return
+     }
+     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return
+-    const visible = rows()
++    const visible = visibleRows()
+     if (!visible.length) return
+     event.preventDefault()
+     const at = visible.findIndex((row) => row.id === selected())
+@@ -254,13 +341,28 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+     width: `max(2px, ${((time().x(t1) - time().x(t0)) * 100).toFixed(3)}%)`,
+   })
+ 
+-  const turnLabel = (row: TrajectoryRow, index: number) => {
+-    if (row.turn < 0) return
+-    const prev = rows()[index - 1]
+-    if (prev && prev.turn === row.turn) return
+-    return `第 ${row.turn + 1} 轮`
++  const itemTurn = (item: ListItem) => (item.kind === "row" ? item.row.turn : item.group.turn)
++  const turnLabel = (item: ListItem, index: number) => {
++    const turn = itemTurn(item)
++    if (turn < 0) return
++    const prev = items()[index - 1]
++    if (prev && itemTurn(prev) === turn) return
++    return language.t("turn", { turn: turn + 1 })
+   }
+ 
++  const tabs = createMemo(() =>
++    selectedRow()?.kind === "system"
++      ? ([
++          ["overview", language.t("tab.prompt")],
++          ["tools", language.t("tab.tools")],
++        ] as const)
++      : ([
++          ["overview", language.t("tab.overview")],
++          ["raw", language.t("tab.raw")],
++        ] as const),
++  )
++  const currentTab = () => (tabs().some(([value]) => value === tab()) ? tab() : "overview")
++
+   const detail = () => (
+     <Show when={selectedRow()}>
+       {(row) => (
+@@ -273,14 +375,19 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+           }}
+         >
+           <div class="shrink-0 flex items-center gap-2 px-3 h-10 border-b border-border-weak-base">
+-            <Badge {...badge(row())} />
++            <Badge {...badge(language, row())} />
+             <div class="min-w-0 flex-1 truncate text-12-regular text-text-weak">
+-              <Show when={row().turn >= 0}>第 {row().turn + 1} 轮</Show>
+-              <Show when={selectedRequest()}>{(r) => <> · 第 {r().step} 步</>}</Show>
++              {[
++                row().turn >= 0 ? language.t("turn", { turn: row().turn + 1 }) : undefined,
++                selectedRequest() ? language.t("step", { step: selectedRequest()!.step }) : undefined,
++              ]
++                .filter(Boolean)
++                .join(" · ")}
+             </div>
+             <button
+               type="button"
+-              aria-label="关闭详情"
++              data-oco-detail-close
++              aria-label={language.t("detail.close")}
+               class="size-6 rounded text-text-weak hover:text-text-strong hover:bg-surface-base-active"
+               onClick={() => setSelected(undefined)}
+             >
+@@ -288,14 +395,15 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+             </button>
+           </div>
+           <div class="shrink-0 flex gap-3 px-3 border-b border-border-weak-base">
+-            <For each={[["overview", "概述"], ["raw", "原始内容"]] as const}>
++            <For each={tabs()}>
+               {([value, label]) => (
+                 <button
+                   type="button"
++                  data-oco-tab={value}
+                   class="h-8 text-12-medium border-b-2 -mb-px"
+                   classList={{
+-                    "border-[var(--text-interactive-base)] text-text-strong": tab() === value,
+-                    "border-transparent text-text-weak hover:text-text-base": tab() !== value,
++                    "border-[var(--text-interactive-base)] text-text-strong": currentTab() === value,
++                    "border-transparent text-text-weak hover:text-text-base": currentTab() !== value,
+                   }}
+                   onClick={() => setTab(value)}
+                 >
+@@ -306,18 +414,28 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+           </div>
+           <div class="flex-1 min-h-0 overflow-auto p-3 flex flex-col gap-4">
+             <Switch>
+-              <Match when={tab() === "raw"}>
+-                <Pre text={clip(rawContent(row(), selectedRequest()), RAW_LIMIT)} />
++              <Match when={currentTab() === "raw"}>
++                <Pre text={clip(language, rawContent(row(), selectedRequest()), RAW_LIMIT)} />
++              </Match>
++              <Match when={currentTab() === "tools"}>
++                <ToolList provider={toolProvider()} model={toolModel()} load={loadTools} />
+               </Match>
+               <Match when={true}>
+                 <RowContent row={row()} parts={parts} />
+                 <Show when={selectedRequest()}>{(r) => <RequestOverview request={r()} locale={locale()} />}</Show>
+                 <Show when={row().kind === "tool" ? (row() as Extract<TrajectoryRow, { kind: "tool" }>) : undefined}>
+                   {(tool) => (
+-                    <Section title="工具计时">
+-                      <Field label="状态">{toolStatus(tool().status, tool().interrupted)}</Field>
+-                      <Field label="开始时间">{clock(tool().start)}</Field>
+-                      <Field label="耗时">{duration(tool().end !== undefined && tool().start !== undefined ? tool().end! - tool().start! : undefined)}</Field>
++                    <Section title={language.t("section.toolTiming")}>
++                      <Field label={language.t("field.status")}>
++                        {toolStatus(language, tool().status, tool().interrupted)}
++                      </Field>
++                      <Field label={language.t("field.startTime")}>{clock(tool().start)}</Field>
++                      <Field label={language.t("field.duration")}>
++                        {duration(
++                          language,
++                          tool().end !== undefined && tool().start !== undefined ? tool().end! - tool().start! : undefined,
++                        )}
++                      </Field>
+                     </Section>
+                   )}
+                 </Show>
+@@ -329,6 +447,27 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+     </Show>
+   )
+ 
++  const total = (key: Parameters<Language["t"]>[0], value: string) => (
++    <span>
++      {language.t(key)} <b class="text-text-strong font-medium">{value}</b>
++    </span>
++  )
++
++  const toggleButton = (active: boolean, attrs: Record<string, string>, label: string, onClick: () => void) => (
++    <button
++      type="button"
++      {...attrs}
++      class="h-6 px-2 rounded-md text-12-medium"
++      classList={{
++        "bg-surface-base-active text-text-strong": active,
++        "text-text-weak hover:text-text-base": !active,
++      }}
++      onClick={onClick}
++    >
++      {label}
++    </button>
++  )
++
+   return (
+     <div ref={root} data-oco-trajectory class="relative flex flex-col h-full min-h-0">
+       <div class="shrink-0 h-12 flex items-center justify-between gap-2 pl-4 pr-3">
+@@ -337,40 +476,38 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+       </div>
+ 
+       <div class="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 pb-2 text-12-regular text-text-weak" data-oco-trajectory-totals>
+-        <span>请求 <b class="text-text-strong font-medium">{totals().requests}</b></span>
+-        <span>工具 <b class="text-text-strong font-medium">{totals().tools}</b></span>
+-        <span>输入 <b class="text-text-strong font-medium">{compact(promptTokens(totals()), locale())}</b></span>
+-        <span>缓存命中 <b class="text-text-strong font-medium">{hitRate(totals())}</b></span>
+-        <span>输出 <b class="text-text-strong font-medium">{compact(totals().output, locale())}</b></span>
+-        <span>思考 <b class="text-text-strong font-medium">{compact(totals().reasoning, locale())}</b></span>
+-        <span>费用 <b class="text-text-strong font-medium">{money(totals().cost, totalTokens(totals())).replace(/（.*）/, "")}</b></span>
++        {total("totals.requests", String(totals().requests))}
++        {total("totals.tools", String(totals().tools))}
++        {total("totals.input", compact(promptTokens(totals()), locale()))}
++        {total("totals.cacheHit", hitRate(totals()))}
++        {total("totals.output", compact(totals().output, locale()))}
++        {total("totals.reasoning", compact(totals().reasoning, locale()))}
++        {total("totals.cost", dollars(totals().cost))}
+         <Show when={loadingHistory()}>
+-          <span class="text-text-weaker">正在加载完整历史…</span>
++          <span class="text-text-weaker">{language.t("loadingHistory")}</span>
+         </Show>
+       </div>
+ 
+-      <div class="shrink-0 flex items-center gap-2 px-4 pb-2">
+-        <For each={[["duration", "时长"], ["turn", "轮次"], ["request", "调用"]] as const}>
+-          {([value, label]) => (
+-            <button
+-              type="button"
+-              data-oco-scale={value}
+-              class="h-6 px-2 rounded-md text-12-medium"
+-              classList={{
+-                "bg-surface-base-active text-text-strong": scale() === value,
+-                "text-text-weak hover:text-text-base": scale() !== value,
+-              }}
+-              onClick={() => setScale(value)}
+-            >
+-              {label}
+-            </button>
+-          )}
++      <div class="shrink-0 flex flex-wrap items-center gap-2 px-4 pb-2">
++        <For each={["duration", "turn", "request"] as const}>
++          {(value) =>
++            toggleButton(scale() === value, { "data-oco-scale": value }, language.t(`scale.${value}`), () =>
++              setScale(value),
++            )
++          }
+         </For>
++        <div class="w-px h-4 bg-border-weak-base" />
++        {toggleButton(folded(), { "data-oco-rows-mode": "compact" }, language.t("rows.compact"), () =>
++          setFolded(true),
++        )}
++        {toggleButton(!folded(), { "data-oco-rows-mode": "full" }, language.t("rows.full"), () =>
++          setFolded(false),
++        )}
+         <div class="flex-1" />
+         <input
+           type="search"
+-          placeholder="搜索"
+-          aria-label="搜索轨迹"
++          placeholder={language.t("search.placeholder")}
++          aria-label={language.t("search.label")}
+           value={query()}
+           onInput={(event) => setQuery(event.currentTarget.value)}
+           class="h-7 w-40 min-w-0 px-2 rounded-md bg-surface-inset-base text-12-regular text-text-strong placeholder:text-text-weaker outline-none border border-border-weak-base focus:border-[var(--border-interactive-focus)]"
+@@ -378,10 +515,12 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+       </div>
+ 
+       <div class="shrink-0 px-4 pb-2 border-b border-border-weak-base" data-oco-trajectory-lanes>
+-        <For each={[["输入", "input"], ["模型", "model"], ["工具", "tool"]] as const}>
+-          {([label, lane]) => (
++        <For each={["input", "model", "tool"] as const}>
++          {(lane) => (
+             <div class="flex items-center gap-2 h-4">
+-              <div class="w-8 shrink-0 text-11-regular text-text-weaker">{label}</div>
++              <div class="w-11 shrink-0 text-11-regular text-text-weaker whitespace-nowrap">
++                {language.t(`lane.${lane}`)}
++              </div>
+               <div class="relative flex-1 h-2.5">
+                 <For each={trajectory().turns.slice(1)}>
+                   {(turn) => (
+@@ -396,7 +535,7 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+                           {(user) => (
+                             <button
+                               type="button"
+-                              aria-label={`第 ${turn.index + 1} 轮输入`}
++                              aria-label={language.t("lane.turnInput", { turn: turn.index + 1 })}
+                               class="absolute top-0 h-full w-[3px] rounded-[1px]"
+                               classList={{ "outline outline-1 outline-[var(--text-strong)]": selected() === user().id }}
+                               style={{ left: pct(turn.start), background: COLOR.input }}
+@@ -409,7 +548,15 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+                   </Match>
+                   <Match when={lane === "model"}>
+                     <For each={trajectory().requests}>
+-                      {(r) => <ModelBar request={r} now={now()} span={span} selected={selectedRequest()?.index === r.index} onSelect={() => selectRequest(r.index)} />}
++                      {(r) => (
++                        <ModelBar
++                          request={r}
++                          now={now()}
++                          span={span}
++                          selected={selectedRequest()?.index === r.index}
++                          onSelect={() => selectRequest(r.index)}
++                        />
++                      )}
+                     </For>
+                   </Match>
+                   <Match when={lane === "tool"}>
+@@ -417,8 +564,8 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+                       {(row) => (
+                         <button
+                           type="button"
+-                          aria-label={`工具 ${row.tool}`}
+-                          title={`${row.tool} · ${duration(row.end !== undefined && row.start !== undefined ? row.end - row.start : undefined)}`}
++                          aria-label={language.t("lane.toolCall", { tool: row.tool })}
++                          title={`${row.tool} · ${duration(language, row.end !== undefined && row.start !== undefined ? row.end - row.start : undefined)}`}
+                           class="absolute top-0 h-full rounded-[2px]"
+                           classList={{ "outline outline-1 outline-[var(--text-strong)]": selected() === row.id }}
+                           style={{
+@@ -441,41 +588,84 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+         <div
+           ref={list}
+           role="listbox"
+-          aria-label="轨迹"
++          aria-label={language.t("list.label")}
+           tabIndex={-1}
+           onKeyDown={onListKey}
+           class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden py-1"
+           data-oco-trajectory-rows
+         >
+-          <Show when={rows().length > 0} fallback={<div class="px-4 py-6 text-12-regular text-text-weak">{query() ? "没有匹配的条目" : "暂无轨迹"}</div>}>
+-            <Index each={rows()}>
+-              {(row, index) => {
+-                const b = createMemo(() => badge(row()))
+-                return (
+-                  <button
+-                    type="button"
+-                    role="option"
+-                    data-row={row().id}
+-                    data-kind={row().kind}
+-                    aria-selected={selected() === row().id}
+-                    class="w-full h-9 flex items-center gap-2 pr-3 text-left border-b border-border-weak-base/60"
+-                    classList={{
+-                      "bg-surface-base-active": selected() === row().id,
+-                      "hover:bg-surface-base-hover": selected() !== row().id,
++          <Show
++            when={items().length > 0}
++            fallback={
++              <div class="px-4 py-6 text-12-regular text-text-weak">
++                {language.t(query() ? "empty.noMatch" : "empty.none")}
++              </div>
++            }
++          >
++            <Index each={items()}>
++              {(item, index) => (
++                <Switch>
++                  <Match when={item().kind === "group" ? (item() as Extract<ListItem, { kind: "group" }>).group : undefined}>
++                    {(group) => (
++                      <button
++                        type="button"
++                        data-oco-group={group().id}
++                        aria-expanded={!!expanded[group().id]}
++                        class="w-full h-9 flex items-center gap-2 pr-3 text-left border-b border-border-weak-base/60 hover:bg-surface-base-hover"
++                        onClick={() => setExpanded(group().id, (open) => !open)}
++                      >
++                        <span class="w-14 shrink-0 pl-2 text-11-regular text-text-weaker whitespace-nowrap">
++                          {turnLabel(item(), index) ?? ""}
++                        </span>
++                        <span class="w-2 shrink-0 flex justify-center">
++                          <Show when={group().firstOfRequest}>
++                            <span class="size-1.5 rounded-full bg-[var(--text-weaker)]" />
++                          </Show>
++                        </span>
++                        <span class="shrink-0 min-w-10 flex justify-center text-11-regular text-text-weaker">
++                          {expanded[group().id] ? "▾" : "▸"}
++                        </span>
++                        <span class="min-w-0 flex-1 truncate text-13-regular text-text-weak">
++                          {groupSummary(language, group())}
++                        </span>
++                      </button>
++                    )}
++                  </Match>
++                  <Match when={item().kind === "row" ? (item() as Extract<ListItem, { kind: "row" }>) : undefined}>
++                    {(entry) => {
++                      const b = createMemo(() => badge(language, entry().row))
++                      return (
++                        <button
++                          type="button"
++                          role="option"
++                          data-row={entry().row.id}
++                          data-kind={entry().row.kind}
++                          data-nested={entry().nested ? "" : undefined}
++                          aria-selected={selected() === entry().row.id}
++                          class="w-full h-9 flex items-center gap-2 pr-3 text-left border-b border-border-weak-base/60"
++                          classList={{
++                            "bg-surface-base-active": selected() === entry().row.id,
++                            "hover:bg-surface-base-hover": selected() !== entry().row.id,
++                            "bg-surface-inset-base/40": !!entry().nested && selected() !== entry().row.id,
++                          }}
++                          onClick={() => select(entry().row.id)}
++                        >
++                          <span class="w-14 shrink-0 pl-2 text-11-regular text-text-weaker whitespace-nowrap">
++                            {turnLabel(item(), index) ?? ""}
++                          </span>
++                          <span class="w-2 shrink-0 flex justify-center">
++                            <Show when={entry().row.firstOfRequest}>
++                              <span class="size-1.5 rounded-full bg-[var(--text-weaker)]" />
++                            </Show>
++                          </span>
++                          <Badge label={b().label} color={b().color} />
++                          <RowLine row={entry().row} />
++                        </button>
++                      )
+                     }}
+-                    onClick={() => select(row().id)}
+-                  >
+-                    <span class="w-14 shrink-0 pl-2 text-11-regular text-text-weaker whitespace-nowrap">{turnLabel(row(), index) ?? ""}</span>
+-                    <span class="w-2 shrink-0 flex justify-center">
+-                      <Show when={row().firstOfRequest}>
+-                        <span class="size-1.5 rounded-full bg-[var(--text-weaker)]" />
+-                      </Show>
+-                    </span>
+-                    <Badge label={b().label} color={b().color} />
+-                    <RowLine row={row()} />
+-                  </button>
+-                )
+-              }}
++                  </Match>
++                </Switch>
++              )}
+             </Index>
+           </Show>
+         </div>
+@@ -487,6 +677,77 @@ export function SessionTrajectory(props: { sessionID: string; onChat: () => void
+   )
+ }
+ 
++function ToolList(props: {
++  provider: string | undefined
++  model: string | undefined
++  load: (provider: string, model: string) => Promise<ToolInfo[]>
++}) {
++  const language = trajectoryText(useLanguage())
++  const [open, setOpen] = createStore<Record<string, boolean>>({})
++  const [tools] = createResource(
++    () => (props.provider && props.model ? { provider: props.provider, model: props.model } : undefined),
++    (source) => props.load(source.provider, source.model),
++  )
++  return (
++    <div data-oco-trajectory-tools class="flex flex-col gap-2">
++      <Switch>
++        <Match when={!props.provider || !props.model}>
++          <div class="text-12-regular text-text-weak">{language.t("tools.noModel")}</div>
++        </Match>
++        <Match when={tools.error as unknown}>
++          {(error) => (
++            <div class="text-12-regular text-text-weak">
++              {language.t("tools.unavailable", {
++                error: error() instanceof Error ? (error() as Error).message : String(error()),
++              })}
++            </div>
++          )}
++        </Match>
++        <Match when={tools.loading}>
++          <div class="text-12-regular text-text-weak">{language.t("tools.loading")}</div>
++        </Match>
++        <Match when={tools()}>
++          {(list) => (
++            <>
++              <div class="text-11-regular text-text-weaker">
++                {language.t("tools.note", { model: `${props.provider}/${props.model}` })}
++              </div>
++              <div class="text-12-medium text-text-base">{language.plural("tools.count", list().length)}</div>
++              <div class="flex flex-col">
++                <For each={list()}>
++                  {(tool) => (
++                    <div data-oco-tool={tool.id} class="border-b border-border-weak-base/60">
++                      <button
++                        type="button"
++                        aria-expanded={!!open[tool.id]}
++                        class="w-full flex items-center gap-2 py-1.5 text-left hover:bg-surface-base-hover"
++                        onClick={() => setOpen(tool.id, (value) => !value)}
++                      >
++                        <span class="w-3 shrink-0 text-11-regular text-text-weaker">{open[tool.id] ? "▾" : "▸"}</span>
++                        <span class="shrink-0 font-mono text-12-medium text-text-strong">{tool.id}</span>
++                        <span class="min-w-0 flex-1 truncate text-12-regular text-text-weak">{tool.description}</span>
++                      </button>
++                      <Show when={open[tool.id]}>
++                        <div class="pl-5 pb-3 flex flex-col gap-2">
++                          <div class="text-12-regular text-text-base whitespace-pre-wrap break-words max-h-[40vh] overflow-auto">
++                            {tool.description}
++                          </div>
++                          <div class="text-11-regular text-text-weaker">{language.t("tools.parameters")}</div>
++                          <Pre text={pretty(tool.parameters)} />
++                        </div>
++                      </Show>
++                    </div>
++                  )}
++                </For>
++              </div>
++            </>
++          )}
++        </Match>
++      </Switch>
++    </div>
++  )
++}
++
+ function RowLine(props: { row: TrajectoryRow }) {
+   return (
+     <Switch>
+@@ -523,6 +784,7 @@ function ModelBar(props: {
+   selected: boolean
+   onSelect: () => void
+ }) {
++  const language = trajectoryText(useLanguage())
+   const r = () => props.request
+   const end = () => r().end ?? (r().status === "running" ? props.now : r().windowEnd)
+   const first = () => r().firstToken
+@@ -530,12 +792,18 @@ function ModelBar(props: {
+   const color = () => (r().status === "error" ? COLOR.error : r().status === "interrupted" ? COLOR.system : COLOR.model)
+   const label = () => {
+     const t = requestTiming(r())
+-    return `请求 #${r().index + 1} · ${r().message.modelID} · 首 token ${duration(t.ttft)} · 生成 ${duration(t.generation)}`
++    return language.t("request.bar", {
++      index: r().index + 1,
++      model: r().message.modelID,
++      ttft: duration(language, t.ttft),
++      generation: duration(language, t.generation),
++    })
+   }
+   return (
+     <>
+       <button
+         type="button"
++        data-oco-request={r().index}
+         aria-label={label()}
+         title={label()}
+         class="absolute top-0 h-full rounded-[2px] opacity-40"
+@@ -561,9 +829,13 @@ function ModelBar(props: {
+   )
+ }
+ 
+-function toolStatus(status: string, interrupted = false) {
+-  if (interrupted) return "已中断（没有结束记录）"
+-  return ({ pending: "等待", running: "运行中", completed: "已完成", error: "失败" } as Record<string, string>)[status] ?? status
++function toolStatus(language: Language, status: string, interrupted = false) {
++  if (interrupted) return language.t("status.interrupted")
++  if (status === "pending") return language.t("status.pending")
++  if (status === "running") return language.t("status.running")
++  if (status === "completed") return language.t("status.completed")
++  if (status === "error") return language.t("status.error")
++  return status
+ }
+ 
+ function rawContent(row: TrajectoryRow, request: TrajectoryRequest | undefined) {
+@@ -574,52 +846,58 @@ function rawContent(row: TrajectoryRow, request: TrajectoryRequest | undefined)
+ }
+ 
+ function RowContent(props: { row: TrajectoryRow; parts: (messageID: string) => Part[] }) {
++  const language = trajectoryText(useLanguage())
+   const row = () => props.row
+   return (
+     <Switch>
+-      <Match when={row().kind === "system"}>
+-        <Section title="系统提示词">
+-          <div class="text-12-regular text-text-base">
+-            OpenCode 在每次请求时组装系统提示词（智能体指令、AGENTS.md、环境信息）和工具定义，但不保存实际发送的内容。
+-            这里只能显示会话里保存的自定义系统提示词。
+-          </div>
+-          <Show when={(row() as { text: string }).text.startsWith("智能体 ") ? undefined : (row() as { text: string }).text}>
+-            {(text) => <Pre text={text()} />}
+-          </Show>
+-        </Section>
++      <Match when={row().kind === "system" ? (row() as Extract<TrajectoryRow, { kind: "system" }>) : undefined}>
++        {(system) => (
++          <Section title={language.t("tab.prompt")}>
++            <div class="text-12-regular text-text-base">{language.t("system.note")}</div>
++            <Show when={system().custom}>
++              <Pre text={system().text} />
++            </Show>
++          </Section>
++        )}
+       </Match>
+       <Match when={row().kind === "user" ? (row() as Extract<TrajectoryRow, { kind: "user" }>) : undefined}>
+         {(user) => (
+-          <Section title="用户输入">
++          <Section title={language.t("section.userInput")}>
+             <Pre
+               text={clip(
++                language,
+                 props
+                   .parts(user().message.id)
+                   .flatMap((p) => (p.type === "text" && !p.synthetic && !p.ignored ? [p.text] : []))
+-                  .join("\n") || "（无文本）",
++                  .join("\n") || language.t("noText"),
+                 TEXT_LIMIT,
+               )}
+             />
+-            <Field label="智能体">{user().message.agent}</Field>
+-            <Field label="模型">{`${user().message.model?.providerID ?? "-"}/${user().message.model?.modelID ?? "-"}`}</Field>
+-            <Field label="时间">{clock(user().message.time.created)}</Field>
++            <Field label={language.t("field.agent")}>{user().message.agent}</Field>
++            <Field label={language.t("field.model")}>
++              {`${user().message.model?.providerID ?? "-"}/${user().message.model?.modelID ?? "-"}`}
++            </Field>
++            <Field label={language.t("field.time")}>{clock(user().message.time.created)}</Field>
+           </Section>
+         )}
+       </Match>
+       <Match when={row().kind === "tool" ? (row() as Extract<TrajectoryRow, { kind: "tool" }>) : undefined}>
+         {(tool) => (
+           <>
+-            <Section title={`输入 · ${tool().tool}`}>
+-              <Pre text={clip(pretty(tool().part.state.input), TEXT_LIMIT)} />
++            <Section title={language.t("section.toolInput", { tool: tool().tool })}>
++              <Pre text={clip(language, pretty(tool().part.state.input), TEXT_LIMIT)} />
+             </Section>
+-            <Section title={tool().status === "error" ? "错误" : "输出"}>
++            <Section
++              title={language.t(tool().status === "error" ? "section.error" : "section.output")}
++            >
+               <Pre
+                 text={clip(
++                  language,
+                   tool().part.state.status === "completed"
+                     ? (tool().part.state as { output: string }).output
+                     : tool().part.state.status === "error"
+                       ? (tool().part.state as { error: string }).error
+-                      : toolStatus(tool().status, tool().interrupted),
++                      : toolStatus(language, tool().status, tool().interrupted),
+                   TEXT_LIMIT,
+                 )}
+               />
+@@ -629,9 +907,18 @@ function RowContent(props: { row: TrajectoryRow; parts: (messageID: string) => P
+       </Match>
+       <Match when={"part" in row() && (row() as { part?: Part }).part}>
+         {(part) => (
+-          <Section title={row().kind === "reasoning" ? "思考" : row().kind === "text" ? "回复" : badge(row()).label}>
++          <Section
++            title={
++              row().kind === "reasoning"
++                ? language.t("section.reasoning")
++                : row().kind === "text"
++                  ? language.t("section.reply")
++                  : badge(language, row()).label
++            }
++          >
+             <Pre
+               text={clip(
++                language,
+                 part().type === "text" || part().type === "reasoning"
+                   ? (part() as { text: string }).text
+                   : "text" in row()
+@@ -644,7 +931,7 @@ function RowContent(props: { row: TrajectoryRow; parts: (messageID: string) => P
+         )}
+       </Match>
+       <Match when={true}>
+-        <Section title={badge(row()).label}>
++        <Section title={badge(language, row()).label}>
+           <Pre text={"text" in row() ? (row() as { text: string }).text : ""} />
+         </Section>
+       </Match>
+@@ -653,43 +940,53 @@ function RowContent(props: { row: TrajectoryRow; parts: (messageID: string) => P
+ }
+ 
+ function RequestOverview(props: { request: TrajectoryRequest; locale: string }) {
++  const language = trajectoryText(useLanguage())
+   const r = () => props.request
+   const t = () => requestTiming(r())
+   const n = (value: number) => new Intl.NumberFormat(props.locale).format(value)
+   const prompt = () => promptTokens(r().tokens)
+-  const status = () =>
+-    r().status === "running"
+-      ? "运行中"
+-      : r().status === "interrupted"
+-        ? "已中断（没有结束记录，服务端已不在运行这次请求）"
+-        : r().status === "error"
+-          ? `错误 · ${r().error ?? ""}`
+-          : `已完成${r().message.finish ? ` · ${r().message.finish}` : ""}`
++  const status = () => {
++    if (r().status === "running") return language.t("status.running")
++    if (r().status === "interrupted") return language.t("request.interrupted")
++    if (r().status === "error") return language.t("request.error", { error: r().error ?? "" })
++    const reason = r().message.finish
++    return reason
++      ? language.t("request.doneReason", { reason })
++      : language.t("request.done")
++  }
+   return (
+     <>
+-      <Section title="请求">
+-        <Field label="来源">{`请求 #${r().index + 1}`}</Field>
+-        <Field label="模型">{`${r().message.providerID}/${r().message.modelID}${r().message.variant ? ` · ${r().message.variant}` : ""}`}</Field>
+-        <Field label="智能体">{r().message.agent}</Field>
+-        <Field label="状态">{status()}</Field>
++      <Section title={language.t("section.request")}>
++        <Field label={language.t("field.source")}>
++          {language.t("request.number", { index: r().index + 1 })}
++        </Field>
++        <Field label={language.t("field.model")}>
++          {`${r().message.providerID}/${r().message.modelID}${r().message.variant ? ` · ${r().message.variant}` : ""}`}
++        </Field>
++        <Field label={language.t("field.agent")}>{r().message.agent}</Field>
++        <Field label={language.t("field.status")}>{status()}</Field>
+       </Section>
+-      <Section title="Token">
+-        <Field label="合计">{`${n(totalTokens(r().tokens))} tok`}</Field>
+-        <Field label="输入（未缓存）">{n(r().tokens.input)}</Field>
+-        <Field label="缓存读取">{n(r().tokens.cacheRead)}</Field>
+-        <Field label="缓存写入">{n(r().tokens.cacheWrite)}</Field>
+-        <Field label="缓存命中">{prompt() > 0 ? `${Math.round((r().tokens.cacheRead / prompt()) * 100)}%` : "-"}</Field>
+-        <Field label="输出">{n(r().tokens.output)}</Field>
+-        <Field label="思考">{n(r().tokens.reasoning)}</Field>
+-        <Field label="费用">{money(r().cost, totalTokens(r().tokens))}</Field>
++      <Section title={language.t("section.tokens")}>
++        <Field label={language.t("field.total")}>{`${n(totalTokens(r().tokens))} tok`}</Field>
++        <Field label={language.t("field.inputUncached")}>{n(r().tokens.input)}</Field>
++        <Field label={language.t("field.cacheRead")}>{n(r().tokens.cacheRead)}</Field>
++        <Field label={language.t("field.cacheWrite")}>{n(r().tokens.cacheWrite)}</Field>
++        <Field label={language.t("field.cacheHit")}>
++          {prompt() > 0 ? `${Math.round((r().tokens.cacheRead / prompt()) * 100)}%` : "-"}
++        </Field>
++        <Field label={language.t("field.output")}>{n(r().tokens.output)}</Field>
++        <Field label={language.t("field.reasoning")}>{n(r().tokens.reasoning)}</Field>
++        <Field label={language.t("field.cost")}>{money(language, r().cost, totalTokens(r().tokens))}</Field>
+       </Section>
+-      <Section title="请求计时">
+-        <Field label="开始时间">{clock(r().start)}</Field>
+-        <Field label="总时长">{duration(t().total)}</Field>
+-        <Field label="首 token 延迟">{duration(t().ttft)}</Field>
+-        <Field label="生成">{duration(t().generation)}</Field>
+-        <Field label="吞吐量">{t().throughput !== undefined ? `${t().throughput!.toFixed(1)} tok/s` : "-"}</Field>
+-        <div class="text-11-regular text-text-weaker">计时由 OpenCode 保存的时间戳推算（首 token = 首段思考/回复/工具输入的开始），不是服务商返回的原始计时。</div>
++      <Section title={language.t("section.timing")}>
++        <Field label={language.t("field.startTime")}>{clock(r().start)}</Field>
++        <Field label={language.t("field.totalDuration")}>{duration(language, t().total)}</Field>
++        <Field label={language.t("field.ttft")}>{duration(language, t().ttft)}</Field>
++        <Field label={language.t("field.generation")}>{duration(language, t().generation)}</Field>
++        <Field label={language.t("field.throughput")}>
++          {t().throughput !== undefined ? `${t().throughput!.toFixed(1)} tok/s` : "-"}
++        </Field>
++        <div class="text-11-regular text-text-weaker">{language.t("timing.note")}</div>
+       </Section>
+     </>
+   )

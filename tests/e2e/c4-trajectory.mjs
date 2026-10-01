@@ -1,27 +1,83 @@
-// Patch 0012: 对话 / 轨迹 trajectory view. Real VS Code + test server; session A has a bash tool turn and a
-// long (reasoning + text) turn.
+// Patches 0012/0013: 对话 / 轨迹 trajectory view. Real VS Code + test server; session A has a bash tool turn and a
+// long (reasoning + text) turn. Copy follows VS Code's display language. OCO_E2E_LOCALE=zh-cn runs it in Chinese
+// (through OCO_DEV_LOCALE: without the language pack, VS Code's --locale leaves vscode.env.language at "en").
 //   toggle-open        the header toggle swaps the chat timeline for the trajectory; the composer stays
-//   rows-match-server  user / tool / reasoning rows, model bars and the request total match the server's messages
+//   locale-copy        the copy matches the panel's locale (English by default, Chinese for zh-*)
+//   compact-groups     by default thinking and tool steps fold into summary rows; a click expands one in place
+//   rows-match-server  ("All rows") user / tool / reasoning rows, model bars and the request total match the server
 //   tool-detail        clicking the tool row shows its input and the command output
 //   request-timing     the detail shows tokens and derived timings (first token latency is a number)
 //   raw-content        "原始内容" shows the stored part JSON
 //   live-update        a turn sent from the trajectory view appears and completes without reopening it
 //   back-to-chat       the toggle returns to the chat timeline
 //   switch-resets      switching sessions in the main panel returns to 对话
+//   tools-tab          the system row's 工具 tab lists the server's tools for the session model; a tool expands
 //   narrow-detail      in a ~480 px panel the detail covers the list, nothing scrolls sideways, ✕ closes it
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, fitGroups } from "./vscode.mjs"
 import { api, messages, waitReply, MODEL } from "./server.mjs"
 
-const REQUIRED = ["toggle-open", "rows-match-server", "tool-detail", "request-timing", "raw-content", "live-update", "back-to-chat", "switch-resets", "narrow-detail"]
+const REQUIRED = [
+  "toggle-open",
+  "locale-copy",
+  "compact-groups",
+  "rows-match-server",
+  "tool-detail",
+  "request-timing",
+  "raw-content",
+  "tools-tab",
+  "live-update",
+  "back-to-chat",
+  "switch-resets",
+  "narrow-detail",
+]
 const run = createRun({ suite: "c4-trajectory", required: REQUIRED, scriptPath: fileURLToPath(import.meta.url) })
 const health = await api("GET", "/global/health").catch(() => null)
-run.setEnv({ serverVersion: health?.version ?? null, modelMode: MODEL.mode })
-const { app, page } = await launch({ profile: "c4-trajectory", run })
+const LOCALE = process.env.OCO_E2E_LOCALE ?? ""
+run.setEnv({ serverVersion: health?.version ?? null, modelMode: MODEL.mode, locale: LOCALE || "default" })
+const { app, page } = await launch({ profile: "c4-trajectory", run, env: LOCALE ? { OCO_DEV_LOCALE: LOCALE } : {} })
+// The copy this suite reads, per language (source: vendor/opencode/packages/app/src/components/session/session-trajectory-i18n.ts).
+const COPY = {
+  en: {
+    trajectory: "Trajectory",
+    requests: "Requests",
+    tools: "Tools",
+    toolInput: "Input · bash",
+    toolTiming: "Tool timing",
+    ttft: "Time to first token",
+    generation: "Generation",
+    total: "Total",
+    cacheRead: "Cache read",
+    source: "Source",
+    duration: /^\d+(\.\d+)? (ms|s)$/,
+    durationAny: /ms|s/,
+    request: /^Request #\d+$/,
+    completed: "Completed",
+  },
+  zh: {
+    trajectory: "轨迹",
+    requests: "请求",
+    tools: "工具",
+    toolInput: "输入 · bash",
+    toolTiming: "工具计时",
+    ttft: "首 token 延迟",
+    generation: "生成",
+    total: "合计",
+    cacheRead: "缓存读取",
+    source: "来源",
+    duration: /^\d+(\.\d+)? (毫秒|秒)$/,
+    durationAny: /毫秒|秒/,
+    request: /^请求 #\d+$/,
+    completed: "已完成",
+  },
+}
+const L = /^zh(-cn|-sg|-hans)?$/i.test(LOCALE) ? COPY.zh : COPY.en
 run.installCrashHandlers(() => app.close())
 const rand = Math.random().toString(36).slice(2, 7)
 const MARK = `traj-${rand}`
+/** Session under test (set once the first panel opens). */
+let A
 
 async function frameFor(sid, timeout = 60000) {
   const end = Date.now() + timeout
@@ -43,12 +99,16 @@ async function ready(f) {
   await waitUntil(async () => (await f.evaluate(() => document.documentElement.dataset.ocoModel)) === "ready", 60000, 100)
 }
 async function send(f, text) {
+  const users = async () => ((await messages(A)) ?? []).filter((m) => m.info.role === "user").length
+  const before = await users()
   const input = f.locator('[data-component="prompt-input"]')
   await input.click()
   await input.focus()
   await page.keyboard.type(text, { delay: 4 })
   await sleep(200)
   await page.keyboard.press("Enter")
+  // Until the server stores the new user message, waitReply would accept the previous turn's reply.
+  await waitUntil(async () => (await users()) > before, 30000, 100)
 }
 const count = (f, sel) => f.locator(sel).count()
 const rowsSel = "[data-oco-trajectory-rows]"
@@ -62,7 +122,6 @@ const field = (f, label) =>
 
 try {
   await command(page, "oco: New Session")
-  let A
   await waitUntil(async () => {
     for (const f of await chatFrames(page)) A = await frameSession(f).catch(() => null)
     return !!A
@@ -87,6 +146,31 @@ try {
   await runShot(page, run, "1-trajectory")
   run.record("toggle-open", opened && composerVisible && (await count(fA, '[data-component="user-message"]')) === 0 ? "PASS" : "FAIL", { opened, composerVisible })
 
+  const copy = {
+    lang: await fA.evaluate(() => document.documentElement.lang),
+    toggle: (await fA.locator('[data-oco-trajectory] [data-oco-view="trajectory"]').innerText()).trim(),
+    hasHan: /[\u4e00-\u9fff]/.test(await fA.locator("[data-oco-trajectory-totals]").innerText()),
+  }
+  run.record("locale-copy", copy.toggle === L.trajectory && copy.hasHan === (L === COPY.zh) ? "PASS" : "FAIL", copy)
+
+  // Compact rows (default): thinking and tool steps fold into summary rows that expand in place.
+  const compact = {
+    groups: await count(fA, `${rowsSel} [data-oco-group]`),
+    toolRows: await count(fA, `${rowsSel} [data-kind="tool"]`),
+  }
+  const toolGroup = fA.locator(`${rowsSel} [data-oco-group]`, { hasText: "bash" }).first()
+  compact.summary = (await toolGroup.innerText().catch(() => "")).replace(/\s+/g, " ")
+  await toolGroup.click()
+  compact.expanded = await toolGroup.getAttribute("aria-expanded")
+  compact.nestedTool = await count(fA, `${rowsSel} [data-kind="tool"][data-nested]`)
+  await runShot(page, run, "2-compact-groups")
+  run.record(
+    "compact-groups",
+    compact.groups >= 1 && compact.toolRows === 0 && compact.expanded === "true" && compact.nestedTool === 1 ? "PASS" : "FAIL",
+    compact,
+  )
+  await fA.locator('[data-oco-rows-mode="full"]').click()
+
   // 2. Rows against the server's stored messages.
   const msgs = await messages(A)
   const server = {
@@ -100,7 +184,7 @@ try {
     user: await count(fA, `${rowsSel} [data-kind="user"]`),
     tool: await count(fA, `${rowsSel} [data-kind="tool"]`),
     reasoning: await count(fA, `${rowsSel} [data-kind="reasoning"]`),
-    bars: await count(fA, '[data-oco-trajectory-lanes] button[aria-label^="请求 #"]'),
+    bars: await count(fA, "[data-oco-trajectory-lanes] [data-oco-request]"),
     totals: (await fA.locator("[data-oco-trajectory-totals]").innerText()).replace(/\s+/g, " "),
     userIds: await fA.locator(`${rowsSel} [data-kind="user"]`).evaluateAll((els) => els.map((e) => e.getAttribute("data-row"))),
   }
@@ -108,7 +192,7 @@ try {
   run.record(
     "rows-match-server",
     ui.user === server.user && ui.tool === server.tool && server.tool === 1 && ui.reasoning === server.reasoning && server.reasoning > 0 &&
-      ui.bars === server.assistant && ui.totals.includes(`请求 ${server.assistant}`) && ui.totals.includes("工具 1")
+      ui.bars === server.assistant && ui.totals.includes(`${L.requests} ${server.assistant}`) && ui.totals.includes(`${L.tools} 1`)
       ? "PASS"
       : "FAIL",
     { server, ui },
@@ -119,23 +203,23 @@ try {
   await fA.locator("[data-oco-trajectory-detail]").waitFor({ state: "visible", timeout: 5000 })
   const toolDetail = await detailText(fA)
   await runShot(page, run, "3-tool-detail")
-  run.record("tool-detail", toolDetail.includes("输入 · bash") && toolDetail.includes(MARK) && toolDetail.includes("工具计时") ? "PASS" : "FAIL", {
+  run.record("tool-detail", toolDetail.includes(L.toolInput) && toolDetail.includes(MARK) && toolDetail.includes(L.toolTiming) ? "PASS" : "FAIL", {
     detail: toolDetail.slice(0, 400),
   })
 
   // 4. Request overview: tokens and timings of the request that produced the reasoning.
   await fA.locator(`${rowsSel} [data-kind="reasoning"]`).first().click()
   const timing = {
-    ttft: await field(fA, "首 token 延迟"),
-    generation: await field(fA, "生成"),
-    total: await field(fA, "合计"),
-    cacheRead: await field(fA, "缓存读取"),
-    source: await field(fA, "来源"),
+    ttft: await field(fA, L.ttft),
+    generation: await field(fA, L.generation),
+    total: await field(fA, L.total),
+    cacheRead: await field(fA, L.cacheRead),
+    source: await field(fA, L.source),
   }
   await runShot(page, run, "4-request-timing")
   run.record(
     "request-timing",
-    /^\d+(\.\d+)? (毫秒|秒)$/.test(timing.ttft ?? "") && /毫秒|秒/.test(timing.generation ?? "") && /tok$/.test(timing.total ?? "") && timing.cacheRead !== null && /^请求 #\d+$/.test(timing.source ?? "")
+    L.duration.test(timing.ttft ?? "") && L.durationAny.test(timing.generation ?? "") && /tok$/.test(timing.total ?? "") && timing.cacheRead !== null && L.request.test(timing.source ?? "")
       ? "PASS"
       : "FAIL",
     timing,
@@ -143,15 +227,37 @@ try {
 
   // 5. Raw content of the tool part.
   await fA.locator(`${rowsSel} [data-kind="tool"]`).first().click()
-  await fA.locator("[data-oco-trajectory-detail] button", { hasText: "原始内容" }).click()
+  await fA.locator('[data-oco-trajectory-detail] [data-oco-tab="raw"]').click()
   const raw = await detailText(fA)
   run.record("raw-content", raw.includes('"callID"') && raw.includes('"type": "tool"') && raw.includes(MARK) ? "PASS" : "FAIL", { raw: raw.slice(0, 300) })
-  await fA.locator("[data-oco-trajectory-detail] button", { hasText: "概述" }).click()
+  await fA.locator('[data-oco-trajectory-detail] [data-oco-tab="overview"]').click()
+
+  // Tools tab of the system row, against the server's tool list for the session's model.
+  await fA.locator(`${rowsSel} [data-kind="system"]`).click()
+  await fA.locator('[data-oco-trajectory-detail] [data-oco-tab="tools"]').click()
+  const firstUser = msgs.find((m) => m.info.role === "user")?.info
+  const listed = await api(
+    "GET",
+    `/experimental/tool?provider=${encodeURIComponent(firstUser?.model?.providerID ?? "")}&model=${encodeURIComponent(firstUser?.model?.modelID ?? "")}`,
+  ).catch(() => null)
+  const tools = { server: Array.isArray(listed) ? listed.length : listed }
+  await waitUntil(async () => (await count(fA, "[data-oco-tool]")) > 0, 15000, 100).catch(() => undefined)
+  tools.ui = await count(fA, "[data-oco-tool]")
+  const bash = fA.locator('[data-oco-tool="bash"] button')
+  await bash.click().catch(() => undefined)
+  tools.expanded = await bash.getAttribute("aria-expanded").catch(() => null)
+  tools.schema = (await fA.locator('[data-oco-tool="bash"] pre').innerText().catch(() => "")).slice(0, 200)
+  await runShot(page, run, "5-tools-tab")
+  run.record(
+    "tools-tab",
+    tools.ui > 0 && tools.ui === tools.server && tools.expanded === "true" && tools.schema.includes('"command"') ? "PASS" : "FAIL",
+    tools,
+  )
 
   // 6. Live: send from the trajectory view; the new request shows up while it streams and completes in place.
   const before = server.assistant
   await send(fA, "Write 40 numbered sentences about rivers. No tools.")
-  const seenRunning = await waitUntil(async () => (await count(fA, '[data-oco-trajectory-lanes] button[aria-label^="请求 #"]')) > before, 20000, 100).then(
+  const seenRunning = await waitUntil(async () => (await count(fA, "[data-oco-trajectory-lanes] [data-oco-request]")) > before, 20000, 100).then(
     () => true,
     () => false,
   )
@@ -162,7 +268,7 @@ try {
   await fA.locator(`${rowsSel} [data-kind="text"]`).last().click()
   const lastText = await detailText(fA)
   await runShot(page, run, "6-live-done")
-  run.record("live-update", seenRunning && stillOpenWhileRunning && lastText.includes("40. Mock line 40.") && lastText.includes("已完成") ? "PASS" : "FAIL", {
+  run.record("live-update", seenRunning && stillOpenWhileRunning && lastText.includes("40. Mock line 40.") && lastText.includes(L.completed) ? "PASS" : "FAIL", {
     seenRunning,
     stillOpenWhileRunning,
     tail: lastText.slice(-200),
@@ -193,6 +299,7 @@ try {
   const widths = await fitGroups(app, page, 480)
   await fA.locator('[data-oco-view="trajectory"]').click()
   await fA.locator("[data-oco-trajectory]").waitFor({ state: "visible", timeout: 10000 })
+  await fA.locator('[data-oco-rows-mode="full"]').click()
   await fA.locator(`${rowsSel} [data-kind="tool"]`).first().click()
   await fA.locator("[data-oco-trajectory-detail]").waitFor({ state: "visible", timeout: 5000 })
   const narrow = await fA.evaluate(() => {
@@ -201,7 +308,7 @@ try {
     return { root: Math.round(root.width), detail: Math.round(detail.width), overflow: document.documentElement.scrollWidth - innerWidth }
   })
   await runShot(page, run, "9-narrow-detail")
-  await fA.locator('[data-oco-trajectory-detail] button[aria-label="关闭详情"]').click()
+  await fA.locator("[data-oco-trajectory-detail] [data-oco-detail-close]").click()
   const closed = (await count(fA, "[data-oco-trajectory-detail]")) === 0
   run.record("narrow-detail", narrow.detail >= narrow.root - 2 && narrow.overflow <= 1 && closed ? "PASS" : "FAIL", { widths, ...narrow, closed })
 } catch (e) {

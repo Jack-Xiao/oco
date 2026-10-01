@@ -1,5 +1,5 @@
 {
   "extends": "../../vendor/opencode/packages/app/tsconfig.json",
-  "compilerOptions": { "noEmit": true, "paths": { "@/*": ["../../vendor/opencode/packages/app/src/*"], "@oco/contracts": ["../../packages/contracts/src/bridge.ts"], "@opencode-ai/app": ["../../vendor/opencode/packages/app/src/index.ts"] } },
+  "compilerOptions": { "noEmit": true, "paths": { "@/*": ["../../vendor/opencode/packages/app/src/*"], "@oco/contracts": ["../../packages/contracts/src/bridge.ts"], "@opencode-ai/app": ["../../vendor/opencode/packages/app/src/index.ts"], "@opencode-ai/app/i18n/desktop-native": ["../../vendor/opencode/packages/app/src/i18n/desktop-native.ts"] } },
   "include": ["src"]
 }

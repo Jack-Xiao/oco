@@ -148,7 +148,14 @@ export class PanelRegistry {
   }
 
   private initFor(entry: Entry): WebviewInit {
-    return { panelId: entry.panelId, binding: entry.binding, serverUrl: BRIDGE_ORIGIN, locale: vscode.env.language, colorScheme: colorScheme(), role: entry.role }
+    return { panelId: entry.panelId, binding: entry.binding, serverUrl: BRIDGE_ORIGIN, locale: this.locale(), colorScheme: colorScheme(), role: entry.role }
+  }
+
+  /** VS Code's display language. OCO_DEV_LOCALE (development only) stands in for an installed language
+   *  pack: without one, `--locale` does not change vscode.env.language. */
+  private locale() {
+    const dev = process.env.OCO_DEV_LOCALE
+    return dev && this.context.extensionMode !== vscode.ExtensionMode.Production ? dev : vscode.env.language
   }
 
   /** E2E hook for the first-load race: OCO_DEV_SLOW_PATHS / OCO_DEV_SLOW_MS, outside production only. */

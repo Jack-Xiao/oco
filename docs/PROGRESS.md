@@ -289,3 +289,11 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 检查：模型单元 11/11；app session 单元 117/117；unit 164/164；E2E（mock）`c4-trajectory` 9/9，回归 p1a-chat 8/8、c3-fork 4/4、p1b-main-panel 6/6、c2-diff-unavailable 3/3、p1b-narrow 12/12。NOT RUN：真实模型 E2E、Remote、全量。未提交。
 - 追加（部署）：提交 `3979333`、`09ce32a`；`oco-0.0.1-09ce32a.vsix` 部署 gcp-workstation。单独的 VS Code 实例只读查看工作站最长会话（12 次请求），发现中断请求把时间轴拉到“现在”，改为「已中断」并在最后保存时间处结束，复验 unit、`c4-trajectory` 9/9 与 Remote。
 - 追加（合并）：快进合入 main（`fdf50a0`），部署 `oco-0.0.1-fdf50a0.vsix`（内容同 `09ce32a`）；主检出 vendor 补应用 0012。
+
+## 轨迹多语言、工具页签、折叠步骤（补丁 0013，2026-10-01）
+
+- 用户决定：先把 0012 的文案改为多语言，再做系统行的工具页签（暂不做权限标灰和 MCP 分组）；参照 DeepSeek 轨迹截图，加入折叠步骤。
+- 先把键放进上游 `src/i18n`，上游一致性测试失败 3 项（要求全部约 50 种语言），改为 oco 自带字典 `session-trajectory-i18n.ts`。
+- 中文 E2E 发现语言来源问题：`zh-cn` 没有映射，官方界面在中文 VS Code 里也是英文。改用上游 `detectDesktopNativeLocale` 映射，并加开发用的 `OCO_DEV_LOCALE`（没装语言包时 `--locale` 不生效）。
+- E2E 发现测试竞态：发送后服务端还没存下用户消息，`waitReply` 就返回了。已修复。
+- 检查结果见 [c4-trajectory-0013](evidence/c4-trajectory-0013.md)。NOT RUN：真实模型、Remote。未提交。

@@ -152,6 +152,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@oco/contracts": r("../../packages/contracts/src/bridge.ts"),
+      // Before "@opencode-ai/app": aliases match by prefix and the first match wins.
+      "@opencode-ai/app/i18n/desktop-native": r("../../vendor/opencode/packages/app/src/i18n/desktop-native.ts"),
       "@opencode-ai/app": r("../../vendor/opencode/packages/app/src/index.ts"),
     },
     dedupe: ["solid-js", "@solidjs/router"],

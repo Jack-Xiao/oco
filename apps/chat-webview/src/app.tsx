@@ -15,6 +15,7 @@ import {
   ServerConnection,
   type Platform,
 } from "@opencode-ai/app"
+import { detectDesktopNativeLocale } from "@opencode-ai/app/i18n/desktop-native"
 import { base64Decode, base64Encode } from "@opencode-ai/core/util/encode"
 import { createMemoryHistory, MemoryRouter, type BaseRouterProps } from "@solidjs/router"
 import { render } from "solid-js/web"
@@ -174,7 +175,8 @@ const servers: ServerConnection.Any[] = [{ type: "http", displayName: "oco", htt
 render(
   () => (
     <PlatformProvider value={platform}>
-      <AppBaseProviders locale={init.locale as never}>
+      {/* VS Code reports BCP 47 tags (zh-cn, zh-tw, pt-br); the app only accepts its own ids (zh, zht, br). */}
+      <AppBaseProviders locale={detectDesktopNativeLocale([init.locale ?? "en"])}>
         <AppInterface defaultServer={serverKey} servers={servers} router={PanelRouter} disableHealthCheck={false} />
         <ConnectionBanner />
       </AppBaseProviders>
