@@ -316,3 +316,11 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 本机 E2E 没能复现“整页卸载”（上游代码在本机也不卸载，原因未查明），黑屏的结论只以 Remote 数据为证；新增的 ready 门控用例有变异对照。
 - 检查与结果见 [switch-perf](evidence/switch-perf.md)。
 - 追加（提交与部署）：合入与部署：原补丁号 0014 与 main 上另一批次的 0014（轨迹）重号，改为 0015，rebase 到 main 后提交 `d73bf91` 并快进合入 main。集成后 `verify:brief --build` PASS（typecheck 0 错误、unit 168/168、build）；E2E（mock）`p1b-main-panel` 8/8、`c4-trajectory` 14/14；补丁 0001–0015 在固定 SHA 上重放与 vendor 树一致。`oco-0.0.1-d73bf91.vsix` 部署 gcp-workstation，远端 `extension.js` 哈希一致（`7aaf9981…`）。Remote 复验（已安装扩展，探针 `deployed-d73bf91`，14 个会话 × 2 轮）：首访空白帧 0/12；首开后第一次切换 941 ms；其余首访中位 415 / 最大 621 ms；回访中位 200 ms；页面收到的 `/provider` 为 556 KB（原 6.56 MB）。用户已打开的 Remote 窗口需 Reload Window 后才加载新代码。
+
+## 子智能体卡片打开系统浏览器（补丁 0016，2026-10-01）
+
+- 用户反馈：对话里点子智能体会跳到一个链接。
+- 复现（mock，截住 Electron 主进程 `shell.openExternal`）：卡片 `<a href>` 在 webview `<base>` 下成为 `https://file+.vscode-resource.vscode-cdn.net/server/…/session/<子会话>`，VS Code 把点击作为外部链接打开（受信任工作区不弹确认），同时面板切到子会话。
+- 改动：补丁 0016，嵌入模式不提供会话 href；`c4-trajectory` 新增 `subagent-link`（先 FAIL 后 PASS）。
+- 本 worktree 的 `.oco-test` 链接到主检出 `.oco-test/wt-sublink`（避开 IPC socket 路径长度限制）。`scripts/setup.sh` 重置 vendor 时只还原已跟踪文件，补丁新增的文件残留会让 0012–0014 应用失败；本批手动 `git clean` 后重放，脚本未改。
+- 检查与结果见 [subagent-link-0016](evidence/subagent-link-0016.md)。NOT RUN：真实模型。

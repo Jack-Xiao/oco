@@ -8,6 +8,13 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
+## 子智能体卡片打开系统浏览器（补丁 0016，2026-10-01）
+
+- 原因：对话里的子智能体卡片是 `<a href="/server/…/session/<子会话>">`。webview 页面的 `<base>` 是 `https://file+.vscode-resource.vscode-cdn.net/…`，这个路由被解析成 https 网址；VS Code 的 webview 点击拦截不看 `defaultPrevented`，受信任工作区里直接用系统浏览器打开它。同一次点击面板也切到了子会话。
+- 修复：嵌入模式下 `DataProvider` 不提供会话 href（`directory-layout.tsx`）。卡片变成无 href 的 `role="button"`，点击仍经宿主 `openSession` 在本面板打开子会话；子会话里的「返回主会话」和父会话标题本来就是按钮。
+- 检查：先写用例，未修复时 `c4-trajectory` 新项 `subagent-link` FAIL（`openExternal` 收到 https 网址），修复后英文 15/15、中文 15/15；回归 `p1a-identity` 14/14、`p1b-main-panel` 8/8（mock，独立服务 4547）。上游 app `tsgo -b` exit 0；`verify:brief` typecheck 0 错误、unit 168/168；补丁 0001–0016 在固定 SHA 上重放一致。
+- 限制：失败的子智能体卡片副标题不再是链接（无法从失败卡片跳转）；轨迹里的子智能体行仍不跳转。NOT RUN：真实模型。证据见 [subagent-link-0016](evidence/subagent-link-0016.md)。
+
 ## 会话切换黑屏与首开提速（补丁 0015，提交 `d73bf91`，2026-10-01；已快进合入 main 并部署 gcp-workstation；本地，未推送）
 
 - 黑屏原因：页面启动时只缓存当前目录最近 5 个会话的信息。切到其余会话时，上游把整个会话工作区卸载，等 `GET /session/:id` 回来再重新挂载，之后才请求消息。补丁 0015 在嵌入模式下保持工作区挂载，首开直接用宿主给的目录（`Platform.embeddedDirectory`）。页面改为新会话的输入框真正显示后才向宿主报告 `ready`，避免草稿投到旧输入框。

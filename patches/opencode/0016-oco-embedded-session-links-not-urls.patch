@@ -1,0 +1,16 @@
+diff --git a/packages/app/src/pages/directory-layout.tsx b/packages/app/src/pages/directory-layout.tsx
+index 0e8f068..924a209 100644
+--- a/packages/app/src/pages/directory-layout.tsx
++++ b/packages/app/src/pages/directory-layout.tsx
+@@ -67,7 +67,10 @@ export function DirectoryDataProvider(
+           directory={directory}
+           sessionID={params.id}
+           onNavigateToSession={(sessionID: string) => navigate(href(sessionID))}
+-          onSessionHref={href}
++          // oco: an embedded page has no URLs of its own. Under the webview's <base> an app route in an <a href>
++          // resolves to an https resource URL, and VS Code opens every clicked link in the system browser, so
++          // session links (subagent cards) render as buttons and go through onNavigateToSession only.
++          onSessionHref={platform.embedded ? undefined : href}
+           onOpenFile={platform.openFileInHost ? (path, line) => platform.openFileInHost!(path, line) : undefined}
+         >
+           <LocalProvider>{props.children}</LocalProvider>

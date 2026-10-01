@@ -34,6 +34,7 @@ mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为�
 | 补丁 0012（对话 / 轨迹视图）、`message-timeline.tsx` 标题栏 | app `session-trajectory-model.test.ts` | c4-trajectory、c3-fork、p1b-main-panel、p1b-narrow | mock；计时与费用口径用真实模型抽查 |
 | 补丁 0013（轨迹多语言、工具页签、折叠）、`apps/chat-webview/src/app.tsx` 语言映射 | app `session-trajectory-model.test.ts` | c4-trajectory（默认英文，再用 `OCO_E2E_LOCALE=zh-cn` 跑一次）、p1a-chat | mock |
 | 补丁 0014（比例按钮状态、子智能体行）、`tests/e2e/lib/mock-llm.mjs` 的 `task` 指令 | app `session-trajectory-model.test.ts` | c4-trajectory（英文 + `OCO_E2E_LOCALE=zh-cn`） | mock |
+| 补丁 0016（嵌入模式不提供会话 href）、`directory-layout.tsx` 的 `DataProvider` 参数 | — | c4-trajectory（`subagent-link`）、p1a-identity、p1b-main-panel | mock |
 | 补丁 0015（切换时保持工作区、首开预置目录、输入框会话事件）、`app.tsx` 的 ready 时机、`bridge-core.ts` 的 gzip 与 `/provider` 合并 | bridge-core | p1b-main-panel（`switch-uncached-*`）、p1a-identity、p1b-pending-send、t010-recover；gzip 再用 `OCO_BRIDGE_GZIP=1` 跑 p1a-identity、p1a-chat | mock；黑屏与耗时只能在 Remote 上用 `docs/evidence/switch-perf/switch-probe.mjs` 测 |
 | `managed-server.ts`、`connection.ts`（托管模式、多根工作区当前文件夹） | managed-server | t007-managed、t007-multiroot、t014-connection | mock |
 | `agents.ts`、`agents-view.ts`（Agents 视图） | agents | t013-agents | mock |

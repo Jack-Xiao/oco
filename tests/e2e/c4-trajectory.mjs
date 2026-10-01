@@ -13,6 +13,8 @@
 //   switch-resets      switching sessions in the main panel returns to 对话
 //   tools-tab          the system row's 工具 tab lists the server's tools for the session model; a tool expands
 //   narrow-detail      in a ~480 px panel the detail covers the list, nothing scrolls sideways, ✕ closes it
+//   subagent-link      the chat view's subagent card is not an <a href>; a click opens the child session in the panel,
+//                      its parent title returns to A, and nothing is opened outside VS Code (patch 0016)
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, fitGroups } from "./vscode.mjs"
@@ -33,6 +35,7 @@ const REQUIRED = [
   "switch-resets",
   "narrow-detail",
   "subagent-row",
+  "subagent-link",
 ]
 const run = createRun({ suite: "c4-trajectory", required: REQUIRED, scriptPath: fileURLToPath(import.meta.url) })
 const health = await api("GET", "/global/health").catch(() => null)
@@ -369,6 +372,38 @@ try {
       ? "PASS"
       : "FAIL",
     sub,
+  )
+
+  // 11. The subagent card in the chat view opens the child session in this panel. It used to be an <a href> to an app
+  // route; the webview's <base> made that an https URL and VS Code opened it in the system browser as well.
+  await fA.locator('[data-oco-trajectory] [data-oco-view="chat"]').click()
+  const card = fA.locator('[data-component="task-tool-card"]').first()
+  await card.waitFor({ state: "visible", timeout: 10000 })
+  const link = {
+    child,
+    href: await card.evaluate((el) => el.closest("a")?.getAttribute("href") ?? null),
+    role: await card.evaluate((el) => el.closest("a")?.getAttribute("role") ?? null),
+  }
+  await app.evaluate(({ shell }) => {
+    globalThis.__ocoOpened = []
+    shell.openExternal = async (url) => void globalThis.__ocoOpened.push(String(url))
+  })
+  await card.click()
+  link.switched = await waitUntil(async () => {
+    for (const f of await chatFrames(page)) if ((await frameSession(f).catch(() => null)) === child) return true
+    return false
+  }, 15000, 100).then(() => true, () => false)
+  await sleep(500)
+  await runShot(page, run, "11-subagent-link")
+  // The child's title links back to the parent (a button upstream); the panel returns to A.
+  for (const f of await chatFrames(page))
+    if ((await frameSession(f).catch(() => null)) === child) await f.locator('[data-slot="session-title-parent"]').click().catch(() => {})
+  link.back = !!(await frameFor(A, 15000))
+  link.opened = await app.evaluate(() => globalThis.__ocoOpened)
+  run.record(
+    "subagent-link",
+    !!child && link.href === null && link.role === "button" && link.switched && link.back && link.opened.length === 0 ? "PASS" : "FAIL",
+    link,
   )
 } catch (e) {
   run.record("run", "FAIL", { error: String(e?.message ?? e).slice(0, 500) })
