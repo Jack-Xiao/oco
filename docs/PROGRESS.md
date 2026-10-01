@@ -349,3 +349,8 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 应另一会话请求，在主检出用 stash → `merge --ff-only` → stash pop 把 main 快进到 `28c90ac`（冷开修复），并按其要求改了 STATUS / NEXT 里两处过时的“未合入 main”文字。
 - 检查与 `p1b-sidebar` 竞态排查见 [agents-removal](evidence/agents-removal.md)。NOT RUN：真实模型、Remote 外观。
 - 追加（提交与部署）：提交 `b405b19`（直接在 main）；`oco-0.0.1-b405b19.vsix` 部署 gcp-workstation，远端 `extension.js` 哈希一致（`6de0210b…`）。
+
+## 恢复委派规则（2026-10-01）
+
+- `b2f6514` 重写 AGENTS.md 时丢了 `2e2a0aa` 的「委派与 token 预算」任务表，且只写了 Codex 路由名、把 `general-purpose` 列为不可用，导致 Claude Code 会话基本不委派。
+- 恢复任务类型 → 代理对照表，按运行环境（Claude Code / Codex）分列路由名，并入 10 秒健康检查与原规则；HANDOFF 第 18 行的引用重新有效。纯文档改动，未跑检查。
