@@ -1,6 +1,6 @@
 // Generates apps/extension/media/oco-icons.woff: a one-glyph icon font (U+E000) holding a
 // monochrome oco mark for `$(oco-logo)` in the status bar. Geometry follows media/oco-icon.svg
-// (C arc + two rings), with thicker strokes so it reads at 16px. Shapes are polygons; outer
+// (C arc + two rings), with ~1px strokes at 16px to match the codicons beside it. Shapes are polygons; outer
 // contours are clockwise and ring holes counter-clockwise, so nonzero fill keeps the holes open.
 //
 //   node scripts/build-icon-font.mjs
@@ -19,17 +19,18 @@ const STEPS = 96
 // Source coordinates: 100x100, y down, same frame as oco-icon.svg.
 const C = { x: 50, y: 50 }
 const ARC_R = 26
-const ARC_W = 8
+const ARC_W = 5
 const RING_R = 7
-const RING_W = 6
+const RING_W = 4.5
 const ends = [-45, 45].map((deg) => ({
   x: C.x + ARC_R * Math.cos((deg * Math.PI) / 180),
   y: C.y + ARC_R * Math.sin((deg * Math.PI) / 180),
 }))
 
-// Content spans roughly x 20..78, y 20..80; map a 68-unit box centred on it onto the em.
-const BOX = 68
-const cx = 49.2
+// Content spans roughly x 21..78, y 21..79; map a 76-unit box centred on it onto the em, leaving
+// codicon-like padding.
+const BOX = 76
+const cx = 49.3
 const cy = 50
 const s = EM / BOX
 const tx = (p) => [(p.x - cx + BOX / 2) * s, (cy - p.y + BOX / 2) * s]
