@@ -8,12 +8,12 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
-## 对话 / 轨迹视图（补丁 0012，提交 `3979333`、`09ce32a`，2026-10-01；分支 `claude/deepseek-trajectory-research-291e26`，未合入 main）
+## 对话 / 轨迹视图（补丁 0012，提交 `3979333`、`09ce32a`，2026-10-01；已快进合入 main `fdf50a0`，本地，未推送）
 
 - 会话标题栏加「对话 | 轨迹」切换；轨迹按轮次与每次模型请求列出用户输入、上下文、思考、回复、工具调用，带输入/模型/工具三条泳道（时长/轮次/调用标尺）、token 与缓存命中、费用、推算的首 token 延迟/生成/吞吐，以及存储的原始 JSON。输入框保留，切换会话回到对话。数据只来自 sync store，宿主与桥策略不变。详情：[c4-trajectory](evidence/c4-trajectory.md)，调研：[trajectory-feasibility](evidence/trajectory-feasibility.md)。
 - 检查：app 类型检查 0 错误；模型单元 11/11；app session 单元 117/117；`verify:brief` 0 错误、unit 164/164；E2E（mock）`c4-trajectory` 9/9（已登记 `DEFAULT_SUITES`，共 21 个）；回归 p1a-chat 8/8、c3-fork 4/4、p1b-main-panel 6/6、c2-diff-unavailable 3/3、p1b-narrow 12/12。补丁 0001–0012 在干净上游上按序可应用。
 - 真实数据（本机 OpenCode 库只读，12 个会话 260 次请求）：无负计时，单会话建模 ≤ 9.4 ms；首 token 中位数 deepseek-flash 568 ms 至 openrouter stealth 44 s。
-- 部署：`oco-0.0.1-09ce32a.vsix` 已用 `scripts/deploy-remote.sh` 安装到 gcp-workstation（extension.js sha256 `fcaa651d…` 不变，webview 更新）；需在 Remote 窗口 Reload Window。用单独的 VS Code 实例在工作站上只读查看最长会话（12 次请求）：行数、计时、缓存命中正常，切换 101 ms。
+- 部署：`oco-0.0.1-fdf50a0.vsix`（= main，产品内容与 `09ce32a` 相同）已用 `scripts/deploy-remote.sh` 安装到 gcp-workstation（extension.js sha256 `fcaa651d…` 不变，webview 更新）；需在 Remote 窗口 Reload Window。主检出的 `vendor/opencode` 已补应用 0012（核对过原状态正好是上游 + 0001–0011）；主检出的构建产物未重建，跑 E2E 前先 `bun run build`。用单独的 VS Code 实例在工作站上只读查看最长会话（12 次请求）：行数、计时、缓存命中正常，切换 101 ms。
 - Remote 上发现并修复：中断的请求（服务端没有结束记录）被当作运行中，时间轴拉到“现在”。改为会话空闲或非最新请求时标「已中断」，在最后保存时间处结束（`09ce32a`）。复验 unit、`c4-trajectory` 9/9。
 - 同时段工作站上用户的第二个 Remote 窗口扩展宿主在断线重连后未恢复，05:19:34 被 VS Code Server 回收，其托管 `opencode serve` 随之结束（oco 只结束自己启动的进程）。用户 Reload Window 后会重新启动。
 - 限制：实际系统提示词、工具定义、原始 HTTP 请求 OpenCode 不保存，不显示；订阅模型费用为 0（标“未计价”）；列表未虚拟化。NOT RUN：真实模型 E2E、全量 E2E、数千行长会话。

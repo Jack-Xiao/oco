@@ -288,3 +288,4 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 发现：sync store 可能同时持有同一 id 的两份用户消息，轨迹出现重复轮次，改为按 id 去重并加测试。工作区路径过长导致 VS Code IPC socket 超限，`.oco-test` 改链接到主检出的独立子目录。
 - 检查：模型单元 11/11；app session 单元 117/117；unit 164/164；E2E（mock）`c4-trajectory` 9/9，回归 p1a-chat 8/8、c3-fork 4/4、p1b-main-panel 6/6、c2-diff-unavailable 3/3、p1b-narrow 12/12。NOT RUN：真实模型 E2E、Remote、全量。未提交。
 - 追加（部署）：提交 `3979333`、`09ce32a`；`oco-0.0.1-09ce32a.vsix` 部署 gcp-workstation。单独的 VS Code 实例只读查看工作站最长会话（12 次请求），发现中断请求把时间轴拉到“现在”，改为「已中断」并在最后保存时间处结束，复验 unit、`c4-trajectory` 9/9 与 Remote。
+- 追加（合并）：快进合入 main（`fdf50a0`），部署 `oco-0.0.1-fdf50a0.vsix`（内容同 `09ce32a`）；主检出 vendor 补应用 0012。
