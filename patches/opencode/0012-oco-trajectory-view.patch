@@ -1,9 +1,9 @@
 diff --git a/packages/app/src/components/session/session-trajectory-model.test.ts b/packages/app/src/components/session/session-trajectory-model.test.ts
 new file mode 100644
-index 0000000..64c624f
+index 0000000..44de93d
 --- /dev/null
 +++ b/packages/app/src/components/session/session-trajectory-model.test.ts
-@@ -0,0 +1,155 @@
+@@ -0,0 +1,159 @@
 +// oco (patches/opencode/0012): trajectory view data model.
 +import { describe, expect, test } from "bun:test"
 +import { buildTrajectory, createTimeScale, idTime, requestTiming } from "./session-trajectory-model"
@@ -108,20 +108,24 @@ index 0000000..64c624f
 +    expect(tr.end).toBe(T0 + 3000)
 +  })
 +
-+  test("running and failed requests", () => {
-+    const running = assistant(u, T0 + 100, { time: { created: T0 + 100 } })
-+    const failed = assistant(u, T0 + 200, { error: { name: "APIError", data: { message: "rate limited" } } })
-+    const out = buildTrajectory({
-+      messages: [u, running, failed],
-+      parts: (m) =>
-+        m === running.id
-+          ? [{ id: id("prt", T0 + 400), type: "tool", tool: "read", callID: "c", state: { status: "running", input: {}, time: { start: T0 + 400 } } }] as any
-+          : [],
-+      now: T0 + 5000,
-+    })
-+    expect(out.requests[0]).toMatchObject({ status: "running", windowEnd: T0 + 5000 })
-+    expect(out.requests[1]).toMatchObject({ status: "error", error: "APIError: rate limited" })
-+    expect(out.rows.at(-1)).toMatchObject({ kind: "event", label: "错误", error: true })
++  test("running, interrupted and failed requests", () => {
++    const failed = assistant(u, T0 + 50, { error: { name: "APIError", data: { message: "rate limited" } } })
++    const open = assistant(u, T0 + 100, { time: { created: T0 + 100 } })
++    const tool = { id: id("prt", T0 + 400), type: "tool", tool: "read", callID: "c", state: { status: "running", input: {}, time: { start: T0 + 400 } } }
++    const build = (messages: any[], busy?: boolean) =>
++      buildTrajectory({ messages, parts: (m) => (m === open.id ? ([tool] as any) : []), now: T0 + 5000, busy })
++    const busy = build([u, failed, open], true)
++    expect(busy.requests[0]).toMatchObject({ status: "error", error: "APIError: rate limited" })
++    expect(busy.rows.find((r) => r.kind === "event")).toMatchObject({ label: "错误", error: true })
++    expect(busy.requests[1]).toMatchObject({ status: "running", windowEnd: T0 + 5000 })
++    expect(busy.rows.at(-1)).toMatchObject({ kind: "tool", interrupted: false, output: "运行中…" })
++    // The server stopped mid-request: the session is idle, so the request ends at its last stored time.
++    const idle = build([u, failed, open], false)
++    expect(idle.requests[1]).toMatchObject({ status: "interrupted", windowEnd: T0 + 400 })
++    expect(idle.rows.at(-1)).toMatchObject({ kind: "tool", interrupted: true })
++    // Only the latest request can still be running, even while the session is busy.
++    const later = assistant(u, T0 + 900)
++    expect(build([u, open, later], true).requests[0]).toMatchObject({ status: "interrupted", windowEnd: T0 + 400 })
 +  })
 +
 +  test("a message held twice in the store is listed once", () => {
@@ -161,10 +165,10 @@ index 0000000..64c624f
 +})
 diff --git a/packages/app/src/components/session/session-trajectory-model.ts b/packages/app/src/components/session/session-trajectory-model.ts
 new file mode 100644
-index 0000000..26bd744
+index 0000000..76ff1d8
 --- /dev/null
 +++ b/packages/app/src/components/session/session-trajectory-model.ts
-@@ -0,0 +1,390 @@
+@@ -0,0 +1,399 @@
 +// oco (patches/opencode/0012): trajectory view data model. Pure functions over the session's stored
 +// messages and parts; no network, no Solid. One assistant message is one model request (one step).
 +import type { AssistantMessage, Message, Part, ToolPart, UserMessage } from "@opencode-ai/sdk/v2/client"
@@ -196,7 +200,8 @@ index 0000000..26bd744
 +  windowEnd: number
 +  tokens: TrajectoryTokens
 +  cost: number
-+  status: "running" | "done" | "error"
++  /** interrupted: never completed and no longer running (e.g. the server stopped mid-request). */
++  status: "running" | "done" | "error" | "interrupted"
 +  error?: string
 +}
 +
@@ -219,6 +224,8 @@ index 0000000..26bd744
 +      kind: "tool"
 +      tool: string
 +      status: ToolPart["state"]["status"]
++      /** Pending/running, but its request is no longer running. */
++      interrupted: boolean
 +      input: string
 +      output: string
 +      part: ToolPart
@@ -329,6 +336,8 @@ index 0000000..26bd744
 +  messages: Message[]
 +  parts: (messageID: string) => Part[]
 +  now: number
++  /** Session is busy (or retrying). Only its latest request can still be running; default true. */
++  busy?: boolean
 +}): Trajectory {
 +  const turns: TrajectoryTurn[] = []
 +  const requests: TrajectoryRequest[] = []
@@ -351,6 +360,7 @@ index 0000000..26bd744
 +  // latest copy at the first position.
 +  const unique = new Map<string, Message>()
 +  for (const message of input.messages) unique.set(message.id, message)
++  const lastAssistant = [...unique.values()].reverse().find((m) => m.role === "assistant")?.id
 +
 +  for (const message of unique.values()) {
 +    const parts = input.parts(message.id)
@@ -409,6 +419,7 @@ index 0000000..26bd744
 +    const turn = turns[turnIndex]!
 +    const index = requests.length
 +    const near = message.time.created
++    const live = (input.busy ?? true) && message.id === lastAssistant
 +    let first: number | undefined
 +    let genEnd: number | undefined
 +    let finishAt: number | undefined
@@ -434,7 +445,8 @@ index 0000000..26bd744
 +        const end = toolEnd(part)
 +        first = min(first, created ?? start)
 +        genEnd = max(genEnd, start)
-+        toolsEnd = max(toolsEnd, end ?? (part.state.status === "running" || part.state.status === "pending" ? input.now : start))
++        const open = part.state.status === "running" || part.state.status === "pending"
++        toolsEnd = max(toolsEnd, end ?? (open && live ? input.now : start))
 +        totals.tools++
 +        push({
 +          id: part.id,
@@ -443,8 +455,9 @@ index 0000000..26bd744
 +          request: index,
 +          tool: part.tool,
 +          status: part.state.status,
++          interrupted: open && !live,
 +          input: oneLine(stringify(part.state.input), 160),
-+          output: oneLine(toolOutput(part) || (part.state.status === "running" ? "运行中…" : "")),
++          output: oneLine(toolOutput(part) || (open ? (live ? "运行中…" : "未完成（没有结束记录）") : "")),
 +          part,
 +          start,
 +          end,
@@ -479,7 +492,7 @@ index 0000000..26bd744
 +    if (error) push({ id: `${message.id}:error`, kind: "event", turn: turnIndex, request: index, label: "错误", text: oneLine(error), error: true })
 +
 +    const end = message.time.completed ?? finishAt
-+    const status: TrajectoryRequest["status"] = error ? "error" : end !== undefined ? "done" : "running"
++    const status: TrajectoryRequest["status"] = error ? "error" : end !== undefined ? "done" : live ? "running" : "interrupted"
 +    const windowEnd = max(end, toolsEnd, genEnd, status === "running" ? input.now : undefined, message.time.created)!
 +    const tokens: TrajectoryTokens = {
 +      input: message.tokens?.input ?? 0,
@@ -557,10 +570,10 @@ index 0000000..26bd744
 +}
 diff --git a/packages/app/src/components/session/session-trajectory.tsx b/packages/app/src/components/session/session-trajectory.tsx
 new file mode 100644
-index 0000000..77262cd
+index 0000000..2c45187
 --- /dev/null
 +++ b/packages/app/src/components/session/session-trajectory.tsx
-@@ -0,0 +1,688 @@
+@@ -0,0 +1,696 @@
 +// oco (patches/opencode/0012): 对话 / 轨迹 — a read-only trajectory of the session built from the
 +// messages and parts already in the sync store: turns, model requests, reasoning, tool calls, tokens,
 +// cache, cost and derived timings. Labels are Chinese like the other oco additions.
@@ -671,7 +684,7 @@ index 0000000..77262cd
 +    case "text":
 +      return { label: "助手", color: COLOR.model }
 +    case "tool":
-+      return { label: "工具", color: row.status === "error" ? COLOR.error : COLOR.tool }
++      return { label: "工具", color: row.status === "error" ? COLOR.error : row.interrupted ? COLOR.system : COLOR.tool }
 +    case "event":
 +      return { label: row.label, color: row.error ? COLOR.error : COLOR.system }
 +  }
@@ -735,7 +748,8 @@ index 0000000..77262cd
 +  const info = createMemo(() => sync().session.get(props.sessionID))
 +  const messages = createMemo(() => (sync().data.message[props.sessionID] ?? emptyMessages) as Message[])
 +  const parts = (messageID: string) => (sync().data.part[messageID] ?? emptyParts) as Part[]
-+  const trajectory = createMemo<Trajectory>(() => buildTrajectory({ messages: messages(), parts, now: now() }))
++  const busy = createMemo(() => (sync().data.session_status[props.sessionID]?.type ?? "idle") !== "idle")
++  const trajectory = createMemo<Trajectory>(() => buildTrajectory({ messages: messages(), parts, now: now(), busy: busy() }))
 +  const running = createMemo(() => trajectory().requests.some((r) => r.status === "running"))
 +  const time = createMemo(() => createTimeScale(trajectory(), scale()))
 +  const locale = () => language.intl()
@@ -877,7 +891,7 @@ index 0000000..77262cd
 +                <Show when={row().kind === "tool" ? (row() as Extract<TrajectoryRow, { kind: "tool" }>) : undefined}>
 +                  {(tool) => (
 +                    <Section title="工具计时">
-+                      <Field label="状态">{toolStatus(tool().status)}</Field>
++                      <Field label="状态">{toolStatus(tool().status, tool().interrupted)}</Field>
 +                      <Field label="开始时间">{clock(tool().start)}</Field>
 +                      <Field label="耗时">{duration(tool().end !== undefined && tool().start !== undefined ? tool().end! - tool().start! : undefined)}</Field>
 +                    </Section>
@@ -984,8 +998,8 @@ index 0000000..77262cd
 +                          class="absolute top-0 h-full rounded-[2px]"
 +                          classList={{ "outline outline-1 outline-[var(--text-strong)]": selected() === row.id }}
 +                          style={{
-+                            ...span(row.start ?? now(), row.end ?? now()),
-+                            background: row.status === "error" ? COLOR.error : COLOR.tool,
++                            ...span(row.start ?? now(), row.end ?? (row.interrupted ? (row.start ?? now()) : now())),
++                            background: row.status === "error" ? COLOR.error : row.interrupted ? COLOR.system : COLOR.tool,
 +                          }}
 +                          onClick={() => select(row.id)}
 +                        />
@@ -1086,10 +1100,10 @@ index 0000000..77262cd
 +  onSelect: () => void
 +}) {
 +  const r = () => props.request
-+  const end = () => r().end ?? props.now
++  const end = () => r().end ?? (r().status === "running" ? props.now : r().windowEnd)
 +  const first = () => r().firstToken
 +  const genEnd = () => Math.max(first() ?? 0, r().generationEnd ?? end())
-+  const color = () => (r().status === "error" ? COLOR.error : COLOR.model)
++  const color = () => (r().status === "error" ? COLOR.error : r().status === "interrupted" ? COLOR.system : COLOR.model)
 +  const label = () => {
 +    const t = requestTiming(r())
 +    return `请求 #${r().index + 1} · ${r().message.modelID} · 首 token ${duration(t.ttft)} · 生成 ${duration(t.generation)}`
@@ -1123,7 +1137,8 @@ index 0000000..77262cd
 +  )
 +}
 +
-+function toolStatus(status: string) {
++function toolStatus(status: string, interrupted = false) {
++  if (interrupted) return "已中断（没有结束记录）"
 +  return ({ pending: "等待", running: "运行中", completed: "已完成", error: "失败" } as Record<string, string>)[status] ?? status
 +}
 +
@@ -1180,7 +1195,7 @@ index 0000000..77262cd
 +                    ? (tool().part.state as { output: string }).output
 +                    : tool().part.state.status === "error"
 +                      ? (tool().part.state as { error: string }).error
-+                      : toolStatus(tool().status),
++                      : toolStatus(tool().status, tool().interrupted),
 +                  TEXT_LIMIT,
 +                )}
 +              />
@@ -1219,7 +1234,13 @@ index 0000000..77262cd
 +  const n = (value: number) => new Intl.NumberFormat(props.locale).format(value)
 +  const prompt = () => promptTokens(r().tokens)
 +  const status = () =>
-+    r().status === "running" ? "运行中" : r().status === "error" ? `错误 · ${r().error ?? ""}` : `已完成${r().message.finish ? ` · ${r().message.finish}` : ""}`
++    r().status === "running"
++      ? "运行中"
++      : r().status === "interrupted"
++        ? "已中断（没有结束记录，服务端已不在运行这次请求）"
++        : r().status === "error"
++          ? `错误 · ${r().error ?? ""}`
++          : `已完成${r().message.finish ? ` · ${r().message.finish}` : ""}`
 +  return (
 +    <>
 +      <Section title="请求">
