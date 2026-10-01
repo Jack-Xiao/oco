@@ -124,7 +124,7 @@ try {
     const after = await snap(f)
     await runShot(page, run, "loading-hint")
     return {
-      ok: early?.model === "loading" && !!hint && /加载/.test(hint.bar.text) && !hint.bar.cancelButton && !modelShownWhileLoading && !!loaded && !!hidden && (await users(sid)).length === 0,
+      ok: early?.model === "loading" && !!hint && /Loading models/.test(hint.bar.text) && !hint.bar.cancelButton && !modelShownWhileLoading && !!loaded && !!hidden && (await users(sid)).length === 0,
       detail: { earlyModel: early?.model, hint: hint?.bar ?? null, hintAtMs, modelShownWhileLoading, loaded: !!loaded, barHiddenAfterLoad: !!hidden, after },
     }
   })
@@ -150,7 +150,7 @@ try {
     return {
       ok:
         waiting?.pending === "model" &&
-        /自动发送/.test(waiting?.bar?.text ?? "") &&
+        /send automatically/.test(waiting?.bar?.text ?? "") &&
         cancelVisible &&
         sentEarly === 0 &&
         !!loaded &&
@@ -202,7 +202,7 @@ try {
     await page.keyboard.type(extra, { delay: 2 })
     const notice = await waitFor(async () => {
       const s = await snap(f)
-      return s?.bar?.state === "notice" && /草稿已修改/.test(s.bar.text) ? s : null
+      return s?.bar?.state === "notice" && /Draft changed/.test(s.bar.text) ? s : null
     }, 3000, 50)
     const loaded = await modelReady(f)
     await sleep(3000)
@@ -225,7 +225,7 @@ try {
     await page.keyboard.press("Escape")
     const notice = await waitFor(async () => {
       const s = await snap(f)
-      return s?.bar?.state === "notice" && /已取消发送/.test(s.bar.text) ? s : null
+      return s?.bar?.state === "notice" && /Send canceled/.test(s.bar.text) ? s : null
     }, 3000, 50)
     const loaded = await modelReady(f)
     await sleep(3000)
@@ -244,10 +244,10 @@ try {
     const { f, sid } = await pendingPanel(page, text).then((p) => (setSid(p.sid), p))
     await submitKey(page)
     const waiting = await waitFor(async () => ((await snap(f))?.bar?.state === "waiting" ? true : null), 3000, 50)
-    await f.getByRole("button", { name: "取消发送" }).click({ timeout: 3000 })
+    await f.getByRole("button", { name: "Cancel send" }).click({ timeout: 3000 })
     const notice = await waitFor(async () => {
       const s = await snap(f)
-      return s?.bar?.state === "notice" && /已取消发送/.test(s.bar.text) ? s : null
+      return s?.bar?.state === "notice" && /Send canceled/.test(s.bar.text) ? s : null
     }, 3000, 50)
     const loaded = await modelReady(f)
     await sleep(3000)

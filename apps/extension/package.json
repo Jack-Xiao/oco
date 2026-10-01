@@ -219,28 +219,28 @@
           "default": "attached",
           "scope": "machine",
           "enumDescriptions": [
-            "连接已有服务（oco.serverUrl）。oco 从不启动、停止或修改它。",
-            "由 oco 在本窗口启动一个 `opencode serve`（仅监听 127.0.0.1、随机端口、随机密码），所有会话标签页共用；关闭窗口或停用扩展时只结束这个进程。"
+            "Attach to an existing server (oco.serverUrl). oco never starts, stops, or modifies it.",
+            "oco starts one `opencode serve` in this window (127.0.0.1 only, random port, random password), shared by every session tab. Closing the window or disabling the extension stops only that process."
           ],
-          "markdownDescription": "连接方式。`attached`：连接 `oco.serverUrl` 指向的已有服务。`managed`：oco 用 `oco.opencodePath` 启动并管理自己的服务进程（工作区须受信任）；异常退出不会自动无限重启，执行“oco: Restart Managed Server”手动重启。仅用户设置生效（machine 范围）。"
+          "markdownDescription": "How oco connects. `attached`: connect to the existing server at `oco.serverUrl`. `managed`: oco starts and manages its own server with `oco.opencodePath` (the workspace must be trusted). An unexpected exit does not restart forever; run “oco: Restart Managed Server” to start it again. User settings only (machine scope)."
         },
         "oco.serverUrl": {
           "type": "string",
           "default": "http://127.0.0.1:4096",
           "scope": "machine",
-          "markdownDescription": "已运行的 OpenCode 服务地址，只写 origin，例如 `http://127.0.0.1:4096` 或 `https://oc.example.com`；不要带路径、账号密码。仅在用户设置中生效（machine 范围），工作区/仓库不能覆盖。`oco.serverMode` 为 `attached`（默认）时使用；oco 只连接该服务，不会启动、停止或修改它。修改后自动重连；已打开的会话标签页保持绑定原地址，不会迁移到新地址。"
+          "markdownDescription": "Address of a running OpenCode server. Origin only, for example `http://127.0.0.1:4096` or `https://oc.example.com`. Do not include a path or credentials. User settings only (machine scope); a workspace or repository cannot override this. Used when `oco.serverMode` is `attached` (the default). oco only connects to that server and never starts, stops, or modifies it. Changing it reconnects. Open session tabs stay bound to the previous address and are not moved."
         },
         "oco.serverUsername": {
           "type": "string",
           "default": "opencode",
           "scope": "machine",
-          "markdownDescription": "连接服务使用的 HTTP Basic 用户名，默认 `opencode`，与服务端设置的用户名一致。**密码不在这里填写**：执行命令“oco: Set Server Password”，密码保存在 VS Code SecretStorage（按地址+用户名区分），不写入 settings.json。"
+          "markdownDescription": "HTTP Basic username for the server. Defaults to `opencode` and must match the server. **Do not enter the password here.** Run “oco: Set Server Password”. The password is stored in VS Code Secret Storage (per address and username), not in settings.json."
         },
         "oco.opencodePath": {
           "type": "string",
           "default": "",
           "scope": "machine",
-          "markdownDescription": "托管模式使用的 OpenCode 可执行文件完整路径，例如 `/usr/local/bin/opencode`。留空则从扩展宿主的 `PATH` 查找 `opencode`（Remote 窗口里是远端机器的 PATH）。oco 不会安装或升级 OpenCode。仅用户设置生效（machine 范围）。"
+          "markdownDescription": "Full path to the OpenCode executable used in managed mode, for example `/usr/local/bin/opencode`. Leave empty to look up `opencode` on the extension host `PATH` (on a remote window, the remote machine's PATH). oco does not install or upgrade OpenCode. User settings only (machine scope)."
         }
       }
     },
@@ -272,47 +272,47 @@
       {
         "view": "oco.sessions",
         "when": "oco.connState == unconfigured && oco.connIssue == folder",
-        "contents": "oco 未就绪：需要先打开一个工作区文件夹。\n[打开文件夹](command:workbench.action.files.openFolder)"
+        "contents": "oco is not ready: open a workspace folder first.\n[Open Folder](command:workbench.action.files.openFolder)"
       },
       {
         "view": "oco.sessions",
         "when": "oco.connState == unconfigured && oco.connIssue != folder",
-        "contents": "服务地址设置无效（见上方原因）。\n[打开设置](command:oco.openSettings)"
+        "contents": "The server address setting is invalid (see the reason above).\n[Open Settings](command:oco.openSettings)"
       },
       {
         "view": "oco.sessions",
         "when": "!oco.connState || oco.connState == connecting",
-        "contents": "正在连接 OpenCode 服务……"
+        "contents": "Connecting to the OpenCode server…"
       },
       {
         "view": "oco.sessions",
         "when": "oco.connState == unauthorized",
-        "contents": "服务要求认证，用户名或密码不正确（密码未设置也会如此）。\n[设置密码](command:oco.setServerPassword)\n[打开设置](command:oco.openSettings)"
+        "contents": "The server requires authentication, and the username or password is incorrect (this also happens when no password is set).\n[Set Password](command:oco.setServerPassword)\n[Open Settings](command:oco.openSettings)"
       },
       {
         "view": "oco.sessions",
         "when": "oco.connState == error",
-        "contents": "无法连接 OpenCode 服务（服务离线或地址不对），正在按退避间隔重试。\n[立即重连](command:oco.reconnect)\n[打开设置](command:oco.openSettings)"
+        "contents": "Cannot connect to the OpenCode server (offline or wrong address). Retrying with backoff.\n[Reconnect Now](command:oco.reconnect)\n[Open Settings](command:oco.openSettings)"
       },
       {
         "view": "oco.sessions",
         "when": "oco.connState == reconnecting",
-        "contents": "连接中断，正在重连……\n[立即重连](command:oco.reconnect)\n[打开设置](command:oco.openSettings)"
+        "contents": "Connection lost. Reconnecting…\n[Reconnect Now](command:oco.reconnect)\n[Open Settings](command:oco.openSettings)"
       },
       {
         "view": "oco.sessions",
         "when": "oco.connState == connected && !oco.searchActive && isWorkspaceTrusted",
-        "contents": "当前工作区还没有 OpenCode 会话。\n[新建会话](command:oco.newSession)"
+        "contents": "This workspace has no OpenCode sessions yet.\n[New Session](command:oco.newSession)"
       },
       {
         "view": "oco.sessions",
         "when": "oco.connState == connected && !oco.searchActive && !isWorkspaceTrusted",
-        "contents": "当前工作区还没有会话。受限模式下不能新建会话。"
+        "contents": "This workspace has no sessions yet. Restricted Mode cannot create a session."
       },
       {
         "view": "oco.sessions",
         "when": "oco.connState == connected && oco.searchActive",
-        "contents": "没有匹配的会话。\n[清除搜索](command:oco.clearSearch)"
+        "contents": "No matching sessions.\n[Clear Search](command:oco.clearSearch)"
       }
     ]
   },
@@ -325,7 +325,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "受限模式下可以查看会话，但不能创建会话或执行有副作用的会话操作。",
+      "description": "In Restricted Mode you can view sessions, but you cannot create sessions or run session actions that have side effects.",
       "restrictedConfigurations": [
         "oco.serverUrl",
         "oco.serverUsername"

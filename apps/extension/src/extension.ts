@@ -98,7 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
   const startManaged = async (notify = true) => {
     if (conn.mode() !== "managed") return
     if (!vscode.workspace.isTrusted) {
-      managedServer!.state = { status: "failed", error: "受限模式下不会启动托管服务（信任工作区后自动启动）" }
+      managedServer!.state = { status: "failed", error: "Managed server does not start in Restricted Mode (it starts after you trust the workspace)" }
       pushInfo()
       feed.restart()
       return
@@ -107,9 +107,9 @@ export function activate(context: vscode.ExtensionContext) {
       await managedServer!.start()
     } catch (e) {
       if (notify)
-        void vscode.window.showErrorMessage(`oco: 托管服务启动失败（${(e as Error).message}）`, "打开设置", "显示日志").then((a) => {
-          if (a === "打开设置") void vscode.commands.executeCommand("workbench.action.openSettings", "oco.opencodePath")
-          else if (a === "显示日志") log.show()
+        void vscode.window.showErrorMessage(`oco: Failed to start the managed server (${(e as Error).message})`, "Open Settings", "Show Log").then((a) => {
+          if (a === "Open Settings") void vscode.commands.executeCommand("workbench.action.openSettings", "oco.opencodePath")
+          else if (a === "Show Log") log.show()
         })
     }
     feed.restart()
@@ -144,24 +144,24 @@ export function activate(context: vscode.ExtensionContext) {
   }
   context.subscriptions.push(view, { dispose: () => feed.stop() })
 
-  const fail = (what: string, e: unknown) => void vscode.window.showErrorMessage(`oco: ${what}（${(e as Error).message}）`)
+  const fail = (what: string, e: unknown) => void vscode.window.showErrorMessage(`oco: ${what} (${(e as Error).message})`)
   const requireTrust = (what: string) => {
     if (vscode.workspace.isTrusted) return true
-    void vscode.window.showWarningMessage(`oco: 受限模式下不能${what}（工作区未受信任）`)
+    void vscode.window.showWarningMessage(`oco: Cannot ${what} in Restricted Mode (workspace is not trusted)`)
     return false
   }
 
   /** Session -> binding, only if it belongs to this workspace on the configured connection. */
   const bindingFor = (s: SessionInfo): SessionBinding => {
-    if (!conn.ownsDirectory(s.directory)) throw new Error("会话不属于当前工作区")
+    if (!conn.ownsDirectory(s.directory)) throw new Error("Session is not in the current workspace")
     return { connectionId: conn.id, directory: s.directory, sessionId: s.id }
   }
 
   /** open-session contract: same connection and workspace only; reveals the panel already showing it,
    *  otherwise switches the main panel (or, with newPanel, opens a pinned one). ADR-007. */
   const openSession = (req: OpenSessionRequest, newPanel = false) => {
-    if (req.connectionId !== conn.id) throw new Error("连接已变化")
-    if (!conn.ownsDirectory(req.directory)) throw new Error("会话不属于当前工作区")
+    if (req.connectionId !== conn.id) throw new Error("Connection changed")
+    if (!conn.ownsDirectory(req.directory)) throw new Error("Session is not in the current workspace")
     return panels.open({ connectionId: req.connectionId, directory: req.directory, sessionId: req.sessionId }, req.title, vscode.ViewColumn.Active, req.focus ?? true, newPanel)
   }
 
@@ -178,19 +178,19 @@ export function activate(context: vscode.ExtensionContext) {
   panels.onOpenSession = (from: Entry, sessionId: string) => {
     void (async () => {
       try {
-        if (from.binding.connectionId !== conn.id) throw new Error("连接已变化")
+        if (from.binding.connectionId !== conn.id) throw new Error("Connection changed")
         const s = await conn.request<SessionInfo>("GET", `/session/${encodeURIComponent(sessionId)}`, undefined, from.binding.directory)
-        if (s.directory !== from.binding.directory) throw new Error("会话不属于同一项目")
+        if (s.directory !== from.binding.directory) throw new Error("Session is not in the same project")
         panels.open({ connectionId: conn.id, directory: s.directory, sessionId: s.id }, s.title || s.id)
       } catch (e) {
-        fail("无法打开会话", e)
+        fail("Could not open session", e)
       }
     })()
   }
 
   const pickSession = async (placeHolder: string) => {
     const dir = conn.directory
-    if (!dir) throw new Error("需要先打开一个工作区文件夹")
+    if (!dir) throw new Error("Open a workspace folder first")
     const sessions = await conn.request<SessionInfo[]>("GET", `/session?directory=${encodeURIComponent(dir)}&roots=true&limit=200`)
     const items = sessions
       .filter((s) => conn.ownsDirectory(s.directory))
@@ -204,39 +204,39 @@ export function activate(context: vscode.ExtensionContext) {
       try {
         const sessionId = arg instanceof SessionItem ? arg.session.id : arg
         if (typeof sessionId === "string") return void (await openById(sessionId))
-        const s = await pickSession("选择要打开的 OpenCode 会话")
+        const s = await pickSession("Select an OpenCode session to open")
         if (s) panels.open(bindingFor(s), s.title || s.id)
       } catch (e) {
-        fail("无法打开会话", e)
+        fail("Could not open session", e)
       }
     }),
     vscode.commands.registerCommand("oco.openSessionInNewPanel", async (arg?: string | SessionItem) => {
       try {
         const sessionId = arg instanceof SessionItem ? arg.session.id : arg
         if (typeof sessionId === "string") return void (await openById(sessionId, true))
-        const s = await pickSession("在新面板打开哪个 OpenCode 会话？")
+        const s = await pickSession("Which OpenCode session should open in a new panel?")
         if (s) panels.open(bindingFor(s), s.title || s.id, vscode.ViewColumn.Active, true, true)
       } catch (e) {
-        fail("无法打开会话", e)
+        fail("Could not open session", e)
       }
     }),
     vscode.commands.registerCommand("oco.newSession", async () => {
       try {
-        if (!requireTrust("创建会话")) return
-        if (!conn.directory) throw new Error("需要先打开一个工作区文件夹")
+        if (!requireTrust("create a session")) return
+        if (!conn.directory) throw new Error("Open a workspace folder first")
         const s = await conn.request<SessionInfo>("POST", "/session", {})
         if (store.add(s)) view.refresh() // identity backfill; the session.created event is deduplicated
-        panels.open(bindingFor(s), s.title || "新会话")
+        panels.open(bindingFor(s), s.title || "New Session")
         return s.id
       } catch (e) {
-        fail("无法创建会话", e)
+        fail("Could not create session", e)
       }
     }),
     vscode.commands.registerCommand("oco.addSelectionToDraft", async (targetSessionId?: string) => {
       const editor = vscode.window.activeTextEditor
-      if (!editor) return void vscode.window.showWarningMessage("oco: 没有活动编辑器")
+      if (!editor) return void vscode.window.showWarningMessage("oco: No active editor")
       const open = panels.list()
-      if (open.length === 0) return void vscode.window.showWarningMessage("oco: 请先打开一个会话标签页")
+      if (open.length === 0) return void vscode.window.showWarningMessage("oco: Open a session tab first")
       let target = typeof targetSessionId === "string" ? open.find((e) => e.binding.sessionId === targetSessionId) : undefined
       if (!target) {
         // Always explicit: the user picks the session (the last active one is only listed first).
@@ -244,7 +244,7 @@ export function activate(context: vscode.ExtensionContext) {
         const items = [...open]
           .sort((a) => (a === last ? -1 : 1))
           .map((e) => ({ label: e.panel.title, description: e.binding.sessionId, e }))
-        target = (await vscode.window.showQuickPick(items, { placeHolder: "加入到哪个会话的草稿？（不会自动发送）", matchOnDescription: true }))?.e
+        target = (await vscode.window.showQuickPick(items, { placeHolder: "Add to which session draft? (not sent automatically)", matchOnDescription: true }))?.e
       }
       if (!target) return
       const doc = editor.document
@@ -259,67 +259,67 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand("oco.setServerPassword", async () => {
       try {
-        if (conn.mode() === "managed") return void vscode.window.showInformationMessage("oco: 托管模式每次启动都生成随机密码并只保存在内存中，不需要设置")
+        if (conn.mode() === "managed") return void vscode.window.showInformationMessage("oco: Managed mode generates a random password on each start and keeps it in memory only. Nothing to set.")
         const ep = conn.endpoint()
         const value = await vscode.window.showInputBox({
-          prompt: `${ep.origin}（用户 ${ep.username}）的密码，保存在 VS Code SecretStorage（不写入 settings），仅用于该地址和用户名`,
+          prompt: `Password for ${ep.origin} (user ${ep.username}). Stored in VS Code Secret Storage (not in settings), and only for this address and username.`,
           password: true,
         })
         if (value !== undefined) {
           await conn.setPassword(value || undefined, ep)
           feed.restart()
         }
-        if (ep.cleartext) void vscode.window.showWarningMessage("oco: 该服务使用非回环 http，密码会明文传输")
+        if (ep.cleartext) void vscode.window.showWarningMessage("oco: This server uses non-loopback HTTP. The password is sent in clear text.")
       } catch (e) {
-        fail("无法设置密码", e)
+        fail("Could not set password", e)
       }
     }),
     vscode.commands.registerCommand("oco.renameSession", async (arg?: SessionItem) => {
       try {
-        if (!requireTrust("重命名会话")) return
+        if (!requireTrust("rename a session")) return
         const item = arg instanceof SessionItem ? arg.session : undefined
-        const s = item ?? (await pickSession("选择要重命名的会话"))
+        const s = item ?? (await pickSession("Select a session to rename"))
         if (!s) return
         const current = "title" in s && s.title ? s.title : ""
-        const title = (await vscode.window.showInputBox({ prompt: "新的会话标题", value: current, validateInput: (v) => (v.trim() ? undefined : "标题不能为空") }))?.trim()
+        const title = (await vscode.window.showInputBox({ prompt: "New session title", value: current, validateInput: (v) => (v.trim() ? undefined : "Title cannot be empty") }))?.trim()
         if (!title || title === current) return
         const updated = await conn.request<SessionInfo>("PATCH", `/session/${encodeURIComponent(s.id)}`, { title }, s.directory)
         if (store.add(updated)) view.refresh()
       } catch (e) {
-        fail("无法重命名会话", e)
+        fail("Could not rename session", e)
       }
     }),
     vscode.commands.registerCommand("oco.archiveSession", async (arg?: SessionItem) => {
       try {
-        if (!requireTrust("归档会话")) return
+        if (!requireTrust("archive a session")) return
         const item = arg instanceof SessionItem ? arg.session : undefined
-        const s = item ?? (await pickSession("选择要归档的会话"))
+        const s = item ?? (await pickSession("Select a session to archive"))
         if (!s) return
         const updated = await conn.request<SessionInfo>("PATCH", `/session/${encodeURIComponent(s.id)}`, { time: { archived: Date.now() } }, s.directory)
         for (const e of panels.list()) if (e.binding.sessionId === s.id) e.panel.dispose()
         if (store.add(updated)) view.refresh()
       } catch (e) {
-        fail("无法归档会话", e)
+        fail("Could not archive session", e)
       }
     }),
     vscode.commands.registerCommand("oco.deleteSession", async (arg?: SessionItem) => {
       try {
-        if (!requireTrust("删除会话")) return
+        if (!requireTrust("delete a session")) return
         const item = arg instanceof SessionItem ? arg.session : undefined
-        const s = item ?? (await pickSession("选择要删除的会话"))
+        const s = item ?? (await pickSession("Select a session to delete"))
         if (!s) return
         const title = "title" in s && s.title ? s.title : s.id
-        const ok = await vscode.window.showWarningMessage(`删除会话“${title}”？`, { modal: true, detail: "会话将从服务器上永久删除，无法恢复。" }, "删除")
-        if (ok !== "删除") return
+        const ok = await vscode.window.showWarningMessage(`Delete session "${title}"?`, { modal: true, detail: "The session will be permanently deleted from the server and cannot be recovered." }, "Delete")
+        if (ok !== "Delete") return
         await conn.request("DELETE", `/session/${encodeURIComponent(s.id)}`, undefined, s.directory)
         for (const e of panels.list()) if (e.binding.sessionId === s.id) e.panel.dispose()
         if (store.applyEvent({ type: "session.deleted", properties: { sessionID: s.id } })) view.refresh()
       } catch (e) {
-        fail("无法删除会话", e)
+        fail("Could not delete session", e)
       }
     }),
     vscode.commands.registerCommand("oco.searchSessions", async () => {
-      const q = await vscode.window.showInputBox({ prompt: "在已加载的最近 200 个会话中按标题或 ID 搜索（留空清除）", value: view.search })
+      const q = await vscode.window.showInputBox({ prompt: "Search loaded sessions (latest 200) by title or ID (leave empty to clear)", value: view.search })
       if (q !== undefined) view.setSearch(q)
     }),
     vscode.commands.registerCommand("oco.clearSearch", () => view.setSearch("")),
@@ -341,7 +341,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.onDidGrantWorkspaceTrust(() => (conn.mode() === "managed" ? void startManaged() : feed.restart())),
     vscode.commands.registerCommand("oco.restartManagedServer", async () => {
       if (conn.mode() !== "managed") {
-        const a = await vscode.window.showInformationMessage("oco: 当前是“连接已有服务”模式，oco 不管理该服务进程。要由 oco 启动服务，请把 oco.serverMode 设为 managed。", "打开设置")
+        const a = await vscode.window.showInformationMessage("oco: Attached mode does not manage the server process. Set oco.serverMode to managed to let oco start the server.", "Open Settings")
         if (a) void vscode.commands.executeCommand("workbench.action.openSettings", "oco.serverMode")
         return
       }
@@ -350,21 +350,21 @@ export function activate(context: vscode.ExtensionContext) {
       await startManaged()
     }),
     vscode.commands.registerCommand("oco.stopManagedServer", async () => {
-      if (conn.mode() !== "managed") return void vscode.window.showInformationMessage("oco: 当前不是托管模式，oco 不会停止外部服务")
+      if (conn.mode() !== "managed") return void vscode.window.showInformationMessage("oco: Not in managed mode. oco will not stop an external server.")
       await managedServer!.stop()
       feed.restart()
     }),
     vscode.commands.registerCommand("oco.showLog", () => log.show()),
     vscode.commands.registerCommand("oco.selectFolder", async (fsPath?: string) => {
       const folders = (vscode.workspace.workspaceFolders ?? []).filter((f) => f.uri.scheme === "file")
-      if (folders.length < 2) return void vscode.window.showInformationMessage("oco: 当前只有一个工作区文件夹")
+      if (folders.length < 2) return void vscode.window.showInformationMessage("oco: This workspace has only one folder")
       const target =
         typeof fsPath === "string" && folders.some((f) => f.uri.fsPath === fsPath)
           ? fsPath
           : (
               await vscode.window.showQuickPick(
                 folders.map((f) => ({ label: f.name, description: f.uri.fsPath, picked: f.uri.fsPath === conn.directory, fsPath: f.uri.fsPath })),
-                { placeHolder: "侧栏和新建会话使用哪个文件夹？（已打开的会话标签页不受影响）" },
+                { placeHolder: "Which folder should the sidebar and new sessions use? (Open session tabs are not affected)" },
               )
             )?.fsPath
       if (!target || target === conn.directory) return
@@ -381,7 +381,7 @@ export function activate(context: vscode.ExtensionContext) {
       if (file && context.extensionMode !== vscode.ExtensionMode.Production) fs.writeFileSync(file, content)
       const doc = await vscode.workspace.openTextDocument({ language: "json", content })
       await vscode.window.showTextDocument(doc)
-      void vscode.window.showInformationMessage("oco: 诊断信息已生成（不含密码、认证头和消息正文）。分享前请再检查一遍。")
+      void vscode.window.showInformationMessage("oco: Diagnostics exported (no passwords, auth headers, or message bodies). Review before sharing.")
     }),
     vscode.window.registerWebviewPanelSerializer(VIEW_TYPE, {
       async deserializeWebviewPanel(panel, state: { binding?: SessionBinding; role?: PanelRole } | undefined) {

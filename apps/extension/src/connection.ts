@@ -33,7 +33,7 @@ export class Connection {
     const cfg = vscode.workspace.getConfiguration("oco")
     if (this.mode() === "managed") {
       const url = this.managed?.url
-      if (!url || !this.directory) throw new Error(this.managed?.state.error ?? (this.managed?.state.status === "starting" ? "托管服务启动中" : "托管服务未运行"))
+      if (!url || !this.directory) throw new Error(this.managed?.state.error ?? (this.managed?.state.status === "starting" ? "Managed server is starting" : "Managed server is not running"))
       // Identity = binary + the folder the process started in, so switching the active folder keeps panels bound.
       return managedEndpoint(url, this.opencodePath(), this.managed?.cwd ?? this.directory)
     }
@@ -105,7 +105,7 @@ export class Connection {
     if (directory) headers["x-opencode-directory"] = encodeURIComponent(directory)
     const res = await fetch(ep.origin + path, { method, headers, body: body ? JSON.stringify(body) : undefined, redirect: "manual" })
     this.log.info(`${method} ${path.split("?")[0]} -> ${res.status}`)
-    if (res.status === 401) throw new Error(`认证失败（${ep.origin}），请执行“oco: Set Server Password”`)
+    if (res.status === 401) throw new Error(`Authentication failed (${ep.origin}). Run “oco: Set Server Password”`)
     if (!res.ok) throw new Error(`${method} ${path.split("?")[0]} failed: HTTP ${res.status}`)
     const text = await res.text()
     return (text ? JSON.parse(text) : undefined) as T

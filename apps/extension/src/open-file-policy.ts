@@ -85,34 +85,34 @@ export async function probeCaseInsensitive(
 
 export async function decideOpenFile(req: OpenFileRequest, env: OpenFileEnv): Promise<OpenFileDecision> {
   const raw = req.path
-  if (typeof raw !== "string" || raw.length === 0 || raw.length > MAX_PATH || raw.includes("\0")) return { ok: false, reason: "路径无效" }
-  if (SCHEME.test(raw)) return { ok: false, reason: "只能打开本地文件路径" }
-  if (!env.serverLocal) return { ok: false, reason: "服务不在本机，无法确认路径对应本地文件" }
-  if (!path.isAbsolute(env.directory)) return { ok: false, reason: "会话目录无效" }
+  if (typeof raw !== "string" || raw.length === 0 || raw.length > MAX_PATH || raw.includes("\0")) return { ok: false, reason: "Invalid path" }
+  if (SCHEME.test(raw)) return { ok: false, reason: "Only local file paths can be opened" }
+  if (!env.serverLocal) return { ok: false, reason: "The server is not on this machine, so the path cannot be confirmed as a local file" }
+  if (!path.isAbsolute(env.directory)) return { ok: false, reason: "Invalid session directory" }
 
   // The session directory must map to a local workspace folder; otherwise we cannot know which local
   // file the server means.
   const dirReal = await env.realpath(env.directory)
-  if (!dirReal) return { ok: false, reason: "会话目录在本机不存在" }
+  if (!dirReal) return { ok: false, reason: "Session directory does not exist on this machine" }
   const ci = await env.caseInsensitive(dirReal).catch(() => false)
   const contains = (root: string, p: string) => inside(root, p, false) || (ci && inside(root, p, true))
   const roots = (await Promise.all(env.workspaceRoots.map((r) => env.realpath(r)))).filter((r): r is string => !!r)
-  if (!roots.some((r) => contains(r, dirReal))) return { ok: false, reason: "会话目录不在当前工作区" }
+  if (!roots.some((r) => contains(r, dirReal))) return { ok: false, reason: "Session directory is not in the current workspace" }
 
   const open = async (rel: string, line?: number, column?: number): Promise<OpenFileDecision> => {
     const target = path.resolve(env.directory, rel)
-    if (!contains(env.directory, target)) return { ok: false, reason: "路径超出会话目录" }
+    if (!contains(env.directory, target)) return { ok: false, reason: "Path is outside the session directory" }
     const real = await env.realpath(target)
-    if (!real) return { ok: false, reason: "文件不存在" }
-    if (!contains(dirReal, real)) return { ok: false, reason: "路径超出会话目录" }
-    if (!(await env.isFile(real))) return { ok: false, reason: "不是文件" }
+    if (!real) return { ok: false, reason: "File does not exist" }
+    if (!contains(dirReal, real)) return { ok: false, reason: "Path is outside the session directory" }
+    if (!(await env.isFile(real))) return { ok: false, reason: "Not a file" }
     return { ok: true, fsPath: real, line: position(line), column: position(column) }
   }
 
   // A literal file wins (a file may really be named `a.ts:3`); otherwise, when no line was given, try a
   // trailing `:line[:col]` / `#Lline[Ccol]` (markdown and tool text), with the same checks.
   const literal = await open(raw, req.line, req.column)
-  if (literal.ok || literal.reason !== "文件不存在" || req.line !== undefined) return literal
+  if (literal.ok || literal.reason !== "File does not exist" || req.line !== undefined) return literal
   const split = splitPosition(raw)
   if (split.path === raw || split.line === undefined) return literal
   return open(split.path, split.line, split.column)

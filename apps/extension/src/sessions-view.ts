@@ -8,20 +8,23 @@ export const MAX_ITEMS = 200 // = SessionFeed.ROOT_LIMIT
 
 const ACTIVITY: Record<SessionActivity, { label: string; icon: string; color?: string }> = {
   idle: { label: "", icon: "comment-discussion" },
-  busy: { label: "运行中", icon: "sync~spin", color: "charts.blue" },
-  retry: { label: "重试中", icon: "sync~spin", color: "charts.orange" },
-  permission: { label: "等待权限", icon: "shield", color: "charts.yellow" },
-  question: { label: "等待回答", icon: "question", color: "charts.yellow" },
-  error: { label: "出错", icon: "error", color: "errorForeground" },
+  busy: { label: "Running", icon: "sync~spin", color: "charts.blue" },
+  retry: { label: "Retrying", icon: "sync~spin", color: "charts.orange" },
+  permission: { label: "Waiting for permission", icon: "shield", color: "charts.yellow" },
+  question: { label: "Waiting for answer", icon: "question", color: "charts.yellow" },
+  error: { label: "Error", icon: "error", color: "errorForeground" },
 }
 
 export function relativeTime(ms: number, now = Date.now()) {
   if (!ms) return ""
   const s = Math.max(0, Math.round((now - ms) / 1000))
-  if (s < 60) return "刚刚"
-  if (s < 3600) return `${Math.floor(s / 60)} 分钟前`
-  if (s < 86400) return `${Math.floor(s / 3600)} 小时前`
-  if (s < 86400 * 30) return `${Math.floor(s / 86400)} 天前`
+  if (s < 60) return "just now"
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`
+  if (s < 86400) return `${Math.floor(s / 3600)} hr ago`
+  if (s < 86400 * 30) {
+    const days = Math.floor(s / 86400)
+    return days === 1 ? "1 day ago" : `${days} days ago`
+  }
   return new Date(ms).toISOString().slice(0, 10)
 }
 
@@ -31,15 +34,15 @@ export class SessionItem extends vscode.TreeItem {
     const a = ACTIVITY[session.activity]
     this.id = session.id
     const count = session.activity === "permission" ? session.pendingPermissions : session.activity === "question" ? session.pendingQuestions : 0
-    this.description = [a.label + (count > 1 ? ` ×${count}` : ""), open ? "已打开" : "", relativeTime(session.updated)].filter(Boolean).join(" · ")
+    this.description = [a.label + (count > 1 ? ` ×${count}` : ""), open ? "Open" : "", relativeTime(session.updated)].filter(Boolean).join(" · ")
     this.iconPath = new vscode.ThemeIcon(a.icon, a.color ? new vscode.ThemeColor(a.color) : undefined)
     this.contextValue = "oco.session"
     const tip = new vscode.MarkdownString(undefined, true)
     tip.appendText(`${session.title}\n${session.id}\n${session.directory}`)
-    if (session.error) tip.appendText(`\n错误：${session.error}`)
+    if (session.error) tip.appendText(`\nError: ${session.error}`)
     this.tooltip = tip
-    this.accessibilityInformation = { label: [session.title, a.label, open ? "已打开" : ""].filter(Boolean).join("，") }
-    this.command = { command: "oco.openSession", title: "打开会话", arguments: [session.id] }
+    this.accessibilityInformation = { label: [session.title, a.label, open ? "Open" : ""].filter(Boolean).join(", ") }
+    this.command = { command: "oco.openSession", title: "Open Session", arguments: [session.id] }
   }
 }
 
@@ -63,7 +66,7 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
   ) {
     this.view = vscode.window.createTreeView(SESSIONS_VIEW, { treeDataProvider: this, showCollapseAll: false })
     this.status = vscode.window.createStatusBarItem("oco.connection", vscode.StatusBarAlignment.Left, 10)
-    this.status.name = "oco 连接"
+    this.status.name = "oco Connection"
     void vscode.commands.executeCommand("setContext", "oco.searchActive", false)
     this.view.onDidChangeVisibility((e) => e.visible && this.syncSelection())
   }
@@ -141,61 +144,61 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
     const s = this.summary
     const all = this.items()
     const waiting = all.filter((i) => i.activity === "permission" || i.activity === "question").length
-    this.view.description = [this.folderLabel, this.query ? `搜索：${this.query}` : ""].filter(Boolean).join(" · ") || undefined
+    this.view.description = [this.folderLabel, this.query ? `Search: ${this.query}` : ""].filter(Boolean).join(" · ") || undefined
     let message: string | undefined
-    if (s?.state === "reconnecting") message = `连接中断，正在重连（第 ${s.attempt} 次）……列表可能不是最新。${s.error ? `原因：${s.error}` : ""}`
-    else if (s?.state === "error") message = `无法连接 ${s.label}：${s.error ?? ""}`
+    if (s?.state === "reconnecting") message = `Connection lost. Reconnecting (attempt ${s.attempt})… The list may be out of date.${s.error ? ` Cause: ${s.error}` : ""}`
+    else if (s?.state === "error") message = `Cannot connect to ${s.label}: ${s.error ?? ""}`
     else if (s?.state === "unauthorized" || s?.state === "unconfigured") message = s.error
     // The feed loads at most MAX_ITEMS root sessions and search runs on that loaded list only.
     else if (this.store.limitReached || all.length > MAX_ITEMS)
       message = this.query
-        ? `搜索只在已加载的最近 ${MAX_ITEMS} 个会话中进行，更早的会话不会出现在结果里。`
-        : `只加载了最近 ${MAX_ITEMS} 个会话，搜索也只覆盖这些会话。`
+        ? `Search covers only the ${MAX_ITEMS} most recent loaded sessions. Older sessions are not included.`
+        : `Only the ${MAX_ITEMS} most recent sessions are loaded. Search covers only those sessions.`
     this.view.message = message
-    this.view.badge = waiting ? { value: waiting, tooltip: `${waiting} 个会话等待你处理` } : undefined
+    this.view.badge = waiting ? { value: waiting, tooltip: `${waiting} session${waiting === 1 ? "" : "s"} waiting` } : undefined
 
     const st = this.status
     const label = s?.label.replace(/^https?:\/\//, "") ?? ""
     switch (s?.state) {
       case "connected":
         st.text = `$(oco-logo) oco${waiting ? ` $(bell-dot) ${waiting}` : ""}`
-        st.tooltip = `oco 已连接 ${s.label}\n${s.directory ?? ""}${s.trusted ? "" : "\n受限模式：只读"}`
+        st.tooltip = `oco: Connected to ${s.label}\n${s.directory ?? ""}${s.trusted ? "" : "\nRestricted Mode: read-only"}`
         st.command = "oco.sessions.focus"
         st.backgroundColor = undefined
         break
       case "connecting":
-        st.text = `$(sync~spin) oco 连接中`
-        st.tooltip = `正在连接 ${s.label}`
+        st.text = `$(sync~spin) oco: Connecting…`
+        st.tooltip = `Connecting to ${s.label}`
         st.command = "oco.sessions.focus"
         st.backgroundColor = undefined
         break
       case "reconnecting":
       case "error":
-        st.text = `$(debug-disconnect) oco ${s.state === "error" ? "未连接" : "重连中"}`
-        st.tooltip = `${label}：${s.error ?? ""}\n点击立即重试`
+        st.text = `$(debug-disconnect) oco: ${s.state === "error" ? "Not connected" : "Reconnecting…"}`
+        st.tooltip = `${label}: ${s.error ?? ""}\nClick to retry now`
         st.command = "oco.reconnect"
         st.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground")
         break
       case "unauthorized":
-        st.text = `$(lock) oco 需要密码`
-        st.tooltip = `${s.error ?? ""}\n点击设置密码`
+        st.text = `$(lock) oco: Password required`
+        st.tooltip = `${s.error ?? ""}\nClick to set the password`
         st.command = "oco.setServerPassword"
         st.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground")
         break
       default:
         st.text = `$(circle-slash) oco`
-        st.tooltip = `${s?.error ?? "oco 未配置"}\n点击${s?.issue === "endpoint" ? "打开设置" : "查看侧栏"}`
+        st.tooltip = `${s?.error ?? "oco is not configured"}\nClick to ${s?.issue === "endpoint" ? "open Settings" : "show the sidebar"}`
         st.command = s?.issue === "endpoint" ? "oco.openSettings" : "oco.sessions.focus"
         st.backgroundColor = undefined
     }
     const m = this.info?.mode === "managed" ? this.info.managed : undefined
     if (m && (m.status === "failed" || m.status === "exited") && s?.state !== "connected") {
-      st.text = `$(error) oco 托管服务未运行`
-      st.tooltip = `${m.error ?? ""}\n点击重新启动`
+      st.text = `$(error) oco: Managed server not running`
+      st.tooltip = `${m.error ?? ""}\nClick to restart`
       st.command = "oco.restartManagedServer"
       st.backgroundColor = new vscode.ThemeColor("statusBarItem.errorBackground")
     } else if (m?.status === "starting") {
-      st.text = `$(sync~spin) oco 启动服务中`
+      st.text = `$(sync~spin) oco: Starting server…`
       st.command = "oco.showLog"
     }
     if (s?.state === "connected" && versionNote(this.info?.version)) st.text = st.text.replace("$(oco-logo)", "$(warning)")

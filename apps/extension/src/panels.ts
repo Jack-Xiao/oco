@@ -272,7 +272,7 @@ export class PanelRegistry {
               // The page refused (e.g. not showing the bound session): surface it, never retarget.
               entry.stats.draftRejects++
               this.log.warn(`draft insert rejected in ${entry.binding.sessionId}: ${msg.reason}`)
-              void vscode.window.showWarningMessage(`oco: 未能加入草稿（${msg.reason ?? "unknown"}）`)
+              void vscode.window.showWarningMessage(`oco: Could not add to the draft (${msg.reason ?? "unknown"})`)
             }
             void this.setPending(entry, this.pending(entry).filter((d) => d.id !== msg.id))
             return
@@ -445,7 +445,7 @@ export class PanelRegistry {
       entry.stats.fileRejects++
       entry.lastFileReject = reason
       this.log.info(`openFile refused in ${entry.binding.sessionId}: ${reason}`)
-      void vscode.window.showWarningMessage(`oco: 无法打开文件（${reason}）`)
+      void vscode.window.showWarningMessage(`oco: Could not open the file (${reason})`)
     }
     let current: string | undefined
     let serverLocal = false
@@ -456,7 +456,7 @@ export class PanelRegistry {
     } catch {
       current = undefined
     }
-    if (current !== entry.binding.connectionId) return reject("连接已变化，请重新打开会话")
+    if (current !== entry.binding.connectionId) return reject("Connection changed. Reopen the session")
     const d = await decideOpenFile(
       { path: p, line, column },
       {
@@ -488,7 +488,7 @@ export class PanelRegistry {
       trace.push(`${Date.now() % 100000} open-done panel.active=${entry.panel.active} editor=${nodePath.basename(vscode.window.activeTextEditor?.document.fileName ?? "-")}`)
       setTimeout(() => trace.push(`${Date.now() % 100000} +500ms panel.active=${entry.panel.active} editor=${nodePath.basename(vscode.window.activeTextEditor?.document.fileName ?? "-")}`), 500)
     } catch (e) {
-      reject(e instanceof Error ? e.message.slice(0, 200) : "打开失败")
+      reject(e instanceof Error ? e.message.slice(0, 200) : "Open failed")
     }
   }
 

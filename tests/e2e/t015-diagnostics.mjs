@@ -44,7 +44,7 @@ try {
       return s.sidebar.connection?.state === "connected" && s.serverVersion ? s : undefined
     }, 40000)
     const tip = s?.sidebar.statusTooltip ?? ""
-    run.record("status-version", s && /服务版本：\d+\.\d+/.test(tip) && /模式：连接已有服务/.test(tip) && /\$\((oco-logo|warning)\) oco/.test(s.sidebar.statusText) ? "PASS" : "FAIL", { version: s?.serverVersion, statusText: s?.sidebar.statusText, tooltip: tip.split("\n") })
+    run.record("status-version", s && /Server version: \d+\.\d+/.test(tip) && /Mode: Attached server/.test(tip) && /\$\((oco-logo|warning)\) oco/.test(s.sidebar.statusText) ? "PASS" : "FAIL", { version: s?.serverVersion, statusText: s?.sidebar.statusText, tooltip: tip.split("\n") })
   })
 
   await rec("export-redacted", async () => {

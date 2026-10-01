@@ -17,7 +17,7 @@ bar.hidden = true
 const text = document.createElement("span")
 const cancel = document.createElement("button")
 cancel.type = "button"
-cancel.textContent = "取消发送"
+cancel.textContent = "Cancel send"
 cancel.addEventListener("click", () => window.dispatchEvent(new CustomEvent("oco:submit-cancel")))
 bar.append(text, cancel)
 
@@ -71,7 +71,7 @@ function syncLoading() {
   if (mode === "loading" || loadingTimer) return
   loadingTimer = setTimeout(() => {
     loadingTimer = undefined
-    if (modelLoading() && mode === "idle") show("loading", "正在加载模型和 Agent……")
+    if (modelLoading() && mode === "idle") show("loading", "Loading models and agents…")
   }, LOADING_DELAY_MS)
 }
 
@@ -88,11 +88,11 @@ window.addEventListener("oco:submit-state", (e) => {
   clearTimeout(noticeTimer)
   switch (state) {
     case "waiting":
-      return show("waiting", "模型和 Agent 仍在加载，加载完成后自动发送。修改草稿或按 Esc 会取消发送。", true)
+      return show("waiting", "Models and agents are still loading. This will send automatically when they finish. Edit the draft or press Esc to cancel.", true)
     case "cancel":
-      return notice("已取消发送，草稿已保留。")
+      return notice("Send canceled. The draft was kept.")
     case "draft":
-      return notice("草稿已修改，已取消自动发送。确认后请重新发送。")
+      return notice("Draft changed. Automatic send was canceled. Send again when ready.")
     case "ready":
     case "timeout": // the official app shows its own "select an agent and model" toast
       return hide()

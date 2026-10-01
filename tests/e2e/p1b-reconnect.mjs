@@ -171,7 +171,7 @@ try {
     await runShot(page, run, "1-recovered")
     run.record(
       "reconnect-hard-cut",
-      rec && /连接中断/.test(during.message ?? "") && during.connection?.state === "reconnecting" && preserved && staleOnly && refused > 0 && back && fin?.same && fin.has && after.eventConnections > before.eventConnections && after.snapshotRequests > before.snapshotRequests ? "PASS" : "FAIL",
+      rec && /Connection lost/.test(during.message ?? "") && during.connection?.state === "reconnecting" && preserved && staleOnly && refused > 0 && back && fin?.same && fin.has && after.eventConnections > before.eventConnections && after.snapshotRequests > before.snapshotRequests ? "PASS" : "FAIL",
       {
         reconnectingSeen: !!rec,
         duringState: during.connection?.state,
@@ -304,16 +304,16 @@ try {
   const idsShown = new Set((loaded?.items ?? []).map((i) => i.id))
   const beyondHidden = beyond.length >= 1 && beyond.every((id) => !idsShown.has(id))
   const topMatches = serverAll.slice(0, MAX).every((s) => idsShown.has(s.id))
-  const hint = /只加载了最近 200 个会话/.test(loaded?.message ?? "") && /最近 200 个会话/.test(loaded?.message ?? "")
+  const hint = /Only the 200 most recent sessions are loaded/.test(loaded?.message ?? "") && /Search covers only those sessions/.test(loaded?.message ?? "")
 
   await command(page, "oco: Search Sessions", { input: "oco-many" })
   const searched = await until(async () => {
     const sb = await sidebar()
-    return sb.search === "oco-many" && /搜索只在/.test(sb.message ?? "") ? sb : undefined
+    return sb.search === "oco-many" && /Search covers only the 200 most recent loaded/.test(sb.message ?? "") ? sb : undefined
   }, 20000, 600)
   await runShot(page, run, "4-search")
   const searchIds = new Set((searched?.items ?? []).map((i) => i.id))
-  const searchHint = /搜索只在已加载的最近 200 个会话中进行/.test(searched?.message ?? "")
+  const searchHint = /Search covers only the 200 most recent loaded sessions/.test(searched?.message ?? "")
   const beyondNotFound = beyond.every((id) => !searchIds.has(id))
   run.record("search-scope-hint", serverAll.length > MAX && loaded?.items.length === MAX && hint && topMatches && beyondHidden && searched && searched.items.length > 0 && searchHint && beyondNotFound ? "PASS" : "FAIL", {
     serverRoots: serverAll.length,

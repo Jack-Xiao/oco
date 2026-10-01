@@ -9,8 +9,8 @@ export const VERIFIED_SERVER = "1.18.33"
 
 export function versionNote(version: string | undefined): string | undefined {
   if (!version) return undefined
-  if (!/^1\./.test(version)) return `服务版本 ${version} 不是 OpenCode v1，oco 未对它验证，部分功能可能不可用`
-  if (version !== VERIFIED_SERVER) return `服务版本 ${version} 未经 oco 验证（已验证 ${VERIFIED_SERVER}）`
+  if (!/^1\./.test(version)) return `Server ${version} is not OpenCode v1. oco has not verified it; some features may be unavailable`
+  if (version !== VERIFIED_SERVER) return `Server ${version} is not verified by oco (verified: ${VERIFIED_SERVER})`
   return undefined
 }
 
@@ -44,13 +44,13 @@ export type ServerInfo = { version?: string; mode: "attached" | "managed"; manag
 /** Extra status-bar tooltip lines: mode, server version (flagged when unverified) and the managed process. */
 export function serverInfoLines(info: ServerInfo | undefined): string[] {
   if (!info) return []
-  const lines = [`模式：${info.mode === "managed" ? "托管（oco 启动的 opencode serve）" : "连接已有服务"}`]
-  if (info.version) lines.push(`服务版本：${info.version}`)
+  const lines = [`Mode: ${info.mode === "managed" ? "Managed (opencode serve started by oco)" : "Attached server"}`]
+  if (info.version) lines.push(`Server version: ${info.version}`)
   const note = versionNote(info.version)
-  if (note) lines.push(`注意：${note}`)
+  if (note) lines.push(`Note: ${note}`)
   if (info.mode === "managed" && info.managed) {
     const m = info.managed
-    lines.push(`托管进程：${m.status}${m.pid ? `（pid ${m.pid}）` : ""}`)
+    lines.push(`Managed process: ${m.status}${m.pid ? ` (pid ${m.pid})` : ""}`)
     if (m.error) lines.push(m.error)
   }
   return lines
@@ -59,12 +59,12 @@ export function serverInfoLines(info: ServerInfo | undefined): string[] {
 export type ConnectionRow = { label: string; value: string; icon: string; tooltip?: string; command?: string }
 
 const STATE: Record<ConnectionState, { text: string; icon: string }> = {
-  connected: { text: "已连接", icon: "plug" },
-  connecting: { text: "连接中", icon: "sync~spin" },
-  reconnecting: { text: "重连中", icon: "debug-disconnect" },
-  error: { text: "未连接", icon: "debug-disconnect" },
-  unauthorized: { text: "需要密码", icon: "lock" },
-  unconfigured: { text: "未配置", icon: "circle-slash" },
+  connected: { text: "Connected", icon: "plug" },
+  connecting: { text: "Connecting", icon: "sync~spin" },
+  reconnecting: { text: "Reconnecting", icon: "debug-disconnect" },
+  error: { text: "Not connected", icon: "debug-disconnect" },
+  unauthorized: { text: "Password required", icon: "lock" },
+  unconfigured: { text: "Not configured", icon: "circle-slash" },
 }
 
 /** Rows of the Connection view: the status-bar facts, one per row. The state row's command matches the status bar's. */
@@ -73,19 +73,19 @@ export function connectionRows(s: ConnectionSummary | undefined, info: ServerInf
   const command =
     state === "error" || state === "reconnecting" ? "oco.reconnect" : state === "unauthorized" ? "oco.setServerPassword" : state === "unconfigured" && s?.issue === "endpoint" ? "oco.openSettings" : undefined
   const rows: ConnectionRow[] = [
-    { label: "状态", value: STATE[state].text + (state === "reconnecting" && s?.attempt ? `（第 ${s.attempt} 次）` : ""), icon: STATE[state].icon, tooltip: s?.error, command },
+    { label: "Status", value: STATE[state].text + (state === "reconnecting" && s?.attempt ? ` (attempt ${s.attempt})` : ""), icon: STATE[state].icon, tooltip: s?.error, command },
   ]
-  if (s?.label) rows.push({ label: "服务", value: s.label, icon: "server" })
-  if (s?.directory) rows.push({ label: "目录", value: path.basename(s.directory), icon: "folder", tooltip: s.directory })
+  if (s?.label) rows.push({ label: "Server", value: s.label, icon: "server" })
+  if (s?.directory) rows.push({ label: "Directory", value: path.basename(s.directory), icon: "folder", tooltip: s.directory })
   if (info) {
-    rows.push({ label: "模式", value: info.mode === "managed" ? "托管" : "连接已有服务", icon: "gear" })
+    rows.push({ label: "Mode", value: info.mode === "managed" ? "Managed" : "Attached", icon: "gear" })
     const note = versionNote(info.version)
-    if (info.version) rows.push({ label: "版本", value: info.version + (note ? "（未验证）" : ""), icon: note ? "warning" : "versions", tooltip: note })
+    if (info.version) rows.push({ label: "Version", value: info.version + (note ? " (unverified)" : ""), icon: note ? "warning" : "versions", tooltip: note })
     if (info.mode === "managed" && info.managed) {
       const m = info.managed
-      rows.push({ label: "托管进程", value: m.status + (m.pid ? `（pid ${m.pid}）` : ""), icon: "server-process", tooltip: m.error, command: m.status === "failed" || m.status === "exited" ? "oco.restartManagedServer" : undefined })
+      rows.push({ label: "Managed process", value: m.status + (m.pid ? ` (pid ${m.pid})` : ""), icon: "server-process", tooltip: m.error, command: m.status === "failed" || m.status === "exited" ? "oco.restartManagedServer" : undefined })
     }
   }
-  if (s && !s.trusted) rows.push({ label: "受限模式", value: "只读", icon: "shield" })
+  if (s && !s.trusted) rows.push({ label: "Restricted Mode", value: "Read-only", icon: "shield" })
   return rows
 }

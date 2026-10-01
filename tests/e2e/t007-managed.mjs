@@ -80,7 +80,7 @@ try {
     const label = s?.sidebar.connection?.label ?? ""
     const own = managedProcs().filter((p) => !before.includes(p))
     await runShot(page, run, "managed-connected")
-    run.record("managed-start", s && /^http:\/\/127\.0\.0\.1:\d+$/.test(label) && label !== ATTACHED && own.includes(pid) && s.serverVersion && /托管/.test(s.sidebar.statusTooltip ?? "") ? "PASS" : "FAIL", { managed: s?.managed, label, own, version: s?.serverVersion, status: s?.sidebar.statusText })
+    run.record("managed-start", s && /^http:\/\/127\.0\.0\.1:\d+$/.test(label) && label !== ATTACHED && own.includes(pid) && s.serverVersion && /Managed/.test(s.sidebar.statusTooltip ?? "") ? "PASS" : "FAIL", { managed: s?.managed, label, own, version: s?.serverVersion, status: s?.sidebar.statusText })
   })
 
   await rec("shared-by-panels", async () => {
@@ -103,7 +103,7 @@ try {
     const own = managedProcs().filter((p) => !before.includes(p))
     const s2 = await st()
     await runShot(page, run, "managed-exited")
-    run.record("crash-no-restart", s && own.length === 0 && s2.managed?.status === "exited" && /托管服务未运行/.test(s2.sidebar.statusText ?? "") ? "PASS" : "FAIL", { status: s2.managed?.status, error: s2.managed?.error, own, statusText: s2.sidebar.statusText })
+    run.record("crash-no-restart", s && own.length === 0 && s2.managed?.status === "exited" && /Managed server not running/.test(s2.sidebar.statusText ?? "") ? "PASS" : "FAIL", { status: s2.managed?.status, error: s2.managed?.error, own, statusText: s2.sidebar.statusText })
   })
 
   await rec("manual-restart", async () => {

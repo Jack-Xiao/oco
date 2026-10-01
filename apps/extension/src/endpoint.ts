@@ -16,11 +16,11 @@ export function endpointFromSetting(raw: string, username: string): Endpoint {
   try {
     u = new URL(raw.trim())
   } catch {
-    throw new Error(`oco.serverUrl 不是有效 URL`)
+    throw new Error(`oco.serverUrl is not a valid URL`)
   }
-  if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("oco.serverUrl 只支持 http/https")
-  if (u.username || u.password) throw new Error("oco.serverUrl 不能包含账号密码，请用“oco: Set Server Password”命令")
-  if ((u.pathname && u.pathname !== "/") || u.search || u.hash) throw new Error("oco.serverUrl 只能是 origin（如 http://127.0.0.1:4096）")
+  if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("oco.serverUrl only supports http/https")
+  if (u.username || u.password) throw new Error("oco.serverUrl cannot include a username or password. Use the “oco: Set Server Password” command")
+  if ((u.pathname && u.pathname !== "/") || u.search || u.hash) throw new Error("oco.serverUrl must be an origin only (for example http://127.0.0.1:4096)")
   const user = username.trim() || "opencode"
   const origin = u.origin
   const connectionId = "c" + crypto.createHash("sha256").update(`${origin}|${user}`).digest("hex").slice(0, 16)
@@ -31,7 +31,7 @@ export function endpointFromSetting(raw: string, username: string): Endpoint {
  *  so panels stay bound across a managed restart. */
 export function managedEndpoint(url: string, binary: string, directory: string, username = "opencode"): Endpoint {
   const u = new URL(url)
-  if (!isLoopbackHost(u.hostname)) throw new Error("托管服务只能监听回环地址")
+  if (!isLoopbackHost(u.hostname)) throw new Error("The managed server can only listen on a loopback address")
   const connectionId = "m" + crypto.createHash("sha256").update(`managed|${binary}|${directory}|${username}`).digest("hex").slice(0, 16)
   return { origin: u.origin, host: u.hostname, username, connectionId, cleartext: false, managed: true }
 }

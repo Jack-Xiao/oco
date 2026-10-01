@@ -84,14 +84,14 @@ describe("ManagedServer", () => {
     c.stderr.emit("data", Buffer.from(`Error: failed to start, password=${m.password} home /home/u/.config\n`))
     c.exit(1)
     const err = await p.catch((e) => e as Error)
-    expect(err.message).toMatch(/退出码 1/)
+    expect(err.message).toMatch(/exit code 1/)
     expect(err.message).not.toContain(m.password)
     expect(err.message).toContain("~/.config")
   })
 
   test("start timeout kills the child and fails", async () => {
     const { m, spawned } = setup({ timeout: 30 })
-    await expect(m.start()).rejects.toThrow(/没有开始监听/)
+    await expect(m.start()).rejects.toThrow(/did not start listening/)
     expect(spawned[0].child.kills).toContain("SIGTERM")
   })
 
@@ -103,7 +103,7 @@ describe("ManagedServer", () => {
     spawned[0].child.exit(137)
     await new Promise((r) => setTimeout(r, 100))
     expect(m.state.status).toBe("exited")
-    expect(m.state.error).toMatch(/不会自动重启/)
+    expect(m.state.error).toMatch(/will not restart automatically/)
     expect(spawned.length).toBe(1)
     expect(m.url).toBeUndefined()
   })
@@ -124,7 +124,7 @@ describe("ManagedServer", () => {
 
   test("no workspace folder: refuses to start", async () => {
     const { m, spawned } = setup({ cwd: undefined })
-    await expect(m.start()).rejects.toThrow(/工作区/)
+    await expect(m.start()).rejects.toThrow(/workspace folder/)
     expect(spawned.length).toBe(0)
   })
 

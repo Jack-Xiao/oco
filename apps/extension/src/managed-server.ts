@@ -62,7 +62,7 @@ export class ManagedServer {
     const binary = this.deps.binary().trim() || "opencode"
     const cwd = this.deps.cwd()
     if (!cwd) {
-      const error = "托管模式需要先打开一个工作区文件夹"
+      const error = "Managed mode needs a workspace folder open first"
       this.set({ status: "failed", error, binary })
       return Promise.reject(new Error(error))
     }
@@ -89,12 +89,12 @@ export class ManagedServer {
       try {
         child = this.deps.spawn(binary, ["serve", "--hostname", "127.0.0.1", "--port", "0"], { cwd, env, stdio: ["ignore", "pipe", "pipe"] })
       } catch (e) {
-        fail(`无法启动 ${binary}：${(e as Error).message}`)
+        fail(`Could not start ${binary}: ${(e as Error).message}`)
         return
       }
       this.child = child
       const timer = setTimeout(() => {
-        fail(`托管服务 ${this.deps.startTimeoutMs ?? 30000} ms 内没有开始监听。最后输出：${this.lastOutput() || "（无）"}`)
+        fail(`Managed server did not start listening within ${this.deps.startTimeoutMs ?? 30000} ms. Last output: ${this.lastOutput() || "(none)"}`)
         this.kill(child)
       }, this.deps.startTimeoutMs ?? 30000)
       const onData = (buf: Buffer) => {
@@ -114,16 +114,16 @@ export class ManagedServer {
       child.stdout?.on("data", onData)
       child.stderr?.on("data", onData)
       child.on("error", (e: NodeJS.ErrnoException) => {
-        if (e.code === "ENOENT") fail(`找不到 OpenCode 可执行文件“${binary}”。请在设置 oco.opencodePath 中填写完整路径`)
-        else if (e.code === "EACCES") fail(`没有权限执行“${binary}”`)
-        else fail(`无法启动 ${binary}：${e.message}`)
+        if (e.code === "ENOENT") fail(`OpenCode executable “${binary}” was not found. Set the full path in oco.opencodePath`)
+        else if (e.code === "EACCES") fail(`Permission denied to run “${binary}”`)
+        else fail(`Could not start ${binary}: ${e.message}`)
       })
       child.on("exit", (code, signal) => {
         if (this.child === child) this.child = undefined
-        if (!settled) return fail(`托管服务启动失败（退出码 ${code ?? signal}）。最后输出：${this.lastOutput() || "（无）"}`)
+        if (!settled) return fail(`Managed server failed to start (exit code ${code ?? signal}). Last output: ${this.lastOutput() || "(none)"}`)
         if (this.stopping) return this.set({ status: "stopped", binary })
         this.deps.log?.(`managed server exited unexpectedly code=${code} signal=${signal}`)
-        this.set({ status: "exited", exitCode: code, binary, error: `托管服务意外退出（${code ?? signal}）。不会自动重启；执行“oco: Restart Managed Server”重新启动` })
+        this.set({ status: "exited", exitCode: code, binary, error: `Managed server exited unexpectedly (${code ?? signal}). It will not restart automatically. Run “oco: Restart Managed Server” to start it again` })
       })
     })
   }

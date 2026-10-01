@@ -50,7 +50,7 @@ try {
       return c?.state === "unconfigured" ? c : undefined
     }, 30000)
     const state = await hostState(page, l.stateFile)
-    const ok = c?.issue === "endpoint" && /有效 URL/.test(c.error ?? "") && /有效 URL/.test(state.sidebar.message ?? "") && proxy.stats.requests === 0
+    const ok = c?.issue === "endpoint" && /not a valid URL/.test(c.error ?? "") && /not a valid URL/.test(state.sidebar.message ?? "") && proxy.stats.requests === 0
     run.record("invalid-url", ok ? "PASS" : "FAIL", { connection: c, message: state.sidebar.message, statusText: state.sidebar.statusText, proxyRequests: proxy.stats.requests })
   })
 
@@ -83,7 +83,7 @@ try {
     const retried = proxy.stats.requests - before
     const st = await hostState(page, l.stateFile)
     deny401 = false
-    run.record("auth-failure", c && /用户名或密码/.test(c.error ?? "") && retried === 0 && /需要密码/.test(st.sidebar.statusText ?? "") ? "PASS" : "FAIL", { connection: c, retriedRequests: retried, statusText: st.sidebar.statusText })
+    run.record("auth-failure", c && /username or password/.test(c.error ?? "") && retried === 0 && /Password required/.test(st.sidebar.statusText ?? "") ? "PASS" : "FAIL", { connection: c, retriedRequests: retried, statusText: st.sidebar.statusText })
     await command(page, "oco: Reconnect")
     await until(async () => ((await conn())?.state === "connected" ? true : undefined), 30000)
   })
@@ -95,7 +95,7 @@ try {
       return (c?.state === "reconnecting" || c?.state === "error") && c.error ? c : undefined
     }, 30000)
     proxy.refuse(false)
-    run.record("offline", c && /无法连接服务/.test(c.error ?? "") && !/认证/.test(c.error ?? "") ? "PASS" : "FAIL", { connection: c })
+    run.record("offline", c && /Cannot reach the server/.test(c.error ?? "") && !/Authentication failed/.test(c.error ?? "") ? "PASS" : "FAIL", { connection: c })
     await command(page, "oco: Reconnect")
     await until(async () => ((await conn())?.state === "connected" ? true : undefined), 30000)
   })

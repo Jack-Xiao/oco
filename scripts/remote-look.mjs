@@ -46,7 +46,7 @@ const t0 = Date.now()
 let st = ""
 while (Date.now() - t0 < 300000) {
   st = await page.locator(".part.statusbar").innerText().catch(() => "")
-  if (/oco/.test(st) && !/连接中/.test(st)) break
+  if (/oco/.test(st) && !/Connecting|连接中/.test(st)) break
   await sleep(3000)
 }
 console.log("STATUS", JSON.stringify(st.replace(/\s+/g, " ")), Math.round((Date.now() - t0) / 1000) + "s")

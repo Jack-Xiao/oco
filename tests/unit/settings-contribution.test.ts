@@ -23,10 +23,11 @@ describe("connection settings contribution", () => {
     expect(props.sort()).toEqual(["oco.opencodePath", "oco.serverMode", "oco.serverUrl", "oco.serverUsername"])
     expect(props.some((k) => /pass|secret|token/i.test(k))).toBe(false)
   })
-  test("all settings stay machine scoped and are documented in Chinese", () => {
+  test("all settings stay machine scoped and are documented in English", () => {
     for (const p of Object.values(c.configuration.properties) as any[]) {
       expect(p.scope).toBe("machine")
-      expect(p.markdownDescription).toMatch(/[一-鿿]/)
+      expect(p.markdownDescription).not.toMatch(/\p{Script=Han}/u)
+      expect(String(p.markdownDescription).length).toBeGreaterThan(40)
     }
     expect(c.configuration.properties["oco.serverUrl"].markdownDescription).toContain("machine")
     expect(c.configuration.properties["oco.serverUsername"].markdownDescription).toContain("Set Server Password")

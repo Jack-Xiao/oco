@@ -4,6 +4,7 @@
 
 ## 未发布
 
+- 扩展界面文字全部改为英文（状态栏、侧栏、Connection 视图、通知、命令和设置说明、待发送提示）；嵌入聊天界面仍跟随 OpenCode 语言设置。
 - 状态栏已连接时显示 oco 标志（图标字体 `media/oco-icons.woff`，由 `scripts/build-icon-font.mjs` 生成），替代插头图标。
 
 ## 0.0.4（2026-10-01）

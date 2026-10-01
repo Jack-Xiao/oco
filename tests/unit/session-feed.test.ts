@@ -386,7 +386,7 @@ describe("SessionFeed", () => {
     try {
       h.feed.start()
       await until(() => h.feed.state.state === "unauthorized", h, "401")
-      expect(h.feed.state.error).toBe(`认证失败（${ORIGIN}）：用户名或密码不正确。请执行“oco: Set Server Password”，或在设置中检查用户名`)
+      expect(h.feed.state.error).toBe(`Authentication failed (${ORIGIN}): the username or password is incorrect. Run “oco: Set Server Password”, or check the username in Settings`)
       expect(h.feed.state.retryAt).toBeUndefined()
       expect(h.feed.state.attempt).toBe(0)
       expect(h.timers).toHaveLength(0)
@@ -426,7 +426,7 @@ describe("SessionFeed", () => {
       h.feed.start()
       await until(() => h.feed.state.state === "error" && h.timers.length === 1, h, "network error")
       expect(h.feed.state.attempt).toBe(1)
-      expect(h.feed.state.error).toBe("无法连接服务（离线或地址/端口不对）：network down")
+      expect(h.feed.state.error).toBe("Cannot reach the server (offline or wrong address/port): network down")
       expect(h.timers[0].ms).toBe(1000)
       expect(h.feed.state.retryAt).toBe(NOW + 1000)
 
@@ -441,7 +441,7 @@ describe("SessionFeed", () => {
       await until(() => h.feed.state.state === "reconnecting", h, "stream end")
       expect(h.feed.state.lastConnectedAt).toBe(NOW)
       expect(h.feed.state.attempt).toBe(1)
-      expect(h.feed.state.error).toBe("事件流已结束")
+      expect(h.feed.state.error).toBe("Event stream ended")
       expect(h.store.list()).toEqual(stale)
       expect(h.timers.map((timer) => timer.ms)).toEqual([1000])
     } finally {
@@ -580,7 +580,7 @@ describe("SessionFeed", () => {
       h.timers[0].fn()
       expect(h.feed.stats.stalls).toBe(1)
       expect(h.feed.state.state).toBe("reconnecting")
-      expect(h.feed.state.error).toBe("事件流无心跳")
+      expect(h.feed.state.error).toBe("Event stream has no heartbeat")
       expect(h.feed.state.attempt).toBe(1)
       expect(h.feed.state.lastConnectedAt).toBe(NOW)
       expect(h.timers.map((timer) => timer.ms)).toEqual([1000])
@@ -673,7 +673,7 @@ describe("SessionFeed", () => {
     h.feed.start()
     expect(h.feed.state).toMatchObject({
       state: "unconfigured",
-      error: "需要先打开一个工作区文件夹",
+      error: "Open a workspace folder first",
       connectionId: "c1",
       label: ORIGIN,
       directory: null,
@@ -790,7 +790,7 @@ describe("SessionFeed: stale attempts and limits", () => {
 describe("SessionFeed: connection settings diagnostics", () => {
   test("invalid endpoint is issue=endpoint, missing folder is issue=folder", () => {
     const a = harness()
-    a.failEndpoint("oco.serverUrl 不是有效 URL")
+    a.failEndpoint("oco.serverUrl is not a valid URL")
     a.feed.start()
     expect(a.feed.state).toMatchObject({ state: "unconfigured", issue: "endpoint" })
     const b = harness({ noDirectory: true })
@@ -805,7 +805,7 @@ describe("SessionFeed: connection settings diagnostics", () => {
       h.feed.start()
       await until(() => h.feed.state.state === "error" && h.timers.length === 1, h, "404")
       expect(h.feed.state.error).toContain("HTTP 404")
-      expect(h.feed.state.error).toContain("不是 OpenCode 服务")
+      expect(h.feed.state.error).toContain("may not be an OpenCode server")
     } finally {
       h.feed.stop()
     }

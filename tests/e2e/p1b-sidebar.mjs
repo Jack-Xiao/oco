@@ -143,12 +143,12 @@ try {
     const agentsHeaders = await page.locator(".part.sidebar .pane-header", { hasText: "Agents" }).count()
     const collapsed = (await header("Connection").getAttribute("aria-expanded").catch(() => null)) === "false"
     await header("Connection").click()
-    const stateRow = await until(async () => ((await page.locator(".part.sidebar .monaco-list-row", { hasText: "状态" }).first().innerText().catch(() => "")).includes("已连接") ? true : undefined), 10000)
+    const stateRow = await until(async () => ((await page.locator(".part.sidebar .monaco-list-row", { hasText: "Status" }).first().innerText().catch(() => "")).includes("Connected") ? true : undefined), 10000)
     const rows = (await state()).connectionView?.rows ?? []
     await runShot(page, run, "1b-connection")
     await header("Connection").click()
     const collapsedAgain = (await header("Connection").getAttribute("aria-expanded").catch(() => null)) === "false"
-    run.record("connection-view", sessionsHeader && agentsHeaders === 0 && collapsed && !!stateRow && rows[0]?.value === "已连接" && collapsedAgain ? "PASS" : "FAIL", {
+    run.record("connection-view", sessionsHeader && agentsHeaders === 0 && collapsed && !!stateRow && rows[0]?.value === "Connected" && collapsedAgain ? "PASS" : "FAIL", {
       sessionsHeader,
       agentsHeaders,
       collapsedByDefault: collapsed,
@@ -165,7 +165,7 @@ try {
     A = await newSessionFromPlus(before)
     const item = await until(async () => {
       const it = await sidebarItem(A)
-      return it && /已打开/.test(it.description) ? it : undefined
+      return it && /\bOpen\b/.test(it.description) ? it : undefined
     })
     const first = (await sidebar()).items[0]?.id
     const server = await api("GET", `/session/${A}`)
@@ -262,7 +262,7 @@ try {
     const sentDraft = (firstUser?.parts ?? []).some((p) => p.type === "text" && p.text.includes("export function add"))
     run.record(
       "chain-permission",
-      req && sentDraft && sbPerm && sbPerm.badge >= 1 && /等待权限/.test(sbPerm.items.find((i) => i.id === A)?.description ?? "") && tool?.state?.status === "completed" && idle ? "PASS" : req ? "FAIL" : "NOT RUN",
+      req && sentDraft && sbPerm && sbPerm.badge >= 1 && /Waiting for permission/.test(sbPerm.items.find((i) => i.id === A)?.description ?? "") && tool?.state?.status === "completed" && idle ? "PASS" : req ? "FAIL" : "NOT RUN",
       {
         requestId: req?.id ?? null,
         sidebarActivity: sbPerm?.items.find((i) => i.id === A)?.activity ?? null,
@@ -403,7 +403,7 @@ try {
     const ids = up?.items.map((i) => i.id) ?? []
     run.record(
       "connection-switch",
-      down && down.items.length === 0 && /未连接/.test(down.statusText) && up && new Set(ids).size === ids.length && ids.length === beforeIds.length && ids.every((i) => beforeIds.includes(i)) ? "PASS" : "FAIL",
+      down && down.items.length === 0 && /Not connected/.test(down.statusText) && up && new Set(ids).size === ids.length && ids.length === beforeIds.length && ids.every((i) => beforeIds.includes(i)) ? "PASS" : "FAIL",
       {
         downState: down?.connection?.state ?? null,
         downItems: down?.items.length ?? null,

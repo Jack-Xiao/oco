@@ -59,27 +59,27 @@ describe("decideOpenFile", () => {
       if (p.startsWith("/etc")) touched = true
       return real(p)
     }
-    expect(await decideOpenFile({ path: "../etc/hosts" }, e)).toEqual({ ok: false, reason: "路径超出会话目录" })
-    expect(await decideOpenFile({ path: "/etc/hosts" }, e)).toEqual({ ok: false, reason: "路径超出会话目录" })
+    expect(await decideOpenFile({ path: "../etc/hosts" }, e)).toEqual({ ok: false, reason: "Path is outside the session directory" })
+    expect(await decideOpenFile({ path: "/etc/hosts" }, e)).toEqual({ ok: false, reason: "Path is outside the session directory" })
     expect(touched).toBe(false)
   })
   test("symlink escape is refused", async () => {
-    expect(await decideOpenFile({ path: "escape/hosts" }, env({ ...FS }))).toEqual({ ok: false, reason: "路径超出会话目录" })
+    expect(await decideOpenFile({ path: "escape/hosts" }, env({ ...FS }))).toEqual({ ok: false, reason: "Path is outside the session directory" })
   })
   test("missing file, directory, invalid input and URI schemes", async () => {
     const e = env({ ...FS })
-    expect(await decideOpenFile({ path: "src/missing.ts" }, e)).toEqual({ ok: false, reason: "文件不存在" })
-    expect(await decideOpenFile({ path: "src" }, e)).toEqual({ ok: false, reason: "不是文件" })
-    expect(await decideOpenFile({ path: "" }, e)).toEqual({ ok: false, reason: "路径无效" })
-    expect(await decideOpenFile({ path: "a\0b" }, e)).toEqual({ ok: false, reason: "路径无效" })
-    expect(await decideOpenFile({ path: "x".repeat(5000) }, e)).toEqual({ ok: false, reason: "路径无效" })
-    expect(await decideOpenFile({ path: "file:///w/src/a.ts" }, e)).toEqual({ ok: false, reason: "只能打开本地文件路径" })
-    expect(await decideOpenFile({ path: "vscode://x" }, e)).toEqual({ ok: false, reason: "只能打开本地文件路径" })
+    expect(await decideOpenFile({ path: "src/missing.ts" }, e)).toEqual({ ok: false, reason: "File does not exist" })
+    expect(await decideOpenFile({ path: "src" }, e)).toEqual({ ok: false, reason: "Not a file" })
+    expect(await decideOpenFile({ path: "" }, e)).toEqual({ ok: false, reason: "Invalid path" })
+    expect(await decideOpenFile({ path: "a\0b" }, e)).toEqual({ ok: false, reason: "Invalid path" })
+    expect(await decideOpenFile({ path: "x".repeat(5000) }, e)).toEqual({ ok: false, reason: "Invalid path" })
+    expect(await decideOpenFile({ path: "file:///w/src/a.ts" }, e)).toEqual({ ok: false, reason: "Only local file paths can be opened" })
+    expect(await decideOpenFile({ path: "vscode://x" }, e)).toEqual({ ok: false, reason: "Only local file paths can be opened" })
   })
   test("session directory not mapped to a local workspace folder (remote server, other checkout)", async () => {
-    expect(await decideOpenFile({ path: "src/a.ts" }, env({ ...FS }, { workspaceRoots: ["/other"] }))).toEqual({ ok: false, reason: "会话目录不在当前工作区" })
-    expect(await decideOpenFile({ path: "a.ts" }, env({ ...FS }, { directory: "/srv/remote" }))).toEqual({ ok: false, reason: "会话目录在本机不存在" })
-    expect(await decideOpenFile({ path: "a.ts" }, env({ ...FS }, { directory: "rel" }))).toEqual({ ok: false, reason: "会话目录无效" })
+    expect(await decideOpenFile({ path: "src/a.ts" }, env({ ...FS }, { workspaceRoots: ["/other"] }))).toEqual({ ok: false, reason: "Session directory is not in the current workspace" })
+    expect(await decideOpenFile({ path: "a.ts" }, env({ ...FS }, { directory: "/srv/remote" }))).toEqual({ ok: false, reason: "Session directory does not exist on this machine" })
+    expect(await decideOpenFile({ path: "a.ts" }, env({ ...FS }, { directory: "rel" }))).toEqual({ ok: false, reason: "Invalid session directory" })
   })
   test("session directory nested inside a workspace folder is accepted", async () => {
     expect(await decideOpenFile({ path: "a.ts" }, env({ ...FS }, { directory: "/w/src" }))).toMatchObject({ ok: true, fsPath: "/w/src/a.ts" })
@@ -100,7 +100,7 @@ describe("local mapping", () => {
   test("a non-loopback server is refused even when the path exists in the workspace", async () => {
     expect(await decideOpenFile({ path: "src/a.ts" }, env({ ...FS }, { serverLocal: false }))).toEqual({
       ok: false,
-      reason: "服务不在本机，无法确认路径对应本地文件",
+      reason: "The server is not on this machine, so the path cannot be confirmed as a local file",
     })
   })
 })
@@ -110,7 +110,7 @@ describe("case sensitivity is measured, not assumed", () => {
   const CS = { "/w": "dir", "/w/Proj": "dir", "/w/Proj/a.ts": "file", "/w/proj": "dir", "/w/proj/a.ts": "file" } as const
   test("sensitive volume: session dir differing from the workspace root only by case is refused", async () => {
     const e = env({ ...CS }, { directory: "/w/proj", workspaceRoots: ["/w/Proj"] })
-    expect(await decideOpenFile({ path: "a.ts" }, e)).toEqual({ ok: false, reason: "会话目录不在当前工作区" })
+    expect(await decideOpenFile({ path: "a.ts" }, e)).toEqual({ ok: false, reason: "Session directory is not in the current workspace" })
   })
   test("measured insensitive volume: the same spelling difference is one directory and allowed", async () => {
     // One directory. Differently cased paths realpath to that one place, but the two realpath strings
@@ -120,12 +120,12 @@ describe("case sensitivity is measured, not assumed", () => {
     const e = env({}, { directory: "/w/proj", workspaceRoots: ["/w/Proj"], realpath: one, isFile: async (p) => p === "/w/Proj/a.ts", caseInsensitive: async () => true })
     expect(await decideOpenFile({ path: "a.ts" }, e)).toMatchObject({ ok: true, fsPath: "/w/Proj/a.ts" })
     const sensitive = env({}, { directory: "/w/proj", workspaceRoots: ["/w/Proj"], realpath: one, isFile: async (p) => p === "/w/Proj/a.ts", caseInsensitive: async () => false })
-    expect(await decideOpenFile({ path: "a.ts" }, sensitive)).toEqual({ ok: false, reason: "会话目录不在当前工作区" })
+    expect(await decideOpenFile({ path: "a.ts" }, sensitive)).toEqual({ ok: false, reason: "Session directory is not in the current workspace" })
   })
   test("sensitive volume: a sibling differing only by case is outside the session directory", async () => {
     const e = env({ ...CS, "/w/src": "dir", "/w/src/a.ts": "file", "/w/Src": "dir", "/w/Src/a.ts": "file" }, { directory: "/w/src" })
-    expect(await decideOpenFile({ path: "../Src/a.ts" }, e)).toEqual({ ok: false, reason: "路径超出会话目录" })
-    expect(await decideOpenFile({ path: "/w/Src/a.ts" }, e)).toEqual({ ok: false, reason: "路径超出会话目录" })
+    expect(await decideOpenFile({ path: "../Src/a.ts" }, e)).toEqual({ ok: false, reason: "Path is outside the session directory" })
+    expect(await decideOpenFile({ path: "/w/Src/a.ts" }, e)).toEqual({ ok: false, reason: "Path is outside the session directory" })
   })
   test("probeCaseInsensitive: same inode, different inode, no letters, error", async () => {
     const st = (m: Record<string, number>) => async (p: string) => {
@@ -139,7 +139,7 @@ describe("case sensitivity is measured, not assumed", () => {
   })
   test("a failing probe is treated as case-sensitive", async () => {
     const e = env({ ...CS }, { directory: "/w/proj", workspaceRoots: ["/w/Proj"], caseInsensitive: async () => Promise.reject(new Error("x")) })
-    expect(await decideOpenFile({ path: "a.ts" }, e)).toEqual({ ok: false, reason: "会话目录不在当前工作区" })
+    expect(await decideOpenFile({ path: "a.ts" }, e)).toEqual({ ok: false, reason: "Session directory is not in the current workspace" })
   })
 })
 
@@ -156,22 +156,22 @@ describe("position suffix", () => {
     const e = env({ ...P, "/w/math.ts": "file" })
     expect(await decideOpenFile({ path: "math.ts:4" }, e)).toEqual({ ok: true, fsPath: "/w/math.ts", line: 4, column: undefined })
     expect(await decideOpenFile({ path: "math.ts:4:2" }, e)).toMatchObject({ ok: true, line: 4, column: 2 })
-    expect(await decideOpenFile({ path: "file:12x" }, e)).toEqual({ ok: false, reason: "只能打开本地文件路径" })
-    expect(await decideOpenFile({ path: "vscode:4/x" }, e)).toEqual({ ok: false, reason: "只能打开本地文件路径" })
+    expect(await decideOpenFile({ path: "file:12x" }, e)).toEqual({ ok: false, reason: "Only local file paths can be opened" })
+    expect(await decideOpenFile({ path: "vscode:4/x" }, e)).toEqual({ ok: false, reason: "Only local file paths can be opened" })
   })
   test("an existing literal file wins over parsing", async () => {
     expect(await decideOpenFile({ path: "weird:3" }, env({ ...P }))).toEqual({ ok: true, fsPath: "/w/weird:3", line: undefined, column: undefined })
   })
   test("parsed paths go through the same checks", async () => {
     const e = env({ ...P })
-    expect(await decideOpenFile({ path: "missing.ts:3" }, e)).toEqual({ ok: false, reason: "文件不存在" })
-    expect(await decideOpenFile({ path: "../x.ts:3" }, e)).toEqual({ ok: false, reason: "路径超出会话目录" })
-    expect(await decideOpenFile({ path: "../etc/hosts:3" }, e)).toEqual({ ok: false, reason: "路径超出会话目录" })
-    expect(await decideOpenFile({ path: "escape/hosts:3" }, e)).toEqual({ ok: false, reason: "路径超出会话目录" })
-    expect(await decideOpenFile({ path: "src:3" }, e)).toEqual({ ok: false, reason: "不是文件" })
+    expect(await decideOpenFile({ path: "missing.ts:3" }, e)).toEqual({ ok: false, reason: "File does not exist" })
+    expect(await decideOpenFile({ path: "../x.ts:3" }, e)).toEqual({ ok: false, reason: "Path is outside the session directory" })
+    expect(await decideOpenFile({ path: "../etc/hosts:3" }, e)).toEqual({ ok: false, reason: "Path is outside the session directory" })
+    expect(await decideOpenFile({ path: "escape/hosts:3" }, e)).toEqual({ ok: false, reason: "Path is outside the session directory" })
+    expect(await decideOpenFile({ path: "src:3" }, e)).toEqual({ ok: false, reason: "Not a file" })
   })
   test("an explicit line disables parsing", async () => {
-    expect(await decideOpenFile({ path: "src/a.ts:12", line: 2 }, env({ ...P }))).toEqual({ ok: false, reason: "文件不存在" })
+    expect(await decideOpenFile({ path: "src/a.ts:12", line: 2 }, env({ ...P }))).toEqual({ ok: false, reason: "File does not exist" })
   })
 })
 
