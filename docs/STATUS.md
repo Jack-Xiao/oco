@@ -2,6 +2,11 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 扩展界面英文化（提交 `85d4c3c`，2026-10-01；在 main 上，已部署 gcp-workstation；本地，未推送）
+
+- 扩展（`apps/extension/src`、`package.json`）与 `apps/chat-webview/src/submit-status.ts` 不再有写死中文，界面只显示英文；对照表见 [i18n-english-strings](evidence/i18n-english-strings.md)。嵌入聊天界面（OpenCode 及补丁 0013/0014 的轨迹文案）仍按 OpenCode 语言设置切换，默认英文；`recovery.tsx` 保持按 locale 中英双语。
+- 检查：typecheck PASS、unit 169/169、build PASS；E2E `t015-diagnostics`、`t014-connection`、`p1b-sidebar`、`p1b-pending-send`、`p1b-reconnect`、`t007-managed` 共 41 项 PASS（`search-scope-hint` 首轮因两条英文提示共用前缀导致测试提前取值而 FAIL，收紧等待条件后重跑 PASS）。部署 `oco-0.0.4-85d4c3c.vsix`，远程状态栏显示 `oco: Starting server…`。NOT RUN：其余 E2E 套件。
+
 ## 状态栏 oco 标志（提交 `e4cc861`、`588f821`，2026-10-01；在 main 上，已部署 gcp-workstation；本地，未推送）
 
 - 已连接时状态栏用 `$(oco-logo)`（`contributes.icons`，单字形字体 `media/oco-icons.woff`，`scripts/build-icon-font.mjs` 生成），替代 `$(plug)`；版本不符时仍换成 `$(warning)`。其他状态图标不变；Connection 视图仍用 plug。

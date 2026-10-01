@@ -376,3 +376,8 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 
 - 改动：状态栏已连接图标由 plug 换成 oco 标志图标字体；按反馈改细一版。
 - 结果：typecheck PASS、unit 169/169；部署 gcp-workstation 并截图确认。NOT RUN：E2E。
+
+## 2026-10-01 扩展界面英文化
+
+- 改动：扩展和待发送提示的写死中文改为英文（Grok 执行，主线程复核）；相关单元测试、E2E 断言和 `remote-look.mjs` 同步。
+- 结果：typecheck PASS、unit 169/169；6 个相关 E2E 套件 41 项 PASS；已部署 gcp-workstation。NOT RUN：其余 E2E。
