@@ -13,6 +13,7 @@
 - 改动：markdown worker 语法按需加载（9.9 MB → 2.17 MB）；静态骨架屏 + 内联主题预载 + 主包 modulepreload；宿主在面板创建时预取 `GET /provider`（只用一次）；Remote 下宿主对 ≥256 KB 的 JSON 响应做 gzip 再发给面板（`/provider` 6.5 MB → 约 0.57 MB，面板用 `DecompressionStream` 解压）。详情、撤回的尝试和原始数据见 [首开提速证据](evidence/first-open-perf.md)。
 - Remote 实测（gcp-workstation，隧道快，逐轮交替，每组 4 轮有效）：输入框出现中位 2979 → 2383 ms，内容完成中位 3237 → 2304 ms；骨架屏 336–395 ms 出现（旧版在此之前空白）。慢隧道下未做交替对比。
 - gzip：用户真实会话日志（慢隧道）里首个会话约 17 s，其中 `/provider` 返回后约 5.7 s 无请求，与 6.5 MB 经隧道传输吻合。gzip 的 Remote 交替对比 NOT RUN（测试中工作站重启，用户的 4096 服务未运行）。
+- 部署：`oco-0.0.1-7ddac21.vsix`（extension.js sha256 `9984e91e…`）已用 `scripts/deploy-remote.sh` 覆盖安装到 gcp-workstation，登记路径复查正确；需在 Remote 窗口 Reload Window 生效。打包时 `bunx @vscode/vsce` 缓存损坏，改用 `npx -y @vscode/vsce@3` 跑同一脚本。
 - 变基到 main `344600e` 后复验：typecheck PASS；unit 165/165；E2E（mock）`p1a-chat` 8、`p1a-identity` 14、`p1b-theme-load` 3、`t010-recover` 5、`p1b-main-panel` 6、`c3-fork` 3 全部通过，`OCO_BRIDGE_GZIP=1` 下 `p1a-identity` 14/14。`scripts/deploy-remote.sh` 同样改为在扩展目录外暂存。
 - 变基前：typecheck PASS；unit 145/145；E2E（mock）`p1a-identity` 连续 6 次 14/14，`p1b-theme-load`、`p1a-chat`、`t010-recover`、`p1b-main-panel` 全部通过；`OCO_BRIDGE_GZIP=1`（所有 JSON 都压缩）下这 5 个套件无失败。NOT RUN：其余 E2E、真实模型。[remote-install](remote-install.md) 已修正：暂存目录不能放在扩展目录里（否则会被 VS Code Server 登记，扩展从窗口消失）。
 
