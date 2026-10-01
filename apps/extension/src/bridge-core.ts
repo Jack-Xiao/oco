@@ -47,11 +47,12 @@ type Inflight = { gen: number; ac: AbortController }
 
 // On a large model catalog the provider list is ~1 s of single-threaded server time (several seconds on a server
 // that just started); a request that reaches the server meanwhile waits for it. The first paint needs the session's
-// messages, not the provider list, and sometimes more requests after the message list (the parents of assistant
-// messages cut off by the page limit), so a booting document's provider requests are held until the page reports
+// messages, not the provider list (nor the lsp/mcp/vcs/command/reference lookups the page fires in the same batch), and sometimes more requests after the message list (the parents of assistant
+// messages cut off by the page limit), so a booting document's provider and those lookup requests are held until the page reports
 // that it shows the session (ui "painted"), or DEFER_MS: the page reports within its skeleton timeout (main.tsx).
 const DEFER_MS = 10_000
-const DEFERRED = /^\/(api\/)?provider$/
+const DEFERRED = /^\/(api\/)?(provider|lsp|mcp|vcs|command|reference|experimental\/resource)$/
+const SHARED = /^\/(api\/)?provider$/
 const COMPRESS_MIN_BYTES = 32 * 1024
 const NULL_BODY = new Set([101, 204, 205, 304])
 let generationSeq = 0 // process-wide: generations are never reused across panels or documents
@@ -195,7 +196,7 @@ export class BridgeCore {
         redirect: "manual", // never forward credentials to a redirect target
       }
       const res =
-        msg.method === "GET" && DEFERRED.test(target.pathname) ? await this.sharedFetch(`${gen}\u0000${writes}`, url, init, entry.ac.signal) : await this.deps.fetch(url, init)
+        msg.method === "GET" && SHARED.test(target.pathname) ? await this.sharedFetch(`${gen}\u0000${writes}`, url, init, entry.ac.signal) : await this.deps.fetch(url, init)
       const sse = (res.headers.get("content-type") ?? "").includes("text/event-stream")
       this.deps.log.info(`${label} -> ${res.status}${sse ? " (stream)" : ""}`)
       // Over Remote every body byte crosses the tunnel; a provider list is several MB of JSON (~11x smaller gzipped).

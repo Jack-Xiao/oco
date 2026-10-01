@@ -3,6 +3,7 @@ import * as crypto from "node:crypto"
 import * as fs from "node:fs"
 import * as nodePath from "node:path"
 import { BRIDGE_ORIGIN, type ConnectionSummary, type PanelRole, type SessionBinding, type WebviewInit } from "@oco/contracts"
+import { findPackedApp, loaderScript, type PackedApp } from "./app-loader"
 import { BlobStore, createBridge } from "./bridge-host"
 import type { Connection } from "./connection"
 import type { KvStore } from "./host-store"
@@ -191,7 +192,7 @@ export class PanelRegistry {
     if (role === "main" && this.main) role = "pinned"
     const panelId = crypto.randomUUID()
     panel.title = title ?? panel.title ?? "oco"
-    panel.iconPath = vscode.Uri.joinPath(this.context.extensionUri, "media", "icon.svg")
+    panel.iconPath = vscode.Uri.joinPath(this.context.extensionUri, "media", "oco-icon.svg")
     const entry = {
       panelId,
       role,
@@ -328,8 +329,15 @@ export class PanelRegistry {
     const themePreload = fs.readFileSync(vscode.Uri.joinPath(media, "oc-theme-preload.js").fsPath, "utf8")
     html = html.replace(/<script id="oc-theme-preload-script" src="\.\/oc-theme-preload\.js"><\/script>/, () =>
       `<script id="oc-theme-preload-script">${themePreload.replace(/<\/script/gi, "<\\/script")}</script>`)
+    // Over Remote-SSH the app chunk travels gzipped (see app-loader.ts); locally the resource channel is a disk read.
+    const packed: PackedApp | undefined = vscode.env.remoteName || process.env.OCO_PACKED_APP === "1" ? findPackedApp(vscode.Uri.joinPath(media).fsPath, html) : undefined
+    if (packed) {
+      html = html.replace(/<script[^>]*\ssrc="\.\/assets\/index-[\w-]+\.js"[^>]*><\/script>/, "<!--oco-loader-->")
+      html = html.replace(new RegExp(`<link[^>]*href="\\./assets/${packed.app}"[^>]*>\\s*`), "")
+    }
     html = html.replace(/(src|href)="\.\//g, `$1="${base}`)
     html = html.replace(/<script /g, `<script nonce="${nonce}" `)
+    if (packed) html = html.replace("<!--oco-loader-->", () => loaderScript(base, nonce, packed))
     // Workers in a webview cannot fetch from the resource origin (requests never resolve), so the
     // app's workers are built as self-contained IIFE scripts (apps/chat-webview/vite.config.ts) and
     // started from a blob bootstrap that receives their code, fetched by the main thread.
