@@ -2,6 +2,13 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 状态栏 oco 标志（提交 `e4cc861`、`588f821`，2026-10-01；在 main 上，已部署 gcp-workstation；本地，未推送）
+
+- 已连接时状态栏用 `$(oco-logo)`（`contributes.icons`，单字形字体 `media/oco-icons.woff`，`scripts/build-icon-font.mjs` 生成），替代 `$(plug)`；版本不符时仍换成 `$(warning)`。其他状态图标不变；Connection 视图仍用 plug。
+- 第二版按用户反馈改细：16px 下线宽约 1px，四周留白，与相邻 codicon 一致。
+- 检查：typecheck PASS、unit 169/169；`oco-0.0.4-588f821.vsix` 部署 gcp-workstation（`extension.js` 未变，哈希 `f2b3bc3e…`），`scripts/remote-look.mjs` 截图确认状态栏显示新标志。NOT RUN：E2E（`t015` 的状态栏正则已同步为 `oco-logo|warning`）。
+- 远程截图另见一次恢复的编辑器标签显示 `An error occurred while loading view: oco.chat`（测试 profile 残留标签，启动早期），未调查。
+
 ## 基线与并行工作
 
 - 本文件更新于 2026-09-30。当前 main 含 C1 焦点收尾与 T010 错误恢复（`3e67fc7` 及其合并提交，补丁 0001–0008）与测试提速（`23c0954`、`376470e`）。本地，未推送；P1b 产品代码 `6343f7b`。实时版本以 `bun run brief` 为准。

@@ -371,3 +371,8 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 
 - 改动：嵌入会话页隐藏三点菜单（重命名/分享/导出/归档/删除）；扩展新增 `oco.archiveSession`，会话列表右键菜单顺序为重命名、归档、删除。归档后关闭绑定该会话的面板，列表移除该行。
 - 结果：typecheck PASS、unit 169/169、`tsgo -b` PASS、0001–0018 在干净树依次 apply 与 vendor 一致、build PASS。NOT RUN：E2E、真实 VS Code 右键归档。
+
+## 2026-10-01 状态栏 oco 标志
+
+- 改动：状态栏已连接图标由 plug 换成 oco 标志图标字体；按反馈改细一版。
+- 结果：typecheck PASS、unit 169/169；部署 gcp-workstation 并截图确认。NOT RUN：E2E。
