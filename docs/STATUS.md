@@ -12,7 +12,7 @@
 
 - 侧栏原生选中跟随活动面板的会话（fork、新建、切标签）。typecheck、unit 164/164、build PASS；E2E（mock）`c3-fork` 4/4（新项 fork-sidebar-selection）、`p1b-sidebar` PASS。证据见 [c3-fork](evidence/c3-fork.md)。
 - 部署：`oco-0.0.1-e1e0cc4.vsix`（extension.js sha256 `fcaa651d…`）已用 `scripts/deploy-remote.sh` 安装到 gcp-workstation；需在 Remote 窗口 Reload Window。Remote 上的 UI 行为 NOT RUN。
-- 打包用了工作区里未提交的 `scripts/package-vsix.sh` 改动（vsce 固定为 4.0.0），该改动不属本批，未提交。
+- `scripts/package-vsix.sh` 的 vsce 固定为 4.0.0（原 bunx 缓存损坏），已一并提交。
 
 ## 首次打开会话提速（2026-10-01）
 

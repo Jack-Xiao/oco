@@ -38,7 +38,7 @@ EOR
 printf '%s\n' '**/*.map' '**/.DS_Store' 'src/**' 'tsconfig.json' > "$STAGE/.vscodeignore"
 VER="$(node -p "require('./apps/extension/package.json').version")"
 OUT="$ROOT/oco-${VER}-${SHA}.vsix"
-(cd "$STAGE" && bunx --bun @vscode/vsce package --no-dependencies --allow-missing-repository --no-rewrite-relative-links --no-gitHubIssueLinking --out "$OUT" >/dev/null)
+(cd "$STAGE" && bunx --bun @vscode/vsce@4.0.0 package --no-dependencies --allow-missing-repository --no-rewrite-relative-links --no-gitHubIssueLinking --out "$OUT" >/dev/null)
 unzip -t "$OUT" >/dev/null
 if unzip -p "$OUT" extension/dist/extension.js | grep -qE '/Users/|xiaojiang'; then echo "VSIX 含本机路径" >&2; exit 1; fi
 echo "VSIX=$OUT"
