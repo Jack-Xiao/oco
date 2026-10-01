@@ -8,6 +8,12 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
+## fork 后侧栏选中跟随（提交 `e1e0cc4`，2026-10-01）
+
+- 侧栏原生选中跟随活动面板的会话（fork、新建、切标签）。typecheck、unit 164/164、build PASS；E2E（mock）`c3-fork` 4/4（新项 fork-sidebar-selection）、`p1b-sidebar` PASS。证据见 [c3-fork](evidence/c3-fork.md)。
+- 部署：`oco-0.0.1-e1e0cc4.vsix`（extension.js sha256 `fcaa651d…`）已用 `scripts/deploy-remote.sh` 安装到 gcp-workstation；需在 Remote 窗口 Reload Window。Remote 上的 UI 行为 NOT RUN。
+- 打包用了工作区里未提交的 `scripts/package-vsix.sh` 改动（vsce 固定为 4.0.0），该改动不属本批，未提交。
+
 ## 首次打开会话提速（2026-10-01）
 
 - 第三轮（替换 `/provider` 预取）：首屏只需要会话消息，但消息请求常被服务端正在算的 `/provider`（大模型目录下每次 1.1–1.4 s，单线程）拖 1 s 以上。改为去掉预取，宿主把文档启动时的 `GET /provider` 暂缓到该文档第一个消息列表有响应之后，最多 3 s。Remote 与已部署的 `7ddac21` 交替 4 轮：冷开输入框中位 3297 → 1360 ms，同窗口第二个会话 1892 → 787 ms。详见 [首开提速证据](evidence/first-open-perf.md)。
