@@ -274,3 +274,4 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 部署中发现 remote-install 暂存目录的问题并已修正文档；另一会话（`2b40651`）同时往同一工作站安装，本批改为用 `--extensionDevelopmentPath` 测试。未提交。
 
 - 追加（第二轮）：Remote 下宿主对大 JSON 响应 gzip 后再发给面板（`/provider` 6.5 MB → 0.57 MB）。依据是用户真实会话日志中 `/provider` 之后 5.7 s 的传输空档。unit 145/145；`OCO_BRIDGE_GZIP=1` 下 5 个相关 E2E 套件无失败。Remote 交替对比 NOT RUN（工作站重启，用户服务未运行）。详见 [首开提速证据](evidence/first-open-perf.md)。
+- 追加（第三轮）：去掉 `/provider` 预取，改为宿主把文档启动时的 `/provider` 暂缓到第一个消息列表有响应之后（≤3 s）。Remote 交替 4 轮：冷开输入框中位 3297 → 1360 ms，同窗口第二个会话 1892 → 787 ms。unit 164/164；默认 20 套件中 16 个全过，`c3-fork` 复跑通过，`t013-agents` 和 `p1b-narrow` 的失败在基线上同样出现。

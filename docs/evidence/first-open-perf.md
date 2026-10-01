@@ -63,6 +63,23 @@
 - 检查：unit 145/145（新增 2 条：大 JSON 压缩且往返一致；小响应、非 JSON、本地面板不压缩）；`OCO_BRIDGE_GZIP=1`（阈值 0，所有 JSON 都压缩）下 `p1a-chat` 8、`p1a-identity` 12+（日志被前一次中止运行的残留进程写乱，未失败）、`p1b-theme-load` 3、`t010-recover` 5、`p1b-main-panel` 6，无失败，runner exit 0。
 - NOT RUN：gzip 的 Remote 交替对比（运行中工作站重启，用户的 4096 服务没有自动启动，按约定未代为启动）。
 
+## 追加：暂缓 `/provider`（2026-10-01 第三轮，替换预取）
+
+- 用户实测部署版（`7ddac21`）体感约 3 s。工作站上 oco 默认用托管模式（每个窗口自己启动 `opencode serve --port 0`），探针窗口同样如此。
+- 页面时间线（[remote-now-1](first-open-perf/remote-now-1.json)、`ab10-*`）：首屏只需要会话消息（`GET /session/:id/message`），不需要 `/provider`；但消息请求到达服务端时，服务端常在算某个 `/provider`（宿主预取或页面自己的，每个 1.1–1.4 s，单线程），消息被拖 1–1.4 s。在临时服务（4597，测完已关）上复现：同一批里 3 个 `/provider` 串行共 3.3 s，排在后面的 `/command` 也要等 3.3 s；`/message` 单独只要 0.04 s。
+- 两次失败的尝试：
+  - 预取结果 5 s 内复用、任何写请求作废（`p1a-identity` 3/3 通过）：4 份大响应同时到达面板，把 `/message` 挤在后面，首屏反而慢 1 s（4.16 vs 3.17 s），撤回。
+  - 先预取 `/session/:id` 再预取 `/provider`：`/session/:id` 本来就不慢，没有改善（3.36 vs 3.21 s），撤回。
+- 采用：去掉 `/provider` 预取；每个文档启动时，宿主把页面的 `GET /provider`（含 `/api/provider`）暂缓到该文档第一个 `GET /session/:id/message` 有响应之后再发给服务端，最多等 3 s（`bridge-core.ts` 的 `DEFERRED` / `FIRST_PAINT` / `DEFER_MS`）。
+- 结果（Remote，与已部署的 `7ddac21` 逐轮交替，各 4 轮，[ab11](first-open-perf/)）：
+
+  | | `7ddac21` | 暂缓 `/provider` |
+  | --- | --- | --- |
+  | 冷开输入框出现 | 3449 / 2814 / 3355 / 3239，中位 3297 ms | 1316 / 1403 / 1237 / 1712，中位 1360 ms |
+  | 同窗口第二个会话 | 1844 / 1754 / 1940 / 2032，中位 1892 ms | 802 / 772 / 741 / 1387，中位 787 ms |
+
+  截图确认消息和模型名都已显示。`content` 指标为空是因为测试会话文字少于判定阈值。
+
 ## 未解决
 
 - 静态资源（约 4.5 MB）只在窗口内首次加载时经隧道传输：同窗口第二次打开时旧包 0.4 s（`cache-1`，VS Code webview 资源缓存）。放到本地 UI 侧扩展可以去掉首次这部分，属于架构改动，暂不做。

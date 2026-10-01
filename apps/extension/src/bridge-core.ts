@@ -45,45 +45,23 @@ export type CoreDeps = {
 
 type Inflight = { gen: number; ac: AbortController }
 
-const PREFETCH_TTL_MS = 30_000
+// On a large model catalog the provider list is ~1 s of single-threaded server time; a request that reaches
+// the server meanwhile waits for it. The first paint needs the session's messages, not the provider list, so
+// a booting document's provider requests are held until its first message list is answered (or DEFER_MS).
+const DEFER_MS = 3_000
+const DEFERRED = /^\/(api\/)?provider$/
+const FIRST_PAINT = /^\/(api\/)?session\/[^/]+\/message$/
 const COMPRESS_MIN_BYTES = 256 * 1024
-const prefetchKey = (pathname: string, search: URLSearchParams) => (search.size ? `${pathname}?${search}` : pathname)
 let generationSeq = 0 // process-wide: generations are never reused across panels or documents
 
 export class BridgeCore {
   private readonly inflight = new Map<string, Inflight>()
   generation = 0 // 0 = no live document
   docId: string | undefined
-  stats = { requests: 0, streamsOpen: 0, rejectedMessages: 0, rejectedRequests: 0, staleDropped: 0, retired: 0, generations: 0, prefetchHits: 0 }
-  private readonly prefetched = new Map<string, { at: number; res: Promise<Response | undefined> }>()
+  stats = { requests: 0, streamsOpen: 0, rejectedMessages: 0, rejectedRequests: 0, staleDropped: 0, retired: 0, generations: 0, deferred: 0 }
+  private firstPaint?: { gen: number; done: Promise<void>; open(): void }
 
   constructor(private readonly deps: CoreDeps) {}
-
-  /** Starts GETs the page makes while it boots, so the server works while the webview loads. `paths` are
-   * exactly as the page sends them (path + search). The first matching page request within PREFETCH_TTL_MS
-   * takes the buffered response, once: a later request may follow a change and must reach the server. A
-   * failed or non-200 prefetch falls back to a normal request. */
-  prefetch(paths: string[]) {
-    for (const p of paths) {
-      const u = new URL(p, "http://prefetch.invalid")
-      const res = (async () => {
-        const decision = await this.deps.policy.decide("GET", u.pathname, u.searchParams)
-        if (!decision.ok) return undefined
-        const headers = BridgePolicy.forwardHeaders([], decision.directory, await this.deps.auth())
-        const r = await this.deps.fetch(this.deps.baseUrl() + decision.path, { method: "GET", headers, redirect: "manual" })
-        if (r.status !== 200) return undefined
-        return new Response(await r.arrayBuffer(), { status: r.status, statusText: r.statusText, headers: r.headers })
-      })().catch(() => undefined)
-      this.prefetched.set(prefetchKey(u.pathname, u.searchParams), { at: Date.now(), res })
-    }
-  }
-
-  private takePrefetched(path: string) {
-    const hit = this.prefetched.get(path)
-    if (!hit) return undefined
-    this.prefetched.delete(path)
-    return Date.now() - hit.at <= PREFETCH_TTL_MS ? hit.res : undefined
-  }
 
   private key(gen: number, id: string) {
     return `${gen}\u0000${id}`
@@ -125,6 +103,9 @@ export class BridgeCore {
       this.generation = ++generationSeq
       this.docId = msg.docId
       this.stats.generations++
+      let open!: () => void
+      const done = new Promise<void>((r) => (open = r))
+      this.firstPaint = { gen: this.generation, done, open }
       this.deps.onGeneration?.(this.generation)
       this.send(this.generation, { type: "welcome", docId: msg.docId })
       return
@@ -185,9 +166,16 @@ export class BridgeCore {
       }
       if (entry.ac.signal.aborted) throw new DOMException("Aborted", "AbortError")
       const headers = BridgePolicy.forwardHeaders(msg.headers, decision.directory, await this.deps.auth())
-      const prefetched = msg.method === "GET" ? await this.takePrefetched(prefetchKey(target.pathname, target.search)) : undefined
-      if (prefetched) this.stats.prefetchHits++
-      const res = prefetched ?? await this.deps.fetch(this.deps.baseUrl() + decision.path, {
+      const gate = this.firstPaint?.gen === gen ? this.firstPaint : undefined
+      if (gate && msg.method === "GET" && DEFERRED.test(target.pathname)) {
+        this.stats.deferred++
+        let timer: ReturnType<typeof setTimeout> | undefined
+        await Promise.race([gate.done, new Promise<void>((r) => (timer = setTimeout(r, DEFER_MS)))])
+        clearTimeout(timer)
+        if (entry.ac.signal.aborted) throw new DOMException("Aborted", "AbortError")
+      }
+      const opensGate = !!gate && msg.method === "GET" && FIRST_PAINT.test(target.pathname)
+      const res = await this.deps.fetch(this.deps.baseUrl() + decision.path, {
         method: msg.method,
         headers,
         body: msg.body ? new Uint8Array(msg.body as ArrayBuffer) : undefined,
@@ -195,7 +183,8 @@ export class BridgeCore {
         redirect: "manual", // never forward credentials to a redirect target
       })
       const sse = (res.headers.get("content-type") ?? "").includes("text/event-stream")
-      this.deps.log.info(`${label} -> ${res.status}${sse ? " (stream)" : ""}${prefetched ? " (prefetched)" : ""}`)
+      this.deps.log.info(`${label} -> ${res.status}${sse ? " (stream)" : ""}`)
+      if (opensGate) gate!.open()
       // Over Remote every body byte crosses the tunnel; a provider list is several MB of JSON (~11x smaller gzipped).
       const gzip =
         !!this.deps.compress && !!res.body && !sse && (res.headers.get("content-type") ?? "").includes("json") &&

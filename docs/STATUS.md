@@ -10,6 +10,10 @@
 
 ## 首次打开会话提速（2026-10-01）
 
+- 第三轮（替换 `/provider` 预取）：首屏只需要会话消息，但消息请求常被服务端正在算的 `/provider`（大模型目录下每次 1.1–1.4 s，单线程）拖 1 s 以上。改为去掉预取，宿主把文档启动时的 `GET /provider` 暂缓到该文档第一个消息列表有响应之后，最多 3 s。Remote 与已部署的 `7ddac21` 交替 4 轮：冷开输入框中位 3297 → 1360 ms，同窗口第二个会话 1892 → 787 ms。详见 [首开提速证据](evidence/first-open-perf.md)。
+- 第三轮检查：typecheck PASS；unit 164/164；E2E 默认 20 套件（mock）：16 套件全过；`c3-fork` 1 项失败，复跑 3/3；`t013-agents` `duplicate-preserves-bytes` 失败，基线同样失败（`.oco-test` 链接到主工作区，"隔离配置"路径判断不成立，环境原因）；`p1b-narrow` 新版 3 次各有 1–2 项失败，基线 3 次中 2 次也有类似失败（布局宽度、新面板未出现），判断为既有不稳定。
+- 两个撤回的尝试：预取结果短时复用（4 份大响应同时到达面板，首屏反而慢 1 s）；先预取 `/session/:id`（没有改善）。
+
 - 改动：markdown worker 语法按需加载（9.9 MB → 2.17 MB）；静态骨架屏 + 内联主题预载 + 主包 modulepreload；宿主在面板创建时预取 `GET /provider`（只用一次）；Remote 下宿主对 ≥256 KB 的 JSON 响应做 gzip 再发给面板（`/provider` 6.5 MB → 约 0.57 MB，面板用 `DecompressionStream` 解压）。详情、撤回的尝试和原始数据见 [首开提速证据](evidence/first-open-perf.md)。
 - Remote 实测（gcp-workstation，隧道快，逐轮交替，每组 4 轮有效）：输入框出现中位 2979 → 2383 ms，内容完成中位 3237 → 2304 ms；骨架屏 336–395 ms 出现（旧版在此之前空白）。慢隧道下未做交替对比。
 - gzip：用户真实会话日志（慢隧道）里首个会话约 17 s，其中 `/provider` 返回后约 5.7 s 无请求，与 6.5 MB 经隧道传输吻合。gzip 的 Remote 交替对比 NOT RUN（测试中工作站重启，用户的 4096 服务未运行）。
