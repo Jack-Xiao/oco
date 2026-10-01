@@ -66,7 +66,11 @@ export function activate(context: vscode.ExtensionContext) {
     // E2E hook for a silent stall (proxy holds the stream but forwards nothing), outside production only.
     stallMs: context.extensionMode !== vscode.ExtensionMode.Production && Number(process.env.OCO_DEV_STALL_MS) > 0 ? Number(process.env.OCO_DEV_STALL_MS) : undefined,
   })
-  panels.onChange = () => view.refresh()
+  panels.onChange = () => {
+    const e = panels.active
+    view.setCurrent(e && e.binding.connectionId === feed.state.connectionId ? e.binding.sessionId : undefined)
+    view.refresh()
+  }
 
   // T007 managed mode + T015 server version. One managed process per window, shared by every panel.
   let serverVersion: string | undefined

@@ -90,6 +90,10 @@ try {
   await send(fA, `Reply with exactly this line and nothing else: ${T2}`)
   await waitReply(A)
   const before = await shape(A)
+  // Sidebar visible with A selected, so the fork must move the highlight (native selection only follows clicks).
+  await command(page, "Focus on Sessions View")
+  await waitUntil(async () => (await state()).sidebar.selected === A, 10000, 200).catch(() => undefined)
+  const selBefore = (await state()).sidebar.selected
   await sleep(1000)
 
   // 1. Fork from the 2nd user message.
@@ -103,6 +107,9 @@ try {
     uShape.length === 2 && uShape[0].startsWith("user:") && uShape[0].includes(T1) && uShape[1].startsWith("assistant:") &&
     !uShape.some((s) => s.includes(T2)) && uComposer.includes(T2) && st1.panels.length === 1 &&
     JSON.stringify(await shape(A)) === JSON.stringify(before)
+  let selAfter = null
+  await waitUntil(async () => (selAfter = (await state()).sidebar.selected) === u.sid, 10000, 200).catch(() => undefined)
+  run.record("fork-sidebar-selection", selBefore === A && selAfter === u.sid ? "PASS" : "FAIL", { selBefore, selAfter, A, fork: u.sid })
   run.record("fork-user", uOk ? "PASS" : "FAIL", { shape: uShape, composerHasT2: uComposer.includes(T2), panels: st1.panels.length, aMessages: before.length })
 
   // 2. Back to A; fork from turn 1's response.

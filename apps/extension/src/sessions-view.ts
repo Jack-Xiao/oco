@@ -53,6 +53,7 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
   private info: ServerInfo | undefined
   private folderLabel: string | undefined
   private refreshTimer: ReturnType<typeof setTimeout> | undefined
+  private current: string | undefined
   private readonly status: vscode.StatusBarItem
   readonly stats = { renders: 0 }
 
@@ -64,6 +65,25 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
     this.status = vscode.window.createStatusBarItem("oco.connection", vscode.StatusBarAlignment.Left, 10)
     this.status.name = "oco 连接"
     void vscode.commands.executeCommand("setContext", "oco.searchActive", false)
+    this.view.onDidChangeVisibility((e) => e.visible && this.syncSelection())
+  }
+
+  /**
+   * The session shown in the active panel. Native tree selection only follows clicks, so a panel that
+   * switches on its own (fork, new session, another tab) would leave the old row highlighted.
+   */
+  setCurrent(sessionId: string | undefined) {
+    if (this.current === sessionId) return
+    this.current = sessionId
+    this.refresh()
+  }
+
+  private syncSelection() {
+    const id = this.current
+    if (!id || !this.view.visible || this.view.selection[0]?.session.id === id) return
+    const item = this.getChildren().find((i) => i.session.id === id)
+    // A fork's row may not be listed yet; the session.created refresh retries.
+    if (item) void Promise.resolve(this.view.reveal(item, { select: true, focus: false })).catch(() => undefined)
   }
 
   /** Coalesces bursts of events (streaming updates) into one render. */
@@ -73,6 +93,7 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
       this.refreshTimer = undefined
       this.changed.fire()
       this.updateChrome()
+      this.syncSelection()
     }, 150)
   }
 
@@ -99,6 +120,10 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
 
   getTreeItem(e: SessionItem) {
     return e
+  }
+
+  getParent(): undefined {
+    return undefined // flat list; required by TreeView.reveal
   }
 
   getChildren(e?: SessionItem): SessionItem[] {
@@ -196,6 +221,8 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
     return {
       connection: s ? { state: s.state, attempt: s.attempt, error: s.error, issue: s.issue, label: s.label, trusted: s.trusted } : null,
       search: this.query,
+      visible: this.view.visible,
+      selected: this.view.selection[0]?.session.id ?? null,
       folderLabel: this.folderLabel ?? null,
       message: this.view.message ?? null,
       badge: this.view.badge?.value ?? 0,

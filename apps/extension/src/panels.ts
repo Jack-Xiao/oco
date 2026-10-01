@@ -200,7 +200,10 @@ export class PanelRegistry {
     panel.onDidChangeViewState((e) => {
       if (entry.focusTrace) entry.focusTrace.push(`${Date.now() % 100000} panel.active=${e.webviewPanel.active}`)
       if (e.webviewPanel.active && entry.openedAt !== undefined && Date.now() - entry.openedAt < 1000) entry.stats.lateActivations++
-      if (e.webviewPanel.active) this.lastActive = panelId
+      if (e.webviewPanel.active && this.lastActive !== panelId) {
+        this.lastActive = panelId
+        this.onChange() // the sidebar selection follows the active panel
+      }
       // retainContextWhenHidden: a hidden document stays alive with its generation and streams; drafts
       // queued while it was hidden are delivered once it shows again.
       if (e.webviewPanel.visible) this.flushDrafts(entry)

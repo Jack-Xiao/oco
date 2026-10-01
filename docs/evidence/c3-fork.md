@@ -29,3 +29,10 @@
 - 修复（补丁 0011，message-part.css）：`user-message-meta-wrap` 加 `margin-inline-end: 5px`，`text-part-meta` 加 `margin-inline-start: 5px`。
 - 结果（运行 20261001-002141-c3-fork-cb96，3/3）：回复行 44/43，用户消息行 44/43/45（2x 截图像素，放大裁图目测）。
 - 回归：`p1b-narrow` 第 1 次 `layout-480` FAIL（frame widths 537,451,451；该套件历史上也出现过 layout 项失败），复跑 exit 0（20261001-002520-p1b-narrow-ad08）。均为 mock，测试服务在隔离端口 4527。
+
+## 侧栏选中跟随 fork（2026-10-01）
+
+- 现象：fork 后主面板已切到新会话，侧栏仍高亮原会话。
+- 原因：侧栏是原生 TreeView，选中只跟随点击；面板自行切换（fork、新建、切标签）时没人同步。
+- 修复：`SessionsView.setCurrent` 记录活动面板的会话，每次渲染后 `reveal(item, { select: true, focus: false })`（侧栏不可见时跳过，显示时补同步；fork 行尚未列出时由 session.created 的刷新重试）；补 `getParent`。`panels.ts` 在活动面板变化时也触发 `onChange`。`debugState` 增加 `visible`、`selected`。
+- E2E（mock，测试服务 4527）：`c3-fork` 新增 `fork-sidebar-selection`，4/4（20261001-034012-c3-fork-7785）；`p1b-sidebar` 全部 PASS。typecheck、unit 164/164、build 通过。NOT RUN：真实模型、Remote。
