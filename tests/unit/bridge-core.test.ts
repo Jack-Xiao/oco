@@ -194,6 +194,18 @@ describe("bridge provider deferral", () => {
     expect(await ended("p2")).toBe(true)
     expect(core.stats.deferred).toBe(2)
   })
+
+  test("the lookups a booting page fires beside its messages wait too; session reads and unrelated paths do not", async () => {
+    const { calls, send, ended, painted } = setup()
+    for (const [id, path] of [["l", "/lsp?directory=%2Fw"], ["c", "/command?directory=%2Fw"], ["v", "/vcs?directory=%2Fw"], ["r", "/api/reference?directory=%2Fw"], ["x", "/mcp?directory=%2Fw"]]) send(id, path)
+    send("m", "/session/ses_A/message?limit=80")
+    expect(await ended("m")).toBe(true)
+    await new Promise((r) => setTimeout(r, 20))
+    expect(calls).toEqual(["/session/ses_A/message"])
+    painted()
+    for (const id of ["l", "c", "v", "r", "x"]) expect(await ended(id)).toBe(true)
+    expect(calls.slice(1).sort()).toEqual(["/api/reference", "/command", "/lsp", "/mcp", "/vcs"])
+  })
 })
 
 describe("bridge compression", () => {

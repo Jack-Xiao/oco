@@ -354,3 +354,11 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 
 - `b2f6514` 重写 AGENTS.md 时丢了 `2e2a0aa` 的「委派与 token 预算」任务表，且只写了 Codex 路由名、把 `general-purpose` 列为不可用，导致 Claude Code 会话基本不委派。
 - 恢复任务类型 → 代理对照表，按运行环境（Claude Code / Codex）分列路由名，并入 10 秒健康检查与原规则；HANDOFF 第 18 行的引用重新有效。纯文档改动，未跑检查。
+
+## 页面主包压缩与启动请求排序（2026-10-01）
+
+- 压缩：`scripts/build-webview.sh` 在 `app-*.js` 旁生成 `.gz`（4,042,559 → 1,182,539 字节）；`apps/extension/src/app-loader.ts` 生成内联加载脚本，页面取 `.gz`、`DecompressionStream` 解压，把 `import.meta.url`、`import("./`、`from"./` 改成资源目录绝对地址后以 blob 经 import map 顶替原 URL；并放一个无 rel 的 `<link href>`，让懒加载块的 preload 辅助跳过 4 MB 原文件。仅 Remote（`vscode.env.remoteName`）或 `OCO_PACKED_APP=1` 启用；失败回退原入口。
+- 排序：`bridge-core.ts` 的 `DEFERRED` 在 `/provider` 之外加入 `/lsp`、`/mcp`、`/vcs`、`/command`、`reference`、`experimental/resource`；`/session/:id`、`/message`、`/agent`、`/config` 等不暂缓。`SHARED` 仍只合并 `/provider`。
+- 检查：typecheck PASS；unit 169/169（新增 3）；`OCO_PACKED_APP=1` 下 `p1b-theme-load`、`p1a-chat`、`p1b-main-panel` 全部 PASS（20 项）；本机调试确认 4 MB 原文件不再下载、页面渲染。
+- NOT RUN：Remote 实测（未部署）；`app-*.css`（484 KB）未压缩。
+
