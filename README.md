@@ -6,6 +6,8 @@ oco 是一个以 OpenCode 为执行引擎的 VS Code 扩展。
 
 当前状态只看 [STATUS](docs/STATUS.md)，当前队列只看 [NEXT](docs/NEXT.md)。这是原型，不是可发布版本。请勿把本 README 当作已实现功能列表。
 
+不熟悉 VS Code 或前端技术，可以先读 [oco 技术手册（HTML）](docs/technical-guide.html)：从一条消息的完整链路理解架构、源码嵌入、远程运行、风险和文档关系。下载/本地打开可使用目录搜索、流程演示、风险筛选和打印。
+
 ## 从这里开始
 
 实施 AI 只读 [AGENTS.md](AGENTS.md)、[STATUS](docs/STATUS.md)、[NEXT](docs/NEXT.md)，以及本次任务点名的契约。下面按需再读，不是开工必读：

@@ -2,6 +2,12 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## HTML 技术手册（2026-10-02；文档交付）
+
+- 新增 [面向初学者的技术手册](technical-guide.html)：21 章，涵盖源码嵌入、宿主桥/流、身份与状态、Remote、前端/构建、12 项风险、18 个补丁与文档导览。离线单文件，带目录搜索、流程教学、风险筛选、主题与打印样式。README 已加入入口。
+- 本轮文档验证：40 项 PASS（Chromium 147.0.7727.15；1440/390 布局、链接/锚点、JS、交互、打印、无外部资源请求及关键源码事实）；见 [验证 JSON](evidence/technical-guide-validation.json)、[复核说明](evidence/technical-guide-review.md)。产品构建/E2E/Remote NOT RUN（本轮仅文档）。
+- Claude 只读观察：先前额度阻塞后已恢复，最新重连 mock 5/5 PASS（已读 results.json）；产品批次仍未提交，因本线程暂存文档而暂停提交。本轮只提交文档并释放暂存区，不包含其产品改动；本批 Remote NOT RUN。见 [观察记录](evidence/technical-guide-claude-observation.md)。
+
 ## 扩展界面英文化（提交 `85d4c3c`，2026-10-01；在 main 上，已部署 gcp-workstation；本地，未推送）
 
 - 扩展（`apps/extension/src`、`package.json`）与 `apps/chat-webview/src/submit-status.ts` 不再有写死中文，界面只显示英文；对照表见 [i18n-english-strings](evidence/i18n-english-strings.md)。嵌入聊天界面（OpenCode 及补丁 0013/0014 的轨迹文案）仍按 OpenCode 语言设置切换，默认英文；`recovery.tsx` 保持按 locale 中英双语。

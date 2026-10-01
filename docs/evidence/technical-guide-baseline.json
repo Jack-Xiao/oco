@@ -1,0 +1,27 @@
+{
+  "capturedAt": "2026-10-01T15:33:17.931572+00:00",
+  "head": "5d9994216bdaa3e05c3bd261854689046fbdc04b",
+  "status": [
+    " M apps/extension/package.json",
+    " M apps/extension/src/extension.ts",
+    " M apps/extension/src/session-feed.ts",
+    " M apps/extension/src/session-store.ts",
+    " M apps/extension/src/sessions-view.ts",
+    " M tests/unit/session-feed.test.ts",
+    " M tests/unit/session-store.test.ts",
+    "?? apps/extension/media/session-running-dark.svg",
+    "?? apps/extension/media/session-running-light.svg",
+    "?? apps/extension/src/session-groups.ts",
+    "?? docs/evidence/claude-delegation-audit-20261001-routing.md",
+    "?? docs/evidence/session-list-feed.md",
+    "?? docs/evidence/session-list-groups.md",
+    "?? tests/unit/session-groups.test.ts"
+  ],
+  "scope": "HTML technical guide and documentation evidence only; concurrent product edits belong to Claude",
+  "grokHealth": {
+    "elapsedSeconds": 7.72,
+    "result": "OK",
+    "model": "grok-4.7-build",
+    "provider": "unknown"
+  }
+}

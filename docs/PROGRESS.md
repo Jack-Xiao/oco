@@ -381,3 +381,9 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 
 - 改动：扩展和待发送提示的写死中文改为英文（Grok 执行，主线程复核）；相关单元测试、E2E 断言和 `remote-look.mjs` 同步。
 - 结果：typecheck PASS、unit 169/169；6 个相关 E2E 套件 41 项 PASS；已部署 gcp-workstation。NOT RUN：其余 E2E。
+
+## 2026-10-02 面向初学者的 HTML 技术手册
+
+- 主线程整合 21 章单文件手册，独立 Grok 调查运行时与构建/文档事实，均以实际源码和版本为依据；委派 model/provider 未返回则记 unknown。
+- 文档验证 40 项 PASS，包含桌面/手机、交互、打印与源码/链接核对；代理浏览器启动受沙箱阻塞后，主线程使用同脚本完成，不改权限。证据：`docs/evidence/technical-guide-validation.json`、`technical-guide-review.md`；详细脚本/截图在忽略目录 `docs/evidence/runs/technical-guide/`。
+- 只读查看 Claude 状态并设置截止 2026-10-02 09:30 的观察；发现额度阻塞和未提交/重跑缺口，不宣称项目完整。产品构建/E2E/部署 NOT RUN。仅本地提交文档，不含并发产品改动。

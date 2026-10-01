@@ -1,0 +1,226 @@
+{
+  "time": "2026-10-01T16:56:00.573Z",
+  "started": "2026-10-01T16:55:55.312Z",
+  "durationMs": 5261,
+  "html": "docs/technical-guide.html",
+  "htmlSha256": "ddf8eaa4a6e93c915af342c4009620eff3af984436d300913133a086a326ca41",
+  "browser": {
+    "version": "147.0.7727.15",
+    "executablePath": "/Users/xiaojiang/Library/Caches/ms-playwright/chromium-1217/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+  },
+  "model": "unknown",
+  "provider": "unknown",
+  "screenshots": {
+    "desktop": "docs/evidence/runs/technical-guide/desktop-1440.png",
+    "desktopFlow": "docs/evidence/runs/technical-guide/desktop-1440-flow.png",
+    "mobile": "docs/evidence/runs/technical-guide/mobile-390.png",
+    "mobileTable": "docs/evidence/runs/technical-guide/mobile-390-table.png"
+  },
+  "checks": [
+    {
+      "name": "anchors-21",
+      "status": "pass",
+      "detail": "count=21 dupes=none order=match"
+    },
+    {
+      "name": "unique-ids",
+      "status": "pass",
+      "detail": "ids=33"
+    },
+    {
+      "name": "local-hrefs",
+      "status": "pass",
+      "detail": "hrefs=131 external=11 missing=none"
+    },
+    {
+      "name": "external-hrefs-not-fetched-static",
+      "status": "pass",
+      "detail": "https://code.visualstudio.com/api/advanced-topics/extension-host | https://www.typescriptlang.org/docs/handbook/intro.html | https://docs.solidjs.com/concepts/signals | https://vite.dev/guide/ | https://code.visualstudio.com/api/extension-guides/webview | https://code.visualstudio.com/api/advanced-topics/extension-host | https://www.typescriptlang.org/docs/handbook/intro.html | https://docs.solidjs.com/concepts/signals | https://vite.dev/guide/ | https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events | https://opencode.ai/docs/server/"
+    },
+    {
+      "name": "no-external-assets",
+      "status": "pass",
+      "detail": "assets=none imports=none"
+    },
+    {
+      "name": "js-syntax",
+      "status": "pass",
+      "detail": "bytes=5259"
+    },
+    {
+      "name": "js-dom-ids",
+      "status": "pass",
+      "detail": "all present"
+    },
+    {
+      "name": "risk-markup-12",
+      "status": "pass",
+      "detail": "total=12 P0=6 P1=6"
+    },
+    {
+      "name": "step-markup-6",
+      "status": "pass",
+      "detail": "buttons=0,1,2,3,4,5 printLi=6"
+    },
+    {
+      "name": "print-css-text",
+      "status": "pass",
+      "detail": "risks=true steps=true cssBytes=991"
+    },
+    {
+      "name": "baseline-5d99942",
+      "status": "pass",
+      "detail": "git cat-file -t => commit"
+    },
+    {
+      "name": "extension-identity",
+      "status": "pass",
+      "detail": "version=0.0.4 name=oco publisher=oco-local-test extensionKind=[\"workspace\"] engine=^1.95.0"
+    },
+    {
+      "name": "vscode-engine",
+      "status": "pass",
+      "detail": "^1.95.0"
+    },
+    {
+      "name": "upstream-pin",
+      "status": "pass",
+      "detail": "sha=true tag=true"
+    },
+    {
+      "name": "root-bun",
+      "status": "pass",
+      "detail": "bun@1.3.10 {} "
+    },
+    {
+      "name": "root-typescript",
+      "status": "pass",
+      "detail": "5.8.2"
+    },
+    {
+      "name": "root-esbuild-playwright",
+      "status": "pass",
+      "detail": "esbuild=0.25.10 playwright-core=1.56.1"
+    },
+    {
+      "name": "upstream-tooling-versions",
+      "status": "pass",
+      "detail": "vendor/opencode/bun.lock vite@7.1.4 | vendor/opencode/bun.lock solid-js@1.9.10 | vendor/opencode/bun.lock tailwindcss@4.1.11 | vendor/opencode/packages/app/package.json vite@catalog: | vendor/opencode/packages/app/package.json solid-js@catalog: | vendor/opencode/packages/app/package.json tailwindcss@catalog: | vendor/opencode/packages/cli/package.json solid-js@catalog: | vendor/opencode/packages/console/app/package.json vite@catalog: | vendor/opencode/packages/console/app/package.json solid-js@catalog: | vendor/opencode/packages/console/mail/package.json solid-js@catalog: | vendor/opencode/packages/console/support/package.json vite@catalog: | vendor/opencode/packages/console/support/package.json solid-js@catalog: | vendor/opencode/packages/desktop/package.json vite@catalog: | vendor/openco"
+    },
+    {
+      "name": "patches-18",
+      "status": "pass",
+      "detail": "18: patches/opencode/0001-oco-draft-insert.patch | patches/opencode/0002-oco-embedded-single-session.patch | patches/opencode/0003-oco-narrow-dock-wrap.patch | patches/opencode/0004-oco-embedded-submit-waits-for-model.patch | patches/opencode/0005-oco-open-file-in-host.patch | patches/opencode/0006-oco-open-file-diff-summary-markdown.patch | patches/opencode/0007-oco-turn-diff-scope-unavailable.patch | patches/opencode/0008-oco-embedded-recovery-view.patch | patches/opencode/0009-oco-embedded-settings-no-pty-shells.patch | patches/opencode/0010-oco-embedded-visibility-defaults.patch | patches/opencode/0011-oco-message-fork-buttons.patch | patches/opencode/0012-oco-trajectory-view.patch | patches/opencode/0013-oco-trajectory-i18n-tools-compact.patch | patches/opencode/0014-oco-trajectory-to"
+    },
+    {
+      "name": "bridge-v2-origin",
+      "status": "pass",
+      "detail": "PROTOCOL_VERSION=2 and BRIDGE_ORIGIN in contracts; bridge.ts posts that version and exports bridgeFetch"
+    },
+    {
+      "name": "browser-launch",
+      "status": "pass",
+      "detail": "version=147.0.7727.15 executable=/Users/xiaojiang/Library/Caches/ms-playwright/chromium-1217/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+    },
+    {
+      "name": "toc-runtime-21",
+      "status": "pass",
+      "detail": "links=21 countText=21 个章节 · 可搜索正文概念"
+    },
+    {
+      "name": "overflow-1440",
+      "status": "pass",
+      "detail": "{\"scrollWidth\":1440,\"clientWidth\":1440,\"pageOverflow\":0,\"culprits\":[]}"
+    },
+    {
+      "name": "search-sse",
+      "status": "pass",
+      "detail": "visible=6 bridge=true text=6 个相关章节；点击目录跳转"
+    },
+    {
+      "name": "search-miss",
+      "status": "pass",
+      "detail": "visible=0 groupsHidden=true text=0 个相关章节；点击目录跳转"
+    },
+    {
+      "name": "search-clear",
+      "status": "pass",
+      "detail": "visible=21"
+    },
+    {
+      "name": "steps-6",
+      "status": "pass",
+      "detail": "0:1 · 输入先成为草稿:truefalsefalsefalsefalsefalse || 1:2 · 官方 App 构造请求:falsetruefalsefalsefalsefalse || 2:3 · 宿主核对目标与权限:falsefalsetruefalsefalsefalse || 3:4 · OpenCode 执行任务:falsefalsefalsetruefalsefalse || 4:5 · 增量更新屏幕:falsefalsefalsefalsetruefalse || 5:6 · 停止必须到达业务层:falsefalsefalsefalsefalsetrue"
+    },
+    {
+      "name": "risk-filter",
+      "status": "pass",
+      "detail": "{\"allRisks\":{\"visible\":12,\"text\":\"显示 12 项风险\",\"pressed\":\"true\"},\"onlyP0\":{\"visible\":6,\"text\":\"显示 6 项风险 · P0\",\"pressed\":\"true\"},\"onlyP1\":{\"visible\":6,\"text\":\"显示 6 项风险 · P1\",\"pressed\":\"true\"}}"
+    },
+    {
+      "name": "theme-toggle",
+      "status": "pass",
+      "detail": "{\"beforeBg\":\"rgb(245, 246, 242)\",\"dark\":{\"dark\":true,\"pressed\":\"true\",\"text\":\"浅色阅读\",\"bg\":\"rgb(21, 35, 41)\"},\"light\":{\"dark\":false,\"pressed\":\"false\",\"text\":\"深色阅读\"}}"
+    },
+    {
+      "name": "details-toggle",
+      "status": "pass",
+      "detail": "{\"detailsCount\":4,\"opened\":{\"open\":4,\"pressed\":\"true\",\"text\":\"收起补充说明\"},\"closed\":{\"open\":0,\"pressed\":\"false\",\"text\":\"展开补充说明\"},\"one\":true,\"oneClosed\":false}"
+    },
+    {
+      "name": "print-css-runtime",
+      "status": "pass",
+      "detail": "{\"risks\":12,\"steps\":6,\"hiddenAttr\":6,\"stepper\":\"none\",\"stage\":\"none\"}"
+    },
+    {
+      "name": "overflow-390",
+      "status": "pass",
+      "detail": "{\"scrollWidth\":390,\"clientWidth\":390,\"pageOverflow\":0,\"culprits\":[\"TABLE.# l=32 r=632 w=600\",\"CAPTION.# l=32 r=632 w=600\",\"THEAD.# l=32 r=632 w=600\",\"TR.# l=32 r=632 w=600\",\"TH.# l=227 r=414 w=187\",\"TH.# l=414 r=632 w=218\",\"TBODY.# l=32 r=632 w=600\",\"TR.# l=32 r=632 w=600\"]}"
+    },
+    {
+      "name": "mobile-toc-still-21",
+      "status": "pass",
+      "detail": "links=21"
+    },
+    {
+      "name": "page-errors",
+      "status": "pass",
+      "detail": "page=none console=none"
+    },
+    {
+      "name": "external-network",
+      "status": "pass",
+      "detail": "requests=1 all-file-or-data"
+    },
+    {
+      "name": "claude-observation-recheck",
+      "status": "pass",
+      "detail": "linked=true start=true end=true"
+    },
+    {
+      "name": "local-hrefs-recheck",
+      "status": "pass",
+      "detail": "none"
+    },
+    {
+      "name": "validation-json-written",
+      "status": "pass",
+      "detail": "footer href resolves"
+    },
+    {
+      "name": "dark-print-contrast",
+      "status": "pass",
+      "detail": "{\"intro\":\"rgb(34, 34, 34)\",\"lead\":\"rgb(34, 34, 34)\",\"card\":\"rgb(245, 247, 246)\"}",
+      "time": "2026-10-01T16:56:35.919Z"
+    },
+    {
+      "name": "mobile-table-scroll-hint",
+      "status": "pass",
+      "detail": "{\"hint\":\"\\\"表格可左右滑动 →\\\"\",\"clientWidth\":326,\"scrollWidth\":600,\"scrollLeft\":274,\"lastColumnRight\":358,\"containerRight\":358,\"pageOverflow\":0}",
+      "time": "2026-10-01T16:56:35.959Z"
+    }
+  ],
+  "problems": [],
+  "note": "Validation json is created by this run so the footer href resolves. HTML was not modified. model/provider unknown because this run returned no model identity; the route health check is not model evidence.",
+  "executionNote": "Main agent ran delegated script successfully plus dark-print and mobile-table-scroll checks. Original delegated browser launch was sandbox-blocked. This validates the document, not product E2E."
+}
