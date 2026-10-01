@@ -36,6 +36,7 @@ mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为�
 | 补丁 0014（比例按钮状态、子智能体行）、`tests/e2e/lib/mock-llm.mjs` 的 `task` 指令 | app `session-trajectory-model.test.ts` | c4-trajectory（英文 + `OCO_E2E_LOCALE=zh-cn`） | mock |
 | 补丁 0016（嵌入模式不提供会话 href）、`directory-layout.tsx` 的 `DataProvider` 参数；`apps/chat-webview/index.html` 的 `a:focus` 样式层 | — | c4-trajectory（`subagent-link`）、p1a-identity、p1b-main-panel、p1a-chat、c1-open-file | mock |
 | 补丁 0015（切换时保持工作区、首开预置目录、输入框会话事件）、`app.tsx` 的 ready 时机、`bridge-core.ts` 的 gzip 与 `/provider` 合并 | bridge-core | p1b-main-panel（`switch-uncached-*`）、p1a-identity、p1b-pending-send、t010-recover；gzip 再用 `OCO_BRIDGE_GZIP=1` 跑 p1a-identity、p1a-chat | mock；黑屏与耗时只能在 Remote 上用 `docs/evidence/switch-perf/switch-probe.mjs` 测 |
+| `apps/chat-webview/index.html`、`src/main.tsx` 的骨架屏（保留到出现文字或输入框、“无法连接”页持续 1.5 s 才算）、`bridge-core.ts` 的 `painted` 放行 `/provider` | bridge-core | p1b-theme-load（`boot-continuous`）、t010-recover（`initial-unreachable`）、p1b-main-panel、p1a-identity | mock |
 | `managed-server.ts`、`connection.ts`（托管模式、多根工作区当前文件夹） | managed-server | t007-managed、t007-multiroot、t014-connection | mock |
 | `agents.ts`、`agents-view.ts`（Agents 视图） | agents | t013-agents | mock |
 | `diagnostics.ts`、状态栏、诊断导出 | diagnostics | t015-diagnostics、t014-connection | mock |

@@ -1,14 +1,15 @@
 // P1b-1 T010: the chat page follows the VS Code colour theme (light -> dark at runtime, no reload),
 // and a prompt sent before the directory's agents/models have loaded waits for them instead of being
 // rejected with "Select an agent and model". The load race is forced with the dev-only bridge delay
-// (OCO_DEV_SLOW_PATHS, honoured outside production mode only).
+// (OCO_DEV_SLOW_PATHS, honoured outside production mode only). boot-continuous: the loading skeleton covers the
+// app's start-up (no logo splash, no empty page) and leaves when the session shows.
 import fs from "node:fs"
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { launch, command, chatFrames, frameSession, sleep, runShot } from "./vscode.mjs"
 import { messages, waitReply, MODEL } from "./server.mjs"
 
-const run = createRun({ suite: "p1b-theme-load", required: ["theme-initial-light", "theme-switch-dark", "first-load-submit"], scriptPath: fileURLToPath(import.meta.url) })
+const run = createRun({ suite: "p1b-theme-load", required: ["theme-initial-light", "theme-switch-dark", "boot-continuous", "first-load-submit"], scriptPath: fileURLToPath(import.meta.url) })
 let app
 run.installCrashHandlers(() => app?.close())
 
@@ -39,6 +40,10 @@ try {
   app = l.app
   const { f } = await newPanel(l.page)
   await sleep(3000)
+  // The loading skeleton stays over the app's start-up (logo splash, empty page) until the session shows text or its
+  // composer, not the timeout, and is gone afterwards.
+  const boot = await f.evaluate(() => ({ ...window.__OCO_STATS__.boot, skeleton: !!document.getElementById("oco-boot") }))
+  run.record("boot-continuous", ["text", "composer"].includes(boot.reason) && !boot.skeleton ? "PASS" : "FAIL", boot)
   const light = await scheme(f)
   await runShot(l.page, run, "theme-light")
   run.record("theme-initial-light", light.appScheme === "light" && light.bodyKind === "vscode-light" ? "PASS" : "FAIL", light)

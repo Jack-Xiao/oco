@@ -222,6 +222,9 @@ try {
     if (down) await down.f.locator('[data-oco-action="retry"]').click()
     await sleep(2500)
     const still = await panel(page, sid)
+    // The loading skeleton (main.tsx) is gone, so the screen is visible: it leaves on text (the host's connection
+    // banner) or once the unreachable screen has stayed 1.5 s, never by its 10 s timeout.
+    const boot = still ? await still.f.evaluate(() => ({ reason: window.__OCO_STATS__.boot?.reason, skeleton: !!document.getElementById("oco-boot") })).catch(() => null) : null
     // Open Settings opens VS Code settings (filtered to oco).
     if (down) await (await panel(page, sid)).f.locator('[data-oco-action="openSettings"]').click()
     // VS Code 1.139 shows Settings as a tab or a modal overlay; either way it has the settings editor, searched for "oco".
@@ -241,8 +244,8 @@ try {
     await runShot(page, run, "initial-unreachable-recovered")
     const ok =
       down && down.actions.includes("retry") && down.actions.includes("openSettings") && !leaks(down).length &&
-      still?.recovery === "unreachable" && settings && back && back.draft === DRAFT && sent.ok
-    run.record("initial-unreachable", ok ? "PASS" : "FAIL", { down: brief(down), leaks: leaks(down), afterRetryStillDown: brief(still), settingsOpened: !!settings, back: brief(back), draftKept: back?.draft === DRAFT, sent })
+      still?.recovery === "unreachable" && ["text", "unreachable"].includes(boot?.reason) && !boot.skeleton && settings && back && back.draft === DRAFT && sent.ok
+    run.record("initial-unreachable", ok ? "PASS" : "FAIL", { down: brief(down), leaks: leaks(down), afterRetryStillDown: brief(still), boot, settingsOpened: !!settings, back: brief(back), draftKept: back?.draft === DRAFT, sent })
   } catch (e) {
     run.record("initial-unreachable", "FAIL", { error: String(e?.message ?? e).slice(0, 400) })
     proxy.refuse(false)

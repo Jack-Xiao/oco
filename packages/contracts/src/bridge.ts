@@ -49,6 +49,8 @@ export type UiAction =
   | "showSessions"
   | "newSession"
   | "closePanel"
+  // The page first shows the session (or an error / recovery view); handled by the bridge itself.
+  | "painted"
 
 // webview -> host
 export type Hello = Envelope<"hello", { docId: string }>
@@ -123,6 +125,7 @@ const UI_ACTIONS = new Set<UiAction>([
   "showSessions",
   "newSession",
   "closePanel",
+  "painted",
 ])
 const isPos = (v: unknown) => v === undefined || (typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 10_000_000)
 

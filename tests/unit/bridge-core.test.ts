@@ -168,20 +168,29 @@ describe("bridge provider deferral", () => {
       for (let i = 0; i < 100 && !posted.some((m) => m.type === "fetch.end" && m.id === id); i++) await new Promise((r) => setTimeout(r, 5))
       return posted.some((m) => m.type === "fetch.end" && m.id === id)
     }
-    return { core, calls, send, ended }
+    const painted = (gen = core.generation) => core.handle({ v: PROTOCOL_VERSION, gen, type: "ui", action: "painted" })
+    return { core, calls, send, ended, painted }
   }
 
-  test("a booting document's provider list reaches the server after its first message list", async () => {
-    const { core, calls, send, ended } = setup()
+  // The first paint can need more than the message list: the parents of assistant messages cut off by the page limit
+  // are fetched one by one after it. A provider list released at the message list kept those behind 1-5 s of server time.
+  test("a booting document's provider list reaches the server once the page shows the session", async () => {
+    const { core, calls, send, ended, painted } = setup()
     send("p", "/provider?directory=%2Fw")
     send("s", "/session/ses_A")
-    await new Promise((r) => setTimeout(r, 20))
-    expect(calls).toEqual(["/session/ses_A"])
     send("m", "/session/ses_A/message?limit=80")
+    expect(await ended("m")).toBe(true)
+    send("parent", "/session/ses_A/message/msg_1")
+    expect(await ended("parent")).toBe(true)
+    expect(calls).toEqual(["/session/ses_A", "/session/ses_A/message", "/session/ses_A/message/msg_1"])
+    painted(core.generation - 1) // another document's report changes nothing
+    await new Promise((r) => setTimeout(r, 20))
+    expect(calls).not.toContain("/provider")
+    painted()
     expect(await ended("p")).toBe(true)
-    expect(calls).toEqual(["/session/ses_A", "/session/ses_A/message", "/provider"])
+    expect(calls.at(-1)).toBe("/provider")
     expect(core.stats.deferred).toBe(1)
-    send("p2", "/provider") // after first paint: not held
+    send("p2", "/provider") // after the first paint: not held
     expect(await ended("p2")).toBe(true)
     expect(core.stats.deferred).toBe(2)
   })
@@ -281,6 +290,7 @@ describe("bridge provider sharing", () => {
       return new TextDecoder().decode(Buffer.concat(chunks.map((c) => Buffer.from(c))))
     }
     const providerCalls = () => calls.filter((c) => c === "/provider").length
+    core.handle({ v: PROTOCOL_VERSION, gen: core.generation, type: "ui", action: "painted" }) // nothing below is held back
     return { send, body, providerCalls }
   }
 
@@ -288,8 +298,6 @@ describe("bridge provider sharing", () => {
   // the same server request.
   test("identical provider requests in flight together reach the server once; each page gets the whole body", async () => {
     const { send, body, providerCalls } = setup()
-    send("m", "/session/ses_A/message?limit=80") // first paint, so nothing below is held back
-    await body("m")
     send("p1", "/provider?directory=%2Fw")
     send("p2", "/provider?directory=%2Fw")
     send("p3", "/provider")
@@ -302,8 +310,6 @@ describe("bridge provider sharing", () => {
 
   test("nothing is shared once the response is in, nor with a request started before a write", async () => {
     const { send, body, providerCalls } = setup()
-    send("m", "/session/ses_A/message?limit=80")
-    await body("m")
     send("p1", "/provider")
     await body("p1")
     send("p2", "/provider")

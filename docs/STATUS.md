@@ -8,6 +8,24 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
+## 无面板时首开：黑屏、logo 闪屏与等待（2026-10-01；本节提交前写，部署结果见末行）
+
+- 现象：关掉所有面板后打开会话，依次看到灰色空编辑区、黑底骨架屏、官方 logo 闪屏、全黑空白，然后才是内容。原因：骨架屏在 `#root` 一有子节点就移除，之后露出官方健康检查闪屏和没有数据的空页面。
+- 新窗口首开长会话多等 1.2–1.6 s：消息列表返回时放行了暂缓的 `/provider`，页面随后补取被截断的父消息（`fetchMessage(parentID)`），在单线程服务端上排在 `/provider` 后面。
+- 改动：
+  - 骨架屏用 VS Code 编辑区底色、层级高于闪屏，保留到 `#root` 出现文字或输入框；“无法连接”页要持续 1.5 s 才算；最多 10 s；不做淡出。
+  - `/provider` 改为页面报告 `painted` 后放行，上限 10 s。
+  - 试过跳过启动健康检查：只省 0–30 ms，且隧道半断时显示错误页面、不会自动恢复，已撤回。
+- Remote 交替实测（与已装 `d73bf91`，新窗口里依次打开 3 个会话，各 3 组；测试版带跳过健康检查）：
+  - 已装版本 18 次打开都有黑屏阶段和 logo，测试版 18 次都没有。
+  - 新窗口首开中位约 2.9 → 2.3 s；消息到内容出现 1.2–1.6 s → 约 0.3 s。
+  - 同窗口再开约 1 s，没有可测的提速。
+- 检查：
+  - typecheck 0 错误；unit 168/168；build PASS；补丁 0001–0016 重放一致。
+  - E2E（mock）：`p1b-theme-load` 4/4（新增 `boot-continuous`）、`t010-recover` 5/5（`initial-unreachable` 新增骨架屏已撤的断言）、`t014-connection` 6/6、`p1b-main-panel` 8/8、`p1a-identity` 14/14、`p1a-chat` 8/8、`c4-trajectory` 15/15。
+  - 与另一会话同时跑的那两轮 E2E 互相干扰，加上测试端口被占，结果作废未计。
+- 证据：[cold-open](evidence/cold-open.md)、Grok 只读审查 [cold-open-review](evidence/cold-open-review.md)。NOT RUN：慢隧道交替对比、真实模型。
+
 ## 子智能体卡片打开系统浏览器（补丁 0016，提交 `37f2634`，2026-10-01；已快进合入 main 并部署 gcp-workstation；本地，未推送）
 
 - 原因：对话里的子智能体卡片是 `<a href="/server/…/session/<子会话>">`。webview 页面的 `<base>` 是 `https://file+.vscode-resource.vscode-cdn.net/…`，这个路由被解析成 https 网址；VS Code 的 webview 点击拦截不看 `defaultPrevented`，受信任工作区里直接用系统浏览器打开它。同一次点击面板也切到了子会话。

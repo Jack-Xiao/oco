@@ -326,3 +326,18 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 检查与结果见 [subagent-link-0016](evidence/subagent-link-0016.md)。NOT RUN：真实模型。
 - 追加（提交与部署）：提交 `37f2634` 快进合入 main；主检出 vendor 补应用 0015、0016（此前停在 0014）。`oco-0.0.1-37f2634.vsix` 部署 gcp-workstation，extension.js 与 webview 产物哈希均与本地一致。Remote 上的点击 NOT RUN。
 - 追加（点击后的长条焦点框）：用户反馈点卡片出现整行长条框。来源是 VS Code webview 默认样式的 `a:focus` 外框，0016 之前就有（探针在撤掉 0016 的构建上复现），被跳浏览器掩盖。`apps/chat-webview/index.html` 加 `@layer oco-webview` 让 `a:focus` 回到浏览器默认；`subagent-link` 增加点击外框检查。c4-trajectory 15/15、p1a-chat 8/8、c1-open-file 6/6。
+
+## 无面板时首开：黑屏与等待（2026-10-01）
+
+- 用户反馈：关掉所有对话后首次打开会话，“加载一下，黑一下屏，又加载一下”，而且偏慢。
+- 新探针 `evidence/cold-open/cold-probe.mjs`：Remote 新窗口里依次新建 3 个面板，CDP 截屏流按帧算亮度，同时采样页面状态和请求。定位到四段画面，以及新窗口首开时补取父消息排在 `/provider` 后面。
+- 改动：
+  - 骨架屏一直盖到内容出现（编辑区底色、无淡出，“无法连接”页持续 1.5 s 才算）。
+  - `/provider` 等页面 `painted` 后再放行（上限 10 s）。
+  - 跳过健康检查只省 0–30 ms，还有隧道半断时的回归，已撤回。回归由另一会话的 E2E 和 Grok 审查发现。
+- 过程中的坑：
+  - 骨架屏淡出被主线程长任务卡住，内容晚 1–1.7 s 才看得到。
+  - 测试端口 4548 被占，导致一整轮 E2E 作废。
+  - 与另一会话共用 `.oco-test/wt-cop` 同时跑 E2E，结果互相干扰。
+- 检查和结果见 STATUS 本节和 [cold-open](evidence/cold-open.md)。
+

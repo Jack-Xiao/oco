@@ -20,6 +20,8 @@
 - [DONE] `tests/e2e/perf.mjs` 已按 ADR-007 改写并记录基线（见[证据](evidence/v01-completion.md)）。
 - [TODO] 长时间（数小时）运行与长会话的内存趋势；真实模型下的切换耗时。
 - [DONE] 会话切换黑屏与首开提速（补丁 0015、桥接 gzip 修正、在途 `/provider` 合并），提交 `d73bf91`，已合入 main 并部署 gcp-workstation；Remote 复验首访空白帧 0/12，见 [switch-perf](evidence/switch-perf.md)。用户 Remote 窗口 Reload Window 后生效。
+- [DONE] 无面板时首开的黑屏与 logo 闪屏、新窗口首开多等 1.2–1.6 s，见 [cold-open](evidence/cold-open.md)。
+- [TODO] 页面主包压缩：每个新面板都重新经隧道下载 4.5 MB，压缩后约 1.2 MB，慢隧道下省几秒。启动请求排序：会话和消息请求先到服务端。用户已要求做；建议开新会话，实现可委派 Grok。
 - [TODO，按需] 切换到大会话时，新数据到达前没有加载提示（上游 transition 保留旧内容）；首开后第一次点击仍可能等一次 `/provider`（1.2–1.4 s）；首开的健康检查往返。
 
 ## 4. 仍未做的 v0.1 项（按需单独立项）

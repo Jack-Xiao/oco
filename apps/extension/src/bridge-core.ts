@@ -45,12 +45,13 @@ export type CoreDeps = {
 
 type Inflight = { gen: number; ac: AbortController }
 
-// On a large model catalog the provider list is ~1 s of single-threaded server time; a request that reaches
-// the server meanwhile waits for it. The first paint needs the session's messages, not the provider list, so
-// a booting document's provider requests are held until its first message list is answered (or DEFER_MS).
-const DEFER_MS = 3_000
+// On a large model catalog the provider list is ~1 s of single-threaded server time (several seconds on a server
+// that just started); a request that reaches the server meanwhile waits for it. The first paint needs the session's
+// messages, not the provider list, and sometimes more requests after the message list (the parents of assistant
+// messages cut off by the page limit), so a booting document's provider requests are held until the page reports
+// that it shows the session (ui "painted"), or DEFER_MS: the page reports within its skeleton timeout (main.tsx).
+const DEFER_MS = 10_000
 const DEFERRED = /^\/(api\/)?provider$/
-const FIRST_PAINT = /^\/(api\/)?session\/[^/]+\/message$/
 const COMPRESS_MIN_BYTES = 32 * 1024
 const NULL_BODY = new Set([101, 204, 205, 304])
 let generationSeq = 0 // process-wide: generations are never reused across panels or documents
@@ -138,6 +139,9 @@ export class BridgeCore {
         void this.blob(gen, msg)
         return
       case "ui":
+        if (msg.action === "painted") return void (this.firstPaint?.gen === gen && this.firstPaint.open())
+        this.deps.onUi(msg)
+        return
       case "draft.ack":
       case "ready":
         this.deps.onUi(msg)
@@ -182,7 +186,6 @@ export class BridgeCore {
         clearTimeout(timer)
         if (entry.ac.signal.aborted) throw new DOMException("Aborted", "AbortError")
       }
-      const opensGate = !!gate && msg.method === "GET" && FIRST_PAINT.test(target.pathname)
       const url = this.deps.baseUrl() + decision.path
       const init: RequestInit = {
         method: msg.method,
@@ -195,7 +198,6 @@ export class BridgeCore {
         msg.method === "GET" && DEFERRED.test(target.pathname) ? await this.sharedFetch(`${gen}\u0000${writes}`, url, init, entry.ac.signal) : await this.deps.fetch(url, init)
       const sse = (res.headers.get("content-type") ?? "").includes("text/event-stream")
       this.deps.log.info(`${label} -> ${res.status}${sse ? " (stream)" : ""}`)
-      if (opensGate) gate!.open()
       // Over Remote every body byte crosses the tunnel; a provider list is several MB of JSON (~11x smaller gzipped).
       // The server compresses for fetch's default Accept-Encoding and fetch hands over the decoded body (content-length
       // is then the compressed size): such a body was big enough for the server to compress, so compress it again.

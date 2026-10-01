@@ -1,0 +1,3465 @@
+{
+ "label": "ab-cold1",
+ "variant": "cold1",
+ "viewport": {
+  "w": 1440,
+  "h": 883
+ },
+ "frames": "/private/tmp/claude-501/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-conversation-open-performance-af4fd2/5fe88562-e444-455e-a580-04614332f7a4/scratchpad/cold-ab-cold1",
+ "results": [
+  {
+   "k": 0,
+   "name": "Fork功能测试 (fork #2)",
+   "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d",
+   "workbench": {
+    "tab": 126,
+    "iframe": 136,
+    "iframe-ready": 270
+   },
+   "doneMs": 2711,
+   "docStartMs": 358,
+   "installedMs": 391,
+   "paint": [
+    [
+     "first-paint",
+     594
+    ],
+    [
+     "first-contentful-paint",
+     2710
+    ]
+   ],
+   "nav": {
+    "responseStart": 1,
+    "responseEnd": 7,
+    "domInteractive": 10,
+    "dcl": 10,
+    "load": 10,
+    "transfer": 300,
+    "encoded": 0,
+    "decoded": 188
+   },
+   "samples": [
+    {
+     "t": 391,
+     "boot": true,
+     "splash": false,
+     "comps": "",
+     "prompt": false,
+     "turns": 0,
+     "first": "",
+     "text": 0,
+     "kids": 0,
+     "bg": "rgba(0, 0, 0, 0)",
+     "sid": ""
+    },
+    {
+     "t": 571,
+     "boot": true,
+     "splash": false,
+     "comps": "",
+     "prompt": false,
+     "turns": 0,
+     "first": "",
+     "text": 0,
+     "kids": 0,
+     "bg": "rgb(8, 8, 8)",
+     "sid": ""
+    },
+    {
+     "t": 857,
+     "boot": true,
+     "splash": false,
+     "comps": "dialog-stack",
+     "prompt": false,
+     "turns": 0,
+     "first": "",
+     "text": 0,
+     "kids": 2,
+     "bg": "rgb(8, 8, 8)",
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d"
+    },
+    {
+     "t": 2658,
+     "boot": true,
+     "splash": false,
+     "comps": "tooltip-trigger,icon-button-v2,tooltip-v2-trigger,progress-circle-v2,session-turn,tool-part-wrapper,card,collapsible,tool-trigger,tool-error-card-icon,icon,text-part,markdown,user-message",
+     "prompt": true,
+     "turns": 20,
+     "first": "msg_0f66c01d2001vGWhXfsgGf7dsD",
+     "text": 963,
+     "kids": 2,
+     "bg": "rgb(8, 8, 8)",
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d"
+    },
+    {
+     "t": 2674,
+     "boot": true,
+     "splash": false,
+     "comps": "tooltip-trigger,icon-button-v2,tooltip-v2-trigger,progress-circle-v2,session-turn,text-part,markdown,user-message,tool-part-wrapper,collapsible,tool-trigger,text-shimmer,shell-submessage,icon",
+     "prompt": true,
+     "turns": 15,
+     "first": "msg_0f66c01d2001vGWhXfsgGf7dsD",
+     "text": 873,
+     "kids": 2,
+     "bg": "rgb(8, 8, 8)",
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d"
+    },
+    {
+     "t": 3608,
+     "boot": false,
+     "splash": false,
+     "comps": "tooltip-trigger,icon-button-v2,tooltip-v2-trigger,progress-circle-v2,session-turn,text-part,markdown,user-message,tool-part-wrapper,collapsible,tool-trigger,text-shimmer,shell-submessage,icon",
+     "prompt": true,
+     "turns": 15,
+     "first": "msg_0f66c01d2001vGWhXfsgGf7dsD",
+     "text": 838,
+     "kids": 2,
+     "bg": "rgb(8, 8, 8)",
+     "sid": "ses_f0a5af1a3ffe07qdYrPMAyX27d"
+    }
+   ],
+   "resources": [
+    {
+     "name": "assets/index-BkcJTnHJ.js",
+     "start": 373,
+     "end": 556,
+     "transfer": 0,
+     "encoded": 662,
+     "decoded": 662
+    },
+    {
+     "name": "assets/theme-BYP1P3c_.js",
+     "start": 373,
+     "end": 556,
+     "transfer": 0,
+     "encoded": 6939,
+     "decoded": 6939
+    },
+    {
+     "name": "assets/app-Byu9vlNZ.css",
+     "start": 373,
+     "end": 563,
+     "transfer": 0,
+     "encoded": 483887,
+     "decoded": 483887
+    },
+    {
+     "name": "assets/app-9md49DzG.js",
+     "start": 373,
+     "end": 633,
+     "transfer": 0,
+     "encoded": 4042558,
+     "decoded": 4042558
+    },
+    {
+     "name": "assets/zh-D74Y4t1y.js",
+     "start": 853,
+     "end": 1088,
+     "transfer": 0,
+     "encoded": 60297,
+     "decoded": 60297
+    },
+    {
+     "name": "assets/zh-C5pDW30z.js",
+     "start": 853,
+     "end": 1089,
+     "transfer": 0,
+     "encoded": 9240,
+     "decoded": 9240
+    },
+    {
+     "name": "assets/Inter.ttf",
+     "start": 2597,
+     "end": 2894,
+     "transfer": 0,
+     "encoded": 874708,
+     "decoded": 874708
+    },
+    {
+     "name": "assets/markdown.worker-CalnYFWc.js",
+     "start": 2629,
+     "end": 2908,
+     "transfer": 0,
+     "encoded": 2170181,
+     "decoded": 2170181
+    }
+   ],
+   "fetches": [
+    {
+     "t": 808,
+     "head": 891,
+     "end": 892,
+     "bytes": 36,
+     "req": "GET /global/health"
+    },
+    {
+     "t": 848,
+     "head": 948,
+     "end": 948,
+     "bytes": 16,
+     "req": "GET /api/health"
+    },
+    {
+     "t": 854,
+     "head": 1086,
+     "end": 1086,
+     "bytes": 2,
+     "req": "GET /lsp?directory"
+    },
+    {
+     "t": 893,
+     "head": 1086,
+     "end": 1087,
+     "bytes": 45,
+     "req": "GET /global/config"
+    },
+    {
+     "t": 893,
+     "head": null,
+     "end": null,
+     "bytes": 0,
+     "req": "GET /provider"
+    },
+    {
+     "t": 893,
+     "head": 1087,
+     "end": 1087,
+     "bytes": 146,
+     "req": "GET /path"
+    },
+    {
+     "t": 893,
+     "head": 1087,
+     "end": 1087,
+     "bytes": 2,
+     "req": "GET /session/status"
+    },
+    {
+     "t": 894,
+     "head": 1087,
+     "end": 1087,
+     "bytes": 2,
+     "req": "GET /mcp?directory"
+    },
+    {
+     "t": 894,
+     "head": 1087,
+     "end": 1087,
+     "bytes": 2,
+     "req": "GET /experimental/resource?directory"
+    },
+    {
+     "t": 894,
+     "head": 1087,
+     "end": 1087,
+     "bytes": 146,
+     "req": "GET /path?directory"
+    },
+    {
+     "t": 894,
+     "head": null,
+     "end": null,
+     "bytes": 0,
+     "req": "GET /provider?directory"
+    },
+    {
+     "t": 894,
+     "head": 2892,
+     "end": 2892,
+     "bytes": 94,
+     "req": "GET /api/reference?directory&location[directory]"
+    },
+    {
+     "t": 894,
+     "head": 1135,
+     "end": 1212,
+     "bytes": 44530,
+     "req": "GET /session/ses_f0a5af1a3ffe07qdYrPMAyX27d/message?limit"
+    },
+    {
+     "t": 894,
+     "head": 1135,
+     "end": 1171,
+     "bytes": 3386,
+     "req": "GET /agent?directory"
+    },
+    {
+     "t": 894,
+     "head": null,
+     "end": null,
+     "bytes": 0,
+     "req": "GET /provider"
+    },
+    {
+     "t": 894,
+     "head": null,
+     "end": null,
+     "bytes": 0,
+     "req": "GET /provider?directory"
+    },
+    {
+     "t": 894,
+     "head": 1135,
+     "end": 1172,
+     "bytes": 1761,
+     "req": "GET /session?directory&roots&limit"
+    },
+    {
+     "t": 894,
+     "head": 1135,
+     "end": 1172,
+     "bytes": 3386,
+     "req": "GET /agent?directory"
+    },
+    {
+     "t": 894,
+     "head": 1148,
+     "end": 1148,
+     "bytes": 325,
+     "req": "GET /config?directory"
+    },
+    {
+     "t": 894,
+     "head": 1148,
+     "end": 1148,
+     "bytes": 2,
+     "req": "GET /session/status?directory"
+    },
+    {
+     "t": 894,
+     "head": 1148,
+     "end": 1148,
+     "bytes": 37,
+     "req": "GET /vcs?directory"
+    },
+    {
+     "t": 894,
+     "head": 1156,
+     "end": 1211,
+     "bytes": 10606,
+     "req": "GET /command?directory"
+    },
+    {
+     "t": 894,
+     "head": 1172,
+     "end": 1172,
+     "bytes": 2,
+     "req": "GET /permission?directory"
+    },
+    {
+     "t": 894,
+     "head": 1172,
+     "end": 1172,
+     "bytes": 2,
+     "req": "GET /question?directory"
+    },
+    {
+     "t": 894,
+     "head": 1172,
+     "end": 1172,
+     "bytes": 495,
+     "req": "GET /session/ses_f0a5af1a3ffe07qdYrPMAyX27d"
+    },
+    {
+     "t": 894,
+     "head": 1210,
+     "end": 1210,
+     "bytes": 495,
+     "req": "GET /session/ses_f0a5af1a3ffe07qdYrPMAyX27d"
+    },
+    {
+     "t": 894,
+     "head": 1210,
+     "end": 1210,
+     "bytes": 104,
+     "req": "GET /project"
+    },
+    {
+     "t": 894,
+     "head": 1211,
+     "end": 1211,
+     "bytes": 102,
+     "req": "GET /project/current?directory"
+    },
+    {
+     "t": 894,
+     "head": 1211,
+     "end": null,
+     "bytes": 5383,
+     "req": "GET /global/event"
+    },
+    {
+     "t": 1214,
+     "head": 2575,
+     "end": 2576,
+     "bytes": 548,
+     "req": "GET /session/ses_f0a5af1a3ffe07qdYrPMAyX27d/message/msg_0f66c01d2001vGWhXfsgGf7dsD"
+    },
+    {
+     "t": 1216,
+     "head": 2677,
+     "end": 2680,
+     "bytes": 325,
+     "req": "GET /config?directory"
+    },
+    {
+     "t": 1216,
+     "head": 2680,
+     "end": 2680,
+     "bytes": 2,
+     "req": "GET /session/status?directory"
+    },
+    {
+     "t": 1216,
+     "head": 2680,
+     "end": 2680,
+     "bytes": 102,
+     "req": "GET /project/current?directory"
+    },
+    {
+     "t": 1216,
+     "head": 2680,
+     "end": 2680,
+     "bytes": 37,
+     "req": "GET /vcs?directory"
+    },
+    {
+     "t": 1216,
+     "head": 2680,
+     "end": 2681,
+     "bytes": 10606,
+     "req": "GET /command?directory"
+    },
+    {
+     "t": 1216,
+     "head": 2681,
+     "end": 2681,
+     "bytes": 2,
+     "req": "GET /permission?directory"
+    },
+    {
+     "t": 1216,
+     "head": 2681,
+     "end": 2681,
+     "bytes": 2,
+     "req": "GET /question?directory"
+    },
+    {
+     "t": 1216,
+     "head": 2681,
+     "end": 2681,
+     "bytes": 2,
+     "req": "GET /mcp?directory"
+    },
+    {
+     "t": 1216,
+     "head": 2681,
+     "end": 2681,
+     "bytes": 2,
+     "req": "GET /experimental/resource?directory"
+    }
+   ],
+   "frames": [
+    {
+     "t": -389,
+     "lum": 31,
+     "sd": 2,
+     "file": "0-0000.jpg"
+    },
+    {
+     "t": 52,
+     "lum": 31,
+     "sd": 2,
+     "file": "0-0001.jpg"
+    },
+    {
+     "t": 73,
+     "lum": 31,
+     "sd": 2,
+     "file": "0-0002.jpg"
+    },
+    {
+     "t": 83,
+     "lum": 31,
+     "sd": 2,
+     "file": "0-0003.jpg"
+    },
+    {
+     "t": 136,
+     "lum": 31,
+     "sd": 2,
+     "file": "0-0004.jpg"
+    },
+    {
+     "t": 143,
+     "lum": 31,
+     "sd": 2,
+     "file": "0-0005.jpg"
+    },
+    {
+     "t": 152,
+     "lum": 31,
+     "sd": 2,
+     "file": "0-0006.jpg"
+    },
+    {
+     "t": 185,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0007.jpg"
+    },
+    {
+     "t": 200,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0008.jpg"
+    },
+    {
+     "t": 275,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0009.jpg"
+    },
+    {
+     "t": 285,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0010.jpg"
+    },
+    {
+     "t": 302,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0011.jpg"
+    },
+    {
+     "t": 351,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0012.jpg"
+    },
+    {
+     "t": 360,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0013.jpg"
+    },
+    {
+     "t": 368,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0014.jpg"
+    },
+    {
+     "t": 387,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0015.jpg"
+    },
+    {
+     "t": 394,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0016.jpg"
+    },
+    {
+     "t": 401,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0017.jpg"
+    },
+    {
+     "t": 582,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0018.jpg"
+    },
+    {
+     "t": 586,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0019.jpg"
+    },
+    {
+     "t": 596,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0020.jpg"
+    },
+    {
+     "t": 630,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0021.jpg"
+    },
+    {
+     "t": 642,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0022.jpg"
+    },
+    {
+     "t": 652,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0023.jpg"
+    },
+    {
+     "t": 662,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0024.jpg"
+    },
+    {
+     "t": 687,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0025.jpg"
+    },
+    {
+     "t": 693,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0026.jpg"
+    },
+    {
+     "t": 703,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0027.jpg"
+    },
+    {
+     "t": 718,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0028.jpg"
+    },
+    {
+     "t": 736,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0029.jpg"
+    },
+    {
+     "t": 742,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0030.jpg"
+    },
+    {
+     "t": 754,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0031.jpg"
+    },
+    {
+     "t": 767,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0032.jpg"
+    },
+    {
+     "t": 778,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0033.jpg"
+    },
+    {
+     "t": 793,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0034.jpg"
+    },
+    {
+     "t": 804,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0035.jpg"
+    },
+    {
+     "t": 812,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0036.jpg"
+    },
+    {
+     "t": 835,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0037.jpg"
+    },
+    {
+     "t": 843,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0038.jpg"
+    },
+    {
+     "t": 851,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0039.jpg"
+    },
+    {
+     "t": 879,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0040.jpg"
+    },
+    {
+     "t": 886,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0041.jpg"
+    },
+    {
+     "t": 901,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0042.jpg"
+    },
+    {
+     "t": 918,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0043.jpg"
+    },
+    {
+     "t": 926,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0044.jpg"
+    },
+    {
+     "t": 943,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0045.jpg"
+    },
+    {
+     "t": 954,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0046.jpg"
+    },
+    {
+     "t": 961,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0047.jpg"
+    },
+    {
+     "t": 976,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0048.jpg"
+    },
+    {
+     "t": 985,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0049.jpg"
+    },
+    {
+     "t": 993,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0050.jpg"
+    },
+    {
+     "t": 1017,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0051.jpg"
+    },
+    {
+     "t": 1028,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0052.jpg"
+    },
+    {
+     "t": 1036,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0053.jpg"
+    },
+    {
+     "t": 1045,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0054.jpg"
+    },
+    {
+     "t": 1060,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0055.jpg"
+    },
+    {
+     "t": 1068,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0056.jpg"
+    },
+    {
+     "t": 1078,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0057.jpg"
+    },
+    {
+     "t": 1095,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0058.jpg"
+    },
+    {
+     "t": 1103,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0059.jpg"
+    },
+    {
+     "t": 1111,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0060.jpg"
+    },
+    {
+     "t": 1143,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0061.jpg"
+    },
+    {
+     "t": 1153,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0062.jpg"
+    },
+    {
+     "t": 1162,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0063.jpg"
+    },
+    {
+     "t": 1178,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0064.jpg"
+    },
+    {
+     "t": 1185,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0065.jpg"
+    },
+    {
+     "t": 1192,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0066.jpg"
+    },
+    {
+     "t": 1219,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0067.jpg"
+    },
+    {
+     "t": 1227,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0068.jpg"
+    },
+    {
+     "t": 1242,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0069.jpg"
+    },
+    {
+     "t": 1259,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0070.jpg"
+    },
+    {
+     "t": 1278,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0071.jpg"
+    },
+    {
+     "t": 1286,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0072.jpg"
+    },
+    {
+     "t": 1296,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0073.jpg"
+    },
+    {
+     "t": 1318,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0074.jpg"
+    },
+    {
+     "t": 1326,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0075.jpg"
+    },
+    {
+     "t": 1343,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0076.jpg"
+    },
+    {
+     "t": 1352,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0077.jpg"
+    },
+    {
+     "t": 1361,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0078.jpg"
+    },
+    {
+     "t": 1378,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0079.jpg"
+    },
+    {
+     "t": 1384,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0080.jpg"
+    },
+    {
+     "t": 1393,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0081.jpg"
+    },
+    {
+     "t": 1417,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0082.jpg"
+    },
+    {
+     "t": 1428,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0083.jpg"
+    },
+    {
+     "t": 1435,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0084.jpg"
+    },
+    {
+     "t": 1462,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0085.jpg"
+    },
+    {
+     "t": 1467,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0086.jpg"
+    },
+    {
+     "t": 1477,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0087.jpg"
+    },
+    {
+     "t": 1503,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0088.jpg"
+    },
+    {
+     "t": 1509,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0089.jpg"
+    },
+    {
+     "t": 1520,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0090.jpg"
+    },
+    {
+     "t": 1535,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0091.jpg"
+    },
+    {
+     "t": 1544,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0092.jpg"
+    },
+    {
+     "t": 1551,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0093.jpg"
+    },
+    {
+     "t": 1568,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0094.jpg"
+    },
+    {
+     "t": 1576,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0095.jpg"
+    },
+    {
+     "t": 1587,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0096.jpg"
+    },
+    {
+     "t": 1602,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0097.jpg"
+    },
+    {
+     "t": 1609,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0098.jpg"
+    },
+    {
+     "t": 1620,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0099.jpg"
+    },
+    {
+     "t": 1635,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0100.jpg"
+    },
+    {
+     "t": 1643,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0101.jpg"
+    },
+    {
+     "t": 1652,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0102.jpg"
+    },
+    {
+     "t": 1669,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0103.jpg"
+    },
+    {
+     "t": 1676,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0104.jpg"
+    },
+    {
+     "t": 1684,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0105.jpg"
+    },
+    {
+     "t": 1712,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0106.jpg"
+    },
+    {
+     "t": 1720,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0107.jpg"
+    },
+    {
+     "t": 1726,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0108.jpg"
+    },
+    {
+     "t": 1753,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0109.jpg"
+    },
+    {
+     "t": 1762,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0110.jpg"
+    },
+    {
+     "t": 1770,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0111.jpg"
+    },
+    {
+     "t": 1793,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0112.jpg"
+    },
+    {
+     "t": 1803,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0113.jpg"
+    },
+    {
+     "t": 1812,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0114.jpg"
+    },
+    {
+     "t": 1828,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0115.jpg"
+    },
+    {
+     "t": 1837,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0116.jpg"
+    },
+    {
+     "t": 1843,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0117.jpg"
+    },
+    {
+     "t": 1870,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0118.jpg"
+    },
+    {
+     "t": 1876,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0119.jpg"
+    },
+    {
+     "t": 1884,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0120.jpg"
+    },
+    {
+     "t": 1912,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0121.jpg"
+    },
+    {
+     "t": 1917,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0122.jpg"
+    },
+    {
+     "t": 1929,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0123.jpg"
+    },
+    {
+     "t": 1945,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0124.jpg"
+    },
+    {
+     "t": 1951,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0125.jpg"
+    },
+    {
+     "t": 1959,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0126.jpg"
+    },
+    {
+     "t": 1976,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0127.jpg"
+    },
+    {
+     "t": 1984,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0128.jpg"
+    },
+    {
+     "t": 1993,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0129.jpg"
+    },
+    {
+     "t": 2009,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0130.jpg"
+    },
+    {
+     "t": 2017,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0131.jpg"
+    },
+    {
+     "t": 2030,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0132.jpg"
+    },
+    {
+     "t": 2054,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0133.jpg"
+    },
+    {
+     "t": 2059,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0134.jpg"
+    },
+    {
+     "t": 2070,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0135.jpg"
+    },
+    {
+     "t": 2094,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0136.jpg"
+    },
+    {
+     "t": 2103,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0137.jpg"
+    },
+    {
+     "t": 2112,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0138.jpg"
+    },
+    {
+     "t": 2136,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0139.jpg"
+    },
+    {
+     "t": 2144,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0140.jpg"
+    },
+    {
+     "t": 2154,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0141.jpg"
+    },
+    {
+     "t": 2170,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0142.jpg"
+    },
+    {
+     "t": 2195,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0143.jpg"
+    },
+    {
+     "t": 2211,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0144.jpg"
+    },
+    {
+     "t": 2218,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0145.jpg"
+    },
+    {
+     "t": 2237,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0146.jpg"
+    },
+    {
+     "t": 2251,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0147.jpg"
+    },
+    {
+     "t": 2259,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0148.jpg"
+    },
+    {
+     "t": 2270,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0149.jpg"
+    },
+    {
+     "t": 2287,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0150.jpg"
+    },
+    {
+     "t": 2294,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0151.jpg"
+    },
+    {
+     "t": 2318,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0152.jpg"
+    },
+    {
+     "t": 2326,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0153.jpg"
+    },
+    {
+     "t": 2335,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0154.jpg"
+    },
+    {
+     "t": 2354,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0155.jpg"
+    },
+    {
+     "t": 2362,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0156.jpg"
+    },
+    {
+     "t": 2387,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0157.jpg"
+    },
+    {
+     "t": 2395,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0158.jpg"
+    },
+    {
+     "t": 2404,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0159.jpg"
+    },
+    {
+     "t": 2428,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0160.jpg"
+    },
+    {
+     "t": 2434,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0161.jpg"
+    },
+    {
+     "t": 2445,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0162.jpg"
+    },
+    {
+     "t": 2467,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0163.jpg"
+    },
+    {
+     "t": 2479,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0164.jpg"
+    },
+    {
+     "t": 2487,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0165.jpg"
+    },
+    {
+     "t": 2495,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0166.jpg"
+    },
+    {
+     "t": 2509,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0167.jpg"
+    },
+    {
+     "t": 2528,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0168.jpg"
+    },
+    {
+     "t": 2537,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0169.jpg"
+    },
+    {
+     "t": 2545,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0170.jpg"
+    },
+    {
+     "t": 2561,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0171.jpg"
+    },
+    {
+     "t": 2579,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0172.jpg"
+    },
+    {
+     "t": 2585,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0173.jpg"
+    },
+    {
+     "t": 2612,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0174.jpg"
+    },
+    {
+     "t": 2628,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0175.jpg"
+    },
+    {
+     "t": 2637,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0176.jpg"
+    },
+    {
+     "t": 2645,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0177.jpg"
+    },
+    {
+     "t": 2676,
+     "lum": 32,
+     "sd": 6,
+     "file": "0-0178.jpg"
+    },
+    {
+     "t": 3621,
+     "lum": 29,
+     "sd": 9,
+     "file": "0-0179.jpg"
+    },
+    {
+     "t": 3627,
+     "lum": 25,
+     "sd": 22,
+     "file": "0-0180.jpg"
+    },
+    {
+     "t": 3646,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0181.jpg"
+    },
+    {
+     "t": 3699,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0182.jpg"
+    },
+    {
+     "t": 3727,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0183.jpg"
+    },
+    {
+     "t": 3767,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0184.jpg"
+    },
+    {
+     "t": 3910,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0185.jpg"
+    },
+    {
+     "t": 3942,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0186.jpg"
+    },
+    {
+     "t": 3933,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0187.jpg"
+    },
+    {
+     "t": 3984,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0188.jpg"
+    },
+    {
+     "t": 3992,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0189.jpg"
+    },
+    {
+     "t": 4009,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0190.jpg"
+    },
+    {
+     "t": 4025,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0191.jpg"
+    },
+    {
+     "t": 4050,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0192.jpg"
+    },
+    {
+     "t": 4059,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0193.jpg"
+    },
+    {
+     "t": 4092,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0194.jpg"
+    },
+    {
+     "t": 4100,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0195.jpg"
+    },
+    {
+     "t": 4109,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0196.jpg"
+    },
+    {
+     "t": 4133,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0197.jpg"
+    },
+    {
+     "t": 4151,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0198.jpg"
+    },
+    {
+     "t": 4167,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0199.jpg"
+    },
+    {
+     "t": 4176,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0200.jpg"
+    },
+    {
+     "t": 4183,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0201.jpg"
+    },
+    {
+     "t": 4210,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0202.jpg"
+    },
+    {
+     "t": 4216,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0203.jpg"
+    },
+    {
+     "t": 4234,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0204.jpg"
+    },
+    {
+     "t": 4251,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0205.jpg"
+    },
+    {
+     "t": 4259,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0206.jpg"
+    },
+    {
+     "t": 4275,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0207.jpg"
+    },
+    {
+     "t": 4316,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0208.jpg"
+    },
+    {
+     "t": 4325,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0209.jpg"
+    },
+    {
+     "t": 4334,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0210.jpg"
+    },
+    {
+     "t": 4359,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0211.jpg"
+    },
+    {
+     "t": 4367,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0212.jpg"
+    },
+    {
+     "t": 4375,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0213.jpg"
+    },
+    {
+     "t": 4426,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0214.jpg"
+    },
+    {
+     "t": 4433,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0215.jpg"
+    },
+    {
+     "t": 4441,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0216.jpg"
+    },
+    {
+     "t": 4475,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0217.jpg"
+    },
+    {
+     "t": 4492,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0218.jpg"
+    },
+    {
+     "t": 4500,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0219.jpg"
+    },
+    {
+     "t": 4509,
+     "lum": 25,
+     "sd": 23,
+     "file": "0-0220.jpg"
+    }
+   ],
+   "rect": {
+    "x": 352,
+    "y": 35,
+    "width": 788,
+    "height": 816
+   }
+  },
+  {
+   "k": 1,
+   "name": "轻松打招呼 (fork #1)",
+   "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o",
+   "workbench": {
+    "tab": 140,
+    "iframe": 146,
+    "iframe-ready": 231
+   },
+   "doneMs": 1416,
+   "docStartMs": 249,
+   "installedMs": 516,
+   "paint": [
+    [
+     "first-paint",
+     425
+    ],
+    [
+     "first-contentful-paint",
+     1173
+    ]
+   ],
+   "nav": {
+    "responseStart": 5,
+    "responseEnd": 30,
+    "domInteractive": 33,
+    "dcl": 33,
+    "load": 33,
+    "transfer": 300,
+    "encoded": 0,
+    "decoded": 188
+   },
+   "samples": [
+    {
+     "t": 517,
+     "boot": true,
+     "splash": false,
+     "comps": "",
+     "prompt": false,
+     "turns": 0,
+     "first": "",
+     "text": 0,
+     "kids": 0,
+     "bg": "rgb(8, 8, 8)",
+     "sid": ""
+    },
+    {
+     "t": 613,
+     "boot": true,
+     "splash": false,
+     "comps": "dialog-stack",
+     "prompt": false,
+     "turns": 0,
+     "first": "",
+     "text": 0,
+     "kids": 2,
+     "bg": "rgb(8, 8, 8)",
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o"
+    },
+    {
+     "t": 1128,
+     "boot": true,
+     "splash": false,
+     "comps": "tooltip-trigger,icon-button-v2,tooltip-v2-trigger,progress-circle-v2,session-turn,user-message,text-part,markdown,tool-part-wrapper,collapsible,tool-trigger,text-shimmer,shell-submessage,icon",
+     "prompt": true,
+     "turns": 14,
+     "first": "msg_0f58a313e001d2FZLvP8C4sPdb",
+     "text": 1846,
+     "kids": 2,
+     "bg": "rgb(8, 8, 8)",
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o"
+    },
+    {
+     "t": 1142,
+     "boot": true,
+     "splash": false,
+     "comps": "tooltip-trigger,icon-button-v2,tooltip-v2-trigger,progress-circle-v2,session-turn,text-part,markdown,user-message,tool-part-wrapper,collapsible,tool-trigger,task-tool-card,task-tool-surface,task-tool-icon",
+     "prompt": true,
+     "turns": 6,
+     "first": "msg_0f6358eb0001pZd3wMT3piFWRV",
+     "text": 900,
+     "kids": 2,
+     "bg": "rgb(8, 8, 8)",
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o"
+    },
+    {
+     "t": 1279,
+     "boot": false,
+     "splash": false,
+     "comps": "tooltip-trigger,icon-button-v2,tooltip-v2-trigger,progress-circle-v2,session-turn,text-part,markdown,user-message,tool-part-wrapper,collapsible,tool-trigger,task-tool-card,task-tool-surface,task-tool-icon",
+     "prompt": true,
+     "turns": 6,
+     "first": "msg_0f6358eb0001pZd3wMT3piFWRV",
+     "text": 900,
+     "kids": 2,
+     "bg": "rgb(8, 8, 8)",
+     "sid": "ses_f0a75cecfffetDvgGdvvj8cv7o"
+    }
+   ],
+   "resources": [
+    {
+     "name": "assets/index-BkcJTnHJ.js",
+     "start": 289,
+     "end": 383,
+     "transfer": 0,
+     "encoded": 662,
+     "decoded": 662
+    },
+    {
+     "name": "assets/theme-BYP1P3c_.js",
+     "start": 289,
+     "end": 390,
+     "transfer": 0,
+     "encoded": 6939,
+     "decoded": 6939
+    },
+    {
+     "name": "assets/app-Byu9vlNZ.css",
+     "start": 289,
+     "end": 394,
+     "transfer": 0,
+     "encoded": 483887,
+     "decoded": 483887
+    },
+    {
+     "name": "assets/app-9md49DzG.js",
+     "start": 289,
+     "end": 460,
+     "transfer": 0,
+     "encoded": 4042558,
+     "decoded": 4042558
+    },
+    {
+     "name": "assets/zh-D74Y4t1y.js",
+     "start": 608,
+     "end": 761,
+     "transfer": 0,
+     "encoded": 60297,
+     "decoded": 60297
+    },
+    {
+     "name": "assets/zh-C5pDW30z.js",
+     "start": 609,
+     "end": 761,
+     "transfer": 0,
+     "encoded": 9240,
+     "decoded": 9240
+    },
+    {
+     "name": "assets/Inter.ttf",
+     "start": 1091,
+     "end": 1251,
+     "transfer": 0,
+     "encoded": 874708,
+     "decoded": 874708
+    },
+    {
+     "name": "assets/markdown.worker-CalnYFWc.js",
+     "start": 1095,
+     "end": 1254,
+     "transfer": 0,
+     "encoded": 2170181,
+     "decoded": 2170181
+    }
+   ],
+   "fetches": [
+    {
+     "t": 588,
+     "head": 736,
+     "end": 736,
+     "bytes": 36,
+     "req": "GET /global/health"
+    },
+    {
+     "t": 607,
+     "head": 743,
+     "end": 743,
+     "bytes": 16,
+     "req": "GET /api/health"
+    },
+    {
+     "t": 611,
+     "head": 744,
+     "end": 744,
+     "bytes": 2,
+     "req": "GET /lsp?directory"
+    },
+    {
+     "t": 741,
+     "head": 893,
+     "end": 893,
+     "bytes": 45,
+     "req": "GET /global/config"
+    },
+    {
+     "t": 741,
+     "head": 2750,
+     "end": 3162,
+     "bytes": 555647,
+     "req": "GET /provider"
+    },
+    {
+     "t": 741,
+     "head": 893,
+     "end": 893,
+     "bytes": 146,
+     "req": "GET /path"
+    },
+    {
+     "t": 741,
+     "head": 898,
+     "end": 898,
+     "bytes": 2,
+     "req": "GET /session/status"
+    },
+    {
+     "t": 741,
+     "head": 898,
+     "end": 898,
+     "bytes": 2,
+     "req": "GET /mcp?directory"
+    },
+    {
+     "t": 741,
+     "head": 899,
+     "end": 899,
+     "bytes": 2,
+     "req": "GET /experimental/resource?directory"
+    },
+    {
+     "t": 741,
+     "head": 899,
+     "end": 900,
+     "bytes": 146,
+     "req": "GET /path?directory"
+    },
+    {
+     "t": 741,
+     "head": 2750,
+     "end": 3168,
+     "bytes": 555647,
+     "req": "GET /provider?directory"
+    },
+    {
+     "t": 741,
+     "head": 909,
+     "end": 909,
+     "bytes": 94,
+     "req": "GET /api/reference?directory&location[directory]"
+    },
+    {
+     "t": 741,
+     "head": 915,
+     "end": 1080,
+     "bytes": 95900,
+     "req": "GET /session/ses_f0a75cecfffetDvgGdvvj8cv7o/message?limit"
+    },
+    {
+     "t": 741,
+     "head": 917,
+     "end": 949,
+     "bytes": 3386,
+     "req": "GET /agent?directory"
+    },
+    {
+     "t": 741,
+     "head": 2750,
+     "end": 3112,
+     "bytes": 555647,
+     "req": "GET /provider"
+    },
+    {
+     "t": 741,
+     "head": 2750,
+     "end": 3165,
+     "bytes": 555647,
+     "req": "GET /provider?directory"
+    },
+    {
+     "t": 741,
+     "head": 952,
+     "end": 959,
+     "bytes": 1761,
+     "req": "GET /session?directory&roots&limit"
+    },
+    {
+     "t": 741,
+     "head": 952,
+     "end": 1021,
+     "bytes": 3386,
+     "req": "GET /agent?directory"
+    },
+    {
+     "t": 741,
+     "head": 959,
+     "end": 959,
+     "bytes": 325,
+     "req": "GET /config?directory"
+    },
+    {
+     "t": 741,
+     "head": 959,
+     "end": 959,
+     "bytes": 2,
+     "req": "GET /session/status?directory"
+    },
+    {
+     "t": 741,
+     "head": 959,
+     "end": 959,
+     "bytes": 37,
+     "req": "GET /vcs?directory"
+    },
+    {
+     "t": 741,
+     "head": 1012,
+     "end": 1041,
+     "bytes": 10606,
+     "req": "GET /command?directory"
+    },
+    {
+     "t": 741,
+     "head": 1012,
+     "end": 1012,
+     "bytes": 2,
+     "req": "GET /permission?directory"
+    },
+    {
+     "t": 741,
+     "head": 1012,
+     "end": 1012,
+     "bytes": 2,
+     "req": "GET /question?directory"
+    },
+    {
+     "t": 741,
+     "head": 1012,
+     "end": 1012,
+     "bytes": 490,
+     "req": "GET /session/ses_f0a75cecfffetDvgGdvvj8cv7o"
+    },
+    {
+     "t": 741,
+     "head": 1021,
+     "end": 1022,
+     "bytes": 490,
+     "req": "GET /session/ses_f0a75cecfffetDvgGdvvj8cv7o"
+    },
+    {
+     "t": 741,
+     "head": 1022,
+     "end": 1022,
+     "bytes": 104,
+     "req": "GET /project"
+    },
+    {
+     "t": 741,
+     "head": 1023,
+     "end": 1023,
+     "bytes": 102,
+     "req": "GET /project/current?directory"
+    },
+    {
+     "t": 741,
+     "head": 1024,
+     "end": null,
+     "bytes": 101,
+     "req": "GET /global/event"
+    },
+    {
+     "t": 1030,
+     "head": 2423,
+     "end": 2424,
+     "bytes": 325,
+     "req": "GET /config?directory"
+    },
+    {
+     "t": 1030,
+     "head": 2424,
+     "end": 2424,
+     "bytes": 2,
+     "req": "GET /session/status?directory"
+    },
+    {
+     "t": 1030,
+     "head": 2424,
+     "end": 2424,
+     "bytes": 102,
+     "req": "GET /project/current?directory"
+    },
+    {
+     "t": 1030,
+     "head": 2428,
+     "end": 2428,
+     "bytes": 37,
+     "req": "GET /vcs?directory"
+    },
+    {
+     "t": 1030,
+     "head": 2445,
+     "end": 2454,
+     "bytes": 10606,
+     "req": "GET /command?directory"
+    },
+    {
+     "t": 1030,
+     "head": 2454,
+     "end": 2454,
+     "bytes": 94,
+     "req": "GET /api/reference?directory&location[directory]"
+    },
+    {
+     "t": 1030,
+     "head": 2465,
+     "end": 2466,
+     "bytes": 2,
+     "req": "GET /permission?directory"
+    },
+    {
+     "t": 1030,
+     "head": 2472,
+     "end": 2472,
+     "bytes": 2,
+     "req": "GET /question?directory"
+    },
+    {
+     "t": 1030,
+     "head": 2477,
+     "end": 2477,
+     "bytes": 2,
+     "req": "GET /mcp?directory"
+    },
+    {
+     "t": 1030,
+     "head": 2482,
+     "end": 2482,
+     "bytes": 2,
+     "req": "GET /experimental/resource?directory"
+    }
+   ],
+   "frames": [
+    {
+     "t": -367,
+     "lum": 31,
+     "sd": 2,
+     "file": "1-0000.jpg"
+    },
+    {
+     "t": 44,
+     "lum": 31,
+     "sd": 2,
+     "file": "1-0001.jpg"
+    },
+    {
+     "t": 128,
+     "lum": 31,
+     "sd": 2,
+     "file": "1-0002.jpg"
+    },
+    {
+     "t": 78,
+     "lum": 31,
+     "sd": 2,
+     "file": "1-0003.jpg"
+    },
+    {
+     "t": 240,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0004.jpg"
+    },
+    {
+     "t": 251,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0005.jpg"
+    },
+    {
+     "t": 283,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0006.jpg"
+    },
+    {
+     "t": 367,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0007.jpg"
+    },
+    {
+     "t": 384,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0008.jpg"
+    },
+    {
+     "t": 410,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0009.jpg"
+    },
+    {
+     "t": 448,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0010.jpg"
+    },
+    {
+     "t": 463,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0011.jpg"
+    },
+    {
+     "t": 468,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0012.jpg"
+    },
+    {
+     "t": 506,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0013.jpg"
+    },
+    {
+     "t": 523,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0014.jpg"
+    },
+    {
+     "t": 532,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0015.jpg"
+    },
+    {
+     "t": 540,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0016.jpg"
+    },
+    {
+     "t": 572,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0017.jpg"
+    },
+    {
+     "t": 584,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0018.jpg"
+    },
+    {
+     "t": 593,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0019.jpg"
+    },
+    {
+     "t": 634,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0020.jpg"
+    },
+    {
+     "t": 643,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0021.jpg"
+    },
+    {
+     "t": 672,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0022.jpg"
+    },
+    {
+     "t": 751,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0023.jpg"
+    },
+    {
+     "t": 772,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0024.jpg"
+    },
+    {
+     "t": 780,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0025.jpg"
+    },
+    {
+     "t": 807,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0026.jpg"
+    },
+    {
+     "t": 814,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0027.jpg"
+    },
+    {
+     "t": 823,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0028.jpg"
+    },
+    {
+     "t": 892,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0029.jpg"
+    },
+    {
+     "t": 901,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0030.jpg"
+    },
+    {
+     "t": 942,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0031.jpg"
+    },
+    {
+     "t": 959,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0032.jpg"
+    },
+    {
+     "t": 968,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0033.jpg"
+    },
+    {
+     "t": 1034,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0034.jpg"
+    },
+    {
+     "t": 1041,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0035.jpg"
+    },
+    {
+     "t": 1047,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0036.jpg"
+    },
+    {
+     "t": 1081,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0037.jpg"
+    },
+    {
+     "t": 1098,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0038.jpg"
+    },
+    {
+     "t": 1107,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0039.jpg"
+    },
+    {
+     "t": 1131,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0040.jpg"
+    },
+    {
+     "t": 1139,
+     "lum": 32,
+     "sd": 6,
+     "file": "1-0041.jpg"
+    },
+    {
+     "t": 1192,
+     "lum": 30,
+     "sd": 14,
+     "file": "1-0042.jpg"
+    },
+    {
+     "t": 1208,
+     "lum": 29,
+     "sd": 19,
+     "file": "1-0043.jpg"
+    },
+    {
+     "t": 1225,
+     "lum": 28,
+     "sd": 24,
+     "file": "1-0044.jpg"
+    },
+    {
+     "t": 1268,
+     "lum": 27,
+     "sd": 31,
+     "file": "1-0045.jpg"
+    },
+    {
+     "t": 1351,
+     "lum": 27,
+     "sd": 33,
+     "file": "1-0046.jpg"
+    },
+    {
+     "t": 1454,
+     "lum": 33,
+     "sd": 29,
+     "file": "1-0047.jpg"
+    },
+    {
+     "t": 1448,
+     "lum": 33,
+     "sd": 29,
+     "file": "1-0048.jpg"
+    },
+    {
+     "t": 1933,
+     "lum": 33,
+     "sd": 29,
+     "file": "1-0049.jpg"
+    },
+    {
+     "t": 2252,
+     "lum": 33,
+     "sd": 29,
+     "file": "1-0050.jpg"
+    },
+    {
+     "t": 2243,
+     "lum": 33,
+     "sd": 29,
+     "file": "1-0051.jpg"
+    },
+    {
+     "t": 2287,
+     "lum": 33,
+     "sd": 29,
+     "file": "1-0052.jpg"
+    }
+   ],
+   "rect": {
+    "x": 352,
+    "y": 35,
+    "width": 788,
+    "height": 816
+   }
+  },
+  {
+   "k": 2,
+   "name": "Fork功能测试 (fork #1)",
+   "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd",
+   "workbench": {
+    "tab": 113,
+    "iframe": 117,
+    "iframe-ready": 194
+   },
+   "doneMs": 913,
+   "docStartMs": 243,
+   "installedMs": 323,
+   "paint": [
+    [
+     "first-paint",
+     363
+    ],
+    [
+     "first-contentful-paint",
+     927
+    ]
+   ],
+   "nav": {
+    "responseStart": 2,
+    "responseEnd": 7,
+    "domInteractive": 10,
+    "dcl": 10,
+    "load": 10,
+    "transfer": 300,
+    "encoded": 0,
+    "decoded": 188
+   },
+   "samples": [
+    {
+     "t": 323,
+     "boot": true,
+     "splash": false,
+     "comps": "",
+     "prompt": false,
+     "turns": 0,
+     "first": "",
+     "text": 0,
+     "kids": 0,
+     "bg": "rgba(0, 0, 0, 0)",
+     "sid": ""
+    },
+    {
+     "t": 345,
+     "boot": true,
+     "splash": false,
+     "comps": "",
+     "prompt": false,
+     "turns": 0,
+     "first": "",
+     "text": 0,
+     "kids": 0,
+     "bg": "rgb(8, 8, 8)",
+     "sid": ""
+    },
+    {
+     "t": 557,
+     "boot": true,
+     "splash": false,
+     "comps": "dialog-stack",
+     "prompt": false,
+     "turns": 0,
+     "first": "",
+     "text": 0,
+     "kids": 2,
+     "bg": "rgb(8, 8, 8)",
+     "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd"
+    },
+    {
+     "t": 892,
+     "boot": true,
+     "splash": false,
+     "comps": "tooltip-trigger,icon-button-v2,tooltip-v2-trigger,progress-circle-v2,session-turn,user-message,tool-part-wrapper,collapsible,tool-trigger,text-shimmer,tool-action,icon,text-part,markdown",
+     "prompt": true,
+     "turns": 7,
+     "first": "msg_0f5a4741b001OMaluQwF6ndlKp",
+     "text": 813,
+     "kids": 2,
+     "bg": "rgb(8, 8, 8)",
+     "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd"
+    },
+    {
+     "t": 1050,
+     "boot": false,
+     "splash": false,
+     "comps": "tooltip-trigger,icon-button-v2,tooltip-v2-trigger,progress-circle-v2,session-turn,user-message,tool-part-wrapper,collapsible,tool-trigger,text-shimmer,tool-action,icon,text-part,markdown",
+     "prompt": true,
+     "turns": 7,
+     "first": "msg_0f5a4741b001OMaluQwF6ndlKp",
+     "text": 813,
+     "kids": 2,
+     "bg": "rgb(8, 8, 8)",
+     "sid": "ses_f0a5b8bebffeKL2zfvDl4r31Cd"
+    }
+   ],
+   "resources": [
+    {
+     "name": "assets/index-BkcJTnHJ.js",
+     "start": 255,
+     "end": 332,
+     "transfer": 0,
+     "encoded": 662,
+     "decoded": 662
+    },
+    {
+     "name": "assets/theme-BYP1P3c_.js",
+     "start": 255,
+     "end": 334,
+     "transfer": 0,
+     "encoded": 6939,
+     "decoded": 6939
+    },
+    {
+     "name": "assets/app-9md49DzG.js",
+     "start": 255,
+     "end": 393,
+     "transfer": 0,
+     "encoded": 4042558,
+     "decoded": 4042558
+    },
+    {
+     "name": "assets/app-Byu9vlNZ.css",
+     "start": 256,
+     "end": 334,
+     "transfer": 0,
+     "encoded": 483887,
+     "decoded": 483887
+    },
+    {
+     "name": "assets/zh-C5pDW30z.js",
+     "start": 550,
+     "end": 660,
+     "transfer": 0,
+     "encoded": 9240,
+     "decoded": 9240
+    },
+    {
+     "name": "assets/zh-D74Y4t1y.js",
+     "start": 550,
+     "end": 661,
+     "transfer": 0,
+     "encoded": 60297,
+     "decoded": 60297
+    },
+    {
+     "name": "assets/Inter.ttf",
+     "start": 868,
+     "end": 987,
+     "transfer": 0,
+     "encoded": 874708,
+     "decoded": 874708
+    },
+    {
+     "name": "assets/markdown.worker-CalnYFWc.js",
+     "start": 876,
+     "end": 1002,
+     "transfer": 0,
+     "encoded": 2170181,
+     "decoded": 2170181
+    }
+   ],
+   "fetches": [
+    {
+     "t": 527,
+     "head": 678,
+     "end": 678,
+     "bytes": 36,
+     "req": "GET /global/health"
+    },
+    {
+     "t": 548,
+     "head": 680,
+     "end": 680,
+     "bytes": 16,
+     "req": "GET /api/health"
+    },
+    {
+     "t": 553,
+     "head": 680,
+     "end": 680,
+     "bytes": 2,
+     "req": "GET /lsp?directory"
+    },
+    {
+     "t": 679,
+     "head": 786,
+     "end": 787,
+     "bytes": 45,
+     "req": "GET /global/config"
+    },
+    {
+     "t": 679,
+     "head": 2227,
+     "end": 2636,
+     "bytes": 555647,
+     "req": "GET /provider"
+    },
+    {
+     "t": 679,
+     "head": 787,
+     "end": 787,
+     "bytes": 146,
+     "req": "GET /path"
+    },
+    {
+     "t": 679,
+     "head": 809,
+     "end": 810,
+     "bytes": 2,
+     "req": "GET /session/status"
+    },
+    {
+     "t": 679,
+     "head": 810,
+     "end": 810,
+     "bytes": 2,
+     "req": "GET /mcp?directory"
+    },
+    {
+     "t": 679,
+     "head": 810,
+     "end": 810,
+     "bytes": 2,
+     "req": "GET /experimental/resource?directory"
+    },
+    {
+     "t": 679,
+     "head": 810,
+     "end": 810,
+     "bytes": 146,
+     "req": "GET /path?directory"
+    },
+    {
+     "t": 679,
+     "head": 2227,
+     "end": 2565,
+     "bytes": 555647,
+     "req": "GET /provider?directory"
+    },
+    {
+     "t": 679,
+     "head": 810,
+     "end": 810,
+     "bytes": 94,
+     "req": "GET /api/reference?directory&location[directory]"
+    },
+    {
+     "t": 679,
+     "head": 850,
+     "end": 851,
+     "bytes": 14831,
+     "req": "GET /session/ses_f0a5b8bebffeKL2zfvDl4r31Cd/message?limit"
+    },
+    {
+     "t": 679,
+     "head": 850,
+     "end": 850,
+     "bytes": 3386,
+     "req": "GET /agent?directory"
+    },
+    {
+     "t": 679,
+     "head": 2227,
+     "end": 2642,
+     "bytes": 555647,
+     "req": "GET /provider"
+    },
+    {
+     "t": 679,
+     "head": 2227,
+     "end": 2629,
+     "bytes": 555647,
+     "req": "GET /provider?directory"
+    },
+    {
+     "t": 679,
+     "head": 851,
+     "end": 852,
+     "bytes": 1761,
+     "req": "GET /session?directory&roots&limit"
+    },
+    {
+     "t": 679,
+     "head": 855,
+     "end": 855,
+     "bytes": 3386,
+     "req": "GET /agent?directory"
+    },
+    {
+     "t": 679,
+     "head": 855,
+     "end": 855,
+     "bytes": 325,
+     "req": "GET /config?directory"
+    },
+    {
+     "t": 679,
+     "head": 860,
+     "end": 860,
+     "bytes": 2,
+     "req": "GET /session/status?directory"
+    },
+    {
+     "t": 679,
+     "head": 861,
+     "end": 861,
+     "bytes": 37,
+     "req": "GET /vcs?directory"
+    },
+    {
+     "t": 679,
+     "head": 861,
+     "end": 861,
+     "bytes": 10606,
+     "req": "GET /command?directory"
+    },
+    {
+     "t": 679,
+     "head": 861,
+     "end": 861,
+     "bytes": 2,
+     "req": "GET /permission?directory"
+    },
+    {
+     "t": 679,
+     "head": 861,
+     "end": 861,
+     "bytes": 2,
+     "req": "GET /question?directory"
+    },
+    {
+     "t": 679,
+     "head": 861,
+     "end": 861,
+     "bytes": 493,
+     "req": "GET /session/ses_f0a5b8bebffeKL2zfvDl4r31Cd"
+    },
+    {
+     "t": 679,
+     "head": 861,
+     "end": 861,
+     "bytes": 493,
+     "req": "GET /session/ses_f0a5b8bebffeKL2zfvDl4r31Cd"
+    },
+    {
+     "t": 680,
+     "head": 861,
+     "end": 861,
+     "bytes": 104,
+     "req": "GET /project"
+    },
+    {
+     "t": 680,
+     "head": 902,
+     "end": 904,
+     "bytes": 102,
+     "req": "GET /project/current?directory"
+    },
+    {
+     "t": 680,
+     "head": 904,
+     "end": null,
+     "bytes": 101,
+     "req": "GET /global/event"
+    },
+    {
+     "t": 909,
+     "head": 2103,
+     "end": 2103,
+     "bytes": 325,
+     "req": "GET /config?directory"
+    },
+    {
+     "t": 909,
+     "head": 2103,
+     "end": 2103,
+     "bytes": 2,
+     "req": "GET /session/status?directory"
+    },
+    {
+     "t": 909,
+     "head": 2130,
+     "end": 2131,
+     "bytes": 102,
+     "req": "GET /project/current?directory"
+    },
+    {
+     "t": 909,
+     "head": 2133,
+     "end": 2133,
+     "bytes": 37,
+     "req": "GET /vcs?directory"
+    },
+    {
+     "t": 909,
+     "head": 2133,
+     "end": 2143,
+     "bytes": 10606,
+     "req": "GET /command?directory"
+    },
+    {
+     "t": 909,
+     "head": 2136,
+     "end": 2136,
+     "bytes": 94,
+     "req": "GET /api/reference?directory&location[directory]"
+    },
+    {
+     "t": 909,
+     "head": 2142,
+     "end": 2142,
+     "bytes": 2,
+     "req": "GET /permission?directory"
+    },
+    {
+     "t": 909,
+     "head": 2142,
+     "end": 2142,
+     "bytes": 2,
+     "req": "GET /question?directory"
+    },
+    {
+     "t": 909,
+     "head": 2142,
+     "end": 2142,
+     "bytes": 2,
+     "req": "GET /mcp?directory"
+    },
+    {
+     "t": 909,
+     "head": 2142,
+     "end": 2142,
+     "bytes": 2,
+     "req": "GET /experimental/resource?directory"
+    }
+   ],
+   "frames": [
+    {
+     "t": -379,
+     "lum": 31,
+     "sd": 2,
+     "file": "2-0000.jpg"
+    },
+    {
+     "t": 51,
+     "lum": 31,
+     "sd": 2,
+     "file": "2-0001.jpg"
+    },
+    {
+     "t": 74,
+     "lum": 31,
+     "sd": 2,
+     "file": "2-0002.jpg"
+    },
+    {
+     "t": 85,
+     "lum": 31,
+     "sd": 2,
+     "file": "2-0003.jpg"
+    },
+    {
+     "t": 130,
+     "lum": 31,
+     "sd": 2,
+     "file": "2-0004.jpg"
+    },
+    {
+     "t": 184,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0005.jpg"
+    },
+    {
+     "t": 204,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0006.jpg"
+    },
+    {
+     "t": 214,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0007.jpg"
+    },
+    {
+     "t": 260,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0008.jpg"
+    },
+    {
+     "t": 264,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0009.jpg"
+    },
+    {
+     "t": 285,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0010.jpg"
+    },
+    {
+     "t": 297,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0011.jpg"
+    },
+    {
+     "t": 304,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0012.jpg"
+    },
+    {
+     "t": 334,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0013.jpg"
+    },
+    {
+     "t": 339,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0014.jpg"
+    },
+    {
+     "t": 363,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0015.jpg"
+    },
+    {
+     "t": 377,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0016.jpg"
+    },
+    {
+     "t": 406,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0017.jpg"
+    },
+    {
+     "t": 411,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0018.jpg"
+    },
+    {
+     "t": 427,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0019.jpg"
+    },
+    {
+     "t": 461,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0020.jpg"
+    },
+    {
+     "t": 470,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0021.jpg"
+    },
+    {
+     "t": 477,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0022.jpg"
+    },
+    {
+     "t": 510,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0023.jpg"
+    },
+    {
+     "t": 521,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0024.jpg"
+    },
+    {
+     "t": 530,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0025.jpg"
+    },
+    {
+     "t": 597,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0026.jpg"
+    },
+    {
+     "t": 601,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0027.jpg"
+    },
+    {
+     "t": 611,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0028.jpg"
+    },
+    {
+     "t": 644,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0029.jpg"
+    },
+    {
+     "t": 653,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0030.jpg"
+    },
+    {
+     "t": 672,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0031.jpg"
+    },
+    {
+     "t": 696,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0032.jpg"
+    },
+    {
+     "t": 705,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0033.jpg"
+    },
+    {
+     "t": 709,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0034.jpg"
+    },
+    {
+     "t": 738,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0035.jpg"
+    },
+    {
+     "t": 745,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0036.jpg"
+    },
+    {
+     "t": 752,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0037.jpg"
+    },
+    {
+     "t": 779,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0038.jpg"
+    },
+    {
+     "t": 789,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0039.jpg"
+    },
+    {
+     "t": 794,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0040.jpg"
+    },
+    {
+     "t": 819,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0041.jpg"
+    },
+    {
+     "t": 835,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0042.jpg"
+    },
+    {
+     "t": 852,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0043.jpg"
+    },
+    {
+     "t": 863,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0044.jpg"
+    },
+    {
+     "t": 869,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0045.jpg"
+    },
+    {
+     "t": 897,
+     "lum": 32,
+     "sd": 6,
+     "file": "2-0046.jpg"
+    },
+    {
+     "t": 921,
+     "lum": 32,
+     "sd": 7,
+     "file": "2-0047.jpg"
+    },
+    {
+     "t": 930,
+     "lum": 31,
+     "sd": 8,
+     "file": "2-0048.jpg"
+    },
+    {
+     "t": 938,
+     "lum": 29,
+     "sd": 11,
+     "file": "2-0049.jpg"
+    },
+    {
+     "t": 997,
+     "lum": 26,
+     "sd": 25,
+     "file": "2-0050.jpg"
+    },
+    {
+     "t": 1038,
+     "lum": 26,
+     "sd": 29,
+     "file": "2-0051.jpg"
+    },
+    {
+     "t": 1100,
+     "lum": 26,
+     "sd": 29,
+     "file": "2-0052.jpg"
+    },
+    {
+     "t": 1121,
+     "lum": 26,
+     "sd": 29,
+     "file": "2-0053.jpg"
+    },
+    {
+     "t": 1125,
+     "lum": 26,
+     "sd": 29,
+     "file": "2-0054.jpg"
+    },
+    {
+     "t": 1708,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0055.jpg"
+    },
+    {
+     "t": 1929,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0056.jpg"
+    },
+    {
+     "t": 1938,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0057.jpg"
+    },
+    {
+     "t": 1944,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0058.jpg"
+    },
+    {
+     "t": 1970,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0059.jpg"
+    },
+    {
+     "t": 1981,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0060.jpg"
+    },
+    {
+     "t": 1991,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0061.jpg"
+    },
+    {
+     "t": 2006,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0062.jpg"
+    },
+    {
+     "t": 2014,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0063.jpg"
+    },
+    {
+     "t": 2030,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0064.jpg"
+    },
+    {
+     "t": 2048,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0065.jpg"
+    },
+    {
+     "t": 2056,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0066.jpg"
+    },
+    {
+     "t": 2064,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0067.jpg"
+    },
+    {
+     "t": 2081,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0068.jpg"
+    },
+    {
+     "t": 2098,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0069.jpg"
+    },
+    {
+     "t": 2114,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0070.jpg"
+    },
+    {
+     "t": 2122,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0071.jpg"
+    },
+    {
+     "t": 2132,
+     "lum": 27,
+     "sd": 29,
+     "file": "2-0072.jpg"
+    },
+    {
+     "t": 2636,
+     "lum": 26,
+     "sd": 29,
+     "file": "2-0073.jpg"
+    },
+    {
+     "t": 2654,
+     "lum": 26,
+     "sd": 29,
+     "file": "2-0074.jpg"
+    }
+   ],
+   "rect": {
+    "x": 352,
+    "y": 35,
+    "width": 788,
+    "height": 816
+   }
+  }
+ ]
+}

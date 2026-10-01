@@ -1,0 +1,4 @@
+11:06:50 status " SSH: gcp-workstation 0 0 0 oco 启动服务中 Activating Extensions..." 10061 ms
+11:08:05 #0 Fork功能测试 (fork #2)       done 6551 ms  doc 389  shown 6520  frames 542
+11:08:22 #1 轻松打招呼 (fork #1)          done 1045 ms  doc 194  shown 1013  frames 94
+11:08:38 #2 Fork功能测试 (fork #1)       done 860 ms  doc 185  shown 840  frames 80

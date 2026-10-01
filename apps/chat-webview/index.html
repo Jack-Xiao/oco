@@ -20,10 +20,11 @@
   </head>
   <body class="antialiased overscroll-none text-12-regular overflow-hidden bg-v2-background-bg-deep">
     <div id="root" class="flex flex-col h-dvh bg-v2-background-bg-deep"></div>
-    <!-- Painted before the app bundle arrives; src/main.tsx removes it once the app renders into #root. -->
+    <!-- Painted before the app bundle arrives and kept over the app until it shows text (src/main.tsx), on VS Code's
+         editor background so opening a panel does not flash between colours and loading screens. -->
     <div id="oco-boot" aria-busy="true" aria-label="Loading">
       <style>
-        #oco-boot { position: fixed; inset: 0; display: flex; flex-direction: column; gap: 14px; padding: 24px 20px 16px; pointer-events: none; }
+        #oco-boot { position: fixed; inset: 0; z-index: 2147483000; display: flex; flex-direction: column; gap: 14px; padding: 24px 20px 16px; pointer-events: none; background: var(--vscode-editor-background, transparent); }
         #oco-boot i { display: block; height: 10px; border-radius: 5px; background: rgba(127, 127, 127, 0.14); animation: oco-boot 1.2s ease-in-out infinite alternate; }
         #oco-boot .p { margin-top: auto; height: 88px; border-radius: 10px; background: none; border: 1px solid rgba(127, 127, 127, 0.22); animation: none; }
         @keyframes oco-boot { to { opacity: 0.45; } }

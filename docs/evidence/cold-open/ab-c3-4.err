@@ -1,0 +1,4 @@
+11:15:18 status " SSH: gcp-workstation 0 0 0 oco 启动服务中" 10099 ms
+11:15:38 #0 Fork功能测试 (fork #2)       done 1513 ms  doc 375  shown 1492  frames 110
+11:15:53 #1 轻松打招呼 (fork #1)          done 1015 ms  doc 204  shown 933  frames 62
+11:16:11 #2 Fork功能测试 (fork #1)       done 996 ms  doc 183  shown 985  frames 83
