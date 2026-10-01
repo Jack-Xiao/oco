@@ -8,12 +8,13 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
-## 移除 Agents 视图，新增 Connection 视图（2026-10-01；未提交，在 main `28c90ac` 之上；未部署）
+## 移除 Agents 视图，新增 Connection 视图（提交 `b405b19`，2026-10-01；在 main 上，已部署 gcp-workstation；本地，未推送）
 
 - 用户决定：暂不要 Agents，但保留侧栏单独的 “∨ Sessions” 标题行。VS Code 会把容器里唯一的视图并入容器标题，所以加了一个默认折叠的只读 Connection 视图（状态、服务、目录、模式、版本、托管进程、受限模式；“状态”行点击同状态栏）。Agents 代码、命令、单元测试和 `t013-agents` 套件已删除，需要时从 `2b40651` 恢复。
 - 检查：typecheck PASS；unit 166/166；E2E（mock）`p1b-sidebar` 连续 3 次 12/12（新增 `connection-view`），`t014-connection` 6/6、`p1a-identity` 14/14、`t015-diagnostics` 4/4、`t010-recover` 5/5（这四个跑在合入 `28c90ac` 之前）。
 - 测试修复：`p1b-sidebar` 的重命名 / 搜索输入框会被对话 webview 异步抢回焦点（紧接命令面板读状态之后），改动后时序变化暴露为 6 次 3 失败；新增 `openInputBox` 等输入框稳定持有焦点。证据和时间线见 [agents-removal](evidence/agents-removal.md)。
-- NOT RUN：真实模型、Remote 外观。
+- 部署：`oco-0.0.1-b405b19.vsix` 部署 gcp-workstation，远端 `extension.js` 哈希一致（`6de0210b…`），远端清单含 `oco.connection`、不含 `oco.agents`。用户需在 Remote 窗口 Reload Window。
+- NOT RUN：真实模型、Remote 窗口里的实际外观（未截图复验）。
 
 ## 无面板时首开：黑屏、logo 闪屏与等待（提交 `1ad31ce`，2026-10-01；已部署 gcp-workstation；已快进合入 main（`28c90ac`））
 

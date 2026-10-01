@@ -347,4 +347,5 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 用户要求删掉 Agents、保留 “∨ Sessions” 标题行；说明了 VS Code 单视图会并入容器标题后，用户选“删 Agents + 加默认折叠的小视图”。
 - 改动：删除 Agents 视图、命令、单元测试与 `t013-agents`；新增只读 Connection 视图（`connection-view.ts`、`diagnostics.ts` 的 `connectionRows`）；文档同步（USER-GUIDE、README、CHANGELOG、TEST-SCOPE、TASKS、NEXT）。
 - 应另一会话请求，在主检出用 stash → `merge --ff-only` → stash pop 把 main 快进到 `28c90ac`（冷开修复），并按其要求改了 STATUS / NEXT 里两处过时的“未合入 main”文字。
-- 检查与 `p1b-sidebar` 竞态排查见 [agents-removal](evidence/agents-removal.md)。NOT RUN：真实模型、Remote。未提交、未部署。
+- 检查与 `p1b-sidebar` 竞态排查见 [agents-removal](evidence/agents-removal.md)。NOT RUN：真实模型、Remote 外观。
+- 追加（提交与部署）：提交 `b405b19`（直接在 main）；`oco-0.0.1-b405b19.vsix` 部署 gcp-workstation，远端 `extension.js` 哈希一致（`6de0210b…`）。

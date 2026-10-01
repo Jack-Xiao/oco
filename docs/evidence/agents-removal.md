@@ -27,5 +27,6 @@
 
 ## 未验证
 
-- NOT RUN：真实模型；Remote（gcp-workstation）上的外观。未部署。
+- 提交 `b405b19`（main）。部署：`oco-0.0.1-b405b19.vsix` → gcp-workstation，远端 `extension.js` sha256 `6de0210b2a07…`，与包内一致；远端 `package.json` 含 `oco.connection`、不含 `oco.agents`。
+- NOT RUN：真实模型；Remote 窗口里的实际外观（需用户 Reload Window 后查看）。
 - 用户现有 VS Code 里视图布局有缓存，新视图按默认折叠出现；如位置不对，可在侧栏标题 “…” 菜单里重置视图位置。
