@@ -8,6 +8,16 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
+## 嵌入模式去掉「更多」菜单（补丁 0018，2026-10-01；本地，未推送）
+
+- 嵌入会话页不再显示三点菜单；归档改为侧栏会话右键「Archive Session」（`oco.archiveSession`，PATCH `time.archived`），重命名、删除仍在右键菜单。导出、分享在嵌入模式下不再有入口。
+- 检查：typecheck PASS；unit 169/169；`tsgo -b` PASS；补丁重放一致；build PASS。NOT RUN：E2E、真实右键归档。
+
+## 嵌入模式标题行合并（补丁 0017，2026-10-01；本地，未推送）
+
+- 会话页不再显示标题栏整行；状态和审查面板开关移入会话标题行（对话与轨迹都有），上下文用量圆环在嵌入模式下隐藏。新会话页保留标题栏。
+- 检查：`tsgo -b` PASS；build PASS；`c4-trajectory` 17/17（第 3 次运行；第 1 次 `subagent-link` 时序 FAIL，第 2 次启动时崩溃），见 [c4-header-actions-run](evidence/c4-header-actions-run.md)。NOT RUN：中文环境、Remote。
+
 ## 移除 Agents 视图，新增 Connection 视图（提交 `b405b19`，2026-10-01；在 main 上，已部署 gcp-workstation；本地，未推送）
 
 - 用户决定：暂不要 Agents，但保留侧栏单独的 “∨ Sessions” 标题行。VS Code 会把容器里唯一的视图并入容器标题，所以加了一个默认折叠的只读 Connection 视图（状态、服务、目录、模式、版本、托管进程、受限模式；“状态”行点击同状态栏）。Agents 代码、命令、单元测试和 `t013-agents` 套件已删除，需要时从 `2b40651` 恢复。

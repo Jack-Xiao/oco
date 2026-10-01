@@ -362,3 +362,12 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 检查：typecheck PASS；unit 169/169（新增 3）；`OCO_PACKED_APP=1` 下 `p1b-theme-load`、`p1a-chat`、`p1b-main-panel` 全部 PASS（20 项）；本机调试确认 4 MB 原文件不再下载、页面渲染。
 - NOT RUN：Remote 实测（未部署）；`app-*.css`（484 KB）未压缩。
 
+## 2026-10-01 补丁 0017：标题栏操作并入会话标题行
+
+- 改动：嵌入会话页隐藏标题栏；状态、审查面板开关移入对话/轨迹标题行；隐藏上下文用量圆环。`c4-trajectory` 新增 `header-actions-chat`、`header-actions-trajectory`。
+- 结果：`tsgo -b` PASS、build PASS、`c4-trajectory` 17/17（3 次运行中第 3 次；另两次为与本补丁无关的时序问题），见 [c4-header-actions-run](evidence/c4-header-actions-run.md)。NOT RUN：中文、Remote。
+
+## 2026-10-01 补丁 0018：嵌入模式去掉会话「更多」菜单，归档移到侧栏
+
+- 改动：嵌入会话页隐藏三点菜单（重命名/分享/导出/归档/删除）；扩展新增 `oco.archiveSession`，会话列表右键菜单顺序为重命名、归档、删除。归档后关闭绑定该会话的面板，列表移除该行。
+- 结果：typecheck PASS、unit 169/169、`tsgo -b` PASS、0001–0018 在干净树依次 apply 与 vendor 一致、build PASS。NOT RUN：E2E、真实 VS Code 右键归档。

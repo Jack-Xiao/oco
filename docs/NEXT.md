@@ -40,6 +40,8 @@
 - [DONE] 补丁 0014：比例按钮高亮修复；`task` 显示为子智能体行（含子会话 ID）。已提交，未部署，见 [c4-trajectory-0014](evidence/c4-trajectory-0014.md)。
 - [TODO] 子智能体行跳转到子会话（需确认 oco 面板内切换子会话的方式）。
 - [DONE] 补丁 0016：对话里点子智能体不再打开系统浏览器，只在本面板打开子会话，见 [subagent-link-0016](evidence/subagent-link-0016.md)。（对话卡片的面板内切换走宿主 `openSession`，轨迹行可复用同一路径。）
+- [DONE] 补丁 0018：嵌入模式去掉会话三点菜单；归档移到侧栏会话右键菜单（`oco.archiveSession`）。
+- [DONE] 补丁 0017：嵌入模式去掉标题栏整行，状态与审查面板开关并入会话标题行，隐藏上下文圆环，见 [c4-header-actions-run](evidence/c4-header-actions-run.md)。
 - [TODO] Remote 窗口 Reload Window 后查看轨迹；在装有中文语言包的 VS Code 里确认官方界面和轨迹都是中文。
 - [TODO]（用户已决定暂不做）工具页签按会话智能体的权限标灰被禁用的工具；MCP 工具单独分组。
 - [TODO] 数千行长会话的滚动与内存（工作站上最长只有 12 次请求）。

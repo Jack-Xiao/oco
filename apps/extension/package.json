@@ -46,6 +46,13 @@
         "enablement": "isWorkspaceTrusted"
       },
       {
+        "command": "oco.archiveSession",
+        "title": "Archive Session",
+        "category": "oco",
+        "icon": "$(archive)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
         "command": "oco.deleteSession",
         "title": "Delete Session",
         "category": "oco",
@@ -164,9 +171,14 @@
           "group": "1_edit@1"
         },
         {
-          "command": "oco.deleteSession",
+          "command": "oco.archiveSession",
           "when": "view == oco.sessions && viewItem == oco.session",
           "group": "1_edit@2"
+        },
+        {
+          "command": "oco.deleteSession",
+          "when": "view == oco.sessions && viewItem == oco.session",
+          "group": "1_edit@3"
         }
       ],
       "commandPalette": [

@@ -1,0 +1,14 @@
+diff --git a/packages/app/src/pages/session/timeline/message-timeline.tsx b/packages/app/src/pages/session/timeline/message-timeline.tsx
+--- a/packages/app/src/pages/session/timeline/message-timeline.tsx
++++ b/packages/app/src/pages/session/timeline/message-timeline.tsx
+@@ -1540,7 +1540,9 @@
+                         buttonAppearance={settings.general.newLayoutDesigns() ? "v2" : "default"}
+                       />
+                     </Show>
+-                    <Show when={!parentID()}>
++                    {/* oco: embedded hosts drop the more-options menu; archive / rename / delete live in the host's
++                        session list. */}
++                    <Show when={!platform.embedded && !parentID()}>
+                       <Show
+                         when={settings.general.newLayoutDesigns()}
+                         fallback={

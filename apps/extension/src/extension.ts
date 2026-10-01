@@ -289,6 +289,19 @@ export function activate(context: vscode.ExtensionContext) {
         fail("无法重命名会话", e)
       }
     }),
+    vscode.commands.registerCommand("oco.archiveSession", async (arg?: SessionItem) => {
+      try {
+        if (!requireTrust("归档会话")) return
+        const item = arg instanceof SessionItem ? arg.session : undefined
+        const s = item ?? (await pickSession("选择要归档的会话"))
+        if (!s) return
+        const updated = await conn.request<SessionInfo>("PATCH", `/session/${encodeURIComponent(s.id)}`, { time: { archived: Date.now() } }, s.directory)
+        for (const e of panels.list()) if (e.binding.sessionId === s.id) e.panel.dispose()
+        if (store.add(updated)) view.refresh()
+      } catch (e) {
+        fail("无法归档会话", e)
+      }
+    }),
     vscode.commands.registerCommand("oco.deleteSession", async (arg?: SessionItem) => {
       try {
         if (!requireTrust("删除会话")) return
