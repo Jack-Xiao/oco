@@ -22,7 +22,7 @@
 - [DONE] 会话切换黑屏与首开提速（补丁 0015、桥接 gzip 修正、在途 `/provider` 合并），提交 `d73bf91`，已合入 main 并部署 gcp-workstation；Remote 复验首访空白帧 0/12，见 [switch-perf](evidence/switch-perf.md)。用户 Remote 窗口 Reload Window 后生效。
 - [DONE] 无面板时首开的黑屏与 logo 闪屏、新窗口首开多等 1.2–1.6 s：提交 `1ad31ce`，已部署 gcp-workstation 并在 Remote 复验，见 [cold-open](evidence/cold-open.md)。用户需在 Remote 窗口 Reload Window。
 - [DONE] `1ad31ce`/`28c90ac` 已合入 main。
-- [DONE，未部署、Remote 未测] 页面主包压缩（4.04 MB → 1.18 MB `.gz`，Remote 面板经 import map 加载）与启动请求排序（`/lsp`、`/mcp`、`/vcs`、`/command`、`/api/reference`、`/experimental/resource` 与 `/provider` 一起暂缓到首屏）。本机 E2E 通过；待部署 gcp-workstation 后用 `switch-probe`/`remote-probe` 做 Remote 前后对比。
+- [DONE，已部署 gcp-workstation（oco-0.0.3-a2bcfe7，远端哈希一致），Remote 未测] 页面主包压缩（4.04 MB → 1.18 MB `.gz`，Remote 面板经 import map 加载）与启动请求排序（`/lsp`、`/mcp`、`/vcs`、`/command`、`/api/reference`、`/experimental/resource` 与 `/provider` 一起暂缓到首屏）。本机 E2E 通过；用户 Reload Window 后用 `switch-probe`/`remote-probe` 做 Remote 前后对比。
 - [TODO，按需] 切换到大会话时，新数据到达前没有加载提示（上游 transition 保留旧内容）；首开后第一次点击仍可能等一次 `/provider`（1.2–1.4 s）；首开的健康检查往返。
 
 ## 4. 仍未做的 v0.1 项（按需单独立项）
