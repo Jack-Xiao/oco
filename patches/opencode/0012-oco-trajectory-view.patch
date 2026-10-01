@@ -1,0 +1,1308 @@
+diff --git a/packages/app/src/components/session/session-trajectory-model.test.ts b/packages/app/src/components/session/session-trajectory-model.test.ts
+new file mode 100644
+index 0000000..64c624f
+--- /dev/null
++++ b/packages/app/src/components/session/session-trajectory-model.test.ts
+@@ -0,0 +1,155 @@
++// oco (patches/opencode/0012): trajectory view data model.
++import { describe, expect, test } from "bun:test"
++import { buildTrajectory, createTimeScale, idTime, requestTiming } from "./session-trajectory-model"
++
++const T0 = 1_790_000_000_000
++
++/** An ascending OpenCode id created at `ms` (same encoding as packages/opencode/src/id/id.ts). */
++const id = (prefix: string, ms: number, counter = 0) =>
++  `${prefix}_${((BigInt(ms) * 4096n + BigInt(counter)) % 2n ** 48n).toString(16).padStart(12, "0")}AbCdEfGhIjKlMn`
++
++const user = (ms: number, extra: Record<string, unknown> = {}) =>
++  ({ id: id("msg", ms), sessionID: "s", role: "user", time: { created: ms }, agent: "build", model: {}, ...extra }) as any
++
++const assistant = (parent: any, ms: number, extra: Record<string, unknown> = {}) =>
++  ({
++    id: id("msg", ms),
++    sessionID: "s",
++    role: "assistant",
++    parentID: parent.id,
++    time: { created: ms, completed: ms + 2100 },
++    modelID: "m",
++    providerID: "p",
++    mode: "build",
++    agent: "build",
++    path: { cwd: "/", root: "/" },
++    cost: 0.01,
++    tokens: { input: 100, output: 120, reasoning: 20, cache: { read: 900, write: 0 } },
++    ...extra,
++  }) as any
++
++const text = (ms: number, value: string, end?: number, extra: Record<string, unknown> = {}) =>
++  ({ id: id("prt", ms), type: "text", text: value, time: { start: ms, end }, ...extra }) as any
++
++describe("idTime", () => {
++  test("decodes the creation time of an ascending id", () => {
++    expect(idTime(id("prt", T0 + 1234, 7), T0)).toBe(T0 + 1234)
++  })
++  test("recovers the time across the 48-bit wrap", () => {
++    const wrap = Math.ceil(T0 / 2 ** 36) * 2 ** 36
++    expect(idTime(id("prt", wrap + 5), wrap - 10)).toBe(wrap + 5)
++    expect(idTime(id("prt", wrap - 5), wrap + 10)).toBe(wrap - 5)
++  })
++  test("rejects ids without a timestamp", () => {
++    expect(idTime("u1", T0)).toBeUndefined()
++  })
++})
++
++describe("buildTrajectory", () => {
++  const u = user(T0)
++  const a1 = assistant(u, T0 + 100)
++  const a2 = assistant(u, T0 + 2300, { time: { created: T0 + 2300, completed: T0 + 3000 }, cost: 0 })
++  const parts: Record<string, any[]> = {
++    [u.id]: [
++      text(T0, "hello"),
++      text(T0 + 1, "Called the Read tool with x", undefined, { synthetic: true }),
++      { id: id("prt", T0 + 2), type: "file", mime: "image/png", filename: "a.png", url: "data:" },
++    ],
++    [a1.id]: [
++      { id: id("prt", T0 + 300), type: "step-start" },
++      { id: id("prt", T0 + 500), type: "reasoning", text: "think", time: { start: T0 + 500, end: T0 + 900 } },
++      text(T0 + 950, "answer", T0 + 1300),
++      {
++        id: id("prt", T0 + 1000),
++        type: "tool",
++        tool: "bash",
++        callID: "c1",
++        state: { status: "completed", input: { command: "ls" }, output: "a\nb", title: "", metadata: {}, time: { start: T0 + 1100, end: T0 + 2000 } },
++      },
++      { id: id("prt", T0 + 2100), type: "step-finish", reason: "tool-calls", cost: 0.01, tokens: {} },
++    ],
++    [a2.id]: [text(T0 + 2600, "done", T0 + 2900)],
++  }
++  const tr = buildTrajectory({ messages: [u, a1, a2], parts: (m) => parts[m] ?? [], now: T0 + 10_000 })
++
++  test("rows follow the session order with request boundaries", () => {
++    expect(tr.rows.map((r) => r.kind)).toEqual(["system", "user", "context", "context", "reasoning", "text", "tool", "text"])
++    expect(tr.rows.filter((r) => r.firstOfRequest).map((r) => r.request)).toEqual([0, 1])
++    const tool = tr.rows.find((r) => r.kind === "tool") as any
++    expect(tool.input).toBe('{"command":"ls"}')
++    expect(tool.output).toBe("a b")
++  })
++
++  test("requests are numbered per turn and timed from stored data", () => {
++    expect(tr.requests.map((r) => [r.turn, r.step, r.status])).toEqual([
++      [0, 1, "done"],
++      [0, 2, "done"],
++    ])
++    const r = tr.requests[0]!
++    expect(r.firstToken).toBe(T0 + 500)
++    expect(r.generationEnd).toBe(T0 + 1300)
++    expect(r.windowEnd).toBe(T0 + 2200)
++    const timing = requestTiming(r)
++    expect(timing.ttft).toBe(400)
++    expect(timing.generation).toBe(800)
++    expect(timing.throughput).toBeCloseTo(140 / 0.8)
++    expect(timing.total).toBe(2100)
++  })
++
++  test("totals add up tokens, cost and tools", () => {
++    expect(tr.totals).toMatchObject({ input: 200, output: 240, reasoning: 40, cacheRead: 1800, cost: 0.01, requests: 2, tools: 1 })
++    expect(tr.turns).toHaveLength(1)
++    expect(tr.end).toBe(T0 + 3000)
++  })
++
++  test("running and failed requests", () => {
++    const running = assistant(u, T0 + 100, { time: { created: T0 + 100 } })
++    const failed = assistant(u, T0 + 200, { error: { name: "APIError", data: { message: "rate limited" } } })
++    const out = buildTrajectory({
++      messages: [u, running, failed],
++      parts: (m) =>
++        m === running.id
++          ? [{ id: id("prt", T0 + 400), type: "tool", tool: "read", callID: "c", state: { status: "running", input: {}, time: { start: T0 + 400 } } }] as any
++          : [],
++      now: T0 + 5000,
++    })
++    expect(out.requests[0]).toMatchObject({ status: "running", windowEnd: T0 + 5000 })
++    expect(out.requests[1]).toMatchObject({ status: "error", error: "APIError: rate limited" })
++    expect(out.rows.at(-1)).toMatchObject({ kind: "event", label: "错误", error: true })
++  })
++
++  test("a message held twice in the store is listed once", () => {
++    const out = buildTrajectory({ messages: [u, a1, u, a2], parts: (m) => parts[m] ?? [], now: T0 + 10_000 })
++    expect(out.rows.filter((r) => r.kind === "user")).toHaveLength(1)
++    expect(out.turns).toHaveLength(1)
++    expect(out.requests.map((r) => r.step)).toEqual([1, 2])
++  })
++
++  test("records a stored custom system prompt", () => {
++    const out = buildTrajectory({ messages: [user(T0, { system: "be brief" })], parts: () => [], now: T0 })
++    expect(out.rows[0]).toMatchObject({ kind: "system", text: "be brief" })
++  })
++})
++
++describe("createTimeScale", () => {
++  const u1 = user(T0)
++  const a1 = assistant(u1, T0 + 10, { time: { created: T0 + 10, completed: T0 + 1000 } })
++  const u2 = user(T0 + 3_600_000)
++  const a2 = assistant(u2, T0 + 3_600_010, { time: { created: T0 + 3_600_010, completed: T0 + 3_603_000 } })
++  const tr = buildTrajectory({ messages: [u1, a1, u2, a2], parts: () => [], now: T0 + 4_000_000 })
++
++  test("duration scale collapses idle time between turns", () => {
++    const { x } = createTimeScale(tr, "duration")
++    expect(x(T0)).toBe(0)
++    expect(x(T0 + 3_600_000)).toBeCloseTo(1000 / 4000)
++    expect(x(T0 + 1_000_000)).toBeCloseTo(1000 / 4000)
++    expect(x(T0 + 3_603_000)).toBe(1)
++  })
++
++  test("request scale gives each request the same width", () => {
++    const { x, boundaries } = createTimeScale(tr, "request")
++    expect(boundaries).toEqual([0.5])
++    expect(x(T0 + 3_600_000)).toBe(0.5)
++    expect(x(T0 + 505)).toBeCloseTo(0.25)
++  })
++})
+diff --git a/packages/app/src/components/session/session-trajectory-model.ts b/packages/app/src/components/session/session-trajectory-model.ts
+new file mode 100644
+index 0000000..26bd744
+--- /dev/null
++++ b/packages/app/src/components/session/session-trajectory-model.ts
+@@ -0,0 +1,390 @@
++// oco (patches/opencode/0012): trajectory view data model. Pure functions over the session's stored
++// messages and parts; no network, no Solid. One assistant message is one model request (one step).
++import type { AssistantMessage, Message, Part, ToolPart, UserMessage } from "@opencode-ai/sdk/v2/client"
++
++export type TrajectoryTokens = {
++  input: number
++  output: number
++  reasoning: number
++  cacheRead: number
++  cacheWrite: number
++}
++
++export type TrajectoryRequest = {
++  /** 0-based position in Trajectory.requests. */
++  index: number
++  /** 1-based step within its turn. */
++  step: number
++  /** 0-based turn index. */
++  turn: number
++  message: AssistantMessage
++  start: number
++  /** First streamed content (reasoning, text or tool input). */
++  firstToken?: number
++  /** Last generated content: text/reasoning end or the latest tool call's execution start. */
++  generationEnd?: number
++  /** Request finished (message completed, else the step-finish part time). */
++  end?: number
++  /** End of everything this request caused, including its tools; `now` while still running. */
++  windowEnd: number
++  tokens: TrajectoryTokens
++  cost: number
++  status: "running" | "done" | "error"
++  error?: string
++}
++
++export type TrajectoryTurn = {
++  index: number
++  user?: UserMessage
++  start: number
++  end: number
++  requests: number[]
++}
++
++type RowBase = { id: string; turn: number; request?: number; firstOfRequest?: boolean }
++
++export type TrajectoryRow =
++  | (RowBase & { kind: "system"; text: string })
++  | (RowBase & { kind: "user"; text: string; message: UserMessage })
++  | (RowBase & { kind: "context"; label: string; text: string; part: Part })
++  | (RowBase & { kind: "reasoning" | "text"; text: string; part: Part; start?: number; end?: number })
++  | (RowBase & {
++      kind: "tool"
++      tool: string
++      status: ToolPart["state"]["status"]
++      input: string
++      output: string
++      part: ToolPart
++      start?: number
++      end?: number
++    })
++  | (RowBase & { kind: "event"; label: string; text: string; part?: Part; error?: boolean })
++
++export type Trajectory = {
++  turns: TrajectoryTurn[]
++  requests: TrajectoryRequest[]
++  rows: TrajectoryRow[]
++  start: number
++  end: number
++  totals: TrajectoryTokens & { cost: number; requests: number; tools: number }
++}
++
++const ID_PERIOD = 2 ** 36
++
++/** Creation time (ms) encoded in an ascending OpenCode id (`prefix_` + 12 hex digits of
++ *  `ms * 0x1000 + counter`, low 48 bits). The high bits are lost, so align to a nearby time. */
++export function idTime(id: string, near: number): number | undefined {
++  const at = id.indexOf("_")
++  const hex = id.slice(at + 1, at + 13)
++  if (at < 0 || !/^[0-9a-f]{12}$/i.test(hex)) return
++  const low = Math.floor(parseInt(hex, 16) / 0x1000)
++  const base = near - (near % ID_PERIOD)
++  let t = base + low
++  if (t - near > ID_PERIOD / 2) t -= ID_PERIOD
++  if (near - t > ID_PERIOD / 2) t += ID_PERIOD
++  return t
++}
++
++export function oneLine(text: string, max = 240) {
++  const flat = text.replace(/\s+/g, " ").trim()
++  return flat.length > max ? flat.slice(0, max - 1) + "…" : flat
++}
++
++function stringify(value: unknown) {
++  if (typeof value === "string") return value
++  try {
++    return JSON.stringify(value) ?? ""
++  } catch {
++    return String(value)
++  }
++}
++
++function errorText(error: unknown): string | undefined {
++  if (!error || typeof error !== "object") return
++  const e = error as { name?: string; data?: { message?: string } }
++  return [e.name, e.data?.message].filter(Boolean).join(": ") || stringify(error)
++}
++
++function max(...values: (number | undefined)[]) {
++  let out: number | undefined
++  for (const v of values) if (v !== undefined && (out === undefined || v > out)) out = v
++  return out
++}
++
++function min(...values: (number | undefined)[]) {
++  let out: number | undefined
++  for (const v of values) if (v !== undefined && (out === undefined || v < out)) out = v
++  return out
++}
++
++function toolStart(part: ToolPart) {
++  return "time" in part.state ? part.state.time.start : undefined
++}
++
++function toolEnd(part: ToolPart) {
++  const time = "time" in part.state ? (part.state.time as { end?: number }) : undefined
++  return time?.end
++}
++
++function toolOutput(part: ToolPart) {
++  const s = part.state
++  if (s.status === "completed") return s.output
++  if (s.status === "error") return s.error
++  return ""
++}
++
++export function emptyTokens(): TrajectoryTokens {
++  return { input: 0, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0 }
++}
++
++export function promptTokens(t: TrajectoryTokens) {
++  return t.input + t.cacheRead + t.cacheWrite
++}
++
++export function totalTokens(t: TrajectoryTokens) {
++  return promptTokens(t) + t.output + t.reasoning
++}
++
++/** Time-to-first-token, generation time and throughput (generated tokens per second). */
++export function requestTiming(r: TrajectoryRequest) {
++  const ttft = r.firstToken !== undefined ? r.firstToken - r.start : undefined
++  const generation =
++    r.firstToken !== undefined && r.generationEnd !== undefined ? r.generationEnd - r.firstToken : undefined
++  const generated = r.tokens.output + r.tokens.reasoning
++  const throughput = generation !== undefined && generation >= 100 && generated > 0 ? generated / (generation / 1000) : undefined
++  const total = r.end !== undefined ? r.end - r.start : undefined
++  return { ttft, generation, throughput, total }
++}
++
++const CONTEXT_LABEL = "上下文"
++
++export function buildTrajectory(input: {
++  messages: Message[]
++  parts: (messageID: string) => Part[]
++  now: number
++}): Trajectory {
++  const turns: TrajectoryTurn[] = []
++  const requests: TrajectoryRequest[] = []
++  const rows: TrajectoryRow[] = []
++  const turnByUser = new Map<string, number>()
++  const totals = { ...emptyTokens(), cost: 0, requests: 0, tools: 0 }
++
++  const system = input.messages.find((m): m is UserMessage => m.role === "user" && !!m.system)?.system
++  const firstUser = input.messages.find((m): m is UserMessage => m.role === "user")
++  rows.push({
++    id: "system",
++    kind: "system",
++    turn: -1,
++    text: system
++      ? oneLine(system)
++      : `智能体 ${firstUser?.agent ?? "-"} · 系统提示词由 OpenCode 运行时组装，未保存实际发送内容`,
++  })
++
++  // The sync store can briefly hold a message twice (optimistic copy + server copy, same id): keep the
++  // latest copy at the first position.
++  const unique = new Map<string, Message>()
++  for (const message of input.messages) unique.set(message.id, message)
++
++  for (const message of unique.values()) {
++    const parts = input.parts(message.id)
++    if (message.role === "user") {
++      const index = turns.length
++      turnByUser.set(message.id, index)
++      turns.push({ index, user: message, start: message.time.created, end: message.time.created, requests: [] })
++      const typed = parts
++        .filter((p) => p.type === "text" && !p.synthetic && !p.ignored)
++        .map((p) => (p.type === "text" ? p.text : ""))
++        .join("\n")
++      rows.push({ id: message.id, kind: "user", turn: index, text: oneLine(typed || "（无文本）"), message })
++      for (const part of parts) {
++        if (part.type === "text" && (part.synthetic || part.ignored)) {
++          if (!part.text.trim()) continue
++          rows.push({ id: part.id, kind: "context", turn: index, label: CONTEXT_LABEL, text: oneLine(part.text), part })
++        } else if (part.type === "file") {
++          rows.push({
++            id: part.id,
++            kind: "context",
++            turn: index,
++            label: "附件",
++            text: oneLine(`${part.filename ?? part.url} · ${part.mime}`),
++            part,
++          })
++        } else if (part.type === "agent") {
++          rows.push({ id: part.id, kind: "event", turn: index, label: "智能体", text: `@${part.name}`, part })
++        } else if (part.type === "subtask") {
++          rows.push({
++            id: part.id,
++            kind: "event",
++            turn: index,
++            label: "子任务",
++            text: oneLine(`${part.agent} · ${part.description}`),
++            part,
++          })
++        } else if (part.type === "compaction") {
++          rows.push({
++            id: part.id,
++            kind: "event",
++            turn: index,
++            label: "压缩",
++            text: part.auto ? "上下文自动压缩" : "上下文压缩",
++            part,
++          })
++        }
++      }
++      continue
++    }
++
++    let turnIndex = turnByUser.get(message.parentID) ?? turns.length - 1
++    if (turnIndex < 0) {
++      turnIndex = 0
++      turns.push({ index: 0, start: message.time.created, end: message.time.created, requests: [] })
++    }
++    const turn = turns[turnIndex]!
++    const index = requests.length
++    const near = message.time.created
++    let first: number | undefined
++    let genEnd: number | undefined
++    let finishAt: number | undefined
++    let toolsEnd: number | undefined
++    let firstRow = true
++    const push = (row: TrajectoryRow) => {
++      rows.push(firstRow ? { ...row, firstOfRequest: true } : row)
++      firstRow = false
++    }
++
++    for (const part of parts) {
++      if (part.type === "reasoning" || part.type === "text") {
++        const start = part.time?.start ?? idTime(part.id, near)
++        const end = part.time?.end
++        if (part.type === "text" && !part.text.trim() && !end) continue
++        first = min(first, start)
++        genEnd = max(genEnd, end, start)
++        if (!part.text.trim()) continue
++        push({ id: part.id, kind: part.type, turn: turnIndex, request: index, text: oneLine(part.text), part, start, end })
++      } else if (part.type === "tool") {
++        const created = idTime(part.id, near)
++        const start = toolStart(part) ?? created
++        const end = toolEnd(part)
++        first = min(first, created ?? start)
++        genEnd = max(genEnd, start)
++        toolsEnd = max(toolsEnd, end ?? (part.state.status === "running" || part.state.status === "pending" ? input.now : start))
++        totals.tools++
++        push({
++          id: part.id,
++          kind: "tool",
++          turn: turnIndex,
++          request: index,
++          tool: part.tool,
++          status: part.state.status,
++          input: oneLine(stringify(part.state.input), 160),
++          output: oneLine(toolOutput(part) || (part.state.status === "running" ? "运行中…" : "")),
++          part,
++          start,
++          end,
++        })
++      } else if (part.type === "step-finish") {
++        finishAt = idTime(part.id, near)
++      } else if (part.type === "patch") {
++        push({
++          id: part.id,
++          kind: "event",
++          turn: turnIndex,
++          request: index,
++          label: "变更",
++          text: oneLine(`${part.files.length} 个文件 · ${part.files.join(", ")}`),
++          part,
++        })
++      } else if (part.type === "retry") {
++        push({
++          id: part.id,
++          kind: "event",
++          turn: turnIndex,
++          request: index,
++          label: "重试",
++          text: oneLine(`第 ${part.attempt} 次 · ${errorText(part.error) ?? ""}`),
++          part,
++          error: true,
++        })
++      }
++    }
++
++    const error = errorText(message.error)
++    if (error) push({ id: `${message.id}:error`, kind: "event", turn: turnIndex, request: index, label: "错误", text: oneLine(error), error: true })
++
++    const end = message.time.completed ?? finishAt
++    const status: TrajectoryRequest["status"] = error ? "error" : end !== undefined ? "done" : "running"
++    const windowEnd = max(end, toolsEnd, genEnd, status === "running" ? input.now : undefined, message.time.created)!
++    const tokens: TrajectoryTokens = {
++      input: message.tokens?.input ?? 0,
++      output: message.tokens?.output ?? 0,
++      reasoning: message.tokens?.reasoning ?? 0,
++      cacheRead: message.tokens?.cache?.read ?? 0,
++      cacheWrite: message.tokens?.cache?.write ?? 0,
++    }
++    requests.push({
++      index,
++      step: turn.requests.length + 1,
++      turn: turnIndex,
++      message,
++      start: message.time.created,
++      firstToken: first,
++      generationEnd: genEnd ?? end,
++      end,
++      windowEnd,
++      tokens,
++      cost: message.cost ?? 0,
++      status,
++      error,
++    })
++    turn.requests.push(index)
++    turn.end = Math.max(turn.end, windowEnd)
++    totals.input += tokens.input
++    totals.output += tokens.output
++    totals.reasoning += tokens.reasoning
++    totals.cacheRead += tokens.cacheRead
++    totals.cacheWrite += tokens.cacheWrite
++    totals.cost += message.cost ?? 0
++    totals.requests++
++  }
++
++  const start = turns[0]?.start ?? input.now
++  const end = Math.max(start, ...turns.map((t) => t.end))
++  return { turns, requests, rows, start, end, totals }
++}
++
++export type TrajectoryScale = "duration" | "turn" | "request"
++
++type Window = { t0: number; t1: number; weight: number }
++
++/** Maps absolute times onto [0, 1]. Idle gaps between windows collapse to nothing, so long user
++ *  pauses do not dominate the "duration" scale. */
++export function createTimeScale(trajectory: Trajectory, scale: TrajectoryScale) {
++  const raw: Window[] =
++    scale === "request"
++      ? trajectory.requests.map((r) => ({ t0: r.start, t1: r.windowEnd, weight: 1 }))
++      : trajectory.turns.map((t) => ({ t0: t.start, t1: t.end, weight: 1 }))
++  const span = raw.reduce((sum, w) => sum + Math.max(0, w.t1 - w.t0), 0)
++  const windows =
++    scale === "duration" ? raw.map((w) => ({ ...w, weight: Math.max(w.t1 - w.t0, span * 0.01, 1) })) : raw
++  const total = windows.reduce((sum, w) => sum + w.weight, 0)
++  const offsets: number[] = []
++  let acc = 0
++  for (const w of windows) {
++    offsets.push(acc)
++    acc += w.weight
++  }
++  const x = (t: number): number => {
++    if (!windows.length || total <= 0) return 0
++    for (let i = 0; i < windows.length; i++) {
++      const w = windows[i]!
++      if (t < w.t0) return offsets[i]! / total
++      if (t <= w.t1) {
++        const f = w.t1 > w.t0 ? (t - w.t0) / (w.t1 - w.t0) : 0
++        return (offsets[i]! + f * w.weight) / total
++      }
++    }
++    return 1
++  }
++  const boundaries = offsets.slice(1).map((o) => o / total)
++  return { x, boundaries }
++}
+diff --git a/packages/app/src/components/session/session-trajectory.tsx b/packages/app/src/components/session/session-trajectory.tsx
+new file mode 100644
+index 0000000..77262cd
+--- /dev/null
++++ b/packages/app/src/components/session/session-trajectory.tsx
+@@ -0,0 +1,688 @@
++// oco (patches/opencode/0012): 对话 / 轨迹 — a read-only trajectory of the session built from the
++// messages and parts already in the sync store: turns, model requests, reasoning, tool calls, tokens,
++// cache, cost and derived timings. Labels are Chinese like the other oco additions.
++import { createEffect, createMemo, createSignal, For, Index, Match, on, onCleanup, onMount, Show, Switch } from "solid-js"
++import type { JSX } from "solid-js"
++import type { Message, Part } from "@opencode-ai/sdk/v2/client"
++import { useSync } from "@/context/sync"
++import { useLanguage } from "@/context/language"
++import {
++  buildTrajectory,
++  createTimeScale,
++  promptTokens,
++  requestTiming,
++  totalTokens,
++  type Trajectory,
++  type TrajectoryRequest,
++  type TrajectoryRow,
++  type TrajectoryScale,
++} from "./session-trajectory-model"
++
++export type SessionViewMode = "chat" | "trajectory"
++
++const emptyMessages: Message[] = []
++const emptyParts: Part[] = []
++const RAW_LIMIT = 200_000
++const TEXT_LIMIT = 50_000
++
++const COLOR = {
++  input: "var(--syntax-success)",
++  model: "var(--syntax-property)",
++  tool: "var(--syntax-warning)",
++  user: "var(--syntax-info)",
++  system: "var(--syntax-comment)",
++  error: "var(--syntax-critical)",
++}
++
++export function SessionViewToggle(props: { value: SessionViewMode; onChange: (value: SessionViewMode) => void }) {
++  const item = (value: SessionViewMode, label: string) => (
++    <button
++      type="button"
++      role="tab"
++      data-oco-view={value}
++      aria-selected={props.value === value}
++      class="h-6 px-2 rounded-[5px] text-12-medium transition-colors"
++      classList={{
++        "bg-surface-base-active text-text-strong": props.value === value,
++        "text-text-weak hover:text-text-base": props.value !== value,
++      }}
++      onClick={() => props.onChange(value)}
++    >
++      {label}
++    </button>
++  )
++  return (
++    <div role="tablist" aria-label="会话视图" class="shrink-0 flex items-center gap-0.5 rounded-md p-0.5 bg-surface-inset-base">
++      {item("chat", "对话")}
++      {item("trajectory", "轨迹")}
++    </div>
++  )
++}
++
++function compact(value: number, locale: string) {
++  return new Intl.NumberFormat(locale, { notation: value >= 10_000 ? "compact" : "standard", maximumFractionDigits: 1 }).format(value)
++}
++
++function duration(ms: number | undefined) {
++  if (ms === undefined || !Number.isFinite(ms) || ms < 0) return "-"
++  if (ms < 1000) return `${Math.round(ms)} 毫秒`
++  if (ms < 60_000) return `${(ms / 1000).toFixed(1)} 秒`
++  const s = Math.round(ms / 1000)
++  return `${Math.floor(s / 60)} 分 ${s % 60} 秒`
++}
++
++function clock(ms: number | undefined) {
++  if (ms === undefined) return "-"
++  const d = new Date(ms)
++  const p = (n: number, w = 2) => String(n).padStart(w, "0")
++  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(d.getMilliseconds(), 3)}`
++}
++
++function money(value: number, tokens: number) {
++  if (value > 0) return `$${value < 0.01 ? value.toFixed(4) : value.toFixed(2)}`
++  return tokens > 0 ? "$0（未计价：订阅、免费或未知价格）" : "$0"
++}
++
++function clip(text: string, limit: number) {
++  return text.length > limit ? `${text.slice(0, limit)}\n…（已截断，共 ${text.length} 字符）` : text
++}
++
++function pretty(value: unknown) {
++  try {
++    return typeof value === "string" ? value : JSON.stringify(value, null, 2)
++  } catch {
++    return String(value)
++  }
++}
++
++function badge(row: TrajectoryRow): { label: string; color: string } {
++  switch (row.kind) {
++    case "system":
++      return { label: "系统", color: COLOR.system }
++    case "user":
++      return { label: "用户", color: COLOR.user }
++    case "context":
++      return { label: row.label, color: COLOR.input }
++    case "reasoning":
++      return { label: "思考", color: COLOR.model }
++    case "text":
++      return { label: "助手", color: COLOR.model }
++    case "tool":
++      return { label: "工具", color: row.status === "error" ? COLOR.error : COLOR.tool }
++    case "event":
++      return { label: row.label, color: row.error ? COLOR.error : COLOR.system }
++  }
++}
++
++function Badge(props: { label: string; color: string }) {
++  return (
++    <span
++      class="shrink-0 inline-flex items-center justify-center min-w-10 h-5 px-1.5 rounded text-11-regular"
++      style={{ color: props.color, background: `color-mix(in srgb, ${props.color} 14%, transparent)` }}
++    >
++      {props.label}
++    </span>
++  )
++}
++
++function rowSearchText(row: TrajectoryRow) {
++  if (row.kind === "tool") return `${row.tool} ${row.input} ${row.output}`
++  if (row.kind === "context" || row.kind === "event") return `${row.label} ${row.text}`
++  return row.text
++}
++
++function Field(props: { label: string; children: JSX.Element }) {
++  return (
++    <div class="flex gap-3 py-1 text-12-regular">
++      <div class="w-24 shrink-0 text-text-weak">{props.label}</div>
++      <div class="min-w-0 flex-1 text-text-strong break-words">{props.children}</div>
++    </div>
++  )
++}
++
++function Section(props: { title: string; children: JSX.Element }) {
++  return (
++    <div class="flex flex-col gap-1">
++      <div class="text-12-medium text-text-base">{props.title}</div>
++      {props.children}
++    </div>
++  )
++}
++
++function Pre(props: { text: string }) {
++  return (
++    <pre class="m-0 p-2 rounded-md bg-surface-inset-base text-12-regular font-mono text-text-base whitespace-pre-wrap break-words max-h-[50vh] overflow-auto">
++      {props.text}
++    </pre>
++  )
++}
++
++export function SessionTrajectory(props: { sessionID: string; onChat: () => void }) {
++  const sync = useSync()
++  const language = useLanguage()
++  const [scale, setScale] = createSignal<TrajectoryScale>("duration")
++  const [query, setQuery] = createSignal("")
++  const [selected, setSelected] = createSignal<string | undefined>()
++  const [tab, setTab] = createSignal<"overview" | "raw">("overview")
++  const [now, setNow] = createSignal(Date.now())
++  const [wide, setWide] = createSignal(true)
++  let root: HTMLDivElement | undefined
++  let list: HTMLDivElement | undefined
++
++  const info = createMemo(() => sync().session.get(props.sessionID))
++  const messages = createMemo(() => (sync().data.message[props.sessionID] ?? emptyMessages) as Message[])
++  const parts = (messageID: string) => (sync().data.part[messageID] ?? emptyParts) as Part[]
++  const trajectory = createMemo<Trajectory>(() => buildTrajectory({ messages: messages(), parts, now: now() }))
++  const running = createMemo(() => trajectory().requests.some((r) => r.status === "running"))
++  const time = createMemo(() => createTimeScale(trajectory(), scale()))
++  const locale = () => language.intl()
++
++  // The chat view pages history on scroll; the trajectory needs the whole session.
++  const [loadingHistory, setLoadingHistory] = createSignal(false)
++  createEffect(
++    on(
++      () => props.sessionID,
++      async (id) => {
++        const history = sync().session.history
++        setLoadingHistory(true)
++        try {
++          for (let i = 0; i < 100 && history.more(id); i++) await history.loadMore(id)
++        } finally {
++          if (id === props.sessionID) setLoadingHistory(false)
++        }
++      },
++    ),
++  )
++
++  createEffect(() => {
++    if (!running()) return
++    const timer = setInterval(() => setNow(Date.now()), 1000)
++    onCleanup(() => clearInterval(timer))
++  })
++
++  onMount(() => {
++    if (!root || typeof ResizeObserver === "undefined") return
++    const observer = new ResizeObserver(([entry]) => setWide((entry?.contentRect.width ?? 0) >= 760))
++    observer.observe(root)
++    onCleanup(() => observer.disconnect())
++  })
++
++  const rows = createMemo(() => {
++    const q = query().trim().toLowerCase()
++    const all = trajectory().rows
++    return q ? all.filter((row) => rowSearchText(row).toLowerCase().includes(q)) : all
++  })
++  const selectedRow = createMemo(() => trajectory().rows.find((row) => row.id === selected()))
++  const selectedRequest = createMemo(() => {
++    const row = selectedRow()
++    return row?.request !== undefined ? trajectory().requests[row.request] : undefined
++  })
++
++  const select = (id: string | undefined) => {
++    setSelected(id)
++    if (!id || !list) return
++    requestAnimationFrame(() => list?.querySelector(`[data-row="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "nearest" }))
++  }
++  const selectRequest = (index: number) => select(trajectory().rows.find((row) => row.request === index)?.id)
++
++  const onListKey = (event: KeyboardEvent) => {
++    if (event.key === "Escape" && selected()) {
++      event.preventDefault()
++      setSelected(undefined)
++      return
++    }
++    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return
++    const visible = rows()
++    if (!visible.length) return
++    event.preventDefault()
++    const at = visible.findIndex((row) => row.id === selected())
++    const next = event.key === "ArrowDown" ? Math.min(visible.length - 1, at + 1) : Math.max(0, at < 0 ? 0 : at - 1)
++    select(visible[next]?.id)
++    list?.querySelector<HTMLElement>(`[data-row="${CSS.escape(visible[next]!.id)}"]`)?.focus()
++  }
++
++  const totals = createMemo(() => trajectory().totals)
++  const hitRate = (t: { input: number; cacheRead: number; cacheWrite: number }) => {
++    const prompt = promptTokens({ ...t, output: 0, reasoning: 0 })
++    return prompt > 0 ? `${Math.round((t.cacheRead / prompt) * 100)}%` : "-"
++  }
++
++  const pct = (t: number) => `${(time().x(t) * 100).toFixed(3)}%`
++  const span = (t0: number, t1: number) => ({
++    left: pct(t0),
++    width: `max(2px, ${((time().x(t1) - time().x(t0)) * 100).toFixed(3)}%)`,
++  })
++
++  const turnLabel = (row: TrajectoryRow, index: number) => {
++    if (row.turn < 0) return
++    const prev = rows()[index - 1]
++    if (prev && prev.turn === row.turn) return
++    return `第 ${row.turn + 1} 轮`
++  }
++
++  const detail = () => (
++    <Show when={selectedRow()}>
++      {(row) => (
++        <div
++          data-oco-trajectory-detail
++          class="flex flex-col min-h-0 h-full bg-background-base"
++          classList={{
++            "border-l border-border-weak-base": wide(),
++            "absolute inset-0 z-20": !wide(),
++          }}
++        >
++          <div class="shrink-0 flex items-center gap-2 px-3 h-10 border-b border-border-weak-base">
++            <Badge {...badge(row())} />
++            <div class="min-w-0 flex-1 truncate text-12-regular text-text-weak">
++              <Show when={row().turn >= 0}>第 {row().turn + 1} 轮</Show>
++              <Show when={selectedRequest()}>{(r) => <> · 第 {r().step} 步</>}</Show>
++            </div>
++            <button
++              type="button"
++              aria-label="关闭详情"
++              class="size-6 rounded text-text-weak hover:text-text-strong hover:bg-surface-base-active"
++              onClick={() => setSelected(undefined)}
++            >
++              ✕
++            </button>
++          </div>
++          <div class="shrink-0 flex gap-3 px-3 border-b border-border-weak-base">
++            <For each={[["overview", "概述"], ["raw", "原始内容"]] as const}>
++              {([value, label]) => (
++                <button
++                  type="button"
++                  class="h-8 text-12-medium border-b-2 -mb-px"
++                  classList={{
++                    "border-[var(--text-interactive-base)] text-text-strong": tab() === value,
++                    "border-transparent text-text-weak hover:text-text-base": tab() !== value,
++                  }}
++                  onClick={() => setTab(value)}
++                >
++                  {label}
++                </button>
++              )}
++            </For>
++          </div>
++          <div class="flex-1 min-h-0 overflow-auto p-3 flex flex-col gap-4">
++            <Switch>
++              <Match when={tab() === "raw"}>
++                <Pre text={clip(rawContent(row(), selectedRequest()), RAW_LIMIT)} />
++              </Match>
++              <Match when={true}>
++                <RowContent row={row()} parts={parts} />
++                <Show when={selectedRequest()}>{(r) => <RequestOverview request={r()} locale={locale()} />}</Show>
++                <Show when={row().kind === "tool" ? (row() as Extract<TrajectoryRow, { kind: "tool" }>) : undefined}>
++                  {(tool) => (
++                    <Section title="工具计时">
++                      <Field label="状态">{toolStatus(tool().status)}</Field>
++                      <Field label="开始时间">{clock(tool().start)}</Field>
++                      <Field label="耗时">{duration(tool().end !== undefined && tool().start !== undefined ? tool().end! - tool().start! : undefined)}</Field>
++                    </Section>
++                  )}
++                </Show>
++              </Match>
++            </Switch>
++          </div>
++        </div>
++      )}
++    </Show>
++  )
++
++  return (
++    <div ref={root} data-oco-trajectory class="relative flex flex-col h-full min-h-0">
++      <div class="shrink-0 h-12 flex items-center justify-between gap-2 pl-4 pr-3">
++        <div class="min-w-0 truncate text-14-medium text-text-strong">{info()?.title ?? ""}</div>
++        <SessionViewToggle value="trajectory" onChange={(value) => value === "chat" && props.onChat()} />
++      </div>
++
++      <div class="shrink-0 flex flex-wrap items-center gap-x-3 gap-y-1 px-4 pb-2 text-12-regular text-text-weak" data-oco-trajectory-totals>
++        <span>请求 <b class="text-text-strong font-medium">{totals().requests}</b></span>
++        <span>工具 <b class="text-text-strong font-medium">{totals().tools}</b></span>
++        <span>输入 <b class="text-text-strong font-medium">{compact(promptTokens(totals()), locale())}</b></span>
++        <span>缓存命中 <b class="text-text-strong font-medium">{hitRate(totals())}</b></span>
++        <span>输出 <b class="text-text-strong font-medium">{compact(totals().output, locale())}</b></span>
++        <span>思考 <b class="text-text-strong font-medium">{compact(totals().reasoning, locale())}</b></span>
++        <span>费用 <b class="text-text-strong font-medium">{money(totals().cost, totalTokens(totals())).replace(/（.*）/, "")}</b></span>
++        <Show when={loadingHistory()}>
++          <span class="text-text-weaker">正在加载完整历史…</span>
++        </Show>
++      </div>
++
++      <div class="shrink-0 flex items-center gap-2 px-4 pb-2">
++        <For each={[["duration", "时长"], ["turn", "轮次"], ["request", "调用"]] as const}>
++          {([value, label]) => (
++            <button
++              type="button"
++              data-oco-scale={value}
++              class="h-6 px-2 rounded-md text-12-medium"
++              classList={{
++                "bg-surface-base-active text-text-strong": scale() === value,
++                "text-text-weak hover:text-text-base": scale() !== value,
++              }}
++              onClick={() => setScale(value)}
++            >
++              {label}
++            </button>
++          )}
++        </For>
++        <div class="flex-1" />
++        <input
++          type="search"
++          placeholder="搜索"
++          aria-label="搜索轨迹"
++          value={query()}
++          onInput={(event) => setQuery(event.currentTarget.value)}
++          class="h-7 w-40 min-w-0 px-2 rounded-md bg-surface-inset-base text-12-regular text-text-strong placeholder:text-text-weaker outline-none border border-border-weak-base focus:border-[var(--border-interactive-focus)]"
++        />
++      </div>
++
++      <div class="shrink-0 px-4 pb-2 border-b border-border-weak-base" data-oco-trajectory-lanes>
++        <For each={[["输入", "input"], ["模型", "model"], ["工具", "tool"]] as const}>
++          {([label, lane]) => (
++            <div class="flex items-center gap-2 h-4">
++              <div class="w-8 shrink-0 text-11-regular text-text-weaker">{label}</div>
++              <div class="relative flex-1 h-2.5">
++                <For each={trajectory().turns.slice(1)}>
++                  {(turn) => (
++                    <div class="absolute top-[-3px] bottom-[-3px] w-px bg-border-weak-base" style={{ left: pct(turn.start) }} />
++                  )}
++                </For>
++                <Switch>
++                  <Match when={lane === "input"}>
++                    <For each={trajectory().turns}>
++                      {(turn) => (
++                        <Show when={turn.user}>
++                          {(user) => (
++                            <button
++                              type="button"
++                              aria-label={`第 ${turn.index + 1} 轮输入`}
++                              class="absolute top-0 h-full w-[3px] rounded-[1px]"
++                              classList={{ "outline outline-1 outline-[var(--text-strong)]": selected() === user().id }}
++                              style={{ left: pct(turn.start), background: COLOR.input }}
++                              onClick={() => select(user().id)}
++                            />
++                          )}
++                        </Show>
++                      )}
++                    </For>
++                  </Match>
++                  <Match when={lane === "model"}>
++                    <For each={trajectory().requests}>
++                      {(r) => <ModelBar request={r} now={now()} span={span} selected={selectedRequest()?.index === r.index} onSelect={() => selectRequest(r.index)} />}
++                    </For>
++                  </Match>
++                  <Match when={lane === "tool"}>
++                    <For each={trajectory().rows.filter((row) => row.kind === "tool") as Extract<TrajectoryRow, { kind: "tool" }>[]}>
++                      {(row) => (
++                        <button
++                          type="button"
++                          aria-label={`工具 ${row.tool}`}
++                          title={`${row.tool} · ${duration(row.end !== undefined && row.start !== undefined ? row.end - row.start : undefined)}`}
++                          class="absolute top-0 h-full rounded-[2px]"
++                          classList={{ "outline outline-1 outline-[var(--text-strong)]": selected() === row.id }}
++                          style={{
++                            ...span(row.start ?? now(), row.end ?? now()),
++                            background: row.status === "error" ? COLOR.error : COLOR.tool,
++                          }}
++                          onClick={() => select(row.id)}
++                        />
++                      )}
++                    </For>
++                  </Match>
++                </Switch>
++              </div>
++            </div>
++          )}
++        </For>
++      </div>
++
++      <div class="relative flex-1 min-h-0 flex">
++        <div
++          ref={list}
++          role="listbox"
++          aria-label="轨迹"
++          tabIndex={-1}
++          onKeyDown={onListKey}
++          class="flex-1 min-w-0 overflow-y-auto overflow-x-hidden py-1"
++          data-oco-trajectory-rows
++        >
++          <Show when={rows().length > 0} fallback={<div class="px-4 py-6 text-12-regular text-text-weak">{query() ? "没有匹配的条目" : "暂无轨迹"}</div>}>
++            <Index each={rows()}>
++              {(row, index) => {
++                const b = createMemo(() => badge(row()))
++                return (
++                  <button
++                    type="button"
++                    role="option"
++                    data-row={row().id}
++                    data-kind={row().kind}
++                    aria-selected={selected() === row().id}
++                    class="w-full h-9 flex items-center gap-2 pr-3 text-left border-b border-border-weak-base/60"
++                    classList={{
++                      "bg-surface-base-active": selected() === row().id,
++                      "hover:bg-surface-base-hover": selected() !== row().id,
++                    }}
++                    onClick={() => select(row().id)}
++                  >
++                    <span class="w-14 shrink-0 pl-2 text-11-regular text-text-weaker whitespace-nowrap">{turnLabel(row(), index) ?? ""}</span>
++                    <span class="w-2 shrink-0 flex justify-center">
++                      <Show when={row().firstOfRequest}>
++                        <span class="size-1.5 rounded-full bg-[var(--text-weaker)]" />
++                      </Show>
++                    </span>
++                    <Badge label={b().label} color={b().color} />
++                    <RowLine row={row()} />
++                  </button>
++                )
++              }}
++            </Index>
++          </Show>
++        </div>
++        <Show when={selectedRow()}>
++          <div classList={{ "w-[44%] min-w-[320px] max-w-[560px] shrink-0": wide(), contents: !wide() }}>{detail()}</div>
++        </Show>
++      </div>
++    </div>
++  )
++}
++
++function RowLine(props: { row: TrajectoryRow }) {
++  return (
++    <Switch>
++      <Match when={props.row.kind === "tool" ? (props.row as Extract<TrajectoryRow, { kind: "tool" }>) : undefined}>
++        {(row) => (
++          <span class="min-w-0 flex-1 truncate text-13-regular">
++            <span class="font-mono text-text-strong">{row().tool}</span>{" "}
++            <span class="font-mono text-text-weak">{row().input}</span>
++            <Show when={row().output}>
++              <span class="text-text-weaker"> → </span>
++              <span class="font-mono" classList={{ "text-text-base": row().status !== "error" }} style={row().status === "error" ? { color: COLOR.error } : undefined}>
++                {row().output}
++              </span>
++            </Show>
++          </span>
++        )}
++      </Match>
++      <Match when={true}>
++        <span
++          class="min-w-0 flex-1 truncate text-13-regular"
++          classList={{ "text-text-weak": props.row.kind === "reasoning" || props.row.kind === "system", "text-text-strong": props.row.kind === "user" }}
++        >
++          {"text" in props.row ? props.row.text : ""}
++        </span>
++      </Match>
++    </Switch>
++  )
++}
++
++function ModelBar(props: {
++  request: TrajectoryRequest
++  now: number
++  span: (t0: number, t1: number) => JSX.CSSProperties
++  selected: boolean
++  onSelect: () => void
++}) {
++  const r = () => props.request
++  const end = () => r().end ?? props.now
++  const first = () => r().firstToken
++  const genEnd = () => Math.max(first() ?? 0, r().generationEnd ?? end())
++  const color = () => (r().status === "error" ? COLOR.error : COLOR.model)
++  const label = () => {
++    const t = requestTiming(r())
++    return `请求 #${r().index + 1} · ${r().message.modelID} · 首 token ${duration(t.ttft)} · 生成 ${duration(t.generation)}`
++  }
++  return (
++    <>
++      <button
++        type="button"
++        aria-label={label()}
++        title={label()}
++        class="absolute top-0 h-full rounded-[2px] opacity-40"
++        classList={{ "outline outline-1 outline-[var(--text-strong)] opacity-60": props.selected }}
++        style={{ ...props.span(r().start, first() ?? end()), background: color() }}
++        onClick={props.onSelect}
++      />
++      <Show when={first()}>
++        {(f) => (
++          <button
++            type="button"
++            tabIndex={-1}
++            aria-hidden="true"
++            title={label()}
++            class="absolute top-0 h-full rounded-[2px]"
++            classList={{ "outline outline-1 outline-[var(--text-strong)]": props.selected }}
++            style={{ ...props.span(f(), genEnd()), background: color() }}
++            onClick={props.onSelect}
++          />
++        )}
++      </Show>
++    </>
++  )
++}
++
++function toolStatus(status: string) {
++  return ({ pending: "等待", running: "运行中", completed: "已完成", error: "失败" } as Record<string, string>)[status] ?? status
++}
++
++function rawContent(row: TrajectoryRow, request: TrajectoryRequest | undefined) {
++  if (row.kind === "user") return pretty(row.message)
++  if (row.kind === "system") return row.text
++  if ("part" in row && row.part) return pretty(row.part)
++  return pretty(request?.message ?? row)
++}
++
++function RowContent(props: { row: TrajectoryRow; parts: (messageID: string) => Part[] }) {
++  const row = () => props.row
++  return (
++    <Switch>
++      <Match when={row().kind === "system"}>
++        <Section title="系统提示词">
++          <div class="text-12-regular text-text-base">
++            OpenCode 在每次请求时组装系统提示词（智能体指令、AGENTS.md、环境信息）和工具定义，但不保存实际发送的内容。
++            这里只能显示会话里保存的自定义系统提示词。
++          </div>
++          <Show when={(row() as { text: string }).text.startsWith("智能体 ") ? undefined : (row() as { text: string }).text}>
++            {(text) => <Pre text={text()} />}
++          </Show>
++        </Section>
++      </Match>
++      <Match when={row().kind === "user" ? (row() as Extract<TrajectoryRow, { kind: "user" }>) : undefined}>
++        {(user) => (
++          <Section title="用户输入">
++            <Pre
++              text={clip(
++                props
++                  .parts(user().message.id)
++                  .flatMap((p) => (p.type === "text" && !p.synthetic && !p.ignored ? [p.text] : []))
++                  .join("\n") || "（无文本）",
++                TEXT_LIMIT,
++              )}
++            />
++            <Field label="智能体">{user().message.agent}</Field>
++            <Field label="模型">{`${user().message.model?.providerID ?? "-"}/${user().message.model?.modelID ?? "-"}`}</Field>
++            <Field label="时间">{clock(user().message.time.created)}</Field>
++          </Section>
++        )}
++      </Match>
++      <Match when={row().kind === "tool" ? (row() as Extract<TrajectoryRow, { kind: "tool" }>) : undefined}>
++        {(tool) => (
++          <>
++            <Section title={`输入 · ${tool().tool}`}>
++              <Pre text={clip(pretty(tool().part.state.input), TEXT_LIMIT)} />
++            </Section>
++            <Section title={tool().status === "error" ? "错误" : "输出"}>
++              <Pre
++                text={clip(
++                  tool().part.state.status === "completed"
++                    ? (tool().part.state as { output: string }).output
++                    : tool().part.state.status === "error"
++                      ? (tool().part.state as { error: string }).error
++                      : toolStatus(tool().status),
++                  TEXT_LIMIT,
++                )}
++              />
++            </Section>
++          </>
++        )}
++      </Match>
++      <Match when={"part" in row() && (row() as { part?: Part }).part}>
++        {(part) => (
++          <Section title={row().kind === "reasoning" ? "思考" : row().kind === "text" ? "回复" : badge(row()).label}>
++            <Pre
++              text={clip(
++                part().type === "text" || part().type === "reasoning"
++                  ? (part() as { text: string }).text
++                  : "text" in row()
++                    ? (row() as { text: string }).text
++                    : "",
++                TEXT_LIMIT,
++              )}
++            />
++          </Section>
++        )}
++      </Match>
++      <Match when={true}>
++        <Section title={badge(row()).label}>
++          <Pre text={"text" in row() ? (row() as { text: string }).text : ""} />
++        </Section>
++      </Match>
++    </Switch>
++  )
++}
++
++function RequestOverview(props: { request: TrajectoryRequest; locale: string }) {
++  const r = () => props.request
++  const t = () => requestTiming(r())
++  const n = (value: number) => new Intl.NumberFormat(props.locale).format(value)
++  const prompt = () => promptTokens(r().tokens)
++  const status = () =>
++    r().status === "running" ? "运行中" : r().status === "error" ? `错误 · ${r().error ?? ""}` : `已完成${r().message.finish ? ` · ${r().message.finish}` : ""}`
++  return (
++    <>
++      <Section title="请求">
++        <Field label="来源">{`请求 #${r().index + 1}`}</Field>
++        <Field label="模型">{`${r().message.providerID}/${r().message.modelID}${r().message.variant ? ` · ${r().message.variant}` : ""}`}</Field>
++        <Field label="智能体">{r().message.agent}</Field>
++        <Field label="状态">{status()}</Field>
++      </Section>
++      <Section title="Token">
++        <Field label="合计">{`${n(totalTokens(r().tokens))} tok`}</Field>
++        <Field label="输入（未缓存）">{n(r().tokens.input)}</Field>
++        <Field label="缓存读取">{n(r().tokens.cacheRead)}</Field>
++        <Field label="缓存写入">{n(r().tokens.cacheWrite)}</Field>
++        <Field label="缓存命中">{prompt() > 0 ? `${Math.round((r().tokens.cacheRead / prompt()) * 100)}%` : "-"}</Field>
++        <Field label="输出">{n(r().tokens.output)}</Field>
++        <Field label="思考">{n(r().tokens.reasoning)}</Field>
++        <Field label="费用">{money(r().cost, totalTokens(r().tokens))}</Field>
++      </Section>
++      <Section title="请求计时">
++        <Field label="开始时间">{clock(r().start)}</Field>
++        <Field label="总时长">{duration(t().total)}</Field>
++        <Field label="首 token 延迟">{duration(t().ttft)}</Field>
++        <Field label="生成">{duration(t().generation)}</Field>
++        <Field label="吞吐量">{t().throughput !== undefined ? `${t().throughput!.toFixed(1)} tok/s` : "-"}</Field>
++        <div class="text-11-regular text-text-weaker">计时由 OpenCode 保存的时间戳推算（首 token = 首段思考/回复/工具输入的开始），不是服务商返回的原始计时。</div>
++      </Section>
++    </>
++  )
++}
+diff --git a/packages/app/src/pages/session.tsx b/packages/app/src/pages/session.tsx
+index f971712..d1d71ff 100644
+--- a/packages/app/src/pages/session.tsx
++++ b/packages/app/src/pages/session.tsx
+@@ -40,6 +40,7 @@ import { showToast } from "@/utils/toast"
+ import { base64Encode, checksum } from "@opencode-ai/core/util/encode"
+ import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router"
+ import { NewSessionView, SessionHeader } from "@/components/session"
++import { SessionTrajectory, SessionViewToggle, type SessionViewMode } from "@/components/session/session-trajectory"
+ import { ErrorPage } from "@/pages/error"
+ import { CommentsProvider, useComments } from "@/context/comments"
+ import { useCommand } from "@/context/command"
+@@ -114,6 +115,8 @@ type VcsMode = "git" | "branch"
+ const sessionViewState = () => ({
+   messageId: undefined as string | undefined,
+   mobileTab: "session" as "session" | "changes",
++  // oco: 对话 / 轨迹 view of the chat column; back to 对话 on every session switch.
++  view: "chat" as SessionViewMode,
+ })
+ 
+ function isCurrentSessionNotFoundError(error: unknown, sessionID: string | undefined) {
+@@ -2111,10 +2114,14 @@ export default function Page() {
+               })}
+             </div>
+           </Match>
++          <Match when={params.id && store.view === "trajectory" ? params.id : undefined}>
++            {(id) => <SessionTrajectory sessionID={id()} onChat={() => setStore("view", "chat")} />}
++          </Match>
+           <Match when={params.id}>
+             <Show when={messagesReady() ? params.id : undefined} keyed>
+               {(_id) => (
+                 <MessageTimeline
++                  headerExtra={<SessionViewToggle value="chat" onChange={(view) => setStore("view", view)} />}
+                   actions={actions}
+                   scroll={ui.scroll}
+                   onResumeScroll={resumeScroll}
+diff --git a/packages/app/src/pages/session/timeline/message-timeline.tsx b/packages/app/src/pages/session/timeline/message-timeline.tsx
+index ab98757..842a82d 100644
+--- a/packages/app/src/pages/session/timeline/message-timeline.tsx
++++ b/packages/app/src/pages/session/timeline/message-timeline.tsx
+@@ -281,6 +281,8 @@ function TimelineDiffView(props: { diff: SummaryDiff }) {
+ }
+ 
+ export function MessageTimeline(props: {
++  /** oco: extra header control (the 对话 / 轨迹 toggle). */
++  headerExtra?: JSX.Element
+   actions?: UserActions
+   scroll: { overflow: boolean; bottom: boolean; jump: boolean }
+   onResumeScroll: () => void
+@@ -1530,6 +1532,7 @@ export function MessageTimeline(props: {
+                       "gap-3": !settings.general.newLayoutDesigns(),
+                     }}
+                   >
++                    {props.headerExtra}
+                     <SessionContextUsage
+                       placement="bottom"
+                       buttonAppearance={settings.general.newLayoutDesigns() ? "v2" : "default"}

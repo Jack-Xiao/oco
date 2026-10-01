@@ -8,6 +8,13 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
+## 对话 / 轨迹视图（补丁 0012，2026-10-01；分支 `claude/deepseek-trajectory-research-291e26`，验证运行于 `7cf751d` + 本批未提交改动）
+
+- 会话标题栏加「对话 | 轨迹」切换；轨迹按轮次与每次模型请求列出用户输入、上下文、思考、回复、工具调用，带输入/模型/工具三条泳道（时长/轮次/调用标尺）、token 与缓存命中、费用、推算的首 token 延迟/生成/吞吐，以及存储的原始 JSON。输入框保留，切换会话回到对话。数据只来自 sync store，宿主与桥策略不变。详情：[c4-trajectory](evidence/c4-trajectory.md)，调研：[trajectory-feasibility](evidence/trajectory-feasibility.md)。
+- 检查：app 类型检查 0 错误；模型单元 11/11；app session 单元 117/117；`verify:brief` 0 错误、unit 164/164；E2E（mock）`c4-trajectory` 9/9（已登记 `DEFAULT_SUITES`，共 21 个）；回归 p1a-chat 8/8、c3-fork 4/4、p1b-main-panel 6/6、c2-diff-unavailable 3/3、p1b-narrow 12/12。补丁 0001–0012 在干净上游上按序可应用。
+- 真实数据（本机 OpenCode 库只读，12 个会话 260 次请求）：无负计时，单会话建模 ≤ 9.4 ms；首 token 中位数 deepseek-flash 568 ms 至 openrouter stealth 44 s。
+- 限制：实际系统提示词、工具定义、原始 HTTP 请求 OpenCode 不保存，不显示；订阅模型费用为 0（标“未计价”）；列表未虚拟化。NOT RUN：真实模型 E2E、Remote、全量 E2E。未提交、未部署。
+
 ## fork 后侧栏选中跟随（提交 `e1e0cc4`，2026-10-01）
 
 - 侧栏原生选中跟随活动面板的会话（fork、新建、切标签）。typecheck、unit 164/164、build PASS；E2E（mock）`c3-fork` 4/4（新项 fork-sidebar-selection）、`p1b-sidebar` PASS。证据见 [c3-fork](evidence/c3-fork.md)。

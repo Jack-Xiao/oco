@@ -280,3 +280,10 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 
 - 侧栏原生选中改为跟随活动面板的会话（fork、新建、切标签后不再停在旧会话）。详见 evidence/c3-fork.md。
 - 检查：typecheck、unit 164/164、build；E2E（mock）`c3-fork` 4/4（含新项 fork-sidebar-selection）、`p1b-sidebar` 通过。NOT RUN：真实模型、Remote。未提交。
+
+## 对话 / 轨迹视图（2026-10-01）
+
+- 调研：OpenCode 已保存每次请求的 token（含缓存读写、思考）、费用、思考文本、工具输入输出与起止时间；part ID 编码毫秒时间，可推算首 token 与生成时长；系统提示词与原始请求不落盘。见 evidence/trajectory-feasibility.md。
+- 实现（补丁 0012）：新组件与纯函数模型，`session.tsx` +7 行、`message-timeline.tsx` +3 行。按用户选择做成同面板「对话 | 轨迹」切换。
+- 发现：sync store 可能同时持有同一 id 的两份用户消息，轨迹出现重复轮次，改为按 id 去重并加测试。工作区路径过长导致 VS Code IPC socket 超限，`.oco-test` 改链接到主检出的独立子目录。
+- 检查：模型单元 11/11；app session 单元 117/117；unit 164/164；E2E（mock）`c4-trajectory` 9/9，回归 p1a-chat 8/8、c3-fork 4/4、p1b-main-panel 6/6、c2-diff-unavailable 3/3、p1b-narrow 12/12。NOT RUN：真实模型 E2E、Remote、全量。未提交。

@@ -10,7 +10,7 @@
 | 构建 | `bun run verify:brief -- --build` | 另加约 12 秒 | 改到 webview、扩展打包、上游补丁，或准备跑 E2E 前 |
 | 定向 E2E（mock） | 服务用 `OCO_E2E_MODEL=mock bash scripts/test-server.sh`，再 `node tests/e2e/run.mjs <套件…>` | 单套件 10–130 秒 | 改到下表对应范围 |
 | 定向 E2E（真实模型） | 服务不带该变量启动，同一命令 | 比 mock 慢，受模型与网络影响 | 发送、取消、流式、权限/问答链路的改动收尾 |
-| 全量（真实模型） | `node tests/e2e/run.mjs`（默认 20 个套件） | 真实模型本轮实测合计见 STATUS | 阶段交付、公共等待逻辑、桥接协议、上游升级 |
+| 全量（真实模型） | `node tests/e2e/run.mjs`（默认 21 个套件） | 真实模型本轮实测合计见 STATUS | 阶段交付、公共等待逻辑、桥接协议、上游升级 |
 
 mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为特殊运行，不算验收。mock 证明不了真实流式输出、取消时序和模型协议兼容。
 
@@ -31,6 +31,7 @@ mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为�
 | `extension.ts`（命令注册、接线） | 全部单元 | p1a-identity、p1b-sidebar、t014-connection | mock |
 | 补丁 0001–0002（草稿、单会话嵌入） | — | p1a-identity、p1a-chat | mock |
 | 补丁 0011（消息 fork 按钮）、`session.tsx` 消息操作 | — | c3-fork、p1b-main-panel | mock |
+| 补丁 0012（对话 / 轨迹视图）、`message-timeline.tsx` 标题栏 | app `session-trajectory-model.test.ts` | c4-trajectory、c3-fork、p1b-main-panel、p1b-narrow | mock；计时与费用口径用真实模型抽查 |
 | `managed-server.ts`、`connection.ts`（托管模式、多根工作区当前文件夹） | managed-server | t007-managed、t007-multiroot、t014-connection | mock |
 | `agents.ts`、`agents-view.ts`（Agents 视图） | agents | t013-agents | mock |
 | `diagnostics.ts`、状态栏、诊断导出 | diagnostics | t015-diagnostics、t014-connection | mock |

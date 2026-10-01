@@ -28,6 +28,13 @@
 - T013/T014：Agent 表单式编辑（目前以原文编辑为准）、管理页外壳。
 - T018：正式 publisher、oco 自身许可证（需用户决定）。
 
+## 5. 对话 / 轨迹（补丁 0012）
+
+- [DONE] 第 1 阶段只读轨迹（未提交、未部署），见 [c4-trajectory](evidence/c4-trajectory.md)。
+- [TODO] 用户确认后提交；`scripts/package-vsix.sh` + `scripts/deploy-remote.sh` 部署 gcp-workstation，Remote 上看一次长会话。
+- [TODO] 第 2 阶段（按需）：子代理会话嵌套查看；订阅模型按 API 价目估算费用（标“估算”）；长会话列表虚拟化。
+- [不做，除非用户另行决定] 记录实际系统提示词/原始请求：需往 OpenCode 加插件（experimental 钩子），只能在托管模式注入。
+
 ## 执行约束
 
 - 开工只读 AGENTS.md、STATUS.md、NEXT.md，以及本任务点名的契约。
