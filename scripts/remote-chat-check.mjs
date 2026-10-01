@@ -47,7 +47,7 @@ try {
   const shot = (n) => page.screenshot({ path: path.join(shots, `${n}.png`) })
   const t0 = Date.now()
   while (Date.now() - t0 < 300000) {
-    if (/\$?\(?plug|oco/.test(await page.locator(".part.statusbar").innerText().catch(() => "")) && (await page.locator('.activitybar [aria-label^="oco"]').count())) break
+    if (/\$?\(?oco-logo|oco/.test(await page.locator(".part.statusbar").innerText().catch(() => "")) && (await page.locator('.activitybar [aria-label^="oco"]').count())) break
     await sleep(2000)
   }
   summary.connectSeconds = Math.round((Date.now() - t0) / 1000)

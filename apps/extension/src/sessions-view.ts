@@ -158,7 +158,7 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
     const label = s?.label.replace(/^https?:\/\//, "") ?? ""
     switch (s?.state) {
       case "connected":
-        st.text = `$(plug) oco${waiting ? ` $(bell-dot) ${waiting}` : ""}`
+        st.text = `$(oco-logo) oco${waiting ? ` $(bell-dot) ${waiting}` : ""}`
         st.tooltip = `oco 已连接 ${s.label}\n${s.directory ?? ""}${s.trusted ? "" : "\n受限模式：只读"}`
         st.command = "oco.sessions.focus"
         st.backgroundColor = undefined
@@ -198,7 +198,7 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
       st.text = `$(sync~spin) oco 启动服务中`
       st.command = "oco.showLog"
     }
-    if (s?.state === "connected" && versionNote(this.info?.version)) st.text = st.text.replace("$(plug)", "$(warning)")
+    if (s?.state === "connected" && versionNote(this.info?.version)) st.text = st.text.replace("$(oco-logo)", "$(warning)")
     const extra = serverInfoLines(this.info)
     if (extra.length) st.tooltip = `${typeof st.tooltip === "string" ? st.tooltip : ""}\n${extra.join("\n")}`
     st.show()

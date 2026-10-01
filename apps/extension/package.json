@@ -18,6 +18,15 @@
     "onStartupFinished"
   ],
   "contributes": {
+    "icons": {
+      "oco-logo": {
+        "description": "oco",
+        "default": {
+          "fontPath": "media/oco-icons.woff",
+          "fontCharacter": "\\E000"
+        }
+      }
+    },
     "commands": [
       {
         "command": "oco.openSession",
