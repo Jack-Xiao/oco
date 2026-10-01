@@ -21,3 +21,11 @@
 同批回归（mock）：p1a-chat、c1-open-file、c2-diff-unavailable、p1b-main-panel exit 0。
 
 限制：只复制对话，不回滚工作区文件（与 `/fork` 一致）。NOT RUN：真实模型、全量 E2E。
+
+## 按钮间距（2026-10-01）
+
+- 现象：回复行 copy→fork 的视觉间距明显大于 fork→元信息文字。按用户截图测量：回复行约 44px 对 34px，用户消息行约 33px 对 43–45px（2x 截图像素）。
+- 原因：两行的 `gap` 都是 10px，按钮都是 24px；图标字形宽约 14px，按钮里左右各约 5px 空白。图标与图标之间算两份空白，图标与文字之间只算一份。
+- 修复（补丁 0011，message-part.css）：`user-message-meta-wrap` 加 `margin-inline-end: 5px`，`text-part-meta` 加 `margin-inline-start: 5px`。
+- 结果（运行 20261001-002141-c3-fork-cb96，3/3）：回复行 44/43，用户消息行 44/43/45（2x 截图像素，放大裁图目测）。
+- 回归：`p1b-narrow` 第 1 次 `layout-480` FAIL（frame widths 537,451,451；该套件历史上也出现过 layout 项失败），复跑 exit 0（20261001-002520-p1b-narrow-ad08）。均为 mock，测试服务在隔离端口 4527。
