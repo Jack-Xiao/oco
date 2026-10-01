@@ -342,3 +342,9 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 检查和结果见 STATUS 本节和 [cold-open](evidence/cold-open.md)。
 - 追加（提交与部署）：提交 `1ad31ce`。部署：`oco-0.0.1-1ad31ce.vsix` 部署 gcp-workstation，远端 `extension.js` 哈希一致（`327d8e63…`）。Remote 复验（已安装扩展，探针 `deployed-1ad31ce-1/2`，新窗口里依次打开 3 个会话，共 2 组 6 次）：6 次画面都只有编辑区底色骨架屏到内容，没有黑屏阶段；logo 闪屏每次都渲染，但都在骨架屏下面。新窗口首开 2059 / 4069 ms，4069 那次主包 4 MB 下载用了 2.66 s（隧道慢）；消息返回到内容出现 0.26 / 0.37 s。同窗口再开 993–1339 ms。`scripts/remote-chat-check.mjs` BLOCKED：脚本要不带密码访问工作站 `127.0.0.1:4096`，该服务现在返回 401，脚本列不出会话便退出，未创建或删除任何会话。按约定不读、不改用户服务凭据。合入 main：BLOCKED，main 检出目录里有另一会话（删除 Agents 功能）未提交的 `docs/NEXT.md`、`docs/TEST-SCOPE.md` 改动，`--ff-only` 被拒；已发消息请它提交前合入 `1ad31ce`。
 
+## 移除 Agents 视图，新增 Connection 视图（2026-10-01）
+
+- 用户要求删掉 Agents、保留 “∨ Sessions” 标题行；说明了 VS Code 单视图会并入容器标题后，用户选“删 Agents + 加默认折叠的小视图”。
+- 改动：删除 Agents 视图、命令、单元测试与 `t013-agents`；新增只读 Connection 视图（`connection-view.ts`、`diagnostics.ts` 的 `connectionRows`）；文档同步（USER-GUIDE、README、CHANGELOG、TEST-SCOPE、TASKS、NEXT）。
+- 应另一会话请求，在主检出用 stash → `merge --ff-only` → stash pop 把 main 快进到 `28c90ac`（冷开修复），并按其要求改了 STATUS / NEXT 里两处过时的“未合入 main”文字。
+- 检查与 `p1b-sidebar` 竞态排查见 [agents-removal](evidence/agents-removal.md)。NOT RUN：真实模型、Remote。未提交、未部署。

@@ -56,7 +56,7 @@ export class Connection {
   /** Folder chosen with "oco: Select Workspace Folder" in a multi-root workspace (T007). */
   activeFolder: string | undefined
 
-  /** Directory used for the sidebar, new sessions and Agents: the chosen folder while it is still open, else the first. */
+  /** Directory used for the sidebar and new sessions: the chosen folder while it is still open, else the first. */
   get directory(): string | undefined {
     const folders = this.folders()
     return this.activeFolder && folders.includes(this.activeFolder) ? this.activeFolder : folders[0]

@@ -319,7 +319,7 @@ describe("installCrashHandlers", () => {
 
 describe("run.mjs 套件管理", () => {
   test("DEFAULT_SUITES 为全量验收的 21 个套件（docs/TEST-SCOPE.md）", () => {
-    expect(DEFAULT_SUITES).toEqual(["p1a-chat", "p1a-identity", "p1b-sidebar", "p1b-narrow", "p1b-theme-load", "p1b-ime", "p1b-reconnect", "p1b-pending-send", "p1b-switch-pending", "c1-open-file", "c1-focus", "c2-diff-unavailable", "t010-recover", "t014-connection", "p1b-main-panel", "c3-fork", "t007-managed", "t007-multiroot", "t013-agents", "t015-diagnostics", "c4-trajectory"]);
+    expect(DEFAULT_SUITES).toEqual(["p1a-chat", "p1a-identity", "p1b-sidebar", "p1b-narrow", "p1b-theme-load", "p1b-ime", "p1b-reconnect", "p1b-pending-send", "p1b-switch-pending", "c1-open-file", "c1-focus", "c2-diff-unavailable", "t010-recover", "t014-connection", "p1b-main-panel", "c3-fork", "t007-managed", "t007-multiroot", "t015-diagnostics", "c4-trajectory"]);
     const available = getAvailableSuites();
     expect(DEFAULT_SUITES.every((s) => available.includes(s))).toBe(true);
   });

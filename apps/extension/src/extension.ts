@@ -11,7 +11,7 @@ import { BlobStore } from "./bridge-host"
 import { KvStore } from "./host-store"
 import { PanelRegistry, VIEW_TYPE, type Entry } from "./panels"
 import { ManagedServer } from "./managed-server"
-import { AgentsView, AgentItem } from "./agents-view"
+import { ConnectionView } from "./connection-view"
 import { redactValue, VERIFIED_SERVER } from "./diagnostics"
 
 let managedServer: ManagedServer | undefined
@@ -49,6 +49,8 @@ export function activate(context: vscode.ExtensionContext) {
     }
   })
   const view = new SessionsView(store, (sid) => panels.list().some((e) => e.binding.sessionId === sid && e.binding.connectionId === feed.state.connectionId))
+  const connView = new ConnectionView()
+  context.subscriptions.push(connView)
   const feed = new SessionFeed({
     fetch: (...a) => fetch(...a),
     endpoint: () => conn.endpoint(),
@@ -59,6 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
     onChange: () => view.refresh(),
     onState: (st) => {
       view.setConnection(st)
+      connView.setConnection(st)
       panels.setConnection(st)
       if (st.state === "connected") void refreshVersionLater()
     },
@@ -75,7 +78,11 @@ export function activate(context: vscode.ExtensionContext) {
   // T007 managed mode + T015 server version. One managed process per window, shared by every panel.
   let serverVersion: string | undefined
   let versionFor: string | undefined
-  const pushInfo = () => view.setServerInfo({ version: serverVersion, mode: conn.mode(), managed: managedServer?.state })
+  const pushInfo = () => {
+    const info = { version: serverVersion, mode: conn.mode(), managed: managedServer?.state }
+    view.setServerInfo(info)
+    connView.setServerInfo(info)
+  }
   managedServer = new ManagedServer({
     spawn: (cmd, args, opts) => childProcess.spawn(cmd, args, opts),
     binary: () => conn.opencodePath(),
@@ -119,12 +126,9 @@ export function activate(context: vscode.ExtensionContext) {
     }
     log.info(`server version ${serverVersion ?? "unknown"} (verified ${VERIFIED_SERVER})`)
     pushInfo()
-    void agentsView.refresh()
   }
-  const agentsView = new AgentsView(conn, log)
-  context.subscriptions.push(agentsView)
 
-  // T007 multi-root: one active folder at a time for the sidebar, new sessions and Agents.
+  // T007 multi-root: one active folder at a time for the sidebar and new sessions.
   const updateFolderChrome = () => {
     const folders = conn.folders()
     const multi = folders.length > 1
@@ -347,7 +351,7 @@ export function activate(context: vscode.ExtensionContext) {
           : (
               await vscode.window.showQuickPick(
                 folders.map((f) => ({ label: f.name, description: f.uri.fsPath, picked: f.uri.fsPath === conn.directory, fsPath: f.uri.fsPath })),
-                { placeHolder: "侧栏、新建会话和 Agents 使用哪个文件夹？（已打开的会话标签页不受影响）" },
+                { placeHolder: "侧栏和新建会话使用哪个文件夹？（已打开的会话标签页不受影响）" },
               )
             )?.fsPath
       if (!target || target === conn.directory) return
@@ -356,7 +360,6 @@ export function activate(context: vscode.ExtensionContext) {
       log.info(`active folder switched (${folders.findIndex((f) => f.uri.fsPath === target) + 1}/${folders.length})`)
       updateFolderChrome()
       feed.restart()
-      void agentsView.refresh()
     }),
     vscode.commands.registerCommand("oco.exportDiagnostics", async () => {
       const content = JSON.stringify(await diagnostics(), null, 2)
@@ -367,12 +370,6 @@ export function activate(context: vscode.ExtensionContext) {
       await vscode.window.showTextDocument(doc)
       void vscode.window.showInformationMessage("oco: 诊断信息已生成（不含密码、认证头和消息正文）。分享前请再检查一遍。")
     }),
-    vscode.commands.registerCommand("oco.agents.refresh", () => agentsView.refresh()),
-    vscode.commands.registerCommand("oco.agents.create", () => agentsView.create().catch((e) => fail("无法新建 Agent", e))),
-    vscode.commands.registerCommand("oco.agents.duplicate", (item?: AgentItem) => agentsView.duplicate(item).catch((e) => fail("无法复制 Agent", e))),
-    vscode.commands.registerCommand("oco.agents.openFile", (item?: AgentItem) => agentsView.openFile(item).catch((e) => fail("无法打开 Agent 原文", e))),
-    // Disposing the instance ends the server's event stream: reconnect the sidebar right away instead of after backoff.
-    vscode.commands.registerCommand("oco.agents.reloadConfig", async () => (await agentsView.reloadConfig()) && feed.restart()),
     vscode.window.registerWebviewPanelSerializer(VIEW_TYPE, {
       async deserializeWebviewPanel(panel, state: { binding?: SessionBinding; role?: PanelRole } | undefined) {
         const b = state?.binding
@@ -415,7 +412,6 @@ export function activate(context: vscode.ExtensionContext) {
       connection: feed.state,
       sidebar: { feed: feed.stats, store: store.stats, items: store.size },
       panels: panels.list().map((e) => ({ role: e.role, visible: e.panel.visible })),
-      agents: agentsView.debugState().rows.map((r) => ({ name: r.name, source: r.source, scope: r.scope, state: r.state })),
       recentLog: recentLog.slice(-80),
     }
     const secrets = [managedServer?.password ?? ""]
@@ -435,7 +431,7 @@ export function activate(context: vscode.ExtensionContext) {
         trusted: vscode.workspace.isTrusted,
         panels: panels.debugState(),
         sidebar: { ...view.debugState(), feed: feed.stats, store: store.stats },
-        agents: agentsView.debugState(),
+        connectionView: connView.debugState(),
         managed: managedServer?.state ?? null,
         serverVersion: serverVersion ?? null,
       }

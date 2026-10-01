@@ -33,11 +33,12 @@ describe("connection settings contribution", () => {
     expect(c.configuration.properties["oco.serverMode"].default).toBe("attached")
     expect(c.configuration.properties["oco.serverMode"].enum).toEqual(["attached", "managed"])
   })
-  test("Agents view and its write commands exist; writes need a trusted workspace", () => {
-    expect(c.views.oco.some((v: any) => v.id === "oco.agents")).toBe(true)
-    for (const id of ["oco.agents.create", "oco.agents.duplicate", "oco.agents.reloadConfig"]) expect(c.commands.find((x: any) => x.command === id)?.enablement).toBe("isWorkspaceTrusted")
+  test("Sessions plus a collapsed Connection view (keeps the Sessions header); no Agents view or commands", () => {
+    expect(c.views.oco.map((v: any) => v.id)).toEqual(["oco.sessions", "oco.connection"])
+    expect(c.views.oco.find((v: any) => v.id === "oco.connection").visibility).toBe("collapsed")
+    expect(JSON.stringify(pkg)).not.toContain("oco.agents")
     expect(c.menus["view/title"].find((m: any) => m.command === "oco.selectFolder")?.when).toContain("oco.multiRoot")
-    for (const id of ["oco.selectFolder", "oco.exportDiagnostics", "oco.showLog", "oco.restartManagedServer", "oco.stopManagedServer", "oco.agents.openFile", "oco.agents.refresh"]) expect(c.commands.some((x: any) => x.command === id)).toBe(true)
+    for (const id of ["oco.selectFolder", "oco.exportDiagnostics", "oco.showLog", "oco.restartManagedServer", "oco.stopManagedServer"]) expect(c.commands.some((x: any) => x.command === id)).toBe(true)
   })
 })
 

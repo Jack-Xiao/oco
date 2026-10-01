@@ -13,6 +13,7 @@ import { api, messages, status, waitIdle, waitReply, waitMessageFinal } from "./
 
 const REQUIRED = [
   "sidebar-list",
+  "connection-view",
   "sidebar-create",
   "sidebar-rename",
   "sidebar-search",
@@ -75,6 +76,25 @@ async function type(f, text, send = false) {
   }
   if (send) await page.keyboard.press("Enter")
 }
+/**
+ * Opens a VS Code input box with `open` and returns once the box has kept focus for a moment. Right after a
+ * command-palette call (hostState), VS Code hands focus back to the active chat webview asynchronously; when
+ * that lands after the box opened, the box loses focus and closes. Re-open it in that case.
+ */
+async function openInputBox(open) {
+  const focused = () =>
+    page.evaluate(() => {
+      const qi = document.querySelector(".quick-input-widget")
+      return !!qi && qi.style.display !== "none" && document.hasFocus() && qi.contains(document.activeElement)
+    })
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await open()
+    if (!(await until(async () => (await focused()) || undefined, 3000, 100))) continue
+    await sleep(400)
+    if (await focused()) return true
+  }
+  return false
+}
 async function sidebarItem(id) {
   return (await sidebar()).items.find((i) => i.id === id)
 }
@@ -116,6 +136,28 @@ try {
     })
   }
 
+  // 1b. The container keeps its "Sessions" header thanks to a second, collapsed Connection view (no Agents view).
+  {
+    const header = (t) => page.locator(".part.sidebar .pane-header", { hasText: t }).first()
+    const sessionsHeader = await header("Sessions").isVisible().catch(() => false)
+    const agentsHeaders = await page.locator(".part.sidebar .pane-header", { hasText: "Agents" }).count()
+    const collapsed = (await header("Connection").getAttribute("aria-expanded").catch(() => null)) === "false"
+    await header("Connection").click()
+    const stateRow = await until(async () => ((await page.locator(".part.sidebar .monaco-list-row", { hasText: "状态" }).first().innerText().catch(() => "")).includes("已连接") ? true : undefined), 10000)
+    const rows = (await state()).connectionView?.rows ?? []
+    await runShot(page, run, "1b-connection")
+    await header("Connection").click()
+    const collapsedAgain = (await header("Connection").getAttribute("aria-expanded").catch(() => null)) === "false"
+    run.record("connection-view", sessionsHeader && agentsHeaders === 0 && collapsed && !!stateRow && rows[0]?.value === "已连接" && collapsedAgain ? "PASS" : "FAIL", {
+      sessionsHeader,
+      agentsHeaders,
+      collapsedByDefault: collapsed,
+      collapsedAgain,
+      stateRow: !!stateRow,
+      rows: rows.map((r) => `${r.label}=${r.value}`),
+    })
+  }
+
   // 2. Create from the view's "+" action: a panel opens, the tree lists it first and marks it open.
   let A
   {
@@ -135,9 +177,10 @@ try {
   {
     const it = await sidebarItem(A)
     const r = row(it.title)
-    await r.hover()
-    await r.locator('[aria-label^="Rename Session"]').click()
-    await sleep(600)
+    await openInputBox(async () => {
+      await r.hover()
+      await r.locator('[aria-label^="Rename Session"]').click()
+    })
     await page.keyboard.press("Meta+a")
     await page.keyboard.type(newTitle)
     await page.keyboard.press("Enter")
@@ -151,9 +194,10 @@ try {
   // 4. Search via the title action; clear via the clear action.
   {
     const total = (await sidebar()).items.length
-    await revealSessionsActions()
-    await titleAction("Search Sessions").click()
-    await sleep(600)
+    await openInputBox(async () => {
+      await revealSessionsActions()
+      await titleAction("Search Sessions").click()
+    })
     await page.keyboard.type(rand)
     await page.keyboard.press("Enter")
     const filtered = await until(async () => {

@@ -1,5 +1,7 @@
 // T015 diagnostics and connection presentation (pure; unit-tested). Nothing here may carry a password,
 // an authorization header or message text: the export is meant to be pasted into an issue.
+import * as path from "node:path"
+import type { ConnectionState, ConnectionSummary } from "@oco/contracts"
 import type { ManagedState } from "./managed-server"
 
 /** Server versions this build was verified against (T001 baseline). Others work but are flagged. */
@@ -52,4 +54,38 @@ export function serverInfoLines(info: ServerInfo | undefined): string[] {
     if (m.error) lines.push(m.error)
   }
   return lines
+}
+
+export type ConnectionRow = { label: string; value: string; icon: string; tooltip?: string; command?: string }
+
+const STATE: Record<ConnectionState, { text: string; icon: string }> = {
+  connected: { text: "已连接", icon: "plug" },
+  connecting: { text: "连接中", icon: "sync~spin" },
+  reconnecting: { text: "重连中", icon: "debug-disconnect" },
+  error: { text: "未连接", icon: "debug-disconnect" },
+  unauthorized: { text: "需要密码", icon: "lock" },
+  unconfigured: { text: "未配置", icon: "circle-slash" },
+}
+
+/** Rows of the Connection view: the status-bar facts, one per row. The state row's command matches the status bar's. */
+export function connectionRows(s: ConnectionSummary | undefined, info: ServerInfo | undefined): ConnectionRow[] {
+  const state = s?.state ?? "connecting"
+  const command =
+    state === "error" || state === "reconnecting" ? "oco.reconnect" : state === "unauthorized" ? "oco.setServerPassword" : state === "unconfigured" && s?.issue === "endpoint" ? "oco.openSettings" : undefined
+  const rows: ConnectionRow[] = [
+    { label: "状态", value: STATE[state].text + (state === "reconnecting" && s?.attempt ? `（第 ${s.attempt} 次）` : ""), icon: STATE[state].icon, tooltip: s?.error, command },
+  ]
+  if (s?.label) rows.push({ label: "服务", value: s.label, icon: "server" })
+  if (s?.directory) rows.push({ label: "目录", value: path.basename(s.directory), icon: "folder", tooltip: s.directory })
+  if (info) {
+    rows.push({ label: "模式", value: info.mode === "managed" ? "托管" : "连接已有服务", icon: "gear" })
+    const note = versionNote(info.version)
+    if (info.version) rows.push({ label: "版本", value: info.version + (note ? "（未验证）" : ""), icon: note ? "warning" : "versions", tooltip: note })
+    if (info.mode === "managed" && info.managed) {
+      const m = info.managed
+      rows.push({ label: "托管进程", value: m.status + (m.pid ? `（pid ${m.pid}）` : ""), icon: "server-process", tooltip: m.error, command: m.status === "failed" || m.status === "exited" ? "oco.restartManagedServer" : undefined })
+    }
+  }
+  if (s && !s.trusted) rows.push({ label: "受限模式", value: "只读", icon: "shield" })
+  return rows
 }

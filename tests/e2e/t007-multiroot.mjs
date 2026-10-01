@@ -1,4 +1,4 @@
-// T007 multi-root mapping: one active folder at a time for the sidebar, new sessions and Agents.
+// T007 multi-root mapping: one active folder at a time for the sidebar and new sessions.
 // Cases: default-first-folder, select-folder, new-session-in-folder, open-panel-survives-switch, choice-remembered
 import fs from "node:fs"
 import path from "node:path"

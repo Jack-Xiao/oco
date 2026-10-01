@@ -2,6 +2,11 @@
 
 本地测试版本（发布者 `oco-local-test`），未发布到应用市场。每项的验证范围和未验证项见 `docs/STATUS.md`。
 
+## 未发布
+
+- 移除 Agents 视图及其命令（New / Duplicate / Open Agent Source / Reload OpenCode Config），按需再做。
+- 新增 Connection 视图：在 Sessions 下方，默认折叠，只读列出连接状态、服务地址、当前文件夹、模式、服务版本和托管进程。它同时让 Sessions 保留独立标题行（VS Code 会把容器里唯一的视图并入容器标题）。
+
 ## 0.0.1（v0.1 候选，2026-10-01）
 
 ### 本批新增

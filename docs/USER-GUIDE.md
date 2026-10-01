@@ -1,6 +1,6 @@
 # oco 使用与故障说明
 
-oco 是 OpenCode 的 VS Code 客户端：会话列表、对话界面、Agent 列表都来自 OpenCode 服务，oco 不自己跑 Agent。
+oco 是 OpenCode 的 VS Code 客户端：会话列表、对话界面都来自 OpenCode 服务，oco 不自己跑 Agent。
 
 ## 安装
 
@@ -27,15 +27,11 @@ oco 是 OpenCode 的 VS Code 客户端：会话列表、对话界面、Agent 列
 
 - 侧栏 OpenCode → Sessions：新建、搜索（只搜已加载的最近 200 个）、重命名、删除；点一下在主面板打开，右键 “Open in New Panel” 另开固定面板。
 - 编辑器右键 “Add Selection to Session Draft”：把选中内容（含未保存修改）加入指定会话的草稿，不会自动发送。
-- 侧栏 OpenCode → Agents：
-  - 列出服务当前生效的 Agent 及来源：内置、项目文件（`<项目>/.opencode/agent/*.md`）、用户文件（OpenCode 配置目录下 `agent/*.md`）、配置文件（`opencode.json(c)`）。
-  - “New Agent” 新建 Markdown 定义；“Duplicate Agent” 复制（文件原样复制，内置 Agent 生成可编辑副本）；点文件型 Agent 打开原文编辑。oco 不会改写已有文件。
-  - 文件内容和服务生效的定义不一致时标“待生效”。执行 “Reload OpenCode Config”（需确认）让服务重新读取该项目配置；这会中止该项目中正在运行的任务，但不会重启服务进程。
-  - 服务不在本机（非回环地址）时只读。
+- 侧栏 OpenCode → Connection（默认折叠，在 Sessions 下方）：只读显示连接状态、服务地址、当前文件夹、模式、服务版本和托管进程，和状态栏悬停提示一致。连接异常时点“状态”行，效果同点状态栏（重连、设置密码或打开设置）。
 
 ## 多根工作区
 
-一个窗口打开多个文件夹时，侧栏、新建会话和 Agents 一次只对应一个“当前文件夹”（默认第一个）。Sessions 标题旁显示当前文件夹名；用标题栏的文件夹按钮或 “oco: Select Workspace Folder” 切换，选择按工作区记住。已打开的会话标签页不受切换影响。
+一个窗口打开多个文件夹时，侧栏和新建会话一次只对应一个“当前文件夹”（默认第一个）。Sessions 标题旁显示当前文件夹名；用标题栏的文件夹按钮或 “oco: Select Workspace Folder” 切换，选择按工作区记住。已打开的会话标签页不受切换影响。
 
 ## 出问题时
 
@@ -46,4 +42,3 @@ oco 是 OpenCode 的 VS Code 客户端：会话列表、对话界面、Agent 列
    - `找不到 OpenCode 可执行文件`：扩展宿主的 PATH 和终端不同（Remote 上尤其常见），把 `oco.opencodePath` 设为完整路径，例如 `~/.npm-global/bin/opencode` 展开后的绝对路径。
    - `认证失败`：密码按“地址+用户名”分别保存；改了地址要重新设置。
    - 会话列表缺会话：只列出属于当前工作区文件夹的会话，且最多最近 200 个。
-   - 新建的 Agent 一直“待生效”：重新加载配置后仍待生效说明文件格式无效，检查 frontmatter（`description`、`mode`）。
