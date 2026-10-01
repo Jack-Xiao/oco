@@ -153,3 +153,9 @@ code --install-extension /tmp/oco-<版本>-<提交号>.vsix --force
 ```
 
 3. 按提示重载窗口。之后同版本更新可以继续用第 2 步的覆盖安装。
+
+不开 Remote 窗口也可以从 Mac 用服务端自带的 CLI 安装（0.0.4 时验证过，会更新 `extensions.json` 登记）：
+
+```bash
+ssh -o BatchMode=yes gcp-workstation 'S=$(ls -td ~/.vscode-server/cli/servers/Stable-*/ | head -1); ${S}server/bin/code-server --install-extension /tmp/oco-<版本>-<提交号>.vsix --force'
+```
