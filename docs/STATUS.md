@@ -2,6 +2,11 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 项目委派规则收紧（2026-10-02；文档）
+
+- AGENTS 已明确：调查、独立实现、测试和文档检查先实际委派；主线程接手需记录具体例外；请求路线、执行证据、fallback 和阶段结果留在一份短记录里。STATUS/NEXT 按任务段落读取，避免默认加载全文。
+- 本轮 Gemini 订阅探测被地域限制拒绝，转 Grok 复核 PASS；链接、diff 格式与 4 项并发基线保护检查 PASS，见 [本批证据](evidence/delegation-rules-20261002.md)。产品检查及后续会话行为验证 NOT RUN；本批未添加强制拦截 hook。
+
 ## HTML 技术手册（2026-10-02；文档交付）
 
 - 新增 [面向初学者的技术手册](technical-guide.html)：21 章，涵盖源码嵌入、宿主桥/流、身份与状态、Remote、前端/构建、12 项风险、18 个补丁与文档导览。离线单文件，带目录搜索、流程教学、风险筛选、主题与打印样式。README 已加入入口。
@@ -25,6 +30,12 @@
 - 本文件更新于 2026-09-30。当前 main 含 C1 焦点收尾与 T010 错误恢复（`3e67fc7` 及其合并提交，补丁 0001–0008）与测试提速（`23c0954`、`376470e`）。本地，未推送；P1b 产品代码 `6343f7b`。实时版本以 `bun run brief` 为准。
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
+
+## 连接后误显示「没有会话」（2026-10-02；本地，未提交）
+
+- 原因：连上后 `oco.connState` 立即变成 connected，列表数据要等下一次合并刷新（150 ms）才渲染，中间树为空，空列表提示「This workspace has no OpenCode sessions yet」先出现（本机约 0.34 s，Remote 更长）。探针（切到不可达端口再切回）修复前 4/4 闪现。
+- 修复：新上下文键 `oco.sessionsEmpty`，只在刷新后确认已连接且列表为空时为真；三条「已连接」空列表提示都改为依赖它；其间显示「Loading sessions…」。
+- 检查：typecheck PASS；unit 185/185；build PASS；探针修复后 0/4 闪现，搜索无结果提示和真实空目录提示仍正常；`p1b-sidebar` 13/13（[结果](evidence/runs/20261002-004120-p1b-sidebar-c5d9/results.json)），connection-switch 新增 emptyFlash/loadingSeen 判定，去掉修复的对照运行判 FAIL。NOT RUN：其余 E2E、Remote。
 
 ## 侧栏会话列表改版（提交 `8d215c3`，2026-10-01；已部署 gcp-workstation）
 

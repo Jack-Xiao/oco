@@ -393,3 +393,15 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 主线程整合 21 章单文件手册，独立 Grok 调查运行时与构建/文档事实，均以实际源码和版本为依据；委派 model/provider 未返回则记 unknown。
 - 文档验证 40 项 PASS，包含桌面/手机、交互、打印与源码/链接核对；代理浏览器启动受沙箱阻塞后，主线程使用同脚本完成，不改权限。证据：`docs/evidence/technical-guide-validation.json`、`technical-guide-review.md`；详细脚本/截图在忽略目录 `docs/evidence/runs/technical-guide/`。
 - 只读查看 Claude 状态并设置截止 2026-10-02 09:30 的观察；发现额度阻塞和未提交/重跑缺口，不宣称项目完整。产品构建/E2E/部署 NOT RUN。仅本地提交文档，不含并发产品改动。
+
+## 2026-10-02 连接后误显示「没有会话」
+
+- 改动：`oco.sessionsEmpty` 上下文键 + 「Loading sessions…」提示；`p1b-sidebar` connection-switch 增加闪现判定（先聚焦 Sessions 视图）。
+- 结果：unit 185/185、build PASS、`p1b-sidebar` 13/13（docs/evidence/runs/20261002-004120-p1b-sidebar-c5d9/results.json）；对照（去掉修复）connection-switch FAIL。NOT RUN：其余 E2E、Remote。
+
+
+## 2026-10-02 委派规则执行约束
+
+- 根据 Claude 会话审计修改 AGENTS：可委派任务先派后做；主线程接手有具体例外；健康检查、普通运行失败换路由、轻量转发开销与任务主体分开；要求实际运行记录与 checkpoint，避免重复调查。
+- STATUS/NEXT 同步按任务段落读取与委派约束；保留本轮开始前的并发产品/文档改动。只改项目文档，未改全局配置或路由，未提交。
+- 本批 Gemini Antigravity 订阅最小请求因地域限制失败，Grok 安装/登录检查通过，Grok 复核 PASS；链接、diff 格式及 4 项并发基线保护检查 PASS。只读代理的复核补丁由主线程代存；结果与执行记录见 [本批证据](evidence/delegation-rules-20261002.md)。产品 typecheck/unit/build/E2E 与后续会话行为 NOT RUN。

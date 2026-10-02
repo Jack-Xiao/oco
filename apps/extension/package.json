@@ -310,17 +310,22 @@
       },
       {
         "view": "oco.sessions",
-        "when": "oco.connState == connected && !oco.searchActive && isWorkspaceTrusted",
+        "when": "oco.connState == connected && !oco.sessionsEmpty",
+        "contents": "Loading sessions…"
+      },
+      {
+        "view": "oco.sessions",
+        "when": "oco.connState == connected && oco.sessionsEmpty && !oco.searchActive && isWorkspaceTrusted",
         "contents": "This workspace has no OpenCode sessions yet.\n[New Session](command:oco.newSession)"
       },
       {
         "view": "oco.sessions",
-        "when": "oco.connState == connected && !oco.searchActive && !isWorkspaceTrusted",
+        "when": "oco.connState == connected && oco.sessionsEmpty && !oco.searchActive && !isWorkspaceTrusted",
         "contents": "This workspace has no sessions yet. Restricted Mode cannot create a session."
       },
       {
         "view": "oco.sessions",
-        "when": "oco.connState == connected && oco.searchActive",
+        "when": "oco.connState == connected && oco.sessionsEmpty && oco.searchActive",
         "contents": "No matching sessions.\n[Clear Search](command:oco.clearSearch)"
       }
     ]

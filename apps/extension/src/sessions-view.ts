@@ -163,6 +163,8 @@ export class SessionsView implements vscode.TreeDataProvider<Node>, vscode.Dispo
   setConnection(s: ConnectionSummary) {
     this.summary = s
     void vscode.commands.executeCommand("setContext", "oco.connState", s.state)
+    // Not yet known to be empty: the rows of a new snapshot render on the next refresh.
+    if (s.state !== "connected") this.setEmpty(false)
     void vscode.commands.executeCommand("setContext", "oco.connIssue", s.issue ?? "")
     this.refresh()
   }
@@ -226,6 +228,8 @@ export class SessionsView implements vscode.TreeDataProvider<Node>, vscode.Dispo
     const s = this.summary
     const all = this.items()
     const waiting = all.filter((i) => i.activity === "permission" || i.activity === "question").length
+    // Set after the tree was told to re-render, so "no sessions" never shows while rows are on their way.
+    this.setEmpty(s?.state === "connected" && all.length === 0)
     this.view.description = [this.folderLabel, this.query ? `Search: ${this.query}` : ""].filter(Boolean).join(" · ") || undefined
     let message: string | undefined
     if (s?.state === "reconnecting") message = `Connection lost. Reconnecting (attempt ${s.attempt})… The list may be out of date.${s.error ? ` Cause: ${s.error}` : ""}`
@@ -282,6 +286,13 @@ export class SessionsView implements vscode.TreeDataProvider<Node>, vscode.Dispo
     const extra = serverInfoLines(this.info)
     if (extra.length) st.tooltip = `${typeof st.tooltip === "string" ? st.tooltip : ""}\n${extra.join("\n")}`
     st.show()
+  }
+
+  private empty = false
+  private setEmpty(v: boolean) {
+    if (this.empty === v) return
+    this.empty = v
+    void vscode.commands.executeCommand("setContext", "oco.sessionsEmpty", v)
   }
 
   /** Multi-root: the folder the list belongs to, shown next to the view title (undefined for one folder). */

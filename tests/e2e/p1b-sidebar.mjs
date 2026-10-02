@@ -509,6 +509,7 @@ try {
   {
     // Another server resets the list to its first page (100); search matches merged earlier are dropped.
     const beforeIds = (await sidebar()).items.map((i) => i.id)
+    await command(page, "Focus on Sessions View") // the empty-state check below reads the visible view
     const settings = JSON.parse(fs.readFileSync(settingsFile, "utf8"))
     fs.writeFileSync(settingsFile, JSON.stringify({ ...settings, "oco.serverUrl": "http://127.0.0.1:4599" }, null, 2))
     const down = await until(async () => {
@@ -517,14 +518,28 @@ try {
     }, 30000, 800)
     await runShot(page, run, "10-unreachable")
     fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2))
+    // While the new snapshot's rows are on their way the view shows "Loading sessions…", never the empty-state.
+    let emptyFlash = false
+    let loadingSeen = false
+    const watch = (async () => {
+      const end = Date.now() + 15000
+      while (Date.now() < end) {
+        const txt = await page.locator(".part.sidebar").innerText().catch(() => "")
+        if (/no OpenCode sessions yet/.test(txt)) emptyFlash = true
+        if (/Loading sessions/.test(txt)) loadingSeen = true
+        if ((await page.locator(".part.sidebar .monaco-list-row").count().catch(() => 0)) > 3 && !/Cannot connect/.test(txt)) break
+        await sleep(20)
+      }
+    })()
     const up = await until(async () => {
       const sb = await sidebar()
       return sb.connection?.state === "connected" && sb.items.length ? sb : undefined
     }, 60000, 800)
+    await watch
     const ids = up?.items.map((i) => i.id) ?? []
     run.record(
       "connection-switch",
-      down && down.items.length === 0 && /Not connected/.test(down.statusText) && up && new Set(ids).size === ids.length && ids.length === Math.min(beforeIds.length, 100) && ids.every((i) => beforeIds.includes(i)) ? "PASS" : "FAIL",
+      down && down.items.length === 0 && /Not connected/.test(down.statusText) && up && new Set(ids).size === ids.length && ids.length === Math.min(beforeIds.length, 100) && ids.every((i) => beforeIds.includes(i)) && !emptyFlash ? "PASS" : "FAIL",
       {
         downState: down?.connection?.state ?? null,
         downItems: down?.items.length ?? null,
@@ -534,6 +549,8 @@ try {
         itemsBefore: beforeIds.length,
         itemsAfter: ids.length,
         duplicates: ids.length - new Set(ids).size,
+        emptyFlash,
+        loadingSeen,
       },
     )
   }
