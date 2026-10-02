@@ -5,7 +5,7 @@
 //   reconnect-hard-cut    streams cut + connections refused: reconnecting with the old list, then snapshot == server
 //   reconnect-incremental after the reconnect, create/rename arrive as events (no new snapshot request)
 //   reconnect-stall       a silent stream is dropped by the watchdog (OCO_DEV_STALL_MS) and recovered
-//   search-scope-hint     >200 root sessions: "latest 200" hint, and the search-scope hint while searching
+//   search-whole-history  >200 root sessions: first page is 100 with load-more, and search finds an older seed
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -14,7 +14,7 @@ import { startProxy } from "./lib/proxy.mjs"
 import { launch, command, sleep, runShot, hostState, root } from "./vscode.mjs"
 import { api } from "./server.mjs"
 
-const REQUIRED = ["reconnect-hard-cut", "reconnect-incremental", "reconnect-stall", "search-scope-hint"]
+const REQUIRED = ["reconnect-hard-cut", "reconnect-incremental", "reconnect-stall", "search-whole-history"]
 const run = createRun({ suite: "p1b-reconnect", required: REQUIRED, scriptPath: fileURLToPath(import.meta.url) })
 // server.mjs has already captured the direct URL; the proxy forwards to the same server.
 const DIRECT = process.env.OCO_TEST_URL ?? "http://127.0.0.1:4517"
@@ -29,7 +29,7 @@ const STALL_MS = 4000
 process.env.OCO_DEV_STALL_MS = String(STALL_MS)
 
 const created = [] // sessions this run created in the default workspace (deleted at the end)
-const MAX = 200
+const PAGE = 100
 
 /** Request against the test server for an explicit directory (query parameter), independent of api(). */
 async function dreq(method, p, body, directory) {
@@ -66,9 +66,9 @@ export function diffLists(sidebarItems, serverItems) {
   return { same: missing.length === 0 && extra.length === 0 && a.size === sidebarItems.length, missing, extra }
 }
 
-/** Root sessions of a directory as the sidebar feed asks for them: newest first, top 200, not archived. */
-async function serverRoots(directory = dir) {
-  return ((await dreq("GET", `/session?roots=true&limit=${MAX}`, undefined, directory)) ?? []).filter((s) => !s.time?.archived).sort((a, b) => (b.time?.updated ?? 0) - (a.time?.updated ?? 0))
+/** Root sessions of a directory as the sidebar feed asks for them: newest first, first page, not archived. */
+async function serverRoots(directory = dir, limit = PAGE) {
+  return ((await dreq("GET", `/session?roots=true&limit=${limit}`, undefined, directory)) ?? []).filter((s) => !s.time?.archived).sort((a, b) => (b.time?.updated ?? 0) - (a.time?.updated ?? 0))
 }
 async function mkSession(title) {
   const s = await api("POST", "/session", { title })
@@ -114,7 +114,8 @@ try {
     let last
     await until(async () => {
       const sb = await sidebar()
-      const d = diffLists(sb.items, await serverRoots())
+      // Rows already loaded stay when new sessions push them off the first page: compare the newest N.
+      const d = diffLists(sb.items, await serverRoots(dir, Math.max(PAGE, sb.items.length)))
       const has = expect.every(([id, title]) => sb.items.find((i) => i.id === id)?.title === title)
       last = { sb, ...d, has }
       return sb.connection?.state === "connected" && d.same && has ? true : undefined
@@ -278,12 +279,12 @@ try {
   await app?.close().catch(() => {})
 }
 
-// 4. Search scope hint: a dedicated workspace with more than 200 root sessions.
+// 4. Search the whole history: a dedicated workspace with more than 200 root sessions.
 try {
   fs.mkdirSync(manyDir, { recursive: true })
   const realMany = fs.realpathSync(manyDir)
   let existing = (await dreq("GET", `/session?roots=true&limit=1000`, undefined, realMany)) ?? []
-  const want = MAX + 5
+  const want = 205 // past the old 200-row window; the sidebar still pages at PAGE
   let n = existing.length
   while (n < want) {
     const batch = Math.min(6, want - n)
@@ -291,42 +292,72 @@ try {
     n += batch
   }
   const serverAll = ((await dreq("GET", `/session?roots=true&limit=1000`, undefined, realMany)) ?? []).filter((s) => !s.time?.archived).sort((a, b) => (b.time?.updated ?? 0) - (a.time?.updated ?? 0))
-  const beyond = serverAll.slice(MAX).map((s) => s.id)
+  const allTitles = serverAll.map((s) => (s.title ?? "").trim()).filter(Boolean)
+  const titleHits = (q) => allTitles.filter((t) => t.toLowerCase().includes(q.toLowerCase())).length
+  // Seeds share the "oco-many-" prefix. Use an older-than-page row whose title is not contained in
+  // another, and search the unique suffix after that prefix (the whole title when it has no prefix).
+  let target
+  let query
+  const older = serverAll.slice(PAGE)
+  const seeded = older.filter((s) => (s.title ?? "").startsWith("oco-many-"))
+  const pool = [...(seeded.length ? seeded : older)].sort((a, b) => (b.title?.length ?? 0) - (a.title?.length ?? 0))
+  for (const s of pool) {
+    const title = (s.title ?? "").trim()
+    if (!title || titleHits(title) !== 1) continue
+    const suffix = title.startsWith("oco-many-") ? title.slice("oco-many-".length) : title
+    if (!suffix || titleHits(suffix) !== 1) continue
+    target = s
+    query = suffix
+    break
+  }
+  if (!target) throw new Error(`no uniquely titled root beyond the first ${PAGE}`)
   ;({ app, page, stateFile } = await launch({ profile: "p1b-reconnect-many", run, workspace: manyDir, settings: { "oco.serverUrl": DIRECT } }))
   const sidebar = async () => (await hostState(page, stateFile)).sidebar
   await command(page, "Focus on Sessions View")
   const loaded = await until(async () => {
     const sb = await sidebar()
-    // The hint is part of the debounced chrome update, which can land a moment after the rows.
-    return sb.connection?.state === "connected" && sb.items.length >= MAX && sb.message ? sb : undefined
+    return sb.connection?.state === "connected" && sb.items.length === PAGE && sb.loadMore === true ? sb : undefined
   }, 60000, 800)
   await runShot(page, run, "4-loaded")
   const idsShown = new Set((loaded?.items ?? []).map((i) => i.id))
-  const beyondHidden = beyond.length >= 1 && beyond.every((id) => !idsShown.has(id))
-  const topMatches = serverAll.slice(0, MAX).every((s) => idsShown.has(s.id))
-  const hint = /Only the 200 most recent sessions are loaded/.test(loaded?.message ?? "") && /Search covers only those sessions/.test(loaded?.message ?? "")
+  const newest = serverAll.slice(0, PAGE)
+  const topMatches = newest.length === PAGE && newest.every((s) => idsShown.has(s.id)) && idsShown.size === PAGE
+  const loadedMessage = typeof loaded?.message === "string" ? loaded.message : ""
+  const scopeHintAbsent = !loadedMessage.includes("Only the") && !loadedMessage.includes("Search covers only")
 
-  await command(page, "oco: Search Sessions", { input: "oco-many" })
+  await command(page, "oco: Search Sessions", { input: query })
   const searched = await until(async () => {
     const sb = await sidebar()
-    return sb.search === "oco-many" && /Search covers only the 200 most recent loaded/.test(sb.message ?? "") ? sb : undefined
+    return sb.search === query && (sb.items ?? []).some((i) => i.id === target.id) ? sb : undefined
   }, 20000, 600)
   await runShot(page, run, "4-search")
-  const searchIds = new Set((searched?.items ?? []).map((i) => i.id))
-  const searchHint = /Search covers only the 200 most recent loaded sessions/.test(searched?.message ?? "")
-  const beyondNotFound = beyond.every((id) => !searchIds.has(id))
-  run.record("search-scope-hint", serverAll.length > MAX && loaded?.items.length === MAX && hint && topMatches && beyondHidden && searched && searched.items.length > 0 && searchHint && beyondNotFound ? "PASS" : "FAIL", {
+
+  await command(page, "oco: Clear Session Search")
+  const cleared = await until(async () => {
+    const sb = await sidebar()
+    const ids = (sb.items ?? []).map((i) => i.id)
+    return sb.search === "" && ids.length >= PAGE && ids.length === new Set(ids).size ? sb : undefined
+  }, 20000, 600)
+  await runShot(page, run, "4-cleared")
+  const clearedIds = (cleared?.items ?? []).map((i) => i.id)
+  const clearedNoDuplicates = clearedIds.length >= PAGE && clearedIds.length === new Set(clearedIds).size
+  run.record("search-whole-history", serverAll.length > 200 && loaded?.items.length === PAGE && loaded?.loadMore === true && topMatches && scopeHintAbsent && !!searched && clearedNoDuplicates ? "PASS" : "FAIL", {
     serverRoots: serverAll.length,
     loadedItems: loaded?.items.length ?? null,
-    loadedMessage: (loaded?.message ?? "").slice(0, 60),
-    newest200Shown: topMatches,
-    olderSessionsHidden: beyondHidden,
+    loadMore: loaded?.loadMore ?? null,
+    loadedMessage: loaded?.message ?? null,
+    newestPageShown: topMatches,
+    scopeHintAbsent,
+    searchQuery: query,
+    targetId: target.id,
+    foundOlderSession: !!searched,
     searchItems: searched?.items.length ?? null,
-    searchMessage: (searched?.message ?? "").slice(0, 60),
-    olderSessionsNotInSearch: beyondNotFound,
+    clearedItems: cleared?.items.length ?? null,
+    clearedNoDuplicates,
+    clearedSearchEmpty: cleared?.search === "",
   })
 } catch (e) {
-  run.record("search-scope-hint", "FAIL", { error: String(e?.message ?? e).slice(0, 400) })
+  run.record("search-whole-history", "FAIL", { error: String(e?.message ?? e).slice(0, 400) })
   if (page) await runShot(page, run, "4-error")
 } finally {
   await app?.close().catch(() => {})

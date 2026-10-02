@@ -75,6 +75,11 @@
         "icon": "$(search)"
       },
       {
+        "command": "oco.loadMoreSessions",
+        "title": "Load More Sessions",
+        "category": "oco"
+      },
+      {
         "command": "oco.clearSearch",
         "title": "Clear Session Search",
         "category": "oco",
@@ -191,6 +196,10 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "oco.loadMoreSessions",
+          "when": "false"
+        },
         {
           "command": "oco.clearSearch",
           "when": "oco.searchActive"

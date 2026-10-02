@@ -274,7 +274,7 @@ describe("SessionFeed", () => {
       expect(h.store.list()).toEqual([])
 
       const urls = h.calls.map((call) => call.url)
-      expect(urls).toContain(`${ORIGIN}/session?directory=${enc}&roots=true&limit=${SessionFeed.ROOT_LIMIT}`)
+      expect(urls).toContain(`${ORIGIN}/session?directory=${enc}&roots=true&limit=${SessionFeed.PAGE}`)
       expect(urls).toContain(`${ORIGIN}/session/status?directory=${enc}`)
       expect(urls).toContain(`${ORIGIN}/permission?directory=${enc}`)
       expect(urls).toContain(`${ORIGIN}/question?directory=${enc}`)
@@ -762,8 +762,8 @@ describe("SessionFeed: stale attempts and limits", () => {
   })
 
   for (const [n, reached] of [
-    [200, true],
-    [199, false],
+    [SessionFeed.PAGE, true],
+    [SessionFeed.PAGE - 1, false],
   ] as const) {
     test(`${n} root sessions from the server set limitReached=${reached}`, async () => {
       const h = harness({ directory: dir })
@@ -778,7 +778,7 @@ describe("SessionFeed: stale attempts and limits", () => {
         h.feed.start()
         await until(() => h.feed.state.state === "connected", h, "connected")
         expect(h.store.limitReached).toBe(reached)
-        expect(h.calls.some((c) => c.url.includes(`limit=${SessionFeed.ROOT_LIMIT}`))).toBe(true)
+        expect(h.calls.some((c) => c.url.includes(`limit=${SessionFeed.PAGE}`))).toBe(true)
       } finally {
         stream.close()
         h.feed.stop()
@@ -807,6 +807,230 @@ describe("SessionFeed: connection settings diagnostics", () => {
       expect(h.feed.state.error).toContain("HTTP 404")
       expect(h.feed.state.error).toContain("may not be an OpenCode server")
     } finally {
+      h.feed.stop()
+    }
+  })
+})
+
+describe("SessionFeed pages and search", () => {
+  const dir = "/work"
+  const enc = encodeURIComponent(dir)
+  const roots = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({ id: `s${i}`, directory: dir, title: `S${i}`, time: { updated: i + 1 } }))
+
+  function sessionRoutes(extra: unknown) {
+    return (url: string) => {
+      if (url.includes("/session?")) return json(extra)
+      const res = routeSnapshot(url, {})
+      if (!res) throw new Error(url)
+      return res
+    }
+  }
+
+  test("loadMore asks for the next page, merges rows, and updates limitReached", async () => {
+    const h = harness({ directory: dir })
+    const first = openStream()
+    const second = openStream()
+    let events = 0
+    const firstPage = roots(SessionFeed.PAGE)
+    const more = Array.from({ length: 50 }, (_, i) => ({
+      id: `m${i}`,
+      directory: dir,
+      title: `M${i}`,
+      time: { updated: 1000 + i },
+    }))
+    h.handle = (url) => {
+      if (url.includes("/event")) {
+        events++
+        return new Response((events === 1 ? first : second).stream, { status: 200 })
+      }
+      if (url.includes(`limit=${SessionFeed.PAGE * 2}`)) return json([...firstPage, ...more])
+      return sessionRoutes(firstPage)(url)
+    }
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected")
+      expect(h.store.limitReached).toBe(true)
+      expect(h.store.size).toBe(SessionFeed.PAGE)
+      const before = h.changes
+      await h.feed.loadMore()
+      const sessionUrls = h.calls.map((call) => call.url).filter((url) => url.includes("/session?"))
+      expect(sessionUrls[0]).toBe(`${ORIGIN}/session?directory=${enc}&roots=true&limit=${SessionFeed.PAGE}`)
+      expect(sessionUrls[1]).toBe(`${ORIGIN}/session?directory=${enc}&roots=true&limit=${SessionFeed.PAGE * 2}`)
+      const pageCall = h.calls.find((call) => call.url === sessionUrls[1])
+      expect(pageCall?.init.redirect).toBe("manual")
+      expect(hdr(pageCall!.init)).toEqual({ authorization: "Basic test", "x-opencode-directory": enc })
+      expect(h.store.limitReached).toBe(false)
+      expect(h.store.size).toBe(SessionFeed.PAGE + 50)
+      expect(h.store.has("s0")).toBe(true)
+      expect(h.store.has("m0")).toBe(true)
+      expect(h.changes).toBe(before + 1)
+
+      h.feed.restart()
+      await until(() => h.feed.state.state === "connected" && h.feed.stats.connects === 2, h, "reconnect keeps page")
+      const again = h.calls.map((call) => call.url).filter((url) => url.includes("/session?"))
+      expect(again[2]).toBe(`${ORIGIN}/session?directory=${enc}&roots=true&limit=${SessionFeed.PAGE * 2}`)
+      expect(h.store.size).toBe(SessionFeed.PAGE + 50)
+      expect(h.store.limitReached).toBe(false)
+    } finally {
+      first.close()
+      second.close()
+      h.feed.stop()
+    }
+  })
+
+  test("search queries the server, merges hits, and calls onChange only when the store changes", async () => {
+    const h = harness({ directory: dir })
+    const stream = openStream()
+    const query = "a/b c"
+    let searchRound = 0
+    h.handle = (url) => {
+      if (url.includes("/event")) return new Response(stream.stream, { status: 200 })
+      if (url.includes("search=")) {
+        searchRound++
+        if (searchRound === 1) {
+          return json(
+            Array.from({ length: SessionFeed.PAGE }, (_, i) => ({
+              id: `f${i}`,
+              directory: dir,
+              title: `F${i}`,
+              time: { updated: 50 + i },
+            })),
+          )
+        }
+        return json([{ id: "s0", directory: dir, title: "Stale", time: { updated: 0 } }])
+      }
+      return sessionRoutes(roots(1))(url)
+    }
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected")
+      expect(h.store.limitReached).toBe(false)
+      const callsBefore = h.calls.length
+      await h.feed.search("   ")
+      await h.feed.search("")
+      expect(h.calls).toHaveLength(callsBefore)
+
+      const before = h.changes
+      await h.feed.search(query)
+      const searchCall = h.calls.find((call) => call.url.includes("search="))
+      expect(searchCall?.url).toBe(
+        `${ORIGIN}/session?directory=${enc}&roots=true&search=${encodeURIComponent(query)}&limit=${SessionFeed.PAGE}`,
+      )
+      expect(searchCall?.init.redirect).toBe("manual")
+      expect(hdr(searchCall!.init)).toEqual({ authorization: "Basic test", "x-opencode-directory": enc })
+      expect(h.store.has("s0")).toBe(true)
+      expect(h.store.has("f0")).toBe(true)
+      expect(h.store.size).toBe(1 + SessionFeed.PAGE)
+      expect(h.store.limitReached).toBe(false)
+      expect(h.changes).toBe(before + 1)
+
+      await h.feed.search(query)
+      expect(h.store.list().find((item) => item.id === "s0")?.title).toBe("S0")
+      expect(h.changes).toBe(before + 1)
+      expect(h.store.limitReached).toBe(false)
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("loadMore and search do not fetch unless the feed is connected", async () => {
+    const h = harness({ directory: dir })
+    await h.feed.loadMore()
+    await h.feed.search("hello")
+    expect(h.calls).toHaveLength(0)
+
+    const stream = openStream()
+    const gate = defer<Response>()
+    h.handle = (url) => {
+      if (url.includes("/event")) return gate.promise.then(() => new Response(stream.stream, { status: 200 }))
+      return sessionRoutes(roots(1))(url)
+    }
+    try {
+      h.feed.start()
+      expect(h.feed.state.state).toBe("connecting")
+      await h.feed.loadMore()
+      await h.feed.search("hello")
+      expect(h.calls.filter((call) => call.url.includes("/session"))).toHaveLength(0)
+      gate.resolve(new Response(null, { status: 200 }))
+      await until(() => h.feed.state.state === "connected", h, "connected after gated event")
+      const sessionUrls = h.calls.map((call) => call.url).filter((url) => url.includes("/session?"))
+      expect(sessionUrls).toEqual([`${ORIGIN}/session?directory=${enc}&roots=true&limit=${SessionFeed.PAGE}`])
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("a response that arrives after restart is ignored", async () => {
+    const h = harness({ directory: dir })
+    const stream = openStream()
+    const loadLate = defer<Response>()
+    const searchLate = defer<Response>()
+    let events = 0
+    h.handle = (url) => {
+      if (url.includes("/event")) {
+        events++
+        if (events === 1) return new Response(stream.stream, { status: 200 })
+        return new Promise(() => {})
+      }
+      if (url.includes("search=")) return searchLate.promise
+      if (url.includes(`limit=${SessionFeed.PAGE * 2}`)) return loadLate.promise
+      return sessionRoutes(roots(1))(url)
+    }
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected")
+      const loadP = h.feed.loadMore()
+      const searchP = h.feed.search("ghost")
+      await until(
+        () => h.calls.some((call) => call.url.includes(`limit=${SessionFeed.PAGE * 2}`)) && h.calls.some((call) => call.url.includes("search=")),
+        h,
+        "in flight",
+      )
+      const size = h.store.size
+      h.feed.restart()
+      loadLate.resolve(json([{ id: "ghost-load", directory: dir, title: "Ghost", time: { updated: 500 } }]))
+      searchLate.resolve(json([{ id: "ghost-search", directory: dir, title: "Ghost", time: { updated: 500 } }]))
+      await loadP
+      await searchP
+      expect(h.store.has("ghost-load")).toBe(false)
+      expect(h.store.has("ghost-search")).toBe(false)
+      expect(h.store.has("s0")).toBe(true)
+      expect(h.store.size).toBe(size)
+      expect(h.feed.state.state).toBe("reconnecting")
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("HTTP errors from loadMore and search do not throw or change the store", async () => {
+    const h = harness({ directory: dir })
+    const stream = openStream()
+    let sessionLists = 0
+    h.handle = (url) => {
+      if (url.includes("/event")) return new Response(stream.stream, { status: 200 })
+      if (url.includes("/session?")) {
+        sessionLists++
+        if (sessionLists > 1) return new Response("nope", { status: 500 })
+      }
+      return sessionRoutes(roots(1))(url)
+    }
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected")
+      const before = h.changes
+      await expect(h.feed.loadMore()).resolves.toBeUndefined()
+      await expect(h.feed.search("a/b")).resolves.toBeUndefined()
+      expect(h.store.list().map((item) => item.id)).toEqual(["s0"])
+      expect(h.store.limitReached).toBe(false)
+      expect(h.feed.state.state).toBe("connected")
+      expect(h.changes).toBe(before)
+      expect(h.calls.some((call) => call.url.includes("search="))).toBe(true)
+    } finally {
+      stream.close()
       h.feed.stop()
     }
   })

@@ -72,12 +72,14 @@ export class SseParser {
 }
 
 export class SessionFeed {
-  static readonly ROOT_LIMIT = 200
+  static readonly PAGE = 100
   private token = 0
   private abort: AbortController | undefined
   private retryTimer: unknown
   private stallTimer: unknown
   private stopped = true
+  /** How many root sessions the next snapshot asks for. Grows by a page on load-more; a reconnect keeps it. */
+  private rootLimit = SessionFeed.PAGE
   private summary: ConnectionSummary = { connectionId: null, label: "", directory: null, state: "unconfigured", attempt: 0, trusted: true }
   readonly stats = { attempts: 0, connects: 0, superseded: 0, stalls: 0 }
 
@@ -104,6 +106,25 @@ export class SessionFeed {
     this.stopped = false
     this.summary = { ...this.summary, attempt: 0 }
     this.connect()
+  }
+
+  /** Next page of root sessions. No cursor: re-request the same list with a larger limit. */
+  async loadMore(): Promise<void> {
+    if (this.stopped || this.summary.state !== "connected") return
+    this.rootLimit += SessionFeed.PAGE
+    const limit = this.rootLimit
+    const list = await this.fetchRoots(`limit=${limit}`)
+    if (!list) return
+    this.d.store.mergeRoots(list, list.length >= limit)
+    this.d.onChange()
+  }
+
+  /** Title search across the whole history. Does not change `limitReached`. */
+  async search(q: string): Promise<void> {
+    if (this.stopped || this.summary.state !== "connected" || q.trim() === "") return
+    const list = await this.fetchRoots(`search=${encodeURIComponent(q)}&limit=${SessionFeed.PAGE}`)
+    if (!list) return
+    if (this.d.store.mergeRoots(list)) this.d.onChange()
   }
 
   private now() {
@@ -145,6 +166,7 @@ export class SessionFeed {
       // Another server or workspace: never show the previous one's sessions, even while connecting.
       this.d.store.applySnapshot({ sessions: [], status: {}, permissions: [], questions: [] })
       this.summary = { ...this.summary, lastConnectedAt: undefined, attempt: 0 }
+      this.rootLimit = SessionFeed.PAGE
       this.d.onChange()
     }
     const had = this.summary.lastConnectedAt !== undefined
@@ -225,7 +247,7 @@ export class SessionFeed {
     // /session/status lists non-idle sessions only; the server's default page is 100.
     const q = `directory=${encodeURIComponent(directory)}`
     const [roots, status, permissions, questions] = await Promise.all([
-      get<ServerSession[]>(`/session?${q}&roots=true&limit=${SessionFeed.ROOT_LIMIT}`),
+      get<ServerSession[]>(`/session?${q}&roots=true&limit=${this.rootLimit}`),
       get<Record<string, ServerStatus>>(`/session/status?${q}`),
       get<PendingRequest[]>(`/permission?${q}`),
       get<PendingRequest[]>(`/question?${q}`),
@@ -244,11 +266,40 @@ export class SessionFeed {
       }
     }
     if (token !== this.token) return
-    this.d.store.applySnapshot({ sessions: [...sessions.values()], status: status ?? {}, permissions: permissions ?? [], questions: questions ?? [], rootLimitReached: (roots ?? []).length >= SessionFeed.ROOT_LIMIT })
+    this.d.store.applySnapshot({ sessions: [...sessions.values()], status: status ?? {}, permissions: permissions ?? [], questions: questions ?? [], rootLimitReached: (roots ?? []).length >= this.rootLimit })
     for (const e of buffered.splice(0)) this.d.store.applyEvent(e)
     live = true
     this.stats.connects++
     this.set({ state: "connected", error: undefined, attempt: 0, retryAt: undefined, lastConnectedAt: this.now() })
     this.d.onChange()
+  }
+
+  /** GET /session roots. Undefined on failure or when this attempt was superseded mid-flight. Never throws. */
+  private async fetchRoots(extra: string): Promise<ServerSession[] | undefined> {
+    const token = this.token
+    try {
+      const directory = this.d.directory()
+      if (!directory) return
+      const headers = { ...(await this.d.auth()), "x-opencode-directory": encodeURIComponent(directory) }
+      if (token !== this.token) return
+      const origin = this.d.endpoint().origin
+      const r = await this.d.fetch(`${origin}/session?directory=${encodeURIComponent(directory)}&roots=true&${extra}`, {
+        headers,
+        signal: this.abort?.signal,
+        redirect: "manual",
+      })
+      if (token !== this.token) return
+      if (!r.ok) throw new HttpError(r.status, "GET /session")
+      const body: unknown = await r.json()
+      if (token !== this.token) return
+      if (!Array.isArray(body)) {
+        this.d.log?.("feed: session page was not a list")
+        return
+      }
+      return body as ServerSession[]
+    } catch (e) {
+      if (token !== this.token) return
+      this.d.log?.(`feed: session page failed (${e instanceof Error ? e.message : String(e)})`)
+    }
   }
 }

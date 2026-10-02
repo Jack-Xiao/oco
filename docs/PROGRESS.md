@@ -382,6 +382,12 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 改动：扩展和待发送提示的写死中文改为英文（Grok 执行，主线程复核）；相关单元测试、E2E 断言和 `remote-look.mjs` 同步。
 - 结果：typecheck PASS、unit 169/169；6 个相关 E2E 套件 41 项 PASS；已部署 gcp-workstation。NOT RUN：其余 E2E。
 
+## 2026-10-01 侧栏会话列表改版
+
+- 改动：按时间分组（昨天 0 点起直接列出，其余进 More）、状态图标（含灰色呼吸点 SVG 和未读蓝点）、短时间、首屏 100 + Load more、服务端搜索。Grok 实现 `session-groups.ts` 与 feed/store 分页搜索及单元测试；主线程集成 `sessions-view.ts`、`extension.ts`、`package.json`、SVG，并修 E2E（Grok 沙箱无法启动 VS Code，E2E 由主线程运行）。
+- 结果：typecheck PASS、unit 185/185、build PASS；E2E（mock）`p1b-sidebar` 13/13（docs/evidence/runs/20261001-155122-p1b-sidebar-20fc）、`p1b-reconnect` 5/5（docs/evidence/runs/20261001-174051-p1b-reconnect-1870/results.json）、`c3-fork` 4/4、`p1b-main-panel` 8/8。NOT RUN：其余 E2E、Remote。
+
+
 ## 2026-10-02 面向初学者的 HTML 技术手册
 
 - 主线程整合 21 章单文件手册，独立 Grok 调查运行时与构建/文档事实，均以实际源码和版本为依据；委派 model/provider 未返回则记 unknown。

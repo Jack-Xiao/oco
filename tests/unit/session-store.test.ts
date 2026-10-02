@@ -434,3 +434,55 @@ describe("SessionStore.limitReached", () => {
     expect(store.limitReached).toBe(false)
   })
 })
+
+describe("SessionStore.mergeRoots", () => {
+  test("adds rows, keeps ones the page omits, and reports whether anything changed", () => {
+    const store = make()
+    store.add(session({ id: "keep", title: "New", time: { updated: 50 } }))
+    store.add(session({ id: "old", title: "Old", time: { updated: 10 } }))
+    store.applyEvent(ev("session.status", { sessionID: "keep", status: { type: "busy" } }))
+    store.applyEvent(ev("permission.asked", { id: "p1", sessionID: "old" }))
+    const ignored = store.stats.ignored
+
+    expect(
+      store.mergeRoots([
+        session({ id: "keep", title: "Stale", time: { updated: 40 } }),
+        session({ id: "foreign", directory: "/elsewhere", title: "No", time: { updated: 99 } }),
+        { id: "", directory: WORK },
+      ]),
+    ).toBe(false)
+    expect(store.stats.ignored).toBe(ignored + 2)
+    expect(store.limitReached).toBe(false)
+    expect(store.list().find((item) => item.id === "keep")).toMatchObject({ title: "New", activity: "busy" })
+    expect(store.has("foreign")).toBe(false)
+
+    expect(
+      store.mergeRoots(
+        [
+          session({ id: "added", title: "Added", time: { updated: 3 } }),
+          session({ id: "keep", title: "Newer", time: { updated: 60 } }),
+          session({ id: "old", title: "Gone", time: { updated: 11, archived: 11 } }),
+        ],
+        true,
+      ),
+    ).toBe(true)
+    expect(store.limitReached).toBe(true)
+    expect(store.has("old")).toBe(false)
+    expect(store.has("keep")).toBe(true)
+    expect(store.has("added")).toBe(true)
+    expect(store.list().find((item) => item.id === "keep")).toMatchObject({ title: "Newer", activity: "busy" })
+    expect(store.list().map((item) => item.id)).toEqual(["keep", "added"])
+
+    // Absent rows stay. Same flag and an older update are not a change. Omitting the flag leaves it set.
+    expect(store.mergeRoots([session({ id: "keep", title: "Nope", time: { updated: 1 } })])).toBe(false)
+    expect(store.has("added")).toBe(true)
+    expect(store.limitReached).toBe(true)
+    expect(store.list().find((item) => item.id === "keep")?.title).toBe("Newer")
+
+    expect(store.mergeRoots([], true)).toBe(false)
+    expect(store.mergeRoots([], false)).toBe(true)
+    expect(store.limitReached).toBe(false)
+    expect(store.mergeRoots([], false)).toBe(false)
+    expect(store.size).toBe(2)
+  })
+})

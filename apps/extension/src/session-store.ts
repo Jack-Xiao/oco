@@ -35,7 +35,7 @@ export class SessionStore {
   private seen = new Set<string>() // recent event ids (bounded), for duplicate delivery
   private static readonly SEEN_MAX = 1024
   readonly stats = { snapshots: 0, events: 0, duplicates: 0, ignored: 0 }
-  /** Last snapshot hit the root limit: the list and its search cover only the most recent sessions. */
+  /** The loaded root page came back full, so older sessions were not loaded. Search is not limited by this. */
   limitReached = false
 
   /** Only sessions for which this returns true are kept (workspace ownership). */
@@ -116,6 +116,21 @@ export class SessionStore {
   /** Local backfill after this client created a session (the event may arrive later, or first). */
   add(session: ServerSession) {
     return this.upsert(session)
+  }
+
+  /**
+   * Upsert a page of root sessions (or search hits) without dropping rows that are absent from it.
+   * Pass `limitReached` only for a root page; omit it and the flag is left alone.
+   * True when any row changed or the flag changed.
+   */
+  mergeRoots(sessions: ServerSession[], limitReached?: boolean): boolean {
+    let changed = false
+    for (const session of sessions) if (this.upsert(session)) changed = true
+    if (limitReached !== undefined && limitReached !== this.limitReached) {
+      this.limitReached = limitReached
+      changed = true
+    }
+    return changed
   }
 
   has(id: string) {

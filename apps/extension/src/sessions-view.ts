@@ -2,55 +2,88 @@ import * as vscode from "vscode"
 import type { ConnectionSummary, SessionActivity, SessionListItem } from "@oco/contracts"
 import type { SessionStore } from "./session-store"
 import { serverInfoLines, versionNote, type ServerInfo } from "./diagnostics"
+import { compactTime, splitSessions, UnreadTracker } from "./session-groups"
 
 export const SESSIONS_VIEW = "oco.sessions"
-export const MAX_ITEMS = 200 // = SessionFeed.ROOT_LIMIT
+const UNREAD_KEY = "oco.unreadSessions"
 
-const ACTIVITY: Record<SessionActivity, { label: string; icon: string; color?: string }> = {
-  idle: { label: "", icon: "comment-discussion" },
-  busy: { label: "Running", icon: "sync~spin", color: "charts.blue" },
-  retry: { label: "Retrying", icon: "sync~spin", color: "charts.orange" },
-  permission: { label: "Waiting for permission", icon: "shield", color: "charts.yellow" },
-  question: { label: "Waiting for answer", icon: "question", color: "charts.yellow" },
-  error: { label: "Error", icon: "error", color: "errorForeground" },
+const STATUS: Record<SessionActivity, string> = {
+  idle: "",
+  busy: "Running",
+  retry: "Retrying",
+  permission: "Waiting for permission",
+  question: "Waiting for answer",
+  error: "Error",
 }
 
-export function relativeTime(ms: number, now = Date.now()) {
-  if (!ms) return ""
-  const s = Math.max(0, Math.round((now - ms) / 1000))
-  if (s < 60) return "just now"
-  if (s < 3600) return `${Math.floor(s / 60)} min ago`
-  if (s < 86400) return `${Math.floor(s / 3600)} hr ago`
-  if (s < 86400 * 30) {
-    const days = Math.floor(s / 86400)
-    return days === 1 ? "1 day ago" : `${days} days ago`
-  }
-  return new Date(ms).toISOString().slice(0, 10)
+/** One icon per row, by priority: error > waiting on you > running > unread > nothing (blank keeps titles aligned). */
+function rowIcon(s: SessionListItem, unread: boolean, media: vscode.Uri, still: boolean): TreeItemIcon {
+  if (s.activity === "error") return new vscode.ThemeIcon("error", new vscode.ThemeColor("errorForeground"))
+  if (s.activity === "permission" || s.activity === "question") return new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.yellow"))
+  if (s.activity === "busy" || s.activity === "retry")
+    return still
+      ? new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("descriptionForeground"))
+      : { light: vscode.Uri.joinPath(media, "session-running-light.svg"), dark: vscode.Uri.joinPath(media, "session-running-dark.svg") }
+  if (unread) return new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.blue"))
+  return new vscode.ThemeIcon("blank")
 }
+type TreeItemIcon = vscode.ThemeIcon | { light: vscode.Uri; dark: vscode.Uri }
 
 export class SessionItem extends vscode.TreeItem {
-  constructor(readonly session: SessionListItem, open: boolean) {
+  constructor(
+    readonly session: SessionListItem,
+    readonly unread: boolean,
+    media: vscode.Uri,
+    still: boolean,
+    now = Date.now(),
+  ) {
     super(session.title, vscode.TreeItemCollapsibleState.None)
-    const a = ACTIVITY[session.activity]
     this.id = session.id
     const count = session.activity === "permission" ? session.pendingPermissions : session.activity === "question" ? session.pendingQuestions : 0
-    this.description = [a.label + (count > 1 ? ` ×${count}` : ""), open ? "Open" : "", relativeTime(session.updated)].filter(Boolean).join(" · ")
-    this.iconPath = new vscode.ThemeIcon(a.icon, a.color ? new vscode.ThemeColor(a.color) : undefined)
+    const status = STATUS[session.activity] + (count > 1 ? ` (${count})` : "") || (unread ? "New activity" : "")
+    this.description = compactTime(session.updated, now)
+    this.iconPath = rowIcon(session, unread, media, still)
     this.contextValue = "oco.session"
     const tip = new vscode.MarkdownString(undefined, true)
-    tip.appendText(`${session.title}\n${session.id}\n${session.directory}`)
+    tip.appendText([session.title, status, session.updated ? `Updated ${new Date(session.updated).toLocaleString()}` : "", session.id, session.directory].filter(Boolean).join("\n"))
     if (session.error) tip.appendText(`\nError: ${session.error}`)
     this.tooltip = tip
-    this.accessibilityInformation = { label: [session.title, a.label, open ? "Open" : ""].filter(Boolean).join(", ") }
+    this.accessibilityInformation = { label: [session.title, status, this.description].filter(Boolean).join(", ") }
     this.command = { command: "oco.openSession", title: "Open Session", arguments: [session.id] }
   }
 }
 
+/** Sessions older than yesterday, collapsed. Its id changes when nothing is recent so it opens on its own. */
+export class MoreItem extends vscode.TreeItem {
+  constructor(count: number, open: boolean) {
+    super("More", open ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.Collapsed)
+    this.id = open ? "oco.more.open" : "oco.more"
+    this.description = String(count)
+    this.contextValue = "oco.more"
+  }
+}
+
+export class LoadMoreItem extends vscode.TreeItem {
+  constructor() {
+    super("Load more…", vscode.TreeItemCollapsibleState.None)
+    this.id = "oco.loadMore"
+    this.iconPath = new vscode.ThemeIcon("blank")
+    this.contextValue = "oco.loadMore"
+    this.command = { command: "oco.loadMoreSessions", title: "Load More Sessions" }
+  }
+}
+
+type Node = SessionItem | MoreItem | LoadMoreItem
+const selected = (v: vscode.TreeView<Node>) => {
+  const e = v.selection[0]
+  return e instanceof SessionItem ? e.session.id : undefined
+}
+
 /** Native session list: data from SessionStore, states from the connection summary. */
-export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscode.Disposable {
+export class SessionsView implements vscode.TreeDataProvider<Node>, vscode.Disposable {
   private readonly changed = new vscode.EventEmitter<void>()
   readonly onDidChangeTreeData = this.changed.event
-  readonly view: vscode.TreeView<SessionItem>
+  readonly view: vscode.TreeView<Node>
   private query = ""
   private summary: ConnectionSummary | undefined
   private info: ServerInfo | undefined
@@ -58,13 +91,26 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
   private refreshTimer: ReturnType<typeof setTimeout> | undefined
   private current: string | undefined
   private readonly status: vscode.StatusBarItem
+  private readonly unread: UnreadTracker
+  private readonly media: vscode.Uri
+  private moreIds = new Set<string>()
+  private moreOpen = false
+  private moreId: string | undefined
+  private readonly clock: ReturnType<typeof setInterval>
   readonly stats = { renders: 0 }
 
   constructor(
     private readonly store: SessionStore,
-    private readonly isOpen: (sessionId: string) => boolean,
+    extensionUri: vscode.Uri,
+    private readonly memento?: vscode.Memento,
   ) {
+    this.media = vscode.Uri.joinPath(extensionUri, "media")
+    this.unread = new UnreadTracker(memento?.get<string[]>(UNREAD_KEY) ?? [])
     this.view = vscode.window.createTreeView(SESSIONS_VIEW, { treeDataProvider: this, showCollapseAll: false })
+    this.view.onDidExpandElement((e) => e.element instanceof MoreItem && (this.moreOpen = true))
+    this.view.onDidCollapseElement((e) => e.element instanceof MoreItem && (this.moreOpen = false))
+    // Time labels and the "since yesterday" boundary age without events.
+    this.clock = setInterval(() => this.view.visible && this.refresh(), 60_000)
     this.status = vscode.window.createStatusBarItem("oco.connection", vscode.StatusBarAlignment.Left, 10)
     this.status.name = "oco Connection"
     void vscode.commands.executeCommand("setContext", "oco.searchActive", false)
@@ -83,8 +129,11 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
 
   private syncSelection() {
     const id = this.current
-    if (!id || !this.view.visible || this.view.selection[0]?.session.id === id) return
-    const item = this.getChildren().find((i) => i.session.id === id)
+    if (!id || !this.view.visible || selected(this.view) === id) return
+    // Revealing a row inside the collapsed "More" group would force it open.
+    if (this.moreIds.has(id) && !this.moreOpen) return
+    const s = this.store.list().find((i) => i.id === id)
+    const item = s && this.row(s)
     // A fork's row may not be listed yet; the session.created refresh retries.
     if (item) void Promise.resolve(this.view.reveal(item, { select: true, focus: false })).catch(() => undefined)
   }
@@ -94,6 +143,7 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
     if (this.refreshTimer) return
     this.refreshTimer = setTimeout(() => {
       this.refreshTimer = undefined
+      if (this.unread.update(this.store.list(), this.current)) void this.memento?.update(UNREAD_KEY, this.unread.ids())
       this.changed.fire()
       this.updateChrome()
       this.syncSelection()
@@ -121,23 +171,55 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
     return this.store.list(this.query)
   }
 
-  getTreeItem(e: SessionItem) {
+  getTreeItem(e: Node) {
     return e
   }
 
-  getParent(): undefined {
-    return undefined // flat list; required by TreeView.reveal
+  /** Required by TreeView.reveal: rows in "More" have it as parent. */
+  getParent(e: Node): Node | undefined {
+    return e instanceof SessionItem && this.moreIds.has(e.session.id) ? this.moreNode() : undefined
   }
 
-  getChildren(e?: SessionItem): SessionItem[] {
-    if (e) return []
+  getChildren(e?: Node): Node[] {
+    if (e instanceof SessionItem || e instanceof LoadMoreItem) return []
+    const g = this.groups()
+    const row = (i: SessionListItem) => this.row(i, g.now)
+    if (e) return [...g.more.map(row), ...(g.loadMore ? [new LoadMoreItem()] : [])]
     this.stats.renders++
+    if (!g.connected) return []
+    const out: Node[] = g.recent.map(row)
+    // Nothing older loaded yet: "Load more…" sits at the end of the list rather than in an empty "More".
+    if (g.more.length) out.push(this.moreNode(g))
+    else if (g.loadMore) out.push(new LoadMoreItem())
+    return out
+  }
+
+  /**
+   * Today and yesterday first, then everything older under "More". Sessions that are running, waiting
+   * or unread stay on top regardless of age. A search shows its results flat.
+   */
+  private groups() {
+    const now = Date.now()
     const s = this.summary?.state
     // Empty tree -> the matching viewsWelcome content (loading / error / unauthorized / empty) shows.
-    if (s === "unconfigured" || (s !== "connected" && s !== "reconnecting" && this.store.size === 0)) return []
-    return this.items()
-      .slice(0, MAX_ITEMS)
-      .map((i) => new SessionItem(i, this.isOpen(i.id)))
+    const connected = !(s === "unconfigured" || (s !== "connected" && s !== "reconnecting" && this.store.size === 0))
+    const items = this.items()
+    const split = this.query ? { recent: items, more: [] } : splitSessions(items, now, (id) => this.unread.has(id))
+    this.moreIds = new Set(split.more.map((i) => i.id))
+    return { ...split, now, connected, loadMore: !this.query && this.store.limitReached }
+  }
+
+  private row(i: SessionListItem, now = Date.now()) {
+    const still = vscode.workspace.getConfiguration("workbench").get("reduceMotion") === "on"
+    return new SessionItem(i, this.unread.has(i.id), this.media, still, now)
+  }
+
+  private moreNode(g = this.groups()) {
+    const node = new MoreItem(g.more.length, !g.recent.length)
+    // Track the forced-open variant; the collapsed one starts closed again (expand events only follow clicks).
+    if (node.id !== this.moreId) this.moreOpen = node.id === "oco.more.open"
+    this.moreId = node.id
+    return node
   }
 
   private updateChrome() {
@@ -149,11 +231,6 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
     if (s?.state === "reconnecting") message = `Connection lost. Reconnecting (attempt ${s.attempt})… The list may be out of date.${s.error ? ` Cause: ${s.error}` : ""}`
     else if (s?.state === "error") message = `Cannot connect to ${s.label}: ${s.error ?? ""}`
     else if (s?.state === "unauthorized" || s?.state === "unconfigured") message = s.error
-    // The feed loads at most MAX_ITEMS root sessions and search runs on that loaded list only.
-    else if (this.store.limitReached || all.length > MAX_ITEMS)
-      message = this.query
-        ? `Search covers only the ${MAX_ITEMS} most recent loaded sessions. Older sessions are not included.`
-        : `Only the ${MAX_ITEMS} most recent sessions are loaded. Search covers only those sessions.`
     this.view.message = message
     this.view.badge = waiting ? { value: waiting, tooltip: `${waiting} session${waiting === 1 ? "" : "s"} waiting` } : undefined
 
@@ -225,18 +302,24 @@ export class SessionsView implements vscode.TreeDataProvider<SessionItem>, vscod
       connection: s ? { state: s.state, attempt: s.attempt, error: s.error, issue: s.issue, label: s.label, trusted: s.trusted } : null,
       search: this.query,
       visible: this.view.visible,
-      selected: this.view.selection[0]?.session.id ?? null,
+      selected: selected(this.view) ?? null,
       folderLabel: this.folderLabel ?? null,
       message: this.view.message ?? null,
       badge: this.view.badge?.value ?? 0,
       statusText: this.status.text,
       statusTooltip: typeof this.status.tooltip === "string" ? this.status.tooltip : null,
-      items: this.getChildren().map((i) => ({ id: i.session.id, title: i.session.title, activity: i.session.activity, description: i.description })),
+      items: (() => {
+        const g = this.groups()
+        const row = (group: string) => (i: SessionListItem) => ({ id: i.id, title: i.title, activity: i.activity, group, unread: this.unread.has(i.id), description: compactTime(i.updated, g.now) })
+        return [...g.recent.map(row("recent")), ...g.more.map(row("more"))]
+      })(),
+      loadMore: this.groups().loadMore,
     }
   }
 
   dispose() {
     if (this.refreshTimer) clearTimeout(this.refreshTimer)
+    clearInterval(this.clock)
     this.changed.dispose()
     this.view.dispose()
     this.status.dispose()

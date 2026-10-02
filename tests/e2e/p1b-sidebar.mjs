@@ -20,6 +20,7 @@ const REQUIRED = [
   "chain-draft",
   "chain-permission",
   "chain-stop",
+  "sidebar-status-icons",
   "switch-restore",
   "focus-existing-group",
   "connection-switch",
@@ -58,6 +59,29 @@ async function frameFor(sid) {
   return null
 }
 const row = (title) => page.locator(`.part.sidebar .monaco-list-row[aria-label^="${title}"]`).first()
+/** Description is only a compact age ("now", "7m", "3h", "yesterday", "3d", "Sep 28"). */
+const COMPACT_TIME = /^(now|\d+m|\d+h|yesterday|\d+d|[A-Z][a-z]{2} \d{1,2}|\d{4}-\d{2}-\d{2})$/
+function startOfYesterday(now = Date.now()) {
+  const date = new Date(now)
+  date.setHours(0, 0, 0, 0)
+  date.setDate(date.getDate() - 1)
+  return date.getTime()
+}
+const iconOf = (title) => row(title).locator(".custom-view-tree-node-item-icon")
+async function iconSnapshot(title) {
+  const icon = iconOf(title)
+  await icon.scrollIntoViewIfNeeded().catch(() => {})
+  return icon
+    .evaluate((el) => ({ className: el.className, backgroundImage: getComputedStyle(el).backgroundImage }))
+    .catch(() => null)
+}
+async function shootIcon(title, name) {
+  const p = run.artifact(name)
+  await iconOf(title).screenshot({ path: p, animations: "allow" })
+  return fs.readFileSync(p)
+}
+/** Permission-row icon, captured in the permission step and checked with the running/idle icons. */
+let permIcon = null
 const titleAction = (label) => page.locator(`.part.sidebar .title-actions [aria-label^="${label}"], .part.sidebar .actions-container [aria-label^="${label}"]`).first()
 // With Sessions and Agents in one container, VS Code shows a view's title actions only while its header is
 // hovered or focused: reveal them before using them.
@@ -120,18 +144,64 @@ try {
   await command(page, "Focus on Sessions View")
   await until(async () => (await sidebar()).connection?.state === "connected", 30000)
 
-  // 1. List = the server's root sessions of this directory, newest first.
+  // 1. List = the loaded page of this directory's root sessions (100), newest first, split into
+  //    recent (since local yesterday, or not idle / unread) and older rows under More.
   {
     const sb = await sidebar()
-    const server = (await serverRoots()).map((s) => s.id)
+    const serverSessions = await serverRoots()
+    const server = serverSessions.map((s) => s.id)
+    const loaded = server.slice(0, 100)
     const ids = sb.items.map((i) => i.id)
-    const sameSet = ids.length === Math.min(server.length, 200) && ids.every((id) => server.includes(id))
+    const updated = new Map(serverSessions.map((s) => [s.id, s.time?.updated ?? 0]))
+    const since = startOfYesterday()
+    const expectGroup = (it) => ((updated.get(it.id) ?? 0) >= since || it.activity !== "idle" || it.unread ? "recent" : "more")
+    const groupsOk = sb.items.length > 0 && sb.items.every((it) => it.group === expectGroup(it) && COMPACT_TIME.test(it.description) && !/\b(Open|Running|Waiting)\b/.test(it.description))
+    const recent = sb.items.filter((i) => i.group === "recent").map((i) => i.id)
+    const more = sb.items.filter((i) => i.group === "more").map((i) => i.id)
+    const inOrder = (arr) => arr.every((id, i) => i === 0 || loaded.indexOf(arr[i - 1]) < loaded.indexOf(id))
+    const samePage = ids.length === loaded.length && server.length > 0 && new Set(ids).size === ids.length && ids.every((id) => loaded.includes(id))
+    const splitOrder = recent.concat(more).join() === ids.join() && inOrder(recent) && inOrder(more)
+    const loadMoreOk = sb.loadMore === (server.length >= 100)
+    let moreRowOk = true
+    let lastRows = null
+    let loadedAfterClick = null
+    if (more.length === 0 && sb.loadMore) {
+      // Every loaded session is recent: "Load more…" is a top-level row, no empty "More" group.
+      // Monaco lists render only visible rows and ignore scrollTop: focus the list and jump to the end.
+      const list = page.locator(".part.sidebar .monaco-list").filter({ has: page.locator(`.monaco-list-row[data-last-element="false"]`) }).filter({ hasText: sb.items[0].title }).first()
+      await list.focus().catch(() => {})
+      await page.keyboard.press("End")
+      await sleep(400)
+      lastRows = await page.locator(".part.sidebar .monaco-list-row").evaluateAll((els) => els.slice(-3).map((e) => e.getAttribute("aria-label")))
+      moreRowOk = (await page.locator('.part.sidebar .monaco-list-row[aria-label^="More"]').count()) === 0 && (await page.locator('.part.sidebar .monaco-list-row[aria-label^="Load more"]').count()) > 0
+      // Clicking it pulls the next page of 100.
+      if (moreRowOk) {
+        await page.locator('.part.sidebar .monaco-list-row[aria-label^="Load more"]').first().click()
+        const grown = await until(async () => ((await sidebar()).items.length > ids.length ? (await sidebar()).items.length : undefined), 15000, 300)
+        loadedAfterClick = grown ?? null
+        moreRowOk = !!grown && grown >= Math.min(server.length, 200)
+      }
+      await page.keyboard.press("Home")
+    } else if (more.length > 0) {
+      await page.locator(".part.sidebar .monaco-list-rows").evaluate((el) => { el.parentElement.scrollTop = el.parentElement.scrollHeight }).catch(() => {})
+      const moreRow = page.locator('.part.sidebar .monaco-list-row[aria-label^="More"]').first()
+      const text = (await moreRow.innerText().catch(() => "")) || ""
+      moreRowOk = (await moreRow.isVisible().catch(() => false)) && text.includes(String(more.length))
+      await page.locator(".part.sidebar .monaco-list-rows").evaluate((el) => { el.parentElement.scrollTop = 0 }).catch(() => {})
+    }
     await runShot(page, run, "1-list")
-    run.record("sidebar-list", sb.connection.state === "connected" && sameSet && ids[0] === server[0] && new Set(ids).size === ids.length ? "PASS" : "FAIL", {
+    run.record("sidebar-list", sb.connection.state === "connected" && samePage && ids[0] === server[0] && groupsOk && splitOrder && loadMoreOk && moreRowOk ? "PASS" : "FAIL", {
       state: sb.connection.state,
       items: ids.length,
+      recent: recent.length,
+      more: more.length,
+      loadMore: sb.loadMore,
       serverRoots: server.length,
       firstMatches: ids[0] === server[0],
+      groupsOk,
+      moreRowOk,
+      lastRows,
+      loadedAfterClick,
       statusText: sb.statusText,
     })
   }
@@ -158,18 +228,22 @@ try {
     })
   }
 
-  // 2. Create from the view's "+" action: a panel opens, the tree lists it first and marks it open.
+  // 2. Create from the view's "+" action: a panel opens and the tree lists it first in Recent.
+  //    There is no "Open" marker; the row's aria-label is "title, time" while it is idle.
   let A
   {
     const before = new Set((await sidebar()).items.map((i) => i.id))
     A = await newSessionFromPlus(before)
     const item = await until(async () => {
       const it = await sidebarItem(A)
-      return it && /\bOpen\b/.test(it.description) ? it : undefined
+      return it?.description ? it : undefined
     })
     const first = (await sidebar()).items[0]?.id
     const server = await api("GET", `/session/${A}`)
-    run.record("sidebar-create", !!A && !!item && first === A && server?.directory === dir ? "PASS" : "FAIL", { sessionId: A, listedFirst: first === A, description: item?.description, serverDirectory: server?.directory === dir })
+    const aria = item ? (await row(item.title).getAttribute("aria-label").catch(() => "")) ?? "" : ""
+    const timeOk = !!item && item.group === "recent" && COMPACT_TIME.test(item.description) && !/\bOpen\b/.test(item.description)
+    const ariaOk = !!item && aria.startsWith(`${item.title},`) && aria.includes(item.description) && !/\bOpen\b/.test(aria)
+    run.record("sidebar-create", !!A && timeOk && ariaOk && first === A && server?.directory === dir ? "PASS" : "FAIL", { sessionId: A, listedFirst: first === A, description: item?.description, group: item?.group, activity: item?.activity, aria, serverDirectory: server?.directory === dir })
   }
 
   // 3. Rename through the row's inline action -> server title, tree label and editor tab follow.
@@ -212,8 +286,10 @@ try {
       const sb = await sidebar()
       return sb.search === "" && sb.items.length === total ? sb : undefined
     })
-    run.record("sidebar-search", filtered?.items.length === 1 && filtered.items[0].id === A && rowVisible && !!cleared ? "PASS" : "FAIL", {
+    const flat = !!filtered && filtered.items.every((i) => i.group === "recent") && filtered.loadMore === false
+    run.record("sidebar-search", filtered?.items.length === 1 && filtered.items[0].id === A && flat && rowVisible && !!cleared ? "PASS" : "FAIL", {
       matches: filtered?.items.map((i) => i.id),
+      flat,
       rowVisible,
       restoredCount: cleared?.items.length,
       total,
@@ -248,6 +324,10 @@ try {
       if (!req) await waitIdle(A)
     }
     const sbPerm = req ? await until(async () => ((await sidebarItem(A))?.activity === "permission" ? await sidebar() : undefined)) : null
+    const permItem = sbPerm?.items.find((i) => i.id === A)
+    const permAria = permItem ? (await row(permItem.title).getAttribute("aria-label").catch(() => "")) ?? "" : ""
+    if (permItem) permIcon = await iconSnapshot(permItem.title)
+    const permShown = !!permItem && permItem.activity === "permission" && /Waiting for permission/.test(permAria) && !/Waiting/.test(permItem.description ?? "") && COMPACT_TIME.test(permItem.description ?? "")
     await runShot(page, run, "6-permission-sidebar")
     const dock = f.locator('[data-component="dock-prompt"][data-kind="permission"]')
     if (req) {
@@ -262,10 +342,13 @@ try {
     const sentDraft = (firstUser?.parts ?? []).some((p) => p.type === "text" && p.text.includes("export function add"))
     run.record(
       "chain-permission",
-      req && sentDraft && sbPerm && sbPerm.badge >= 1 && /Waiting for permission/.test(sbPerm.items.find((i) => i.id === A)?.description ?? "") && tool?.state?.status === "completed" && idle ? "PASS" : req ? "FAIL" : "NOT RUN",
+      req && sentDraft && sbPerm && sbPerm.badge >= 1 && permShown && tool?.state?.status === "completed" && idle ? "PASS" : req ? "FAIL" : "NOT RUN",
       {
         requestId: req?.id ?? null,
-        sidebarActivity: sbPerm?.items.find((i) => i.id === A)?.activity ?? null,
+        sidebarActivity: permItem?.activity ?? null,
+        aria: permAria,
+        description: permItem?.description ?? null,
+        permissionIcon: permIcon?.className ?? null,
         badge: sbPerm?.badge ?? null,
         statusBar: sbPerm?.statusText ?? null,
         toolStatus: tool?.state?.status ?? null,
@@ -290,6 +373,29 @@ try {
       const chars = (target?.parts ?? []).filter((p) => p.type === "text" || p.type === "reasoning").reduce((n, p) => n + (p.text?.length ?? 0), 0)
       return /stop|停止/i.test(label) && chars > 200 ? true : undefined
     }, 90000, 150)
+    // Breathing icon: the busy row's icon is the session-running SVG (CSS opacity 1.6s inside the file).
+    let runningBg = ""
+    let runningBgAfter = ""
+    let framesDiffer = false
+    let shotError = null
+    if (busy && (await sidebarItem(A))?.activity === "busy") {
+      const before = await iconSnapshot(newTitle)
+      runningBg = before?.backgroundImage ?? ""
+      try {
+        const a = await shootIcon(newTitle, "status-running-1.png")
+        await sleep(800)
+        const b = await shootIcon(newTitle, "status-running-2.png")
+        framesDiffer = !a.equals(b)
+        if (!framesDiffer) {
+          await sleep(350)
+          const c = await shootIcon(newTitle, "status-running-3.png")
+          framesDiffer = !a.equals(c) || !b.equals(c)
+        }
+        runningBgAfter = (await iconSnapshot(newTitle))?.backgroundImage ?? ""
+      } catch (err) {
+        shotError = String(err?.message ?? err).slice(0, 300)
+      }
+    }
     await runShot(page, run, "7-busy-sidebar")
     await submit.click()
     const final = target ? await waitMessageFinal(A, target.info.id, 30000) : null
@@ -299,6 +405,20 @@ try {
       error: final?.info?.error?.name ?? null,
       sidebarIdleAfter: !!idle,
       sidebarActivity: (await sidebarItem(A))?.activity,
+    })
+    const idleIcon = idle ? await iconSnapshot(newTitle) : null
+    const svg = (bg) => /session-running-(dark|light)\.svg/.test(bg ?? "")
+    const has = (info, name) => !!info && info.className.split(/\s+/).includes(name)
+    const runningOk = svg(runningBg) && svg(runningBgAfter) && framesDiffer && !shotError
+    const permOk = has(permIcon, "codicon-circle-filled")
+    const idleOk = has(idleIcon, "codicon-blank")
+    run.record("sidebar-status-icons", runningOk && permOk && idleOk ? "PASS" : "FAIL", {
+      runningBackground: runningBg.slice(0, 240),
+      runningBackgroundAfter: runningBgAfter.slice(0, 240),
+      framesDiffer,
+      shotError,
+      permissionClass: permIcon?.className ?? null,
+      idleClass: idleIcon?.className ?? null,
     })
   }
 
@@ -387,6 +507,7 @@ try {
   // 10. Connection switch: unreachable URL -> error state, empty list, warning status bar; back ->
   //     connected with the same sessions and no duplicates.
   {
+    // Another server resets the list to its first page (100); search matches merged earlier are dropped.
     const beforeIds = (await sidebar()).items.map((i) => i.id)
     const settings = JSON.parse(fs.readFileSync(settingsFile, "utf8"))
     fs.writeFileSync(settingsFile, JSON.stringify({ ...settings, "oco.serverUrl": "http://127.0.0.1:4599" }, null, 2))
@@ -403,7 +524,7 @@ try {
     const ids = up?.items.map((i) => i.id) ?? []
     run.record(
       "connection-switch",
-      down && down.items.length === 0 && /Not connected/.test(down.statusText) && up && new Set(ids).size === ids.length && ids.length === beforeIds.length && ids.every((i) => beforeIds.includes(i)) ? "PASS" : "FAIL",
+      down && down.items.length === 0 && /Not connected/.test(down.statusText) && up && new Set(ids).size === ids.length && ids.length === Math.min(beforeIds.length, 100) && ids.every((i) => beforeIds.includes(i)) ? "PASS" : "FAIL",
       {
         downState: down?.connection?.state ?? null,
         downItems: down?.items.length ?? null,

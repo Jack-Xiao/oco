@@ -26,6 +26,14 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
+## 侧栏会话列表改版（2026-10-01；本地，未提交）
+
+- 分组只按时间：昨天 0 点以后（本地日历）的会话直接列出；更早的进折叠的「More」（显示数量）。运行中、等待权限/回答、未读的会话不论多旧都留在上面；上面为空时 More 自动展开；搜索结果平铺。
+- 状态只用图标：出错 `error`；等待权限/回答黄色实心点；运行中灰色呼吸点（自定义 SVG，透明度 1↔0.3、1.6 s，`workbench.reduceMotion` 为 on 时改静态点）；未读蓝点（运行结束时不是活动面板，打开后清除，按工作区记在 workspaceState）；空闲用 `blank` 占位保持对齐。行尾只留短时间（now / 7m / 3h / yesterday / 3d / Sep 28），状态文字移到悬停提示和读屏标签，去掉「Open」。
+- 加载：首屏 100 个根会话，「Load more…」每次再拉 100（服务端无游标，按更大 limit 重拉）；切换服务器/目录回到 100。搜索同时请求服务端 `search=`（标题，全部历史），结果并入列表；老版本服务端忽略该参数时退回本地过滤。去掉「只加载最近 200 个」提示。
+- 检查：typecheck PASS；unit 185/185（新增 `session-groups`、feed/store 的 loadMore/search/mergeRoots）；build PASS；E2E（mock）`p1b-sidebar` 13/13 PASS（[结果](evidence/runs/20261001-155122-p1b-sidebar-20fc/results.json)），新增 sidebar-status-icons：真实 VS Code 中运行行图标为该 SVG，相隔 800 ms 的两张截图不同（动画在播）；Load more 点击后 100→200。
+- 限制：原生 TreeView 不能右对齐或单独弱化时间，标题过长时行尾时间被省略号截掉；选中行的图标被主题改成选中前景色（等待点在选中行上显示为白色）；测试服务的会话都在今天，「More」分组未在 E2E 里出现（单元测试覆盖）。另跑 `p1b-reconnect` 5/5（比较器改为对照服务端最新 N 条，N = 侧栏行数：新会话把第 100 条挤出首页时它仍留在列表里，属预期）、`c3-fork` 4/4、`p1b-main-panel` 8/8。NOT RUN：其余 E2E、Remote。
+
 ## 嵌入模式去掉「更多」菜单（补丁 0018，2026-10-01；本地，未推送）
 
 - 嵌入会话页不再显示三点菜单；归档改为侧栏会话右键「Archive Session」（`oco.archiveSession`，PATCH `time.archived`），重命名、删除仍在右键菜单。导出、分享在嵌入模式下不再有入口。
@@ -215,7 +223,7 @@
 | 等模型期间不发旧请求 | 修复：原 0004 先抓草稿再等，改稿后发旧内容并清掉新稿。现为单一待发意图，改稿/Esc/取消按钮撤销并保留草稿，重复提交忽略，关面板不发送 | `p1b-pending-send` 7/7；旧版负向对照 exit 1 |
 | 模型加载可见提示 | 完成（加载超过 800 ms 的提示 + 待发横幅） | `p1b-pending-send` loading-hint |
 | 受控断流：重连后快照与增量一致 | 完成（硬断、增量、静默断流） | `p1b-reconnect` 5/5 |
-| 搜索只覆盖最近 200 个会话 | 侧栏与搜索框明确提示；分页/服务端搜索未做 | `p1b-reconnect` search-scope-hint |
+| 会话分页与搜索范围 | 2026-10-01 改为每页 100 + Load more，搜索走服务端覆盖全部历史（旧的 200 上限提示已去掉） | `p1b-reconnect` 5/5 含 search-whole-history（205 个根会话：首屏 100、Load more 可用、搜索找到第 105 个）[结果](evidence/runs/20261001-174051-p1b-reconnect-1870/results.json) |
 | 等待中切换连接 | E2E 补测通过：旧待发请求未提交到任何端点，草稿保留；机制是宿主拒绝旧绑定的提交（待发意图本身仍会触发）。变异对照（去掉宿主绑定检查）FAIL | [`p1b-switch-pending`](evidence/p1b-switch-pending.md) 2/2 |
 | 会话消失/服务不可达的可恢复错误界面、未知类型兜底 | 见最上节（本批，未提交） | [证据](evidence/c1-focus-t010-recovery.md) |
 

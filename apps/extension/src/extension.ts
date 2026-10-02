@@ -48,7 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
       return false
     }
   })
-  const view = new SessionsView(store, (sid) => panels.list().some((e) => e.binding.sessionId === sid && e.binding.connectionId === feed.state.connectionId))
+  const view = new SessionsView(store, context.extensionUri, context.workspaceState)
   const connView = new ConnectionView()
   context.subscriptions.push(connView)
   const feed = new SessionFeed({
@@ -319,9 +319,13 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
     vscode.commands.registerCommand("oco.searchSessions", async () => {
-      const q = await vscode.window.showInputBox({ prompt: "Search loaded sessions (latest 200) by title or ID (leave empty to clear)", value: view.search })
-      if (q !== undefined) view.setSearch(q)
+      const q = await vscode.window.showInputBox({ prompt: "Search sessions by title or ID (leave empty to clear)", value: view.search })
+      if (q === undefined) return
+      view.setSearch(q)
+      // The server searches titles across the whole history; matches merge into the list.
+      if (q.trim()) void feed.search(q.trim())
     }),
+    vscode.commands.registerCommand("oco.loadMoreSessions", () => feed.loadMore()),
     vscode.commands.registerCommand("oco.clearSearch", () => view.setSearch("")),
     vscode.commands.registerCommand("oco.reconnect", () => feed.restart()),
     vscode.commands.registerCommand("oco.openSettings", () => vscode.commands.executeCommand("workbench.action.openSettings", "oco")),
