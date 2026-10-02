@@ -31,11 +31,11 @@
 - 已有 P0、P1a、P1b-1 的本地原型及验收记录，以及 P1b 稳定性收尾（NEXT 第 1 步与第 2 步的大部分）。产品基线见 [P1b-1 验收](evidence/p1b1-acceptance.md)、[ADR-006](adr/006-p1b1-sessions-sidebar.md)、[稳定性收尾](evidence/p1b-stability.md)。不是已发布版本。
 - C1 已实现并验证（`3bc386f`）；C1 路径加固与两个点击补点已实现并验证，已提交并快进合入 main（本地，未推送）。C2 来源调查与模块测试已提交（`c427722`）；HTTP/持久化与 blob 缺失测试 5/5 PASS（本批）。单轮 Diff 展示已实现并提交（`7fd3bd5`，补丁 0007）。模型驱动的空 Diff 轮次 E2E NOT RUN。
 
-## 连接后误显示「没有会话」（2026-10-02；本地，未提交）
+## 连接后误显示「没有会话」（提交 `363e5c5`，2026-10-02；已部署 gcp-workstation）
 
 - 原因：连上后 `oco.connState` 立即变成 connected，列表数据要等下一次合并刷新（150 ms）才渲染，中间树为空，空列表提示「This workspace has no OpenCode sessions yet」先出现（本机约 0.34 s，Remote 更长）。探针（切到不可达端口再切回）修复前 4/4 闪现。
 - 修复：新上下文键 `oco.sessionsEmpty`，只在刷新后确认已连接且列表为空时为真；三条「已连接」空列表提示都改为依赖它；其间显示「Loading sessions…」。
-- 检查：typecheck PASS；unit 185/185；build PASS；探针修复后 0/4 闪现，搜索无结果提示和真实空目录提示仍正常；`p1b-sidebar` 13/13（[结果](evidence/runs/20261002-004120-p1b-sidebar-c5d9/results.json)），connection-switch 新增 emptyFlash/loadingSeen 判定，去掉修复的对照运行判 FAIL。NOT RUN：其余 E2E、Remote。
+- 检查：typecheck PASS；unit 185/185；build PASS；探针修复后 0/4 闪现，搜索无结果提示和真实空目录提示仍正常；`p1b-sidebar` 13/13（[结果](evidence/runs/20261002-004120-p1b-sidebar-c5d9/results.json)），connection-switch 新增 emptyFlash/loadingSeen 判定，去掉修复的对照运行判 FAIL。部署：`oco-0.0.4-363e5c5.vsix`（extension.js sha256 `c4530fd9…`）已装到 gcp-workstation，远端哈希一致，新开 Remote 窗口列表正常加载；用户窗口需 Reload Window。NOT RUN：其余 E2E。
 
 ## 侧栏会话列表改版（提交 `8d215c3`，2026-10-01；已部署 gcp-workstation）
 
