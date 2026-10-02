@@ -405,3 +405,8 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 根据 Claude 会话审计修改 AGENTS：可委派任务先派后做；主线程接手有具体例外；健康检查、普通运行失败换路由、轻量转发开销与任务主体分开；要求实际运行记录与 checkpoint，避免重复调查。
 - STATUS/NEXT 同步按任务段落读取与委派约束；保留本轮开始前的并发产品/文档改动。只改项目文档，未改全局配置或路由，未提交。
 - 本批 Gemini Antigravity 订阅最小请求因地域限制失败，Grok 安装/登录检查通过，Grok 复核 PASS；链接、diff 格式及 4 项并发基线保护检查 PASS。只读代理的复核补丁由主线程代存；结果与执行记录见 [本批证据](evidence/delegation-rules-20261002.md)。产品 typecheck/unit/build/E2E 与后续会话行为 NOT RUN。
+
+## 2026-10-02 上游 OpenCode V2 调研
+
+- 只读克隆 `anomalyco/opencode`（`dev` `1ddb0873`、`v2` `7440ff78`）与 `openai/codex`，结合 npm registry 和 GitHub 页面，整理 V2 时间线、改动、缺失功能、路线图情况、近 30 天工作与在途分支，并对比三方 7–9 月提交量和 4–9 月正式版数量。结论与推测分开标注，见 [本批证据](evidence/opencode-v2-upstream-20261002.md)。
+- 本会话无 Grok/Gemini 路线（代理列表无对应 worker，容器无 CLI），主线程接手并记入委派记录。运行速度基准、oco 产品 typecheck/unit/build/E2E NOT RUN（本批仅文档）。

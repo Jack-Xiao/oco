@@ -2,6 +2,11 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 上游 OpenCode V2 调研（2026-10-02；文档）
+
+- 上游已发布 V2：新 npm 包 `@opencode/cli`，2.0.0 于 2026-09-11、2.0.22 于 2026-10-02；`opencode-ai@latest` 仍为 V1 `1.18.34`（2026-09-30）。V2 改了服务端 API/客户端（`@opencode/client`）、插件 API 与前端包，且不运行 LSP。oco 仍钉在 V1 `v1.18.33`；是否评估迁移待定，NEXT 未改。
+- 无公开路线图；近期工作、推测计划及与 Codex/Claude Code 的发版/提交对比见 [本批证据](evidence/opencode-v2-upstream-20261002.md)。证据为源码、git 元数据、npm registry 与 GitHub 页面；运行速度基准与产品检查 NOT RUN。Grok/Gemini 路线在本会话不可用，主线程接手（已记录）。
+
 ## 项目委派规则收紧（2026-10-02；文档）
 
 - AGENTS 已明确：调查、独立实现、测试和文档检查先实际委派；主线程接手需记录具体例外；请求路线、执行证据、fallback 和阶段结果留在一份短记录里。STATUS/NEXT 按任务段落读取，避免默认加载全文。
