@@ -405,3 +405,8 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 根据 Claude 会话审计修改 AGENTS：可委派任务先派后做；主线程接手有具体例外；健康检查、普通运行失败换路由、轻量转发开销与任务主体分开；要求实际运行记录与 checkpoint，避免重复调查。
 - STATUS/NEXT 同步按任务段落读取与委派约束；保留本轮开始前的并发产品/文档改动。只改项目文档，未改全局配置或路由，未提交。
 - 本批 Gemini Antigravity 订阅最小请求因地域限制失败，Grok 安装/登录检查通过，Grok 复核 PASS；链接、diff 格式及 4 项并发基线保护检查 PASS。只读代理的复核补丁由主线程代存；结果与执行记录见 [本批证据](evidence/delegation-rules-20261002.md)。产品 typecheck/unit/build/E2E 与后续会话行为 NOT RUN。
+
+## 2026-10-02 智能体团队可行性调查
+
+- 只读调查 OpenCode v1.18.33 插件/task 源码、deepseek-harness 四个团队包与设计说明、opencode-ensemble 及上游 #12711/#12730；结论与建议验证路径见 `docs/evidence/agent-team-feasibility.md`。
+- Grok/Gemini 路线在本会话（Claude Code 云容器）均不可用，由主线程接手，已在证据内记录。未改产品代码；typecheck/unit/build/E2E NOT RUN（无代码改动）；团队插件实测 BLOCKED（无模型凭据）。

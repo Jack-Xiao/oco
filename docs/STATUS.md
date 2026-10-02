@@ -2,6 +2,11 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 智能体团队可行性调查（2026-10-02；只读调查）
+
+- 结论：DeepSeek 团队插件（deepseek-harness `0.2.0-rc.2`，MIT）是 DSH/Cordis 插件，依赖其 subagent steer 和会话投影，不能直接用于 OpenCode/oco。OpenCode v1.18.33 没有内置团队，但插件 API（自定义工具 + SDK `session.create({parentID})`/`promptAsync` + 事件）足以实现。上游 #12711/#12730 未合并；社区插件 opencode-ensemble 已实现。oco 建议只做兼容验证，不自研调度。见 [调查记录](evidence/agent-team-feasibility.md)。
+- 风险（推断，NOT RUN）：`bridge-policy.ts` 拒绝 directory 与绑定目录不同的子会话，worktree 成员在面板里可能无法操作。实测需要真实模型环境，本轮 BLOCKED。
+
 ## 项目委派规则收紧（2026-10-02；文档）
 
 - AGENTS 已明确：调查、独立实现、测试和文档检查先实际委派；主线程接手需记录具体例外；请求路线、执行证据、fallback 和阶段结果留在一份短记录里。STATUS/NEXT 按任务段落读取，避免默认加载全文。
