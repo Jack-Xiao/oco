@@ -410,3 +410,8 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 
 - 只读克隆 `anomalyco/opencode`（`dev` `1ddb0873`、`v2` `7440ff78`）与 `openai/codex`，结合 npm registry 和 GitHub 页面，整理 V2 时间线、改动、缺失功能、路线图情况、近 30 天工作与在途分支，并对比三方 7–9 月提交量和 4–9 月正式版数量。结论与推测分开标注，见 [本批证据](evidence/opencode-v2-upstream-20261002.md)。
 - 本会话无 Grok/Gemini 路线（代理列表无对应 worker，容器无 CLI），主线程接手并记入委派记录。运行速度基准、oco 产品 typecheck/unit/build/E2E NOT RUN（本批仅文档）。
+
+## 2026-10-02 V2 迁移工作量评估
+
+- 对照上游 `v1.18.33`（oco 基线）与 `v2.0.22` 的源码：前端挂载接口、Platform、路由、18 个补丁涉及的文件、宿主直接调用的 API 与事件、桥策略、managed 启动、认证、构建、测试选择器；并用 `v2.0.0→v2.0.22` 的改动量衡量 V2 前端稳定性。结论、逐补丁评估、工作包估算与 spike 验收见 [评估](evidence/opencode-v2-migration-assessment-20261002.md)。
+- 本会话仍无 Grok/Gemini 路线，主线程接手并记入委派记录。构建、运行、E2E、Remote NOT RUN；NEXT 未改。
