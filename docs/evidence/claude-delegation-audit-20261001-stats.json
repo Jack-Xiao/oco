@@ -1,0 +1,647 @@
+{
+  "scope": "44 parent JSONL and 27 subagent JSONL, snapshot 2026-10-01; status is observed historical result, not current state or product acceptance",
+  "correction": "The initial parser misclassified grok-bridge run as health_check because the task text included check-related text. Main-agent inspection verified the actual run command and completed job; added run-mupnnkfa-ezq7oq. Do not use initial no_external_invocation finding.",
+  "parent_tool_totals": {
+    "Skill": 12,
+    "ToolSearch": 23,
+    "WebFetch": 14,
+    "Bash": 3132,
+    "WebSearch": 4,
+    "AskUserQuestion": 3,
+    "Read": 92,
+    "Write": 102,
+    "Agent": 27,
+    "SendMessage": 15,
+    "mcp__ccd_session__mark_chapter": 1,
+    "Edit": 46,
+    "SendUserFile": 5,
+    "mcp__computer-use__request_access": 2,
+    "ListAgents": 3,
+    "Monitor": 9,
+    "mcp__ccd_session_mgmt__get_usage": 3,
+    "ScheduleWakeup": 2,
+    "ReadNotifications": 2,
+    "mcp__ccd_session__spawn_task": 2,
+    "mcp__Claude_Browser__preview_start": 1,
+    "mcp__Claude_Browser__computer": 1,
+    "mcp__Claude_Browser__browser_batch": 1,
+    "mcp__ccd_connectors__session_connectors_status": 1,
+    "mcp__ccd_connectors__set_session_connector_enabled": 1,
+    "TaskStop": 3,
+    "mcp__Claude_Browser__navigate": 1,
+    "mcp__Claude_Browser__read_console_messages": 1,
+    "mcp__Claude_Browser__javascript_tool": 1,
+    "mcp__ccd_session_mgmt__list_sessions": 1,
+    "mcp__ccd_session_mgmt__list_events": 4
+  },
+  "agent_types": {
+    "grok-worker": 15,
+    "Explore": 1,
+    "dashboard-builder": 3,
+    "gemini-worker": 4,
+    "grok-build:grok-delegate": 1,
+    "general-purpose": 3
+  },
+  "separate_mcp_spawn_task_count": 2,
+  "external_summary": {
+    "total": 21,
+    "outcomes": {
+      "success": 15,
+      "failure": 4,
+      "unknown": 1,
+      "still_running": 1
+    },
+    "completed_provider": {
+      "grok": 13,
+      "gemini": 2
+    },
+    "all_model_ids": "unknown"
+  },
+  "external_jobs": [
+    {
+      "run_id": "run-mumnwjw7-k4bgyl",
+      "requested_provider": "grok",
+      "result_provider_family": "grok",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-09-29T12:38:05.756Z",
+      "last": "2026-09-29T12:59:48.995Z",
+      "epoch": "pre_rule",
+      "sessions": [
+        "c77b0b5f-f988-4718-a9a4-2b88492a928e"
+      ],
+      "starts": [
+        {
+          "session": "c77b0b5f-f988-4718-a9a4-2b88492a928e",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-09-29T12:38:05.756Z",
+          "file": "agent-aee0650d7a0e7051f.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "aee0650d7a0e7051f"
+        }
+      ],
+      "wait_count": 11
+    },
+    {
+      "run_id": "run-mumr1x7h-ddyz5g",
+      "requested_provider": "grok",
+      "result_provider_family": "grok",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-09-29T14:06:15.160Z",
+      "last": "2026-09-29T14:25:11.010Z",
+      "epoch": "pre_rule",
+      "sessions": [
+        "c77b0b5f-f988-4718-a9a4-2b88492a928e"
+      ],
+      "starts": [
+        {
+          "session": "c77b0b5f-f988-4718-a9a4-2b88492a928e",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-09-29T14:06:15.160Z",
+          "file": "agent-acbefa8c73cbf6df5.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "acbefa8c73cbf6df5"
+        }
+      ],
+      "wait_count": 11
+    },
+    {
+      "run_id": "gem-mumr28kn-gkkh4",
+      "requested_provider": "gemini",
+      "result_provider_family": "gemini",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-09-29T14:06:30.028Z",
+      "last": "2026-09-29T14:13:27.957Z",
+      "epoch": "pre_rule",
+      "sessions": [
+        "c77b0b5f-f988-4718-a9a4-2b88492a928e"
+      ],
+      "starts": [
+        {
+          "session": "c77b0b5f-f988-4718-a9a4-2b88492a928e",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-09-29T14:06:30.028Z",
+          "file": "agent-a2078d2078f6b6c41.jsonl",
+          "requested_provider": "gemini",
+          "role": "sub",
+          "agent_file_id": "a2078d2078f6b6c41"
+        }
+      ],
+      "wait_count": 4
+    },
+    {
+      "run_id": "run-mumr80e2-kla6vw",
+      "requested_provider": "grok",
+      "result_provider_family": "grok",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-09-29T14:10:59.122Z",
+      "last": "2026-09-29T14:33:19.898Z",
+      "epoch": "pre_rule",
+      "sessions": [
+        "c77b0b5f-f988-4718-a9a4-2b88492a928e"
+      ],
+      "starts": [
+        {
+          "session": "c77b0b5f-f988-4718-a9a4-2b88492a928e",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-09-29T14:10:59.122Z",
+          "file": "agent-afb4c141e08387b77.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "afb4c141e08387b77"
+        }
+      ],
+      "wait_count": 13
+    },
+    {
+      "run_id": "gem-mumuvvgd-wflx6",
+      "requested_provider": "gemini",
+      "result_provider_family": "gemini",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-09-29T15:53:31.567Z",
+      "last": "2026-09-29T15:56:58.214Z",
+      "epoch": "pre_rule",
+      "sessions": [
+        "c77b0b5f-f988-4718-a9a4-2b88492a928e"
+      ],
+      "starts": [
+        {
+          "session": "c77b0b5f-f988-4718-a9a4-2b88492a928e",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-09-29T15:53:31.567Z",
+          "file": "agent-a2f7cbc3d9d4bd1a1.jsonl",
+          "requested_provider": "gemini",
+          "role": "sub",
+          "agent_file_id": "a2f7cbc3d9d4bd1a1"
+        }
+      ],
+      "wait_count": 2
+    },
+    {
+      "run_id": "run-mumvkyhl-psqt60",
+      "requested_provider": "grok",
+      "result_provider_family": "grok",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-09-29T16:13:01.713Z",
+      "last": "2026-09-29T16:31:51.486Z",
+      "epoch": "pre_rule",
+      "sessions": [
+        "c77b0b5f-f988-4718-a9a4-2b88492a928e"
+      ],
+      "starts": [
+        {
+          "session": "c77b0b5f-f988-4718-a9a4-2b88492a928e",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-09-29T16:13:01.713Z",
+          "file": "agent-a222a93cb56d2dd30.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "a222a93cb56d2dd30"
+        }
+      ],
+      "wait_count": 11
+    },
+    {
+      "run_id": "run-mumwgq55-xwepze",
+      "requested_provider": "grok",
+      "result_provider_family": "grok",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-09-29T16:37:43.918Z",
+      "last": "2026-09-29T17:11:14.040Z",
+      "epoch": "pre_rule",
+      "sessions": [
+        "c77b0b5f-f988-4718-a9a4-2b88492a928e"
+      ],
+      "starts": [
+        {
+          "session": "c77b0b5f-f988-4718-a9a4-2b88492a928e",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-09-29T16:37:43.918Z",
+          "file": "agent-a7153a686d037fe08.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "a7153a686d037fe08"
+        }
+      ],
+      "wait_count": 18
+    },
+    {
+      "run_id": "gem-mumyr4jl-movwr",
+      "requested_provider": "gemini",
+      "result_provider_family": "unknown",
+      "model": "unknown",
+      "outcome": "failure",
+      "first": "2026-09-29T17:41:48.511Z",
+      "last": "2026-09-29T17:52:07.900Z",
+      "epoch": "pre_rule",
+      "sessions": [
+        "c77b0b5f-f988-4718-a9a4-2b88492a928e"
+      ],
+      "starts": [
+        {
+          "session": "c77b0b5f-f988-4718-a9a4-2b88492a928e",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-09-29T17:41:48.511Z",
+          "file": "agent-adad1609ce37b0aab.jsonl",
+          "requested_provider": "gemini",
+          "role": "sub",
+          "agent_file_id": "adad1609ce37b0aab"
+        }
+      ],
+      "wait_count": 6
+    },
+    {
+      "run_id": "run-mund2y7m-chkb52",
+      "requested_provider": "grok",
+      "result_provider_family": "grok",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-09-30T00:22:54.555Z",
+      "last": "2026-09-30T00:43:21.151Z",
+      "epoch": "v1_table",
+      "sessions": [
+        "d38a6144-ded4-452b-a0a7-9cc2be6449be"
+      ],
+      "starts": [
+        {
+          "session": "d38a6144-ded4-452b-a0a7-9cc2be6449be",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-09-30T00:22:54.555Z",
+          "file": "agent-aa9ed6357e9a6fef1.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "aa9ed6357e9a6fef1"
+        }
+      ],
+      "wait_count": 12
+    },
+    {
+      "run_id": "run-munjucmu-oqdixd",
+      "requested_provider": "grok",
+      "result_provider_family": "unknown",
+      "model": "unknown",
+      "outcome": "failure",
+      "first": "2026-09-30T03:32:10.723Z",
+      "last": "2026-09-30T03:40:53.489Z",
+      "epoch": "v2_rewrite",
+      "sessions": [
+        "a6c0996e-ab55-482f-b792-2cc864aee63c"
+      ],
+      "starts": [
+        {
+          "session": "a6c0996e-ab55-482f-b792-2cc864aee63c",
+          "label": "claude-worktrees-review-planning-c-phase-a242fb",
+          "line": 11,
+          "ts": "2026-09-30T03:32:10.723Z",
+          "file": "agent-ab807d0b21c293495.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "ab807d0b21c293495"
+        }
+      ],
+      "wait_count": 5
+    },
+    {
+      "run_id": "run-munjv8vv-p954oi",
+      "requested_provider": "grok",
+      "result_provider_family": "unknown",
+      "model": "unknown",
+      "outcome": "failure",
+      "first": "2026-09-30T03:32:52.558Z",
+      "last": "2026-09-30T03:41:25.174Z",
+      "epoch": "v2_rewrite",
+      "sessions": [
+        "a6c0996e-ab55-482f-b792-2cc864aee63c"
+      ],
+      "starts": [
+        {
+          "session": "a6c0996e-ab55-482f-b792-2cc864aee63c",
+          "label": "claude-worktrees-review-planning-c-phase-a242fb",
+          "line": 11,
+          "ts": "2026-09-30T03:32:52.558Z",
+          "file": "agent-a84cff890208ce8ce.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "a84cff890208ce8ce"
+        }
+      ],
+      "wait_count": 5
+    },
+    {
+      "run_id": "gem-munk7yc7-qk1rt",
+      "requested_provider": "gemini",
+      "result_provider_family": "unknown",
+      "model": "unknown",
+      "outcome": "failure",
+      "first": "2026-09-30T03:42:45.539Z",
+      "last": "2026-09-30T03:56:27.206Z",
+      "epoch": "v2_rewrite",
+      "sessions": [
+        "a6c0996e-ab55-482f-b792-2cc864aee63c"
+      ],
+      "starts": [
+        {
+          "session": "a6c0996e-ab55-482f-b792-2cc864aee63c",
+          "label": "claude-worktrees-review-planning-c-phase-a242fb",
+          "line": 11,
+          "ts": "2026-09-30T03:42:45.539Z",
+          "file": "agent-ab1e346ed6e90953b.jsonl",
+          "requested_provider": "gemini",
+          "role": "sub",
+          "agent_file_id": "ab1e346ed6e90953b"
+        }
+      ],
+      "wait_count": 8
+    },
+    {
+      "run_id": "run-munnv8p3-agran6",
+      "requested_provider": "grok",
+      "result_provider_family": "unknown",
+      "model": "unknown",
+      "outcome": "unknown",
+      "first": "2026-09-30T05:24:50.775Z",
+      "last": "2026-09-30T05:31:43.302Z",
+      "epoch": "v2_rewrite",
+      "sessions": [
+        "0adaceec-c17c-4ebd-bfe2-798a33a77b7e"
+      ],
+      "starts": [
+        {
+          "session": "0adaceec-c17c-4ebd-bfe2-798a33a77b7e",
+          "label": "claude-worktrees-path-validation-click-enhancement-5fa385",
+          "line": 11,
+          "ts": "2026-09-30T05:24:50.775Z",
+          "file": "agent-ae75d1fbc31bf9a6e.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "ae75d1fbc31bf9a6e"
+        }
+      ],
+      "wait_count": 4
+    },
+    {
+      "run_id": "run-munrtfmk-b8bioe",
+      "requested_provider": "grok",
+      "result_provider_family": "grok",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-09-30T07:15:24.841Z",
+      "last": "2026-09-30T07:22:17.905Z",
+      "epoch": "v2_rewrite",
+      "sessions": [
+        "9b804a5b-a81c-4884-ba9d-434afcb7c193"
+      ],
+      "starts": [
+        {
+          "session": "9b804a5b-a81c-4884-ba9d-434afcb7c193",
+          "label": "claude-worktrees-c1-finalize-c2-source-9d5520",
+          "line": 11,
+          "ts": "2026-09-30T07:15:24.841Z",
+          "file": "agent-ac5aadcf24a737f53.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "ac5aadcf24a737f53"
+        }
+      ],
+      "wait_count": 4
+    },
+    {
+      "run_id": "run-muox507o-njly67",
+      "requested_provider": "grok",
+      "result_provider_family": "grok",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-10-01T02:32:08.974Z",
+      "last": "2026-10-01T02:37:21.642Z",
+      "epoch": "v2_rewrite",
+      "sessions": [
+        "3f7013e4-5e65-45ce-9817-a1d0629e0933"
+      ],
+      "starts": [
+        {
+          "session": "3f7013e4-5e65-45ce-9817-a1d0629e0933",
+          "label": "claude-worktrees-first-session-slow-open-c83e72",
+          "line": 11,
+          "ts": "2026-10-01T02:32:08.974Z",
+          "file": "agent-a10a0b16242178746.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "a10a0b16242178746"
+        }
+      ],
+      "wait_count": 3
+    },
+    {
+      "run_id": "run-mupgq879-xtkuft",
+      "requested_provider": "grok",
+      "result_provider_family": "grok",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-10-01T11:40:31.789Z",
+      "last": "2026-10-01T11:45:43.083Z",
+      "epoch": "v2_rewrite",
+      "sessions": [
+        "88c065c9-678e-4401-b1a4-fa1e75bd2ccf"
+      ],
+      "starts": [
+        {
+          "session": "88c065c9-678e-4401-b1a4-fa1e75bd2ccf",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-10-01T11:40:31.789Z",
+          "file": "agent-a406730854243dce7.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "a406730854243dce7"
+        }
+      ],
+      "wait_count": 3
+    },
+    {
+      "run_id": "run-mupl3sjw-mwk5i1",
+      "requested_provider": "grok",
+      "result_provider_family": "grok",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-10-01T13:43:03.240Z",
+      "last": "2026-10-01T13:44:48.220Z",
+      "epoch": "v3_healthcheck",
+      "sessions": [
+        "0855d21e-09bc-4d8b-abb4-66c68ec87703"
+      ],
+      "starts": [
+        {
+          "session": "0855d21e-09bc-4d8b-abb4-66c68ec87703",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-10-01T13:43:03.240Z",
+          "file": "agent-aa577c20f72cf5f42.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "aa577c20f72cf5f42"
+        }
+      ],
+      "wait_count": 1
+    },
+    {
+      "run_id": "run-mupolo6h-3qs9t1",
+      "requested_provider": "grok",
+      "result_provider_family": "grok",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-10-01T15:20:55.021Z",
+      "last": "2026-10-01T15:26:08.667Z",
+      "epoch": "v3_healthcheck",
+      "sessions": [
+        "ed4cf86b-099d-4ddd-afa2-6bcb2e415661"
+      ],
+      "starts": [
+        {
+          "session": "ed4cf86b-099d-4ddd-afa2-6bcb2e415661",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-10-01T15:20:55.021Z",
+          "file": "agent-ac8bf7d6e88a744f2.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "ac8bf7d6e88a744f2"
+        }
+      ],
+      "wait_count": 3
+    },
+    {
+      "run_id": "run-mupolxr4-4lnk0l",
+      "requested_provider": "grok",
+      "result_provider_family": "grok",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-10-01T15:21:07.999Z",
+      "last": "2026-10-01T15:29:43.505Z",
+      "epoch": "v3_healthcheck",
+      "sessions": [
+        "ed4cf86b-099d-4ddd-afa2-6bcb2e415661"
+      ],
+      "starts": [
+        {
+          "session": "ed4cf86b-099d-4ddd-afa2-6bcb2e415661",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-10-01T15:21:07.999Z",
+          "file": "agent-a6998d9564df48b17.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "a6998d9564df48b17"
+        }
+      ],
+      "wait_count": 5
+    },
+    {
+      "run_id": "run-mupp08j8-yhfr3l",
+      "requested_provider": "grok",
+      "result_provider_family": "unknown",
+      "model": "unknown",
+      "outcome": "still_running",
+      "first": "2026-10-01T15:32:15.805Z",
+      "last": "2026-10-01T15:40:54.435Z",
+      "epoch": "v3_healthcheck",
+      "sessions": [
+        "ed4cf86b-099d-4ddd-afa2-6bcb2e415661"
+      ],
+      "starts": [
+        {
+          "session": "ed4cf86b-099d-4ddd-afa2-6bcb2e415661",
+          "label": "main",
+          "line": 11,
+          "ts": "2026-10-01T15:32:15.805Z",
+          "file": "agent-a8b25a6a4cc30e771.jsonl",
+          "requested_provider": "grok",
+          "role": "sub",
+          "agent_file_id": "a8b25a6a4cc30e771"
+        }
+      ],
+      "wait_count": 5
+    },
+    {
+      "run_id": "run-mupnnkfa-ezq7oq",
+      "requested_provider": "grok",
+      "result_provider_family": "grok",
+      "model": "unknown",
+      "outcome": "success",
+      "first": "2026-10-01T14:54:25.734Z",
+      "last": "2026-10-01T15:04:59.322Z",
+      "epoch": "v3_healthcheck",
+      "sessions": [
+        "6777b869-8d90-421a-99c3-8ea6ae9410bd"
+      ],
+      "evidence": "~/.claude/projects/-Users-xiaojiang-Ai-Project-oco/6777b869-8d90-421a-99c3-8ea6ae9410bd/subagents/agent-a747932a3ca92bdf5.jsonl:12; grok-build job run-mupnnkfa-ezq7oq.json status completed"
+    }
+  ],
+  "v3_delegate_health": {
+    "with_delegate": [
+      {
+        "session": "6777b869-8d90-421a-99c3-8ea6ae9410bd",
+        "label": "main",
+        "slug": null,
+        "first_delegate_ts": "2026-10-01T14:54:18.513Z",
+        "first_delegate_line": 401,
+        "first_delegate_type": "grok-build:grok-delegate",
+        "prior_checks": 1,
+        "prior_ready": [
+          "true"
+        ],
+        "gap_ok": true
+      },
+      {
+        "session": "ed4cf86b-099d-4ddd-afa2-6bcb2e415661",
+        "label": "main",
+        "slug": null,
+        "first_delegate_ts": "2026-10-01T15:20:50.367Z",
+        "first_delegate_line": 301,
+        "first_delegate_type": "grok-worker",
+        "prior_checks": 1,
+        "prior_ready": [
+          "true"
+        ],
+        "gap_ok": true
+      },
+      {
+        "session": "0855d21e-09bc-4d8b-abb4-66c68ec87703",
+        "label": "main",
+        "slug": null,
+        "first_delegate_ts": "2026-10-01T13:42:59.938Z",
+        "first_delegate_line": 277,
+        "first_delegate_type": "grok-worker",
+        "prior_checks": 1,
+        "prior_ready": [
+          "true"
+        ],
+        "gap_ok": true
+      }
+    ],
+    "missing_prior_check": []
+  },
+  "epochs": {
+    "pre_rule": "< 2026-09-30T00:02:29Z (before 2e2a0aa)",
+    "v1_table": "2e2a0aa 2026-09-30T00:02:29Z until b2f6514. Delegation required. No health-check mandate. E2E may use general-purpose. Docs may use haiku.",
+    "v2_rewrite": "b2f6514 2026-09-30T01:13:34Z until 8700394. general-purpose disallowed as a route. Doc names grok_worker / gemini_subscription_worker. No health-check mandate in that section.",
+    "v3_healthcheck": "8700394 2026-10-01T13:14:35Z onward. Claude Code routes: grok-worker, grok-build:grok-delegate, gemini-worker. Health check <=10s before delegate, then failover. general-purpose only if both subscription routes fail and the reason is reported.",
+    "caveat": "Commit time of the rules file, not a load-time proof."
+  }
+}

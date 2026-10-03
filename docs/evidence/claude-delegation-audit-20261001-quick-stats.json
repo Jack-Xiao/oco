@@ -1,0 +1,680 @@
+{
+  "sessions": 40,
+  "tools": {
+    "Bash": 3132,
+    "Write": 102,
+    "mcp__ccd_session__mark_chapter": 1,
+    "Read": 92,
+    "Edit": 46,
+    "SendUserFile": 5,
+    "Skill": 12,
+    "mcp__ccd_session__spawn_task": 2,
+    "Agent": 27,
+    "ToolSearch": 23,
+    "mcp__ccd_session_mgmt__get_usage": 3,
+    "mcp__ccd_connectors__session_connectors_status": 1,
+    "mcp__ccd_connectors__set_session_connector_enabled": 1,
+    "ScheduleWakeup": 2,
+    "Monitor": 9,
+    "ReadNotifications": 2,
+    "ListAgents": 3,
+    "SendMessage": 15,
+    "mcp__Claude_Browser__preview_start": 1,
+    "mcp__Claude_Browser__computer": 1,
+    "mcp__Claude_Browser__browser_batch": 1,
+    "AskUserQuestion": 3,
+    "TaskStop": 3,
+    "mcp__ccd_session_mgmt__list_sessions": 1,
+    "mcp__ccd_session_mgmt__list_events": 4,
+    "mcp__computer-use__request_access": 2,
+    "WebFetch": 14,
+    "WebSearch": 4,
+    "mcp__Claude_Browser__navigate": 1,
+    "mcp__Claude_Browser__read_console_messages": 1,
+    "mcp__Claude_Browser__javascript_tool": 1
+  },
+  "agents": {
+    "dashboard-builder": 3,
+    "grok-worker": 15,
+    "gemini-worker": 4,
+    "Explore": 1,
+    "grok-build:grok-delegate": 1,
+    "general-purpose": 3
+  },
+  "periods": {
+    "before_20261001_2114": {
+      "Bash": 2867,
+      "Write": 101,
+      "mcp__ccd_session__mark_chapter": 1,
+      "Read": 87,
+      "Edit": 44,
+      "SendUserFile": 5,
+      "Skill": 9,
+      "mcp__ccd_session__spawn_task": 2,
+      "Agent": 22,
+      "ToolSearch": 23,
+      "mcp__ccd_session_mgmt__get_usage": 3,
+      "mcp__ccd_connectors__session_connectors_status": 1,
+      "mcp__ccd_connectors__set_session_connector_enabled": 1,
+      "ScheduleWakeup": 2,
+      "Monitor": 8,
+      "ReadNotifications": 2,
+      "ListAgents": 3,
+      "SendMessage": 15,
+      "AskUserQuestion": 3,
+      "TaskStop": 3,
+      "mcp__ccd_session_mgmt__list_sessions": 1,
+      "mcp__ccd_session_mgmt__list_events": 4,
+      "mcp__computer-use__request_access": 2,
+      "WebFetch": 14,
+      "WebSearch": 4
+    },
+    "after_20261001_2114": {
+      "Bash": 265,
+      "Write": 1,
+      "mcp__Claude_Browser__preview_start": 1,
+      "mcp__Claude_Browser__computer": 1,
+      "mcp__Claude_Browser__browser_batch": 1,
+      "Read": 5,
+      "Skill": 3,
+      "Agent": 5,
+      "Edit": 2,
+      "Monitor": 1,
+      "mcp__Claude_Browser__navigate": 1,
+      "mcp__Claude_Browser__read_console_messages": 1,
+      "mcp__Claude_Browser__javascript_tool": 1
+    }
+  },
+  "rows": [
+    {
+      "session": "da2d2eed-571f-4f1a-896c-81d47e7809b1",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-deepseek-trajectory-research-291e26/da2d2eed-571f-4f1a-896c-81d47e7809b1.jsonl",
+      "first": "2026-10-01T04:18:47.153Z",
+      "last": "2026-10-01T05:35:54.562Z",
+      "tool_calls": 174,
+      "tools": {
+        "Bash": 155,
+        "Write": 8,
+        "mcp__ccd_session__mark_chapter": 1,
+        "Read": 7,
+        "Edit": 2,
+        "SendUserFile": 1
+      },
+      "agents": {}
+    },
+    {
+      "session": "e017b33b-23aa-4d5f-a56c-422022d77007",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-subagent-link-redirect-059001/e017b33b-23aa-4d5f-a56c-422022d77007.jsonl",
+      "first": "2026-10-01T10:49:44.695Z",
+      "last": "2026-10-01T11:26:28.674Z",
+      "tool_calls": 127,
+      "tools": {
+        "Skill": 1,
+        "Bash": 105,
+        "Write": 3,
+        "Edit": 16,
+        "Read": 1,
+        "mcp__ccd_session__spawn_task": 1
+      },
+      "agents": {}
+    },
+    {
+      "session": "2ce1a973-eb7d-4e7d-86fe-1aa78105c3da",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-review-planning-c-phase-a242fb/2ce1a973-eb7d-4e7d-86fe-1aa78105c3da.jsonl",
+      "first": "2026-09-30T02:22:51.677Z",
+      "last": "2026-09-30T05:20:51.748Z",
+      "tool_calls": 123,
+      "tools": {
+        "Bash": 109,
+        "Agent": 4,
+        "Write": 5,
+        "ToolSearch": 2,
+        "mcp__ccd_session_mgmt__get_usage": 1,
+        "mcp__ccd_connectors__session_connectors_status": 1,
+        "mcp__ccd_connectors__set_session_connector_enabled": 1
+      },
+      "agents": {
+        "dashboard-builder": 1,
+        "grok-worker": 2,
+        "gemini-worker": 1
+      }
+    },
+    {
+      "session": "a6c0996e-ab55-482f-b792-2cc864aee63c",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-review-planning-c-phase-a242fb/a6c0996e-ab55-482f-b792-2cc864aee63c.jsonl",
+      "first": "2026-09-30T02:22:51.677Z",
+      "last": "2026-09-30T05:19:36.243Z",
+      "tool_calls": 2,
+      "tools": {
+        "Bash": 2
+      },
+      "agents": {}
+    },
+    {
+      "session": "48677ef8-0072-4e08-b8fb-83b1440db89f",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-sidebar-project-grouping-00294e/48677ef8-0072-4e08-b8fb-83b1440db89f.jsonl",
+      "first": "2026-09-30T14:59:40.858Z",
+      "last": "2026-09-30T15:00:15.522Z",
+      "tool_calls": 6,
+      "tools": {
+        "Bash": 5,
+        "Read": 1
+      },
+      "agents": {}
+    },
+    {
+      "session": "3f7013e4-5e65-45ce-9817-a1d0629e0933",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-first-session-slow-open-c83e72/3f7013e4-5e65-45ce-9817-a1d0629e0933.jsonl",
+      "first": "2026-09-30T15:47:05.748Z",
+      "last": "2026-10-01T03:39:43.105Z",
+      "tool_calls": 356,
+      "tools": {
+        "Bash": 334,
+        "Edit": 5,
+        "Read": 4,
+        "ScheduleWakeup": 2,
+        "Write": 1,
+        "ToolSearch": 1,
+        "Monitor": 7,
+        "ReadNotifications": 1,
+        "Agent": 1
+      },
+      "agents": {
+        "Explore": 1
+      }
+    },
+    {
+      "session": "9b804a5b-a81c-4884-ba9d-434afcb7c193",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-c1-finalize-c2-source-9d5520/9b804a5b-a81c-4884-ba9d-434afcb7c193.jsonl",
+      "first": "2026-09-30T07:11:30.015Z",
+      "last": "2026-09-30T09:32:18.631Z",
+      "tool_calls": 95,
+      "tools": {
+        "Bash": 91,
+        "Skill": 1,
+        "Agent": 1,
+        "Write": 2
+      },
+      "agents": {
+        "grok-worker": 1
+      }
+    },
+    {
+      "session": "a2b04f45-b9c2-4d9c-946e-9dd74aed34ca",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-practical-shamir-62b821/a2b04f45-b9c2-4d9c-946e-9dd74aed34ca.jsonl",
+      "first": "2026-10-01T11:09:22.250Z",
+      "last": "2026-10-01T11:14:00.168Z",
+      "tool_calls": 13,
+      "tools": {
+        "Bash": 13
+      },
+      "agents": {}
+    },
+    {
+      "session": "0adaceec-c17c-4ebd-bfe2-798a33a77b7e",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-path-validation-click-enhancement-5fa385/0adaceec-c17c-4ebd-bfe2-798a33a77b7e.jsonl",
+      "first": "2026-09-30T05:23:46.095Z",
+      "last": "2026-09-30T06:11:02.129Z",
+      "tool_calls": 66,
+      "tools": {
+        "Bash": 62,
+        "Skill": 1,
+        "Agent": 1,
+        "ToolSearch": 1,
+        "Write": 1
+      },
+      "agents": {
+        "grok-worker": 1
+      }
+    },
+    {
+      "session": "5fe88562-e444-455e-a580-04614332f7a4",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-conversation-open-performance-af4fd2/5fe88562-e444-455e-a580-04614332f7a4.jsonl",
+      "first": "2026-10-01T08:00:15.950Z",
+      "last": "2026-10-01T12:51:34.074Z",
+      "tool_calls": 407,
+      "tools": {
+        "Skill": 1,
+        "Bash": 372,
+        "Write": 6,
+        "Edit": 13,
+        "Read": 7,
+        "ToolSearch": 2,
+        "mcp__ccd_session_mgmt__get_usage": 1,
+        "SendUserFile": 1,
+        "ListAgents": 1,
+        "SendMessage": 3
+      },
+      "agents": {}
+    },
+    {
+      "session": "7e0a89b7-27a6-4205-ad0f-65faf92df7a9",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-oco-plugin-connection-debug-02117e/7e0a89b7-27a6-4205-ad0f-65faf92df7a9.jsonl",
+      "first": "2026-09-30T13:10:15.989Z",
+      "last": "2026-09-30T13:11:30.166Z",
+      "tool_calls": 9,
+      "tools": {
+        "Bash": 9
+      },
+      "agents": {}
+    },
+    {
+      "session": "09131c19-257f-415d-9556-2f46d309b8d6",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-c1-focus-t010-recovery-a216bc/09131c19-257f-415d-9556-2f46d309b8d6.jsonl",
+      "first": "2026-09-30T11:52:45.018Z",
+      "last": "2026-09-30T13:25:56.139Z",
+      "tool_calls": 146,
+      "tools": {
+        "Bash": 132,
+        "Write": 6,
+        "Read": 7,
+        "mcp__ccd_session__spawn_task": 1
+      },
+      "agents": {}
+    },
+    {
+      "session": "5e45ae31-36c7-4c68-9773-18786d4458a6",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/5e45ae31-36c7-4c68-9773-18786d4458a6.jsonl",
+      "first": "2026-09-30T14:31:08.397Z",
+      "last": "2026-09-30T15:27:37.392Z",
+      "tool_calls": 67,
+      "tools": {
+        "Bash": 63,
+        "Write": 1,
+        "Read": 3
+      },
+      "agents": {}
+    },
+    {
+      "session": "6777b869-8d90-421a-99c3-8ea6ae9410bd",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/6777b869-8d90-421a-99c3-8ea6ae9410bd.jsonl",
+      "first": "2026-10-01T14:20:11.762Z",
+      "last": "2026-10-01T15:17:39.442Z",
+      "tool_calls": 76,
+      "tools": {
+        "Bash": 66,
+        "Write": 1,
+        "mcp__Claude_Browser__preview_start": 1,
+        "mcp__Claude_Browser__computer": 1,
+        "mcp__Claude_Browser__browser_batch": 1,
+        "Read": 4,
+        "Skill": 1,
+        "Agent": 1
+      },
+      "agents": {
+        "grok-build:grok-delegate": 1
+      }
+    },
+    {
+      "session": "9385208d-0f33-4b5d-8a6a-74964f71c0bb",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/9385208d-0f33-4b5d-8a6a-74964f71c0bb.jsonl",
+      "first": "2026-09-30T10:38:16.928Z",
+      "last": "2026-09-30T13:07:35.922Z",
+      "tool_calls": 121,
+      "tools": {
+        "Bash": 115,
+        "AskUserQuestion": 1,
+        "Write": 3,
+        "Read": 2
+      },
+      "agents": {}
+    },
+    {
+      "session": "fe998e94-c22e-489c-8eb8-0446934f610d",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/fe998e94-c22e-489c-8eb8-0446934f610d.jsonl",
+      "first": "2026-10-01T14:40:52.634Z",
+      "last": "2026-10-01T15:12:34.931Z",
+      "tool_calls": 25,
+      "tools": {
+        "Bash": 25
+      },
+      "agents": {}
+    },
+    {
+      "session": "3a4dbce8-8250-4e73-a1b5-f3d45ef238b2",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/3a4dbce8-8250-4e73-a1b5-f3d45ef238b2.jsonl",
+      "first": "2026-10-01T03:50:11.494Z",
+      "last": "2026-10-01T03:50:47.473Z",
+      "tool_calls": 7,
+      "tools": {
+        "Bash": 7
+      },
+      "agents": {}
+    },
+    {
+      "session": "4726db75-9ec1-400e-b85a-62a84b5a7a5f",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/4726db75-9ec1-400e-b85a-62a84b5a7a5f.jsonl",
+      "first": "2026-09-30T13:20:14.137Z",
+      "last": "2026-09-30T14:20:09.314Z",
+      "tool_calls": 109,
+      "tools": {
+        "Skill": 1,
+        "Bash": 101,
+        "Write": 2,
+        "ToolSearch": 2,
+        "Read": 1,
+        "Edit": 1,
+        "TaskStop": 1
+      },
+      "agents": {}
+    },
+    {
+      "session": "8a9374d3-50ee-4fd2-a59c-ba36112be57c",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/8a9374d3-50ee-4fd2-a59c-ba36112be57c.jsonl",
+      "first": "2026-10-01T13:09:04.162Z",
+      "last": "2026-10-01T13:14:42.796Z",
+      "tool_calls": 9,
+      "tools": {
+        "Bash": 9
+      },
+      "agents": {}
+    },
+    {
+      "session": "ed4cf86b-099d-4ddd-afa2-6bcb2e415661",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/ed4cf86b-099d-4ddd-afa2-6bcb2e415661.jsonl",
+      "first": "2026-10-01T14:40:52.634Z",
+      "last": "2026-10-01T15:32:17.320Z",
+      "tool_calls": 30,
+      "tools": {
+        "Bash": 26,
+        "Skill": 1,
+        "Agent": 3
+      },
+      "agents": {
+        "grok-worker": 3
+      }
+    },
+    {
+      "session": "32fb7d03-68b6-4bb3-a366-050d50ba98b0",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/32fb7d03-68b6-4bb3-a366-050d50ba98b0.jsonl",
+      "first": "2026-09-30T10:02:15.785Z",
+      "last": "2026-09-30T10:54:24.579Z",
+      "tool_calls": 73,
+      "tools": {
+        "Bash": 71,
+        "Read": 2
+      },
+      "agents": {}
+    },
+    {
+      "session": "5e4d5ff9-d1f4-46f7-950a-15e408d13a28",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/5e4d5ff9-d1f4-46f7-950a-15e408d13a28.jsonl",
+      "first": "2026-10-01T12:42:55.550Z",
+      "last": "2026-10-01T12:43:52.792Z",
+      "tool_calls": 14,
+      "tools": {
+        "Bash": 6,
+        "ToolSearch": 2,
+        "mcp__ccd_session_mgmt__list_sessions": 1,
+        "Read": 1,
+        "mcp__ccd_session_mgmt__list_events": 4
+      },
+      "agents": {}
+    },
+    {
+      "session": "2031a023-938e-4cbb-86ed-5a8db1bea9ce",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/2031a023-938e-4cbb-86ed-5a8db1bea9ce.jsonl",
+      "first": "2026-09-30T16:19:04.724Z",
+      "last": "2026-10-01T00:00:37.877Z",
+      "tool_calls": 200,
+      "tools": {
+        "Bash": 164,
+        "Write": 16,
+        "Edit": 1,
+        "Read": 6,
+        "Skill": 1,
+        "ToolSearch": 3,
+        "mcp__computer-use__request_access": 2,
+        "ListAgents": 1,
+        "SendMessage": 5,
+        "Monitor": 1
+      },
+      "agents": {}
+    },
+    {
+      "session": "d51c2b93-1df8-4794-bb1a-f82e526576ac",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/d51c2b93-1df8-4794-bb1a-f82e526576ac.jsonl",
+      "first": "2026-10-01T14:00:31.845Z",
+      "last": "2026-10-01T14:07:24.457Z",
+      "tool_calls": 30,
+      "tools": {
+        "Bash": 29,
+        "Edit": 1
+      },
+      "agents": {}
+    },
+    {
+      "session": "71e41e8e-3e17-4a84-93db-aad43d3ec710",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/71e41e8e-3e17-4a84-93db-aad43d3ec710.jsonl",
+      "first": "2026-10-01T14:19:27.211Z",
+      "last": "2026-10-01T14:19:48.588Z",
+      "tool_calls": 3,
+      "tools": {
+        "Bash": 3
+      },
+      "agents": {}
+    },
+    {
+      "session": "5b1e637c-7367-408a-998e-f7349204f65e",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/5b1e637c-7367-408a-998e-f7349204f65e.jsonl",
+      "first": "2026-10-01T03:38:40.361Z",
+      "last": "2026-10-01T03:53:09.543Z",
+      "tool_calls": 33,
+      "tools": {
+        "Bash": 33
+      },
+      "agents": {}
+    },
+    {
+      "session": "e109b39a-9df9-44b0-8afb-60af30501d00",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/e109b39a-9df9-44b0-8afb-60af30501d00.jsonl",
+      "first": "2026-09-30T14:31:08.397Z",
+      "last": "2026-09-30T15:05:36.207Z",
+      "tool_calls": 20,
+      "tools": {
+        "Bash": 20
+      },
+      "agents": {}
+    },
+    {
+      "session": "d38a6144-ded4-452b-a0a7-9cc2be6449be",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/d38a6144-ded4-452b-a0a7-9cc2be6449be.jsonl",
+      "first": "2026-09-30T00:11:22.147Z",
+      "last": "2026-09-30T01:16:44.411Z",
+      "tool_calls": 73,
+      "tools": {
+        "Bash": 63,
+        "Agent": 5,
+        "Write": 2,
+        "ReadNotifications": 1,
+        "SendMessage": 1,
+        "Edit": 1
+      },
+      "agents": {
+        "dashboard-builder": 1,
+        "general-purpose": 3,
+        "grok-worker": 1
+      }
+    },
+    {
+      "session": "c85a798d-fd86-401b-9571-59924afb98df",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/c85a798d-fd86-401b-9571-59924afb98df.jsonl",
+      "first": "2026-09-30T15:41:25.563Z",
+      "last": "2026-10-01T09:14:41.195Z",
+      "tool_calls": 119,
+      "tools": {
+        "Bash": 98,
+        "Edit": 1,
+        "Read": 12,
+        "Write": 1,
+        "SendUserFile": 3,
+        "ToolSearch": 1,
+        "SendMessage": 3
+      },
+      "agents": {}
+    },
+    {
+      "session": "cd2b9efe-3f03-4181-b815-d16d50bbeb1f",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/cd2b9efe-3f03-4181-b815-d16d50bbeb1f.jsonl",
+      "first": "2026-10-01T13:11:42.151Z",
+      "last": "2026-10-01T13:32:43.927Z",
+      "tool_calls": 28,
+      "tools": {
+        "Bash": 26,
+        "Read": 1,
+        "Edit": 1
+      },
+      "agents": {}
+    },
+    {
+      "session": "ef20acec-5750-4111-9029-11f1560d1386",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/ef20acec-5750-4111-9029-11f1560d1386.jsonl",
+      "first": "2026-10-01T11:34:05.008Z",
+      "last": "2026-10-01T12:51:13.613Z",
+      "tool_calls": 120,
+      "tools": {
+        "Bash": 107,
+        "AskUserQuestion": 1,
+        "Read": 6,
+        "ToolSearch": 2,
+        "SendMessage": 2,
+        "Skill": 1,
+        "Write": 1
+      },
+      "agents": {}
+    },
+    {
+      "session": "d4e3b98e-57ab-4405-bea7-30548f59f408",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/d4e3b98e-57ab-4405-bea7-30548f59f408.jsonl",
+      "first": "2026-09-30T10:38:16.928Z",
+      "last": "2026-09-30T10:52:25.085Z",
+      "tool_calls": 1,
+      "tools": {
+        "ToolSearch": 1
+      },
+      "agents": {}
+    },
+    {
+      "session": "88c065c9-678e-4401-b1a4-fa1e75bd2ccf",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/88c065c9-678e-4401-b1a4-fa1e75bd2ccf.jsonl",
+      "first": "2026-10-01T11:38:12.241Z",
+      "last": "2026-10-01T11:51:16.016Z",
+      "tool_calls": 57,
+      "tools": {
+        "Skill": 1,
+        "Bash": 48,
+        "Agent": 1,
+        "ToolSearch": 3,
+        "TaskStop": 2,
+        "ListAgents": 1,
+        "SendMessage": 1
+      },
+      "agents": {
+        "grok-worker": 1
+      }
+    },
+    {
+      "session": "b41166c5-b8c8-42f5-bd0b-a5f0857147a8",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/b41166c5-b8c8-42f5-bd0b-a5f0857147a8.jsonl",
+      "first": "2026-10-01T05:52:28.863Z",
+      "last": "2026-10-01T08:16:44.444Z",
+      "tool_calls": 199,
+      "tools": {
+        "Bash": 184,
+        "Read": 9,
+        "Write": 3,
+        "Edit": 3
+      },
+      "agents": {}
+    },
+    {
+      "session": "c77b0b5f-f988-4718-a9a4-2b88492a928e",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/c77b0b5f-f988-4718-a9a4-2b88492a928e.jsonl",
+      "first": "2026-09-29T11:06:18.479Z",
+      "last": "2026-09-30T00:02:36.981Z",
+      "tool_calls": 459,
+      "tools": {
+        "Skill": 1,
+        "ToolSearch": 2,
+        "WebFetch": 14,
+        "Bash": 371,
+        "WebSearch": 4,
+        "AskUserQuestion": 1,
+        "Read": 17,
+        "Write": 40,
+        "Agent": 9
+      },
+      "agents": {
+        "dashboard-builder": 1,
+        "grok-worker": 5,
+        "gemini-worker": 3
+      }
+    },
+    {
+      "session": "0855d21e-09bc-4d8b-abb4-66c68ec87703",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/0855d21e-09bc-4d8b-abb4-66c68ec87703.jsonl",
+      "first": "2026-10-01T13:39:39.851Z",
+      "last": "2026-10-01T14:05:47.798Z",
+      "tool_calls": 56,
+      "tools": {
+        "Bash": 52,
+        "Edit": 1,
+        "Skill": 1,
+        "Agent": 1,
+        "Read": 1
+      },
+      "agents": {
+        "grok-worker": 1
+      }
+    },
+    {
+      "session": "ef5a5bd7-42da-4e3c-bd6b-469cc8b47f50",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/ef5a5bd7-42da-4e3c-bd6b-469cc8b47f50.jsonl",
+      "first": "2026-09-30T13:39:04.006Z",
+      "last": "2026-09-30T13:42:01.433Z",
+      "tool_calls": 4,
+      "tools": {
+        "Bash": 4
+      },
+      "agents": {}
+    },
+    {
+      "session": "99b942d4-ee54-4e91-a3ad-cdc25cce30ad",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/99b942d4-ee54-4e91-a3ad-cdc25cce30ad.jsonl",
+      "first": "2026-10-01T00:43:39.807Z",
+      "last": "2026-10-01T00:49:14.852Z",
+      "tool_calls": 6,
+      "tools": {
+        "Bash": 6
+      },
+      "agents": {}
+    },
+    {
+      "session": "d87b34a9-1c9c-497c-810b-8ccbc7c8f2d9",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/d87b34a9-1c9c-497c-810b-8ccbc7c8f2d9.jsonl",
+      "first": "2026-10-01T12:55:10.584Z",
+      "last": "2026-10-01T12:58:53.769Z",
+      "tool_calls": 2,
+      "tools": {
+        "ToolSearch": 1,
+        "mcp__ccd_session_mgmt__get_usage": 1
+      },
+      "agents": {}
+    },
+    {
+      "session": "b6fb8d1e-9c76-451b-8234-db4c5a4e866b",
+      "path": "/Users/xiaojiang/.claude/projects/-Users-xiaojiang-Ai-Project-oco/b6fb8d1e-9c76-451b-8234-db4c5a4e866b.jsonl",
+      "first": "2026-10-01T13:19:39.795Z",
+      "last": "2026-10-01T13:44:54.331Z",
+      "tool_calls": 50,
+      "tools": {
+        "Bash": 46,
+        "Monitor": 1,
+        "mcp__Claude_Browser__navigate": 1,
+        "mcp__Claude_Browser__read_console_messages": 1,
+        "mcp__Claude_Browser__javascript_tool": 1
+      },
+      "agents": {}
+    }
+  ]
+}
