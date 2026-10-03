@@ -1,10 +1,12 @@
 // oco (patches/opencode/0019): 对话 / 轨迹 / 运行 - runtime view E2E.
 // Verifies the third view "Runtime" (data-oco-view="runtime"), live updates, tool executions,
 // usage stats, last event, step replay, and locale strings.
+// M2: permission approve/reject and question routing from the runtime view, stop, 429 retry, subagent expand,
+// and no actions in replay. The degradation each assertion catches is listed in docs/evidence/runtime-m2-e2e.md.
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot } from "./vscode.mjs"
-import { api, messages, waitReply, MODEL } from "./server.mjs"
+import { api, messages, waitReply, waitIdle, MODEL } from "./server.mjs"
 
 const REQUIRED = [
   "toggle-three",
@@ -16,6 +18,13 @@ const REQUIRED = [
   "back-to-chat",
   "trajectory-still-works",
   "locale-copy",
+  "perm-approve",
+  "perm-reject",
+  "question-route",
+  "stop",
+  "retry",
+  "subagent",
+  "replay-no-actions",
 ]
 
 const run = createRun({ suite: "c5-runtime", required: REQUIRED, scriptPath: fileURLToPath(import.meta.url) })
@@ -36,6 +45,8 @@ const COPY = {
     stateIdle: "Idle",
     pauseFollowing: "Pause following",
     backToLive: "Back to live",
+    toolDone: "Done",
+    childDone: "Subagent finished",
   },
   zh: {
     runtime: "运行",
@@ -48,6 +59,8 @@ const COPY = {
     stateIdle: "空闲",
     pauseFollowing: "暂停跟随",
     backToLive: "返回实时",
+    toolDone: "已完成",
+    childDone: "子代理已结束",
   },
 }
 
@@ -334,6 +347,180 @@ try {
     "trajectory-still-works",
     trajOpened && composerInTraj && chatBackAgain && trajGone ? "PASS" : "FAIL",
     { trajOpened, composerInTraj, chatBackAgain, trajGone },
+  )
+
+  // ---- M2: actions from the runtime view ----
+  const attr = (sel, name) => fA.locator(sel).first().getAttribute(name).catch(() => null)
+  const openRuntime = async () => {
+    if (await count(fA, "[data-oco-runtime]")) return
+    await fA.locator('[data-oco-view="runtime"]').first().click()
+    await fA.locator("[data-oco-runtime]").waitFor({ state: "visible", timeout: 10000 })
+  }
+  const pendingFor = async (kind) => ((await api("GET", `/${kind}`)) ?? []).filter((x) => x.sessionID === A)
+  const tools = async (name) => ((await messages(A)) ?? []).flatMap((m) => m.parts).filter((p) => p.type === "tool" && p.tool === name)
+  const waitAttention = (kind) =>
+    waitUntil(async () => (await count(fA, `[data-oco-runtime-attention-kind="${kind}"]`)) >= 1, 30000, 100).then(() => true, () => false)
+  const replyKinds = () =>
+    fA.locator("[data-oco-runtime-reply]").evaluateAll((els) => [...new Set(els.map((e) => e.getAttribute("data-oco-runtime-reply")))].sort())
+
+  // perm-approve: a bash ask shows three reply buttons; "once" lets the tool finish and the attention goes away.
+  await openRuntime()
+  const bashBefore = (await tools("bash")).length
+  await send(fA, `Use the bash tool to run exactly: echo ${MARK}-approve . Then reply with the output.`)
+  const approveAsked = await waitAttention("permission")
+  const approveKinds = await replyKinds()
+  await fA.locator('[data-oco-runtime-reply="once"]').first().click()
+  let approvePendingSeen = false
+  const approveCleared = await waitUntil(async () => {
+    if (await count(fA, "[data-oco-runtime-pending]")) approvePendingSeen = true
+    return (await count(fA, "[data-oco-runtime-attention]")) === 0 && (await pendingFor("permission")).length === 0
+  }, 30000, 100).then(() => true, () => false)
+  await waitReply(A)
+  const approveTool = (await tools("bash")).slice(bashBefore).at(-1)
+  run.record(
+    "perm-approve",
+    approveAsked && approveKinds.join() === "always,once,reject" && approveCleared && approveTool?.state?.status === "completed" ? "PASS" : "FAIL",
+    { approveAsked, approveKinds, approvePendingSeen, approveCleared, toolStatus: approveTool?.state?.status ?? null },
+  )
+
+  // perm-reject: "reject" ends the tool with an error and clears the attention.
+  const rejectBefore = (await tools("bash")).length
+  await send(fA, `Use the bash tool to run exactly: echo ${MARK}-reject . Then reply with the output.`)
+  const rejectAsked = await waitAttention("permission")
+  await fA.locator('[data-oco-runtime-reply="reject"]').first().click()
+  const rejectCleared = await waitUntil(
+    async () => (await count(fA, "[data-oco-runtime-attention]")) === 0 && (await pendingFor("permission")).length === 0,
+    30000,
+    100,
+  ).then(() => true, () => false)
+  await waitIdle(A)
+  const rejectTool = (await tools("bash")).slice(rejectBefore).at(-1)
+  run.record(
+    "perm-reject",
+    rejectAsked && rejectCleared && rejectTool?.state?.status === "error" ? "PASS" : "FAIL",
+    { rejectAsked, rejectCleared, toolStatus: rejectTool?.state?.status ?? null, error: String(rejectTool?.state?.error ?? "").slice(0, 120) },
+  )
+
+  // question-route: "answer in chat" switches to the chat view with the question dock; answering there clears it.
+  await send(fA, "Use the question tool (not plain text) to ask which color I prefer, with exactly two options: red and blue. After my answer reply with the color only.")
+  const questionAsked = await waitAttention("question")
+  await fA.locator('[data-oco-runtime-question="answer"]').first().click()
+  const dock = fA.locator('[data-component="dock-prompt"][data-kind="question"]')
+  const dockVisible = await dock.waitFor({ state: "visible", timeout: 15000 }).then(() => true, () => false)
+  const runtimeLeft = (await count(fA, "[data-oco-runtime]")) === 0
+  if (dockVisible) {
+    await dock.getByText(/^blue$/i).first().click()
+    const submit = dock.getByRole("button", { name: /submit|send|提交|发送|confirm|确认/i })
+    if (await submit.count()) await submit.first().click()
+  }
+  await waitIdle(A)
+  await openRuntime()
+  const questionCleared = await waitUntil(
+    async () => (await count(fA, "[data-oco-runtime-attention]")) === 0 && (await pendingFor("question")).length === 0,
+    15000,
+    100,
+  ).then(() => true, () => false)
+  run.record(
+    "question-route",
+    questionAsked && dockVisible && runtimeLeft && questionCleared ? "PASS" : "FAIL",
+    { questionAsked, dockVisible, runtimeLeft, questionCleared },
+  )
+
+  // stop: the stop button aborts a long answer; the view ends in cancelled ("requested" is recorded, not required).
+  await send(fA, "Write 300 numbered sentences about the sea.")
+  const stopShown = await fA.locator("[data-oco-runtime-stop]").first().waitFor({ state: "visible", timeout: 30000 }).then(() => true, () => false)
+  if (stopShown) await fA.locator("[data-oco-runtime-stop]").first().click()
+  let stopRequestedSeen = false
+  const stopCancelled = await waitUntil(async () => {
+    if (await count(fA, '[data-oco-runtime-cancel="requested"]')) stopRequestedSeen = true
+    return (await count(fA, '[data-oco-runtime-cancel="cancelled"]')) >= 1 && (await attr("[data-oco-runtime-focus]", "data-oco-runtime-focus")) === "cancelled"
+  }, 30000, 100).then(() => true, () => false)
+  const stopLast = ((await messages(A)) ?? []).at(-1)?.info
+  await runShot(page, run, "m2-stop")
+  run.record(
+    "stop",
+    stopShown && stopCancelled ? "PASS" : "FAIL",
+    { stopShown, stopRequestedSeen, stopCancelled, lastError: stopLast?.error?.name ?? null, focus: await attr("[data-oco-runtime-focus]", "data-oco-runtime-focus") },
+  )
+  await waitIdle(A)
+
+  // retry: one mock 429 → the view shows retrying with a countdown, then the request completes.
+  await fA.evaluate(() => {
+    const w = window
+    w.__ocoRetrySeen = []
+    clearInterval(w.__ocoRetryTimer)
+    w.__ocoRetryTimer = setInterval(() => {
+      const state = document.querySelector("[data-oco-runtime-state]")?.getAttribute("data-oco-runtime-state") ?? "none"
+      const retry = !!document.querySelector("[data-oco-runtime-retry]")
+      const key = `${state}${retry ? "+retry" : ""}`
+      if (w.__ocoRetrySeen.at(-1) !== key) w.__ocoRetrySeen.push(key)
+    }, 50)
+  })
+  await send(fA, `Reply with exactly this line and nothing else: RETRY-ONCE-${rand}`)
+  const retryReply = await waitReply(A, 60000)
+  await sleep(500)
+  const retrySeq = await fA.evaluate(() => {
+    clearInterval(window.__ocoRetryTimer)
+    return window.__ocoRetrySeen
+  })
+  const sawRetrying = retrySeq.includes("retrying+retry")
+  const retryText = (retryReply?.parts ?? []).filter((p) => p.type === "text").map((p) => p.text).join("")
+  run.record(
+    "retry",
+    sawRetrying && retrySeq.at(-1)?.startsWith("idle") && retryText.includes(`RETRY-ONCE-${rand}`) ? "PASS" : "FAIL",
+    { pollMs: 50, retrySeq, sawRetrying, completed: !!retryReply?.info?.time?.completed, retryText: retryText.slice(0, 80) },
+  )
+
+  // subagent: a task row appears; expanding shows the child panel; at the end the row shows the task status
+  // and the child lifecycle "done" as two separate texts.
+  await send(fA, "Use the task tool with the explore agent: probe")
+  const toggle = fA.locator("[data-oco-runtime-child-toggle]").last()
+  const toggleShown = await toggle.waitFor({ state: "visible", timeout: 30000 }).then(() => true, () => false)
+  const childID = toggleShown ? await toggle.getAttribute("data-oco-runtime-child-toggle") : null
+  if (toggleShown) await toggle.click()
+  const expanded = toggleShown ? (await toggle.getAttribute("aria-expanded")) === "true" : false
+  const panel = fA.locator(`[data-oco-runtime-child="${childID}"]`)
+  const panelShown = childID ? await panel.waitFor({ state: "visible", timeout: 15000 }).then(() => true, () => false) : false
+  await waitReply(A)
+  const childDone = childID
+    ? await waitUntil(async () => (await attr(`[data-oco-runtime-child="${childID}"]`, "data-oco-runtime-child-lifecycle")) === "done", 30000, 200).then(() => true, () => false)
+    : false
+  const row = fA.locator("[data-oco-runtime-tool]", { has: fA.locator(`[data-oco-runtime-child-toggle="${childID}"]`) }).first()
+  const rowText = childID ? await row.innerText().catch(() => "") : ""
+  const taskPart = (await tools("task")).at(-1)
+  await runShot(page, run, "m2-subagent")
+  run.record(
+    "subagent",
+    toggleShown && expanded && panelShown && childDone && taskPart?.state?.status === "completed" && rowText.includes(L.toolDone) && rowText.includes(L.childDone)
+      ? "PASS"
+      : "FAIL",
+    { childID, toggleShown, expanded, panelShown, childDone, taskStatus: taskPart?.state?.status ?? null, rowText: rowText.replace(/\s+/g, " ").slice(0, 200) },
+  )
+
+  // replay-no-actions: with a pending permission, pausing removes every reply/stop button from the DOM;
+  // back to live they return. The permission is rejected at the end.
+  await send(fA, `Use the bash tool to run exactly: echo ${MARK}-replay . Then reply with the output.`)
+  const replayAsked = await waitAttention("permission")
+  const liveReplies = await count(fA, "[data-oco-runtime-reply]")
+  await fA.locator("[data-oco-runtime-replay] button").first().click()
+  await waitUntil(async () => (await attr("[data-oco-runtime]", "data-oco-runtime-mode")) === "replay", 5000, 100).catch(() => {})
+  const inReplay = (await attr("[data-oco-runtime]", "data-oco-runtime-mode")) === "replay"
+  const replayReplies = await count(fA, "[data-oco-runtime-reply]")
+  const replayQuestions = await count(fA, "[data-oco-runtime-question]")
+  const replayStops = await count(fA, "[data-oco-runtime-stop]")
+  await fA.locator("[data-oco-runtime-replay] button").first().click()
+  await waitUntil(async () => (await attr("[data-oco-runtime]", "data-oco-runtime-mode")) === "live", 5000, 100).catch(() => {})
+  const backReplies = await waitUntil(async () => (await count(fA, "[data-oco-runtime-reply]")) >= 1, 5000, 100).then(() => true, () => false)
+  const backStop = (await count(fA, "[data-oco-runtime-stop]")) >= 1
+  if (backReplies) await fA.locator('[data-oco-runtime-reply="reject"]').first().click()
+  for (const x of await pendingFor("permission")) await api("POST", `/permission/${x.id}/reply`, { reply: "reject" })
+  await waitIdle(A)
+  run.record(
+    "replay-no-actions",
+    replayAsked && liveReplies >= 3 && inReplay && replayReplies === 0 && replayQuestions === 0 && replayStops === 0 && backReplies && backStop
+      ? "PASS"
+      : "FAIL",
+    { replayAsked, liveReplies, inReplay, replayReplies, replayQuestions, replayStops, backReplies, backStop },
   )
 } catch (e) {
   run.record("run", "FAIL", { error: String(e?.message ?? e).slice(0, 500) })
