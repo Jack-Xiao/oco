@@ -39,6 +39,7 @@ const REQUIRED = [
   "width-1600",
   "parallel-subagents",
   "geometry-stable",
+  "focus-stable",
   "reasoning",
   "motion-on",
   "reduced-motion",
@@ -990,6 +991,16 @@ try {
     return parChildLanes >= 3 && parActiveEdges >= 2
   }, 20000, 100).then(() => true, () => false)
   const parRoster = await count(fA, "[data-oco-runtime-roster-item]")
+  // focus-stable: while three subagents stream updates, a focused card header keeps focus (same node, still in the
+  // DOM). If cards are rebuilt on every update, focus falls back to <body> and this fails.
+  const focusTarget = fA.locator('[data-oco-runtime-lane-kind="child"] [data-oco-runtime-tool-toggle]').first()
+  await focusTarget.focus().catch(() => {})
+  await fA.evaluate(() => (window.__ocoFocused = document.activeElement))
+  await sleep(1500)
+  const focusKept = await fA.evaluate(
+    () => !!window.__ocoFocused && window.__ocoFocused === document.activeElement && window.__ocoFocused.isConnected && window.__ocoFocused.hasAttribute("data-oco-runtime-tool-toggle"),
+  )
+  const stillRunning = (await count(fA, '[data-oco-runtime-edge-dir="dispatch"][data-oco-runtime-edge-active="true"]')) >= 1
   const w1600Rail = await railOf()
   const w1600StopVis = await fA.locator("[data-oco-runtime-stop]").isVisible().catch(() => false)
   const w1600FocusVis = await fA.locator("[data-oco-runtime-focus]").isVisible().catch(() => false)
@@ -1023,6 +1034,7 @@ try {
     { stopVisible: w1600StopVis, focusVisible: w1600FocusVis, ...w1600Rail, ...w1600Overflow },
   )
   run.record("parallel-subagents", parSeen && parRoster >= 3 ? "PASS" : "FAIL", { parChildLanes, parActiveEdges, parRoster })
+  run.record("focus-stable", focusKept && stillRunning ? "PASS" : "FAIL", { focusKept, stillRunning })
   run.record(
     "geometry-stable",
     geomRunning.split("|").length === 5 && geomRunning === geomDone && geomDone === geomReplay ? "PASS" : "FAIL",

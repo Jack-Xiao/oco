@@ -116,3 +116,12 @@
 新增断言：`reply-in-panel`、`width-1600`、`parallel-subagents`（3 个子代理同时占 3 条通道、≥2 条派发边活跃、名册 ≥3）、`geometry-stable`（运行中 / 结束后 / 回放三时刻 4 条通道与思考框矩形完全相等）；`keyboard` 加“打开详情面板不改变通道矩形”；`reasoning` 改为思考框流式与完成后矩形相等。截图：`runs/20261003-171403-c5-runtime-d294/par-running.png`、`par-done.png`、`par-replay.png`。
 
 Task 8：0019 重新生成（vendor HEAD `4385e3f`，23 个文件，+8691/−5，`diff --check` 干净）；干净 `51ef4be` 上 0001→0019 PASS 19/19，`src`、`test-browser` 与开发树 `diff -r` 一致，重放树 session 单测 216/0。
+
+## 终审修复波（2026-10-04）
+
+终审（Gemini，[报告](runtime-m3-review.md)）12 条：阻断 1、应修 6、建议 5。主线程处理（vendor `73998c9`）：
+- D-01 阻断：`lanesOf` 每次返回新对象 + `<For>` 导致流式更新时整卡重建、键盘焦点丢失、流动点动画重播。修法：`reuseLanes` 保留未变通道对象（单测），两条连线改 `<Index>`。新增 E2E `focus-stable`；**对照**：临时去掉 `reuseLanes` 后该项 FAIL（`focusKept:false`，`runs/20261003-173339-c5-runtime-c1ac`），恢复后 PASS。报告中“思考流触发整会话 assemble”为 Task 1 实测后的既定取舍，不改。
+- D-02 进入子代理后思考框显示子会话自己的思考；D-03 状态栏子代理数改用名册口径；D-04“其他异常”排除用户停止或拒绝权限的工具；D-05 孙代理名称从上一层解析；D-06 溢出通道标 `tools|children`；D-07 详情面板“输入/输出”三语；D-08 删死分支（测试改为真实场景）；D-09 注释改英文；D-10 空会话显示“尚未派发”。
+- 未做（建议级，记入 NEXT）：D-11 窄于 560 时连线仍是 4 列横线（E2E 依赖每条通道的边属性，需另行设计竖轨）；D-12 子会话同步失败时只显示“加载中”。
+
+最终结果（vendor HEAD `73998c9`）：session 单测 218/218，类型 0 错误；E2E en 33/33（`runs/20261003-173528-c5-runtime-c3d9`）、zh 33/33（`runs/20261003-173633-c5-runtime-6e49`）、c4 17/17（`runs/20261003-173738-c4-trajectory-8371`）；`look-runtime` 8 个状态诊断 0；0019 重新生成（23 个文件，+8774/−5），干净重放 19/19，重放树单测 218/218。

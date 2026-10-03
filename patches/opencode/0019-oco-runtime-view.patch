@@ -1886,10 +1886,10 @@ index 0000000..fa82f1a
 +})
 diff --git a/packages/app/src/components/session/session-runtime-i18n.ts b/packages/app/src/components/session/session-runtime-i18n.ts
 new file mode 100644
-index 0000000..f3be2f5
+index 0000000..5d0aecf
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-i18n.ts
-@@ -0,0 +1,573 @@
+@@ -0,0 +1,585 @@
 +// oco (patches/opencode/0019): copy for the runtime view. Same arrangement as session-trajectory-i18n.ts
 +// (patch 0013): upstream's locale-parity test would require every locale, and oco maintains en / zh / zht.
 +import type { useLanguage } from "@/context/language"
@@ -1904,6 +1904,10 @@ index 0000000..f3be2f5
 +  "state.unknown": "Unknown",
 +  "evidence.inferred": "inferred",
 +  "stage.label": "Request cycle",
++  "tool.detail.input": "Input",
++  "tool.detail.output": "Output",
++  "mechanism.dispatch.none": "No dispatch yet",
++  "child.unnamed": "Subagent",
 +  "life.short.running": "Running",
 +  "life.short.retrying": "Retrying",
 +  "life.short.waiting-user": "Waiting",
@@ -2091,6 +2095,10 @@ index 0000000..f3be2f5
 +  "state.unknown": "未知",
 +  "evidence.inferred": "推断",
 +  "stage.label": "请求周期",
++  "tool.detail.input": "输入",
++  "tool.detail.output": "输出",
++  "mechanism.dispatch.none": "尚未派发",
++  "child.unnamed": "子代理",
 +  "life.short.running": "运行中",
 +  "life.short.retrying": "重试中",
 +  "life.short.waiting-user": "等你",
@@ -2274,6 +2282,10 @@ index 0000000..f3be2f5
 +  "state.unknown": "未知",
 +  "evidence.inferred": "推斷",
 +  "stage.label": "請求週期",
++  "tool.detail.input": "輸入",
++  "tool.detail.output": "輸出",
++  "mechanism.dispatch.none": "尚未派發",
++  "child.unnamed": "子代理",
 +  "life.short.running": "執行中",
 +  "life.short.retrying": "重試中",
 +  "life.short.waiting-user": "等你",
@@ -2520,16 +2532,16 @@ index 0000000..53db1fa
 +}
 diff --git a/packages/app/src/components/session/session-runtime-mechanism-view.tsx b/packages/app/src/components/session/session-runtime-mechanism-view.tsx
 new file mode 100644
-index 0000000..98795e9
+index 0000000..e9d41b3
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-mechanism-view.tsx
-@@ -0,0 +1,792 @@
+@@ -0,0 +1,810 @@
 +// oco (patches/opencode/0019): fixed-frame agent tree mechanism view (Task 4d).
 +// Contract and rules: docs/superpowers/plans/2026-10-03-runtime-dashboard-m3.md (改版 2: 固定框架).
-+import { createEffect, createMemo, createSignal, For, onCleanup, Show, type Accessor, type JSX } from "solid-js"
++import { createEffect, createMemo, createSignal, For, Index, onCleanup, Show, type Accessor, type JSX } from "solid-js"
 +import type { ChildLifecycle, RuntimeAttention, RuntimeModel, RuntimeTool, Stage } from "./session-runtime-model"
 +import type { RuntimeText } from "./session-runtime-i18n"
-+import { lanesOf, mechanismOf, slotGlyph, type Lane, type Mechanism, type MechanismSlot } from "./session-runtime-mechanism"
++import { lanesOf, mechanismOf, reuseLanes, slotGlyph, type Lane, type Mechanism, type MechanismSlot } from "./session-runtime-mechanism"
 +import { FOCUS, retryWait, toolDetail } from "./session-runtime-actions"
 +import type { RuntimeReasoning } from "./session-runtime-reasoning"
 +
@@ -2572,7 +2584,8 @@ index 0000000..98795e9
 +  openDetailId?: Accessor<string | undefined>
 +  onToggleDetail?: (id: string | undefined) => void
 +  otherAttentionTools?: Accessor<RuntimeTool[]>
-+  reasoningList?: Accessor<RuntimeReasoning[]>
++  /** Reasoning of the root (no id) or of an entered child session. */
++  reasoningFor?: (sessionID?: string) => RuntimeReasoning[]
 +}
 +
 +export function RuntimeMechanism(props: RuntimeMechanismProps) {
@@ -2632,25 +2645,33 @@ index 0000000..98795e9
 +    mechanismOf(activeModel(), (id) => props.childOf?.(id) ?? props.assembleChild?.(id)),
 +  )
 +
-+  const lanes = createMemo<Lane[]>(() => lanesOf(mechanism()))
++  // Unchanged lanes keep their object, so the card list does not rebuild (and drop keyboard focus) on
++  // updates that do not touch them, such as streamed reasoning.
++  const lanes = createMemo<Lane[]>((prev) => reuseLanes(prev, lanesOf(mechanism())), [])
 +
 +  // Find lifecycle & agent of current entered session in parent
++  // The task row that started an entered session lives in the level above it (root or an entered child).
++  const parentRowFor = (id: string) => {
++    const stack = enteredStack()
++    const at = stack.indexOf(id)
++    const parent = at > 0 ? props.childOf?.(stack[at - 1]) : props.model()
++    return parent?.tools.find((t) => t.child?.sessionID === id)
++  }
++
 +  const currentChildInfo = createMemo(() => {
 +    const id = currentSessionID()
 +    if (!id) return undefined
-+    const parentTools = props.model().tools
-+    const tRow = parentTools.find((t) => t.child?.sessionID === id)
++    const tRow = parentRowFor(id)
 +    return {
-+      agent: tRow?.child?.agent ?? tRow?.name ?? id,
++      agent: tRow?.child?.agent ?? tRow?.name ?? t("child.unnamed"),
 +      lifecycle: tRow?.child?.lifecycle ?? ("running" as ChildLifecycle),
 +    }
 +  })
 +
 +  // Breadcrumb agent names
 +  const agentNameFor = (id: string) => {
-+    const parentTools = props.model().tools
-+    const tRow = parentTools.find((t) => t.child?.sessionID === id)
-+    return tRow?.child?.agent ?? tRow?.name ?? id
++    const tRow = parentRowFor(id)
++    return tRow?.child?.agent ?? tRow?.name ?? t("child.unnamed")
 +  }
 +
 +  // Focus sentence for active model
@@ -2689,7 +2710,7 @@ index 0000000..98795e9
 +
 +  // Active reasoning
 +  const currentReasoning = createMemo<RuntimeReasoning | undefined>(() => {
-+    const list = props.reasoningList?.()
++    const list = props.reasoningFor?.(currentSessionID())
 +    if (list && list.length > 0) return list[list.length - 1]
 +    return undefined
 +  })
@@ -2736,6 +2757,7 @@ index 0000000..98795e9
 +      return t("mechanism.slots_from", { n: mechanism().slotsFrom! })
 +    }
 +    const candidateSlots = lanes().filter((l) => l.kind === "child" || l.kind === "tool")
++    if (candidateSlots.length === 0) return t("mechanism.dispatch.none")
 +    return t("mechanism.dispatch.parallel", { count: candidateSlots.length })
 +  }
 +
@@ -2908,41 +2930,46 @@ index 0000000..98795e9
 +            <div class="wire relative h-[30px]">
 +              <div class="stem absolute left-1/2 top-0 h-1/2 border-l border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
 +              <div class="bus absolute left-[12.5%] right-[12.5%] top-1/2 border-t border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
-+              <For each={lanes()}>
++              {/* Index (not For): lanesOf returns new objects on every update; keying by position keeps the
++                  drop nodes, so the flow animation does not restart on each streamed delta. */}
++              <Index each={lanes()}>
 +                {(lane, i) => {
-+                  const slot = lane.kind === "child" || lane.kind === "tool" ? lane.slot : undefined
-+                  const isActive = slot?.dispatch ?? false
-+                  const isAwaiting = slot?.awaiting ?? false
++                  const slot = () => {
++                    const l = lane()
++                    return l.kind === "child" || l.kind === "tool" ? l.slot : undefined
++                  }
++                  const isActive = () => slot()?.dispatch ?? false
++                  const isAwaiting = () => slot()?.awaiting ?? false
 +                  return (
 +                    <div
 +                      class="drop absolute top-1/2 h-1/2 border-l border-dashed"
 +                      style={{
-+                        left: `${12.5 + i() * 25}%`,
-+                        "border-color": isAwaiting
++                        left: `${12.5 + i * 25}%`,
++                        "border-color": isAwaiting()
 +                          ? "var(--rt-attn)"
-+                          : isActive
-+                            ? slot?.kind === "child"
++                          : isActive()
++                            ? slot()?.kind === "child"
 +                              ? "var(--rt-sub)"
 +                              : "var(--rt-tool)"
 +                            : "var(--rt-line-strong)",
 +                      }}
-+                      data-oco-runtime-edge={slot?.toolID}
++                      data-oco-runtime-edge={slot()?.toolID}
 +                      data-oco-runtime-edge-dir="dispatch"
-+                      data-oco-runtime-edge-active={isActive ? "true" : "false"}
++                      data-oco-runtime-edge-active={isActive() ? "true" : "false"}
 +                      edge-dir="dispatch"
-+                      edge-active={isActive ? "true" : "false"}
++                      edge-active={isActive() ? "true" : "false"}
 +                    >
-+                      <Show when={isActive && isLive() && !isAwaiting}>
++                      <Show when={isActive() && isLive() && !isAwaiting()}>
 +                        <i
 +                          data-oco-runtime-flow
 +                          class="oco-flow-down motion-reduce:animate-none absolute w-[7px] h-[7px] rounded-full -ml-[3.5px]"
-+                          style={{ background: slot?.kind === "child" ? "var(--rt-sub)" : "var(--rt-tool)" }}
++                          style={{ background: slot()?.kind === "child" ? "var(--rt-sub)" : "var(--rt-tool)" }}
 +                        />
 +                      </Show>
 +                    </div>
 +                  )
 +                }}
-+              </For>
++              </Index>
 +              <span
 +                class="tag absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3.5 text-12-regular whitespace-nowrap"
 +                style={{ background: "var(--rt-panel)", color: "var(--rt-weak)" }}
@@ -2984,7 +3011,7 @@ index 0000000..98795e9
 +                      <div
 +                        data-oco-runtime-lane={index()}
 +                        data-oco-runtime-lane-kind="overflow"
-+                        data-oco-runtime-overflow="tools"
++                        data-oco-runtime-overflow={lane.of}
 +                        class="rounded-md border border-dashed flex items-center justify-center p-4 text-12-regular min-h-0 min-w-0 font-semibold"
 +                        style={{ "border-color": "var(--rt-line-strong)", color: "var(--rt-weak)", background: "var(--rt-inset)" , "min-height": props.isStack?.() ? "116px" : undefined }}
 +                      >
@@ -3141,38 +3168,41 @@ index 0000000..98795e9
 +
 +            {/* Row 4: Return Wire (44px) */}
 +            <div class="wire relative h-[30px]">
-+              <For each={lanes()}>
++              <Index each={lanes()}>
 +                {(lane, i) => {
-+                  const slot = lane.kind === "child" || lane.kind === "tool" ? lane.slot : undefined
-+                  const isActive = slot?.returning ?? false
++                  const slot = () => {
++                    const l = lane()
++                    return l.kind === "child" || l.kind === "tool" ? l.slot : undefined
++                  }
++                  const isActive = () => slot()?.returning ?? false
 +                  return (
 +                    <div
 +                      class="drop absolute top-0 h-1/2 border-l border-dashed"
 +                      style={{
-+                        left: `${12.5 + i() * 25}%`,
-+                        "border-color": isActive
-+                          ? slot?.kind === "child"
++                        left: `${12.5 + i * 25}%`,
++                        "border-color": isActive()
++                          ? slot()?.kind === "child"
 +                            ? "var(--rt-sub)"
 +                            : "var(--rt-tool)"
 +                          : "var(--rt-line-strong)",
 +                      }}
-+                      data-oco-runtime-edge={slot?.toolID}
++                      data-oco-runtime-edge={slot()?.toolID}
 +                      data-oco-runtime-edge-dir="return"
-+                      data-oco-runtime-edge-active={isActive ? "true" : "false"}
++                      data-oco-runtime-edge-active={isActive() ? "true" : "false"}
 +                      edge-dir="return"
-+                      edge-active={isActive ? "true" : "false"}
++                      edge-active={isActive() ? "true" : "false"}
 +                    >
-+                      <Show when={isActive && isLive()}>
++                      <Show when={isActive() && isLive()}>
 +                        <i
 +                          data-oco-runtime-flow
 +                          class="oco-flow-up motion-reduce:animate-none absolute w-[7px] h-[7px] rounded-full -ml-[3.5px]"
-+                          style={{ background: slot?.kind === "child" ? "var(--rt-sub)" : "var(--rt-tool)" }}
++                          style={{ background: slot()?.kind === "child" ? "var(--rt-sub)" : "var(--rt-tool)" }}
 +                        />
 +                      </Show>
 +                    </div>
 +                  )
 +                }}
-+              </For>
++              </Index>
 +              <div class="bus absolute left-[12.5%] right-[12.5%] top-1/2 border-t border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
 +              <div class="stem absolute left-1/2 top-1/2 h-1/2 border-l border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
 +            </div>
@@ -3285,7 +3315,7 @@ index 0000000..98795e9
 +                          )}
 +                        </Show>
 +                        <div class="flex flex-col gap-1 mt-1">
-+                          <span class="font-semibold text-text-strong">Input:</span>
++                          <span class="font-semibold text-text-strong">{t("tool.detail.input")}</span>
 +                          <div
 +                            class="p-2 rounded font-mono text-11-regular whitespace-pre-wrap break-words max-h-40 overflow-y-auto"
 +                            style={{ background: "var(--rt-inset)" }}
@@ -3295,7 +3325,7 @@ index 0000000..98795e9
 +                        </div>
 +                        <Show when={tool().lastOutput}>
 +                          <div class="flex flex-col gap-1 mt-1">
-+                            <span class="font-semibold text-text-strong">Output:</span>
++                            <span class="font-semibold text-text-strong">{t("tool.detail.output")}</span>
 +                            <div
 +                              class="p-2 rounded font-mono text-11-regular whitespace-pre-wrap break-words max-h-48 overflow-y-auto"
 +                              style={{ background: "var(--rt-inset)" }}
@@ -3318,10 +3348,10 @@ index 0000000..98795e9
 +}
 diff --git a/packages/app/src/components/session/session-runtime-mechanism.test.ts b/packages/app/src/components/session/session-runtime-mechanism.test.ts
 new file mode 100644
-index 0000000..983b181
+index 0000000..ef4e90f
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-mechanism.test.ts
-@@ -0,0 +1,965 @@
+@@ -0,0 +1,993 @@
 +// oco (patches/opencode/0019): unit tests for mechanismOf pure projection.
 +// Test cases 1-9 per docs/superpowers/plans/2026-10-03-runtime-dashboard-m3.md (Task 2).
 +import { describe, expect, test } from "bun:test"
@@ -3329,6 +3359,7 @@ index 0000000..983b181
 +  lanesOf,
 +  mechanismOf,
 +  mechanismView,
++  reuseLanes,
 +  rosterOf,
 +  type Lane,
 +  type Mechanism,
@@ -3829,15 +3860,15 @@ index 0000000..983b181
 +      input: "replace file",
 +      lastOutput: "File not found",
 +    })
-+    const tErrorDirect = createMockTool({
++    // A failed tool without any output has no error text to show (RuntimeTool carries none of its own).
++    const tErrorNoOutput = createMockTool({
 +      id: "t3",
 +      name: "webfetch",
 +      state: "error",
 +      input: "http://example.com",
-+      ...({ error: "Network timeout" } as any),
 +    })
 +
-+    const model = createMockModel({ tools: [tCompleted, tErrorWithLastOutput, tErrorDirect] })
++    const model = createMockModel({ tools: [tCompleted, tErrorWithLastOutput, tErrorNoOutput] })
 +    const m = mechanismOf(model)
 +
 +    expect(m.tools[0].input).toBe("ls -la")
@@ -3850,7 +3881,7 @@ index 0000000..983b181
 +    expect(m.tools[1].lastOutput).toBe("File not found")
 +
 +    expect(m.tools[2].input).toBe("http://example.com")
-+    expect(m.tools[2].error).toBe("Network timeout")
++    expect(m.tools[2].error).toBeUndefined()
 +  })
 +
 +  test("2. child slot has input, description, and when child model is loaded with running tools, computes activity and nested count", () => {
@@ -4159,6 +4190,7 @@ index 0000000..983b181
 +      kind: "overflow",
 +      total: 2,
 +      running: 1, // t2 is running, t3 is completed
++      of: "tools",
 +    })
 +  })
 +
@@ -4185,7 +4217,21 @@ index 0000000..983b181
 +      kind: "overflow",
 +      total: 2, // t4 from allSlots + 1 from toolsOverflow
 +      running: 2, // t4 running + 1 running from toolsOverflow
++      of: "tools",
 +    })
++  })
++
++  test("7. overflow made only of subagents is marked as children", () => {
++    const kids = [1, 2, 3, 4, 5].map((n) =>
++      createMockChildTool({
++        id: `c${n}`,
++        callID: `call-c${n}`,
++        child: { sessionID: `s${n}`, agent: "explore", description: `task ${n}`, background: false, lifecycle: "running", evidence: "event" },
++      }),
++    )
++    const lanes = lanesOf(mechanismOf(createMockModel({ tools: kids })))
++    expect(lanes.slice(0, 3).map((l) => l.kind)).toEqual(["child", "child", "child"])
++    expect(lanes[3]).toEqual({ kind: "overflow", total: 2, running: 2, of: "children" })
 +  })
 +})
 +
@@ -4287,32 +4333,44 @@ index 0000000..983b181
 +    expect(roster[0].activity).toEqual({ name: "read", count: 3 })
 +  })
 +})
++
++describe("reuseLanes", () => {
++  test("keeps unchanged lane objects and replaces only the changed position", () => {
++    const tool = createMockTool({ id: "t1" })
++    const prev = lanesOf(mechanismOf(createMockModel({ tools: [tool] })))
++    const same = reuseLanes(prev, lanesOf(mechanismOf(createMockModel({ tools: [tool] }))))
++    expect(same.every((lane, i) => lane === prev[i])).toBe(true)
++    const changed = reuseLanes(prev, lanesOf(mechanismOf(createMockModel({ tools: [{ ...tool, state: "completed" }] }))))
++    expect(changed[0]).not.toBe(prev[0])
++    expect(changed.slice(1).every((lane, i) => lane === prev[i + 1])).toBe(true)
++  })
++})
 diff --git a/packages/app/src/components/session/session-runtime-mechanism.ts b/packages/app/src/components/session/session-runtime-mechanism.ts
 new file mode 100644
-index 0000000..699394a
+index 0000000..949bf88
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-mechanism.ts
-@@ -0,0 +1,427 @@
+@@ -0,0 +1,433 @@
 +// oco (patches/opencode/0019): pure projection from RuntimeModel to mechanism diagram state.
 +// Contract and rules: docs/superpowers/plans/2026-10-03-runtime-dashboard-m3.md (Task 2 & Task 4).
 +import type { ChildLifecycle, RuntimeModel, RuntimeTool, Stage } from "./session-runtime-model"
 +import { lastChildToolIds } from "./session-runtime-actions"
 +export type MechanismSlot = {
-+  toolID: string // RuntimeTool.id，稳定身份
++  toolID: string // RuntimeTool.id, stable identity
 +  kind: "tool" | "child"
-+  label: string // 工具名或子代理 agent
++  label: string // tool name, or the subagent's agent
 +  state: RuntimeTool["state"]
-+  lifecycle?: ChildLifecycle // 仅 child
++  lifecycle?: ChildLifecycle // child slots only
 +  awaiting: boolean
 +  interrupted: boolean
-+  dispatch: boolean // 派发边活跃（裁定 4）
-+  returning: boolean // 汇回边活跃（裁定 4）
-+  input: string // 工具入参摘要，取 RuntimeTool.input
-+  error?: string // 工具 error 文本，若模型里有；没有就从 RuntimeTool 现有字段取，查不到则不加并在报告说明
++  dispatch: boolean // dispatch edge active
++  returning: boolean // return edge active
++  input: string // input summary (RuntimeTool.input)
++  error?: string // error text when the tool failed
 +  lastOutput?: string
-+  description?: string // 子代理 child.description
-+  activity?: { name: string; count: number } // 仅子代理槽：子模型最后一个请求中最后一个 pending/running 工具的名字，以及该请求中同名工具的数量；子模型未加载或无运行中工具则缺省
-+  nested: number // 子模型 tools 中 child!==undefined 的行数；未加载为 0
++  description?: string // subagent task description
++  activity?: { name: string; count: number } // child: last pending/running tool of its latest request and how many share that name; absent until loaded
++  nested: number // task rows inside the child model; 0 until loaded
 +}
 +
 +export type Mechanism = {
@@ -4321,7 +4379,7 @@ index 0000000..699394a
 +  toolsOverflow: { total: number; running: number }
 +  children: MechanismSlot[] // ≤ 3
 +  childrenOverflow: { total: number; running: number }
-+  empty: boolean // 无请求
++  empty: boolean // no requests yet
 +  fill: { done: number; total: number }
 +  main: { agent?: string; model?: string; request: number }
 +  // Set when the last request has no tool rows: slots and fill come from this earlier request (1-based number).
@@ -4331,8 +4389,6 @@ index 0000000..699394a
 +const isSubagent = (tool: RuntimeTool): boolean => tool.child !== undefined
 +
 +const toolErrorOf = (tool: RuntimeTool): string | undefined => {
-+  const direct = (tool as { error?: string }).error
-+  if (typeof direct === "string" && direct) return direct
 +  if (tool.state === "error" && typeof tool.lastOutput === "string" && tool.lastOutput) {
 +    return tool.lastOutput
 +  }
@@ -4636,7 +4692,7 @@ index 0000000..699394a
 +
 +export type Lane =
 +  | { kind: "child" | "tool"; slot: MechanismSlot }
-+  | { kind: "overflow"; total: number; running: number }
++  | { kind: "overflow"; total: number; running: number; of: "tools" | "children" }
 +  | { kind: "empty" }
 +
 +export function lanesOf(m: Mechanism): Lane[] {
@@ -4666,7 +4722,9 @@ index 0000000..699394a
 +        (s.kind === "child" && s.slot.lifecycle === "running"),
 +    ).length + overflowRunningFromMechanism
 +
-+  lanes.push({ kind: "overflow", total, running })
++  // Children come first, so the overflow holds subagents only when every overflowed row is one.
++  const children = overflowSlice.filter((s) => s.kind === "child").length + (m.childrenOverflow?.total ?? 0)
++  lanes.push({ kind: "overflow", total, running, of: children === total ? "children" : "tools" })
 +  return lanes
 +}
 +
@@ -4719,6 +4777,12 @@ index 0000000..699394a
 +  }
 +
 +  return items
++}
++
++/** Keeps the previous lane object at each position when its content is unchanged, so keyed lists keep their DOM
++ * nodes (focus, animations) across updates that do not touch the lanes. */
++export function reuseLanes(prev: Lane[], next: Lane[]): Lane[] {
++  return next.map((lane, i) => (prev[i] && JSON.stringify(prev[i]) === JSON.stringify(lane) ? prev[i] : lane))
 +}
 diff --git a/packages/app/src/components/session/session-runtime-model.test.ts b/packages/app/src/components/session/session-runtime-model.test.ts
 new file mode 100644
@@ -7305,10 +7369,10 @@ index 0000000..f6906fc
 +}
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
 new file mode 100644
-index 0000000..3250fa0
+index 0000000..d8a22a3
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -0,0 +1,1090 @@
+@@ -0,0 +1,1109 @@
 +// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view.
 +// Fixed-frame Tokyo Night layout (改版 2: 固定框架 / Task 4d).
 +import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, untrack } from "solid-js"
@@ -7597,10 +7661,17 @@ index 0000000..3250fa0
 +    return new Set([...m.tools.map((s) => s.toolID), ...m.children.map((s) => s.toolID)])
 +  })
 +
++  // Outside the tree but still worth a look. Tools the user stopped or whose permission the user rejected are the
++  // user's own decisions, not issues (rejection text: packages/core/src/v1/permission.ts).
++  const userRejected = (tool: RuntimeTool) => tool.state === "error" && /^The user rejected permission/.test(tool.lastOutput ?? "")
 +  const otherAttentionTools = createMemo(() => {
 +    const ids = treeToolIds()
 +    return model().tools.filter(
-+      (t) => !ids.has(t.id) && (t.state === "error" || t.interrupted || Boolean(t.awaiting)),
++      (t) =>
++        !ids.has(t.id) &&
++        !t.cancelled &&
++        !userRejected(t) &&
++        (t.state === "error" || t.interrupted || Boolean(t.awaiting)),
 +    )
 +  })
 +
@@ -7612,13 +7683,11 @@ index 0000000..3250fa0
 +  const summaryModel = () => mechanism().main.model ?? t("runtime.unknown")
 +  const summaryRequest = () => t("summary.request", { n: mechanism().main.request })
 +
++  // Same count as the roster: one per child session.
 +  const summaryChildren = () => {
-+    const allSub = model().tools.filter(isSubagent)
-+    const total = allSub.length
-+    const running = allSub.filter(
-+      (t) => t.child?.lifecycle === "running" || t.child?.lifecycle === "retrying",
-+    ).length
-+    return t("summary.children", { running, total })
++    const items = rosterItems()
++    const running = items.filter((x) => x.lifecycle === "running" || x.lifecycle === "retrying").length
++    return t("summary.children", { running, total: items.length })
 +  }
 +
 +  const summaryTools = () => {
@@ -7672,6 +7741,20 @@ index 0000000..3250fa0
 +    if (!targetID) return []
 +    return reasoningOf(parts(targetID), inFlight === targetID)
 +  })
++
++  // Reasoning shown in the think box: the root's, or an entered child's (its latest assistant message).
++  const reasoningFor = (sessionID?: string): RuntimeReasoning[] => {
++    if (!sessionID) return activeReasonings()
++    const msgs = childMessagesOf(sessionID)
++    const last = msgs && [...msgs].reverse().find((m) => m.role === "assistant")
++    if (!msgs || !last) return []
++    if (model().mode === "replay") {
++      const at = cursor()
++      return at === undefined ? [] : reasoningAt(parts(last.id), at)
++    }
++    const childBusy = (sync().data.session_status[sessionID]?.type ?? "idle") !== "idle"
++    return reasoningOf(parts(last.id), inFlightOf(msgs, childBusy) === last.id)
++  }
 +
 +  const [openChildren, setOpenChildren] = createSignal<ReadonlySet<string>>(new Set())
 +  const childOpen = (id: string) => openChildren().has(id)
@@ -8312,7 +8395,7 @@ index 0000000..3250fa0
 +              openDetailId={openDetailId}
 +              onToggleDetail={onToggleDetail}
 +              otherAttentionTools={otherAttentionTools}
-+              reasoningList={activeReasonings}
++              reasoningFor={reasoningFor}
 +            />
 +          </section>
 +        </div>
