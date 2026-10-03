@@ -84,7 +84,35 @@ function chunk(res, id, delta, finish = null) {
   res.write(`data: ${JSON.stringify(c)}\n\n`)
 }
 
+export const retryTags = new Set()
+
 async function complete(req, res, body) {
+  const tools = body.tools ?? []
+  if (Array.isArray(tools) && tools.length > 0) {
+    const users = (body.messages ?? []).filter((m) => m.role === "user")
+    const prompt = text(users.at(-1)?.content)
+    const m = /RETRY-ONCE-([\w-]+)/.exec(prompt)
+    if (m) {
+      const tag = m[1]
+      if (!retryTags.has(tag)) {
+        retryTags.add(tag)
+        res.writeHead(429, {
+          "content-type": "application/json",
+          "retry-after": "1",
+        })
+        return res.end(
+          JSON.stringify({
+            error: {
+              message: "Rate limit reached (mock)",
+              type: "rate_limit_exceeded",
+              code: "rate_limit_exceeded",
+            },
+          })
+        )
+      }
+    }
+  }
+
   const step = plan(body)
   const id = "chatcmpl-" + Math.random().toString(36).slice(2)
   let closed = false
