@@ -24,10 +24,10 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/
 .view{height:calc(100vh - 34px);display:grid;grid-template-rows:auto minmax(0,1fr) clamp(112px,18vh,176px) auto;gap:22px;padding:22px 30px}
 .box{border:1px solid var(--line);border-radius:8px;background:var(--panel)}
 /* 顶栏（下方双线，参照参考图） */
-.top{display:flex;align-items:center;gap:22px;min-width:0;padding-bottom:16px;border-bottom:3px double var(--line-strong)}
+.top{display:flex;align-items:center;gap:22px;min-width:0;padding-bottom:16px;border-bottom:1px solid var(--line-strong)}
 .state{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.04em}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(115,218,202,.18)}
-.dot.idle{background:var(--faint);box-shadow:none}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.dot.idle{background:var(--faint)}
 .chip{padding:3px 12px;border:1px solid var(--attn);border-radius:12px;font-size:12px;color:var(--attn)}
 .chip.zero{border-color:var(--line-strong);color:var(--weak)}
 .stop{background:transparent;border:1px solid var(--err);color:var(--err);border-radius:6px;padding:5px 16px;cursor:pointer;font:inherit;font-size:12px}
@@ -75,7 +75,7 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/
 .wire .bus{position:absolute;left:12.5%;right:12.5%;top:50%;border-top:1px dashed var(--line-strong)}
 .wire .drop{position:absolute;top:50%;height:50%;border-left:1px dashed var(--line-strong)}
 .wire .tag{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--panel);padding:0 14px;font-size:12px;color:var(--weak);white-space:nowrap}
-.flow{position:absolute;width:7px;height:7px;border-radius:50%;margin-left:-3.5px;background:var(--sub);box-shadow:0 0 6px var(--sub);animation:down 1.1s linear infinite}
+.flow{position:absolute;width:7px;height:7px;border-radius:50%;margin-left:-3.5px;background:var(--sub);animation:down 1.1s linear infinite}
 @keyframes down{from{top:50%}to{top:100%}}
 @media (prefers-reduced-motion:reduce){.flow{animation:none;top:75%}}
 .s-replay .flow{display:none}
