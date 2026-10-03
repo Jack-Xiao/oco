@@ -405,3 +405,10 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 根据 Claude 会话审计修改 AGENTS：可委派任务先派后做；主线程接手有具体例外；健康检查、普通运行失败换路由、轻量转发开销与任务主体分开；要求实际运行记录与 checkpoint，避免重复调查。
 - STATUS/NEXT 同步按任务段落读取与委派约束；保留本轮开始前的并发产品/文档改动。只改项目文档，未改全局配置或路由，未提交。
 - 本批 Gemini Antigravity 订阅最小请求因地域限制失败，Grok 安装/登录检查通过，Grok 复核 PASS；链接、diff 格式及 4 项并发基线保护检查 PASS。只读代理的复核补丁由主线程代存；结果与执行记录见 [本批证据](evidence/delegation-rules-20261002.md)。产品 typecheck/unit/build/E2E 与后续会话行为 NOT RUN。
+
+## 2026-10-03 运行视图 M1（补丁 0019）
+
+- 改动：新增 `session-runtime-model/i18n/.tsx` 与三组测试，改 `session-trajectory.tsx`、`session-trajectory-i18n.ts`、`pages/session.tsx`；补丁 0019；E2E 套件 `c5-runtime`（`DEFAULT_SUITES` 22 个）；spec/计划/证据文档。
+- 结果：vendor 类型 0 错误；session 单测 90/90；根 unit 185/185、typecheck 0 错误；补丁 0001→0019 干净重放 19/19；E2E（mock）c5-runtime en 9/9、zh 9/9，c4-trajectory 17/17（独立服务 4617，未触碰 4517）。评审：9 个任务级评审 + 最终整分支评审，共修复 3 个 Important 与若干回归，见 [验收](evidence/runtime-m1-verification.md)。
+- NOT RUN / 限制：真实模型、Remote、真实大会话性能、子代理/审批界面/429/取消 E2E、逐事件重建一致性；M2/M3 未做；“断连”需宿主消息，另提集成人。2026-10-03 经用户授权本地提交，未推送。
+- 委派：实现与 E2E 运行走 Gemini（agy，型号 unknown）；Grok 额度不足不用；包装代理 2 次 API 额度中断，主线程核对 results.json 与进程/端口后继续。

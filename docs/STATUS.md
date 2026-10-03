@@ -2,6 +2,14 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 运行视图 M1（补丁 0019，2026-10-03；本地已提交，未推送，未部署）
+
+- 会话标题栏第三个视图“运行”（对话 | 轨迹 | 运行），只读，实时 + 按步骤回看：焦点区、阶段条、并行工具/子代理行、事件日志、用量（未知≠0、已结算标记）、最后事件 xx 前（推断）；子会话权限/提问也算“等你处理”；中断的请求/工具标“已中断（推断）”。**不显示“断连”**（嵌入页没有连接健康信号）。三语 en/zh/zht。设计与计划：[spec](superpowers/specs/2026-10-02-runtime-dashboard-design.md)、[M1 计划](superpowers/plans/2026-10-03-runtime-dashboard-m1.md)。
+- 补丁 `patches/opencode/0019-oco-runtime-view.patch`（9 个文件，+2332/−5）在干净 `51ef4be` 上与 0001–0018 依序应用 19/19；不改宿主、桥、公共契约。
+- 检查（本轮实测）：vendor app 类型 0 错误；session 目录单测 90/90（运行视图 67）；根 `verify:brief` typecheck 0 错误、unit 185/185；webview 构建 PASS；E2E（mock，独立服务 4617）`c5-runtime` 英文 9/9、中文 9/9，回归 `c4-trajectory` 17/17。证据：[验收](evidence/runtime-m1-verification.md)、[E2E](evidence/runtime-m1-e2e.md)。
+- NOT RUN：真实模型、Remote、1000+ 消息真实性能（合成基准一次重建约 140–165 ms，其中约 116 ms 为既有 `buildTrajectory`）、子代理/审批界面/429/取消的 E2E、实时与事后重建的逐事件一致性对比。M2（审批按钮、子代理加载与下钻、取消）与 M3（机制图、思考流、嵌套折叠、键盘/读屏、多宽度/主题 E2E）未做；M3 前须先重构单一大 memo 与按对象引用重建的行。
+- 过程：Gemini（agy）实现与跑 E2E，Claude 评审；Grok 额度不足未用。委派包装代理两次因 API 额度错误被中断，但 agy 任务自行完成并经主线程核对。`tests/unit/e2e-results.test.ts` 与 `docs/TEST-SCOPE.md` 已同步到 22 个全量套件。
+
 ## 项目委派规则收紧（2026-10-02；文档）
 
 - AGENTS 已明确：调查、独立实现、测试和文档检查先实际委派；主线程接手需记录具体例外；请求路线、执行证据、fallback 和阶段结果留在一份短记录里。STATUS/NEXT 按任务段落读取，避免默认加载全文。
