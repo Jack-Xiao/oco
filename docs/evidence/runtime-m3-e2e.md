@@ -95,3 +95,8 @@
 - 最新请求有工具时，更早请求里仍运行的后台子代理按切片规则会离开树（评审重点 4）；底部概况的子代理计数与树的切片口径不同。
 - `mechanism` 的“回看无 flow”在运行结束后检查，覆盖弱；回看无 flow 由单测 `mechanismView` replay 用例覆盖。
 - 回填区文案“汇回 · 静止（还在执行）”语义别扭。
+
+## Task 8：补丁与重放（主线程，2026-10-03 23:30）
+
+- `git -C vendor/opencode diff deb241e -- packages/app > patches/opencode/0019-oco-runtime-view.patch`（vendor HEAD `9bd20f1`）：23 个文件，+8356/−5；`diff --check` 干净（先修掉 `test-browser/session-runtime-child-sync.test.ts` 文件末尾多出的空行，vendor `9bd20f1`）。
+- 干净 `51ef4be`（独立 worktree）上依序 `git apply --check` + apply 0001→0019：PASS 19/19；`packages/app/src`、`test-browser` 与开发树 `diff -r` 一致；重放树 session 单测 205/0。重放 worktree 用后已删除。
