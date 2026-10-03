@@ -34,6 +34,12 @@ RuntimeViewModel：`freshness`（observedAt、最后事件时间〔inferred，�
 ## 第 3 段：补丁落点与数据流（已确认）
 新增（`packages/app/src/components/session/`）：`session-runtime-model.ts`、`.test.ts`、`session-runtime.tsx`、`session-runtime-i18n.ts`（en/zh/zht）。改动：`pages/session.tsx`（view 增 `runtime` 分支）、`message-timeline.tsx`（切换三项）、`session-trajectory-model.ts`（导出请求划分与时间推断，不复制）。数据流：sync store（消息、part、session_status、permission、question、子会话）→ 选择器 → buildRuntime → createMemo → 视图（运行中每秒刷新）。批准/拒绝沿用现有权限通道，仅实时且待处理时可点。补丁须在干净 `51ef4be` 上按序 `git apply --check`。
 实施偏差（M1，2026-10-03）：不改 `message-timeline.tsx`（切换器在 `session-trajectory.tsx`，它只收 `headerExtra`），不改 `session-trajectory-model.ts`（复用 `buildTrajectory(...).requests` 的公开输出）；实际改动 `session-trajectory.tsx`（三项切换、`onChat`→`onView`）、`session-trajectory-i18n.ts`（`view.runtime`）、`pages/session.tsx`（runtime 分支）。模型契约在 M1 末尾有三处**增量**扩展（未改名、未删除）：`RuntimeTool.interrupted`（请求被判为中断时仍开着的工具，推断）、焦点类型 `interrupted`、`snapshotAt(...)` 返回 `busy` 并接受“实时进行中消息 id”参数；另导出 `mergeFreshness`、`collectTreeRequests`。M1 的运行状态/待处理项会收集**根会话及其所有后代会话**的权限与提问（子代理的审批在对话视图会弹出，运行视图必须同样显示）。
+实施偏差（M2，2026-10-03）：
+- 新增文件：`session-runtime-actions.ts`（按钮可见性、取消标签、自动同步目标、pin 增量等纯函数，附单测）、`session-runtime-keyed.ts`（按稳定 id 渲染行）、`session-runtime-child.tsx`（子代理展开面板）。
+- `pages/session.tsx` 向运行视图传入 `onStop`（中断根会话，失败时提示并清除“已请求取消”）和 `onOpenSession`。
+- 模型契约只增不改：`RuntimeTool.cancelled` 只认工具自身的中止信号，不从所属请求推断。
+- 停止按钮要求实时模式且根会话 busy。
+- 子会话展开状态按会话 id 记录；同一子会话被多个 task 行引用时，只在最后一行显示展开按钮。
 桥策略已放行 `/permission/*/reply`、`/question/*/(reply|reject)`，子会话向上最多 8 级放行（`apps/extension/src/bridge-policy.ts`）。
 
 ## 4 项核查结论（Grok 只读，model/provider unknown；完整依据 docs/evidence/runtime-viz-open-items.md；我核对过其中 delta 被丢弃一条与源码一致，其余按报告）

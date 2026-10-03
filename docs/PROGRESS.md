@@ -412,3 +412,25 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 结果：vendor 类型 0 错误；session 单测 90/90；根 unit 185/185、typecheck 0 错误；补丁 0001→0019 干净重放 19/19；E2E（mock）c5-runtime en 9/9、zh 9/9，c4-trajectory 17/17（独立服务 4617，未触碰 4517）。评审：9 个任务级评审 + 最终整分支评审，共修复 3 个 Important 与若干回归，见 [验收](evidence/runtime-m1-verification.md)。
 - NOT RUN / 限制：真实模型、Remote、真实大会话性能、子代理/审批界面/429/取消 E2E、逐事件重建一致性；M2/M3 未做；“断连”需宿主消息，另提集成人。2026-10-03 经用户授权本地提交，未推送。
 - 委派：实现与 E2E 运行走 Gemini（agy，型号 unknown）；Grok 额度不足不用；包装代理 2 次 API 额度中断，主线程核对 results.json 与进程/端口后继续。
+
+## 2026-10-03 运行视图 M2（补丁 0019 追加）
+
+- 改动：
+  - vendor 11 个提交（`c861179..474534a`）：稳定按键渲染、模型增量（取消、子代理生命周期、待处理上溯）、批准/拒绝/提问转对话/停止/重试倒计时、子代理展开（`session-runtime-child.tsx`）、事件级测试、两轮评审修复。
+  - mock LLM 的 `RETRY-ONCE` 429。
+  - `c5-runtime` 新增 7 项检查。
+  - 补丁 0019 重新生成。
+  - 计划、证据和账本。
+- 结果：
+  - session 单测 147/147，vendor 类型 0 错误；根 unit 188/188，typecheck 0 错误。
+  - 补丁 0001→0019 干净重放 19/19。
+  - E2E（mock）：c5-runtime en 16/16、zh 16/16，c4-trajectory 17/17。
+  - 终审（Opus）0 Critical、1 Important、4 Minor，已全部处理。
+  - 见 [验收](evidence/runtime-m2-verification.md)。
+- NOT RUN / 限制：真实模型、Remote、超过 8 个子代理或同步失败的 E2E、时钟偏差。2026-10-03 本地提交，未推送，未部署。
+- 委派：
+  - Grok 完成 Task 1–4 后返回 402。
+  - Gemini 前期报 400 地域错误，固定台湾出口后完成终审修复与 E2E 重跑。
+  - 主线程接手 Task 5、Task 4 修复、Task 7、Task 8，理由是两路都不可用。
+  - Task 5 第一次派发时，转发层越界提交了补丁文件，已撤回；它写的用例不合格，已丢弃。
+  - E2E 重跑的转发层报告与事实不符，以 worktree 中的提交为准。

@@ -26,7 +26,7 @@
 export type ChildLifecycle = "running" | "retrying" | "waiting-user" | "done" | "error" | "cancelled" | "unknown"
 RuntimeChild.lifecycle: ChildLifecycle            // 由 "running" | "unknown" 加宽
 RuntimeRequest.cancelled: boolean                 // 原始 message.error?.name === "MessageAbortedError"
-RuntimeTool.cancelled: boolean                    // state=error 且所属请求 cancelled（或 error 文本为 "Tool execution aborted"）
+RuntimeTool.cancelled: boolean                    // 实施（8815155，评审 I1）：只认工具自身的中止信号——state=error 且 error 文本为 "Tool execution aborted" 或 metadata.interrupted；不从“所属请求 cancelled”推断
 RuntimeFocus 增加 { kind: "cancelled" }
 RuntimeEvent.kind 增加 "request.cancelled"（代替该请求的 "request.error"）
 RuntimeInput 增加:

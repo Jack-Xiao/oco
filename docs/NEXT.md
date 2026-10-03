@@ -50,7 +50,7 @@
 
 ## 6. 运行视图 M2 / M3（补丁 0019 之后，需先审阅再写计划）
 
-- [进行中，检查点 2026-10-03] M2 按 [计划](superpowers/plans/2026-10-03-runtime-dashboard-m2.md) 执行：Task 1–7 完成，vendor HEAD `36e6fe9`（session 单测 138/0、tsgo 0；E2E c5-runtime en/zh 各 16/16、c4 17/17，见 [E2E 证据](evidence/runtime-m2-e2e.md)）。Task 8 完成（0019 重生成、19/19 重放一致）。下一步 Task 9（opus 整分支评审，含 `36e6fe9`）。路由：Grok 402 额度用尽、Gemini 400 地域错误，后续由主线程执行。委派与接手记录见 [账本](evidence/delegation-runtime-m2-2026-10-03.md)。已知覆盖缺口：`.tsx` 中按轮重置的自动 sync 计数与“展开时重试失败 sync”没有单测，E2E 也不覆盖。
+- [完成 2026-10-03，未推送] M2 见 [验收](evidence/runtime-m2-verification.md)。待用户决定：推送分支、部署到 gcp-workstation 并在 Remote 环境实测（NOT RUN）、M3 是否启动。遗留覆盖缺口：组件内自动同步计数按轮重置、同步失败重试、缓存驱逐后重新拉取，均无组件级测试或 E2E。
 - M3 前先重构：单一大 memo 拆层、事件日志/工具行按稳定 id 渲染；再做机制图、思考流、嵌套折叠、键盘/读屏、三种宽度与明暗主题 E2E。
 - 向集成人单独提：真实“断连”需要宿主新增消息（改桥契约），v1 不做。
 
