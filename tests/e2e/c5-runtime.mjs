@@ -782,7 +782,30 @@ try {
       noOverflow: root.scrollWidth <= root.clientWidth + 1,
     }
   })
-  const w420Vertical = (await fA.locator(".border-l.border-dashed").count()) >= 1 || (await fA.locator(".border-l").count()) >= 1
+  // Layout signal: the slot rail's data attribute AND its computed layout must agree (vertical = flex column).
+  const railOf = () =>
+    fA.evaluate(() => {
+      const el = document.querySelector("[data-oco-runtime-rail]")
+      // The product switches on the mechanism container's own width (< 560 px), not the window or group width.
+      const mechWidth = document.querySelector("[data-oco-runtime-mechanism]")?.clientWidth ?? null
+      if (!el) return { rail: null, display: null, direction: null, mechWidth }
+      const cs = getComputedStyle(el)
+      return { rail: el.getAttribute("data-oco-runtime-rail"), display: cs.display, direction: cs.flexDirection, mechWidth }
+    })
+  const w420Rail = await railOf()
+  const railMatchesWidth = (r) =>
+    r.mechWidth !== null &&
+    (r.mechWidth < 560
+      ? r.rail === "vertical" && r.display === "flex" && r.direction === "column"
+      : r.rail === "grid" && r.display === "grid")
+  const w420Vertical = railMatchesWidth(w420Rail) && w420Rail.rail === "vertical" && w420Rail.display === "flex" && w420Rail.direction === "column"
+  // fill during the running window: the bash slot is not terminal yet, so done < total.
+  const fillOf = async () => {
+    const text = (await fA.locator("[data-oco-runtime-fill]").first().innerText().catch(() => "")).replace(/\s+/g, " ").trim()
+    const m = text.match(/(\d+)\s*\/\s*(\d+)/)
+    return { text: text.slice(0, 100), done: m ? Number(m[1]) : null, total: m ? Number(m[2]) : null }
+  }
+  const fillDuring = await fillOf()
 
   // Screenshot width-420.png into run artifact directory
   await page.screenshot({ path: run.artifact("width-420.png") })
@@ -790,7 +813,7 @@ try {
   run.record(
     "width-420",
     w420StopVis && w420FocusVis && w420Overflow.noOverflow && w420Vertical ? "PASS" : "FAIL",
-    { stopVisible: w420StopVis, focusVisible: w420FocusVis, isVertical: w420Vertical, ...w420Overflow },
+    { stopVisible: w420StopVis, focusVisible: w420FocusVis, isVertical: w420Vertical, ...w420Rail, ...w420Overflow },
   )
 
   // motion-on: active edge flow animation-name is not none
@@ -882,13 +905,14 @@ try {
       noOverflow: root.scrollWidth <= root.clientWidth + 1,
     }
   })
+  const w560Rail = await railOf()
   // Screenshot width-560.png into run artifact directory
   await page.screenshot({ path: run.artifact("width-560.png") })
   await waitIdle(A)
   run.record(
     "width-560",
-    w560StopVis && w560FocusVis && w560Overflow.noOverflow ? "PASS" : "FAIL",
-    { stopVisible: w560StopVis, focusVisible: w560FocusVis, ...w560Overflow },
+    w560StopVis && w560FocusVis && w560Overflow.noOverflow && railMatchesWidth(w560Rail) ? "PASS" : "FAIL",
+    { stopVisible: w560StopVis, focusVisible: w560FocusVis, ...w560Rail, ...w560Overflow },
   )
 
   // width-wide (1200)
@@ -907,13 +931,14 @@ try {
       noOverflow: root.scrollWidth <= root.clientWidth + 1,
     }
   })
+  const wWideRail = await railOf()
   // Screenshot width-wide.png into run artifact directory
   await page.screenshot({ path: run.artifact("width-wide.png") })
   await waitIdle(A)
   run.record(
     "width-wide",
-    wWideStopVis && wWideFocusVis && wWideOverflow.noOverflow ? "PASS" : "FAIL",
-    { stopVisible: wWideStopVis, focusVisible: wWideFocusVis, ...wWideOverflow },
+    wWideStopVis && wWideFocusVis && wWideOverflow.noOverflow && wWideRail.rail === "grid" && wWideRail.display === "grid" ? "PASS" : "FAIL",
+    { stopVisible: wWideStopVis, focusVisible: wWideFocusVis, ...wWideRail, ...wWideOverflow },
   )
 
   // legend / summary / fill
@@ -929,22 +954,22 @@ try {
   const summaryEl = fA.locator("[data-oco-runtime-summary]")
   const summaryCount = await count(fA, "[data-oco-runtime-summary]")
   const summaryText = summaryCount >= 1 ? (await summaryEl.innerText()).trim() : ""
-  const summaryHasReq = /(Request|请求|請求)\s*#?\d+/i.test(summaryText) || /\d+/.test(summaryText)
+  const summaryHasReq = /(Request|请求|請求)\s*#?\d+/i.test(summaryText)
   run.record(
     "summary",
     summaryCount >= 1 && summaryHasReq ? "PASS" : "FAIL",
     { summaryCount, summaryText: summaryText.replace(/\s+/g, " ").slice(0, 120), summaryHasReq },
   )
 
-  const fillEl = fA.locator("[data-oco-runtime-fill]")
+  // After the last bash turn ends (text-only final request) the tree keeps that dispatch: done === total >= 1.
   const fillCount = await count(fA, "[data-oco-runtime-fill]")
-  const fillText = fillCount >= 1 ? (await fillEl.innerText()).trim() : ""
-  const fillMatch = fillText.match(/(\d+)\s*\/\s*(\d+)/)
-  const fillCompleted = !!fillMatch && Number(fillMatch[1]) === Number(fillMatch[2])
+  const fillAfter = await fillOf()
+  const fillDuringOk = fillDuring.total !== null && fillDuring.total >= 1 && fillDuring.done < fillDuring.total
+  const fillAfterOk = fillAfter.total !== null && fillAfter.total >= 1 && fillAfter.done === fillAfter.total
   run.record(
     "fill",
-    fillCount >= 1 && fillCompleted ? "PASS" : "FAIL",
-    { fillCount, fillText: fillText.replace(/\s+/g, " ").slice(0, 100), fillMatch: fillMatch ? fillMatch[0] : null, fillCompleted },
+    fillCount >= 1 && fillDuringOk && fillAfterOk ? "PASS" : "FAIL",
+    { fillCount, fillDuring, fillAfter },
   )
 
 } catch (e) {
