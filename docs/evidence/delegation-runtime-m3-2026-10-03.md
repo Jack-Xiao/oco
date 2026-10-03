@@ -26,3 +26,4 @@
 | m3-t7c-e2e-contract | `tests/e2e/c5-runtime.mjs` | 主线程 | Claude Opus 5.5 | — | 已写未跑（`d9dbb90`，等 4d） | — | 同 m3-t7c-mock-parallel：Gemini 正跑 4d，并行派发有额度中断风险；断言来自主线程写的契约表 |
 | m3-t4d-fixed-frame（结果） | 同上 | gemini-worker（agy） | Gemini (Antigravity) / unknown | gem-musljsmp-p3wi6 | 已返回（vendor `aa7bba4`、`72dfe58`；216/0、48/0、tsgo 0；自查属性齐全、按钮唯一、色值只在根节点）。真实界面布局溢出/重叠 → 主线程视觉修复后验收通过 | `vendor/opencode/.oco-m3/t4d.md` | — |
 | m3-t4d-visual-fix | vendor `session-runtime.tsx`、`session-runtime-mechanism-view.tsx`、`session-runtime-i18n.ts`；`scripts/look-runtime.mjs` | 主线程 | Claude Opus 5.5 | — | 验收通过（vendor `96b6e45`、`4385e3f`；c5 en 32/32、zh 32/32、c4 17/17） | `docs/evidence/runtime-m3-e2e.md` | 证据矛盾：4d 自查与单测全过，但真实 VS Code 中布局溢出重叠；修复需“改→截图→看”的快速循环（每轮约 1 分钟，共 7 轮），委派往返会把每轮变成整次作业 |
+| m3-t9-review | `docs/evidence/runtime-m3-review.md`（只读评审，不改代码） | gemini-worker（agy） | 待返回 | 待返回 | 运行中 | `docs/evidence/runtime-m3-review.md` | Grok 402 不可用；Gemini 本批已成功（4d），复用健康结果 |
