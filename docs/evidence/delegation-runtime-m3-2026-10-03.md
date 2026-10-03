@@ -23,3 +23,4 @@
 | m3-health-4 | — | gemini-worker（agy） | Google Gemini / Gemini 3.8 Flash（转发层报） | gem-muslehtj-wean5 | 已返回 ok（8 s） | — | — |
 | m3-t4d-fixed-frame | vendor `session-runtime-mechanism.ts`、`.test.ts`、`session-runtime-mechanism-view.tsx`、`session-runtime.tsx`、`session-runtime-child.tsx`、`session-runtime-i18n.ts`（必要时 `test-browser/` 新测试） | gemini-worker（agy） | 待返回 | 待返回 | 运行中 | `vendor/opencode/.oco-m3/t4d.md` | — |
 | m3-t7c-mock-parallel | `tests/e2e/lib/mock-llm.mjs`、`tests/unit/mock-llm.test.ts` | 主线程 | Claude Opus 5.5 | — | 验收通过（单测 5/0；真实 4617 服务探针：1 条消息 → 3 个子会话、同时运行 3、12 s） | — | 明确风险：Gemini 正在跑关键路径 4d，上一单作业 16 分钟即耗尽额度（m3-t7-e2e-v2），并行再派可能中断 4d；改动约 20 行 |
+| m3-t7c-e2e-contract | `tests/e2e/c5-runtime.mjs` | 主线程 | Claude Opus 5.5 | — | 已写未跑（`d9dbb90`，等 4d） | — | 同 m3-t7c-mock-parallel：Gemini 正跑 4d，并行派发有额度中断风险；断言来自主线程写的契约表 |
