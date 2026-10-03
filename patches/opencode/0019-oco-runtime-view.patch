@@ -1,9 +1,417 @@
+diff --git a/packages/app/src/components/session/session-runtime-actions.test.ts b/packages/app/src/components/session/session-runtime-actions.test.ts
+new file mode 100644
+index 0000000..e20f55b
+--- /dev/null
++++ b/packages/app/src/components/session/session-runtime-actions.test.ts
+@@ -0,0 +1,177 @@
++// oco (patches/opencode/0019): branch coverage for runtime action predicates.
++import { describe, expect, test } from "bun:test"
++import {
++  actionsVisible,
++  autoSyncTargets,
++  cancelLabel,
++  failureVisible,
++  pinTargets,
++  retryWait,
++  stopClickExpired,
++  stopClickedAt,
++  type ActionRunState,
++  type RuntimeMode,
++} from "./session-runtime-actions"
++
++const STATES: ActionRunState[] = ["working", "waiting-user", "retrying", "idle", "error", "unknown"]
++const MODES: RuntimeMode[] = ["live", "replay"]
++
++describe("actionsVisible", () => {
++  test("live and an in-progress state shows the stop control", () => {
++    expect(actionsVisible("live", "working")).toBe(true)
++    expect(actionsVisible("live", "retrying")).toBe(true)
++    expect(actionsVisible("live", "waiting-user")).toBe(true)
++  })
++
++  test("live and a settled state hides it", () => {
++    expect(actionsVisible("live", "idle")).toBe(false)
++    expect(actionsVisible("live", "error")).toBe(false)
++    expect(actionsVisible("live", "unknown")).toBe(false)
++  })
++
++  test("replay hides it for every run state", () => {
++    for (const state of STATES) expect(actionsVisible("replay", state)).toBe(false)
++  })
++
++  test("every mode and state pair is decided", () => {
++    const shown = MODES.flatMap((mode) => STATES.map((state) => [mode, state, actionsVisible(mode, state)] as const))
++    expect(shown.filter(([, , on]) => on).map(([mode, state]) => `${mode}:${state}`)).toEqual([
++      "live:working",
++      "live:waiting-user",
++      "live:retrying",
++    ])
++  })
++})
++
++describe("cancelLabel", () => {
++  test("a cancelled focus is cancelled even without a click", () => {
++    expect(cancelLabel(undefined, false, "cancelled", undefined)).toBe("cancelled")
++  })
++
++  test("a cancelled focus stays cancelled after a newer request and while busy", () => {
++    expect(cancelLabel(1_000, true, "cancelled", 5_000)).toBe("cancelled")
++  })
++
++  test("a click while busy with no later request is requested", () => {
++    expect(cancelLabel(1_000, true, "working", undefined)).toBe("requested")
++    expect(cancelLabel(1_000, true, "retry", 1_000)).toBe("requested")
++    expect(cancelLabel(1_000, true, "working", 999)).toBe("requested")
++  })
++
++  test("no click, a finished run, or a request that started after the click is unlabeled", () => {
++    expect(cancelLabel(undefined, true, "working", 1)).toBeUndefined()
++    expect(cancelLabel(1_000, false, "idle", 500)).toBeUndefined()
++    expect(cancelLabel(1_000, true, "working", 1_001)).toBeUndefined()
++    expect(cancelLabel(undefined, false, "done", undefined)).toBeUndefined()
++  })
++
++  test("replay does not return requested; a cancelled focus still does", () => {
++    expect(cancelLabel(1_000, true, "working", 500, "replay")).toBeUndefined()
++    expect(cancelLabel(1_000, true, "working", undefined, "replay")).toBeUndefined()
++    expect(cancelLabel(1_000, true, "cancelled", 5_000, "replay")).toBe("cancelled")
++    expect(cancelLabel(undefined, false, "cancelled", undefined, "replay")).toBe("cancelled")
++  })
++})
++
++describe("stopClickExpired", () => {
++  test("an idle live run or a later live request expires the click", () => {
++    expect(stopClickExpired(1_000, false, 500)).toBe(true)
++    expect(stopClickExpired(1_000, true, 1_001)).toBe(true)
++  })
++
++  test("a busy live run whose last request started at or before the click keeps it", () => {
++    expect(stopClickExpired(1_000, true, 1_000)).toBe(false)
++    expect(stopClickExpired(1_000, true, 999)).toBe(false)
++    expect(stopClickExpired(1_000, true, undefined)).toBe(false)
++  })
++})
++
++describe("failureVisible", () => {
++  test("only an id still in the live attention list is marked failed", () => {
++    expect(failureVisible("req", ["req", "other"])).toBe(true)
++    expect(failureVisible("gone", ["req"])).toBe(false)
++    expect(failureVisible("gone", [])).toBe(false)
++  })
++})
++
++describe("stopClickedAt", () => {
++  test("no stop handler means no click timestamp", () => {
++    expect(stopClickedAt(false, 1_000)).toBeUndefined()
++    expect(stopClickedAt(true, 1_000)).toBe(1_000)
++  })
++})
++
++describe("autoSyncTargets", () => {
++  const turn = (sessionID: string | undefined, n: number) => ({ sessionID, turn: n })
++
++  test("only the current turn, skipping ids with no session and ids already requested", () => {
++    const already = new Set(["seen"])
++    expect(
++      autoSyncTargets(
++        [turn(undefined, 2), turn("", 2), turn("seen", 2), turn("old", 1), turn("now", 2), turn("other", 3)],
++        2,
++        already,
++      ),
++    ).toEqual(["now"])
++    expect([...already]).toEqual(["seen"])
++  })
++
++  test("duplicates count once and the list stops at the limit", () => {
++    const tools = ["a", "a", "b", "c", "d", "e", "f", "g", "h", "i"].map((sessionID) => turn(sessionID, 0))
++    expect(autoSyncTargets(tools, 0, new Set(), 8)).toEqual(["a", "b", "c", "d", "e", "f", "g", "h"])
++  })
++
++  test("the cap is the turn's total: a second call only gets what the first left", () => {
++    const tools = Array.from({ length: 20 }, (_, i) => turn(`c${i}`, 4))
++    const already = new Set<string>()
++    const first = autoSyncTargets(tools, 4, already)
++    expect(first).toHaveLength(8)
++    first.forEach((id) => already.add(id))
++    expect(autoSyncTargets(tools, 4, already, 8, first.length)).toEqual([])
++    expect(autoSyncTargets(tools, 4, already, 8, 5)).toEqual(["c8", "c9", "c10"])
++  })
++
++  test("no current turn or a non-positive limit syncs nothing", () => {
++    expect(autoSyncTargets([turn("a", 0)], undefined, new Set())).toEqual([])
++    expect(autoSyncTargets([turn("a", 0)], 0, new Set(), 0)).toEqual([])
++  })
++})
++
++describe("pinTargets", () => {
++  test("pins expanded sessions and in-progress children, once each", () => {
++    const expanded = new Set(["open-done"])
++    expect(
++      pinTargets(
++        [
++          { sessionID: "run", lifecycle: "running" },
++          { sessionID: "run", lifecycle: "running" },
++          { sessionID: "retry", lifecycle: "retrying" },
++          { sessionID: "wait", lifecycle: "waiting-user" },
++          { sessionID: "open-done", lifecycle: "done" },
++          { sessionID: "done", lifecycle: "done" },
++          { sessionID: "err", lifecycle: "error" },
++          { sessionID: undefined, lifecycle: "running" },
++          { lifecycle: "running" },
++        ],
++        expanded,
++      ),
++    ).toEqual(["open-done", "run", "retry", "wait"])
++  })
++
++  test("a collapsed terminal child is not pinned", () => {
++    expect(pinTargets([{ sessionID: "done", lifecycle: "done" }], new Set())).toEqual([])
++    expect(pinTargets([{ sessionID: "x", lifecycle: "unknown" }], new Set())).toEqual([])
++  })
++})
++
++describe("retryWait", () => {
++  test("a future next counts up in whole seconds", () => {
++    expect(retryWait(10_500, 10_000)).toEqual({ due: false, seconds: 1 })
++    expect(retryWait(12_000, 10_000)).toEqual({ due: false, seconds: 2 })
++  })
++
++  test("next at or before now is due", () => {
++    expect(retryWait(10_000, 10_000)).toEqual({ due: true, seconds: 0 })
++    expect(retryWait(9_000, 10_000)).toEqual({ due: true, seconds: 0 })
++  })
++})
+diff --git a/packages/app/src/components/session/session-runtime-actions.ts b/packages/app/src/components/session/session-runtime-actions.ts
+new file mode 100644
+index 0000000..40311c7
+--- /dev/null
++++ b/packages/app/src/components/session/session-runtime-actions.ts
+@@ -0,0 +1,106 @@
++// oco (patches/opencode/0019): pure predicates for runtime-view actions.
++// "requested" is click state only. "cancelled" is focus data only (MessageAbortedError).
++
++export type RuntimeMode = "live" | "replay"
++export type ActionRunState = "working" | "waiting-user" | "retrying" | "idle" | "error" | "unknown"
++export type CancelLabel = "requested" | "cancelled"
++
++const STOP_STATES: ReadonlySet<ActionRunState> = new Set(["working", "retrying", "waiting-user"])
++
++/** Stop renders only while live and the run is still in progress (including a user wait or a retry). */
++export function actionsVisible(mode: RuntimeMode, runState: ActionRunState): boolean {
++  return mode === "live" && STOP_STATES.has(runState)
++}
++
++/**
++ * Label for data-oco-runtime-cancel.
++ * cancelled wins: it comes from focus, never from the click, including during replay.
++ * requested is this view's click and only while following live (a replay snapshot must not say "requested").
++ * While live, requested holds only when the click still covers this busy stretch (no later request has started).
++ */
++export function cancelLabel(
++  clickedAt: number | undefined,
++  busy: boolean,
++  focusKind: string,
++  lastRequestStart: number | undefined,
++  mode: RuntimeMode = "live",
++): CancelLabel | undefined {
++  if (focusKind === "cancelled") return "cancelled"
++  if (mode !== "live") return undefined
++  if (clickedAt !== undefined && busy && (lastRequestStart === undefined || lastRequestStart <= clickedAt)) return "requested"
++  return undefined
++}
++
++/**
++ * Forget a stop click once the live session is idle or a later live request has started.
++ * `liveLastStart` must be the live run's last request start, never a replay snapshot.
++ */
++export function stopClickExpired(clickedAt: number, busy: boolean, liveLastStart: number | undefined): boolean {
++  return !busy || (liveLastStart !== undefined && liveLastStart > clickedAt)
++}
++
++/** A failed reply stays visible only while that request is still in the live attention list. */
++export function failureVisible(id: string, attentionIds: readonly string[]): boolean {
++  return attentionIds.includes(id)
++}
++
++/** Arm "cancel requested" only when the page actually provided a stop handler. */
++export function stopClickedAt(hasHandler: boolean, now: number): number | undefined {
++  return hasHandler ? now : undefined
++}
++
++export type AutoSyncTool = { sessionID?: string; turn: number }
++
++/**
++ * Child sessions to `sync` for the current turn.
++ * Skips a missing session id, other turns, and ids already requested. Caps the turn's total at `limit` (default 8):
++ * `autoSynced` is how many this turn has already auto-synced, so repeated calls never exceed the cap.
++ * Does not mutate `already`.
++ */
++export function autoSyncTargets(
++  tools: readonly AutoSyncTool[],
++  lastTurn: number | undefined,
++  already: ReadonlySet<string>,
++  limit = 8,
++  autoSynced = 0,
++): string[] {
++  limit -= autoSynced
++  if (lastTurn === undefined || limit <= 0) return []
++  const out: string[] = []
++  const seen = new Set<string>()
++  for (const tool of tools) {
++    if (out.length >= limit) break
++    const id = tool.sessionID
++    if (!id || tool.turn !== lastTurn) continue
++    if (already.has(id) || seen.has(id)) continue
++    seen.add(id)
++    out.push(id)
++  }
++  return out
++}
++
++/** In-progress child lifecycles. A collapsed child in one of these stays pinned; terminal ones do not. */
++const PIN_LIFECYCLE: ReadonlySet<string> = new Set(["running", "retrying", "waiting-user"])
++
++export type PinTool = { sessionID?: string; lifecycle: string }
++
++/** Sessions to pin: every expanded id, plus in-progress children. Deduped. No id means skip. */
++export function pinTargets(tools: readonly PinTool[], expanded: ReadonlySet<string>): string[] {
++  const out: string[] = []
++  const seen = new Set<string>()
++  const add = (id: string | undefined) => {
++    if (!id || seen.has(id)) return
++    seen.add(id)
++    out.push(id)
++  }
++  for (const id of expanded) add(id)
++  for (const tool of tools) if (PIN_LIFECYCLE.has(tool.lifecycle)) add(tool.sessionID)
++  return out
++}
++
++/** Countdown for a retry `next` timestamp. due when next - now <= 0; otherwise whole seconds, rounded up. */
++export function retryWait(next: number, now: number): { due: boolean; seconds: number } {
++  const delta = next - now
++  if (delta <= 0) return { due: true, seconds: 0 }
++  return { due: false, seconds: Math.ceil(delta / 1000) }
++}
+diff --git a/packages/app/src/components/session/session-runtime-child.tsx b/packages/app/src/components/session/session-runtime-child.tsx
+new file mode 100644
+index 0000000..afd4144
+--- /dev/null
++++ b/packages/app/src/components/session/session-runtime-child.tsx
+@@ -0,0 +1,107 @@
++// oco (patches/opencode/0019): one-level subagent panel. Grandchildren are a single line; no further expand.
++import type { Accessor } from "solid-js"
++import { createMemo, For, Show } from "solid-js"
++import { retryWait } from "./session-runtime-actions"
++import { keyed } from "./session-runtime-keyed"
++import type { RuntimeText } from "./session-runtime-i18n"
++import type { ChildLifecycle, RuntimeModel, RuntimeTool, Stage } from "./session-runtime-model"
++
++const GLYPH = { pending: "○", running: "◐", completed: "✓", error: "✕" } as const
++const BTN = "h-6 px-2 rounded-[5px] text-12-medium bg-surface-inset-base text-text-base"
++
++const stageKey = (s: Stage): Exclude<Stage, "idle"> => (s === "idle" ? "prepare" : s)
++const lifecycleKey = (lifecycle: ChildLifecycle) => `child.lifecycle.${lifecycle}` as "child.lifecycle.running"
++
++const focusLine = (m: RuntimeModel, t: RuntimeText["t"], now: number) => {
++  const focus = m.focus
++  switch (focus.kind) {
++    case "attention":
++      return focus.attention.kind === "permission"
++        ? t("focus.attention.permission", { what: [focus.attention.permission, ...focus.attention.patterns].join(" ") })
++        : t("focus.attention.question", { what: focus.attention.text })
++    case "retry": {
++      const wait = retryWait(focus.next, now)
++      return wait.due ? t("retry.soon") : t("retry.countdown", { attempt: focus.attempt, seconds: wait.seconds })
++    }
++    case "error":
++      return focus.message ? t("focus.error", { message: focus.message }) : t("focus.error.unknown")
++    case "working":
++      return focus.tool
++        ? t("focus.working.tool", { tool: focus.tool.child?.agent ?? focus.tool.name, input: focus.tool.input })
++        : t(`stage.${stageKey(focus.stage)}`)
++    case "interrupted":
++      return t("focus.interrupted")
++    case "cancelled":
++      return t("focus.cancelled")
++    case "done":
++      return t("focus.done")
++    default:
++      return t("focus.idle")
++  }
++}
++
++const childToolLine = (x: Accessor<RuntimeTool>, t: RuntimeText["t"]) => {
++  const grand = () => x().child
++  return (
++    <Show
++      when={grand()}
++      fallback={
++        <div
++          data-oco-runtime-tool={x().id}
++          class="flex items-center gap-2 min-w-0 rounded-md px-2 py-1.5 bg-surface-inset-base"
++          style={{ "border-left": "3px solid var(--syntax-warning)" }}
++        >
++          <span aria-hidden="true">{x().cancelled ? "⊘" : GLYPH[x().state]}</span>
++          <span class="text-12-medium text-text-strong shrink-0">{x().name}</span>
++          <span class="min-w-0 truncate text-12-regular text-text-weak">{x().input}</span>
++          <span class="ml-auto shrink-0 text-12-regular text-text-weak">
++            {x().cancelled ? t("tool.cancelled") : t(`tool.state.${x().state}`)}
++          </span>
++        </div>
++      }
++    >
++      {(c) => (
++        <div data-oco-runtime-tool={x().id} class="flex items-center gap-2 min-w-0 text-12-regular">
++          <span class="text-12-medium text-text-strong shrink-0">{c().agent}</span>
++          <span class="text-text-weak">{t(lifecycleKey(c().lifecycle))}</span>
++        </div>
++      )}
++    </Show>
++  )
++}
++
++export function RuntimeChildPanel(props: {
++  sessionID: string
++  lifecycle: ChildLifecycle
++  model: Accessor<RuntimeModel>
++  now: Accessor<number>
++  t: RuntimeText["t"]
++  onOpen?: (sessionID: string) => void
++}) {
++  const active = createMemo(() =>
++    props.model().tools.filter((x) => !x.interrupted && (x.state === "pending" || x.state === "running")),
++  )
++  const activeKeys = keyed(active, (x) => x.id)
++  return (
++    <div
++      data-oco-runtime-child={props.sessionID}
++      data-oco-runtime-child-lifecycle={props.lifecycle}
++      class="flex flex-col gap-1 rounded-md px-2 py-1.5"
++    >
++      <Show when={props.model().mode === "replay"}>
++        <div class="text-12-regular text-text-weak">{props.t("child.replay.unknown")}</div>
++      </Show>
++      <div class="text-12-medium text-text-strong">{focusLine(props.model(), props.t, props.now())}</div>
++      <For each={activeKeys.ids()}>{(id) => childToolLine(() => activeKeys.get(id)!, props.t)}</For>
++      <div class="text-12-regular text-text-weak">{props.t(lifecycleKey(props.lifecycle))}</div>
++      <button
++        type="button"
++        class={`${BTN} self-start`}
++        data-oco-runtime-child-open={props.sessionID}
++        onClick={() => props.onOpen?.(props.sessionID)}
++      >
++        {props.t("child.open")}
++      </button>
++    </div>
++  )
++}
 diff --git a/packages/app/src/components/session/session-runtime-events.test.ts b/packages/app/src/components/session/session-runtime-events.test.ts
 new file mode 100644
-index 0000000..781008c
+index 0000000..78e0b0b
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-events.test.ts
-@@ -0,0 +1,176 @@
+@@ -0,0 +1,399 @@
 +// oco (patches/opencode/0019): event-level checks — what only an event sequence can prove.
 +import { describe, expect, test } from "bun:test"
 +import type { Message, Part, PermissionRequest, QuestionRequest, Session } from "@opencode-ai/sdk/v2/client"
@@ -12,7 +420,7 @@ index 0000000..781008c
 +import type { State } from "@/context/global-sync/types"
 +import { buildTrajectory } from "./session-trajectory-model"
 +import { trajectoryText } from "./session-trajectory-i18n"
-+import { buildRuntime, collectTreeRequests, eventSessionID } from "./session-runtime-model"
++import { buildRuntime, collectTreeRequests, eventSessionID, inFlightOf, snapshotAt } from "./session-runtime-model"
 +
 +const rootSession = (input: { id: string; parentID?: string; archived?: number }) =>
 +  ({
@@ -180,6 +588,229 @@ index 0000000..781008c
 +    expect(collected.questions).toEqual([])
 +  })
 +})
++
++// M2: the same wiring session-runtime.tsx uses — tree-wide pending requests, child messages and parents for the
++// live model; snapshotAt + empty requests for replay.
++const CHILD = "ses_child"
++
++const assistantMessage = (id: string, sessionID: string, created: number, extra: Record<string, unknown> = {}) =>
++  ({
++    id,
++    sessionID,
++    role: "assistant",
++    parentID: "msg_u1",
++    time: { created },
++    modelID: "m",
++    providerID: "p",
++    mode: "build",
++    agent: "build",
++    path: { cwd: "/", root: "/" },
++    cost: 0,
++    tokens: { input: 10, output: 5, reasoning: 0, cache: { read: 0, write: 0 } },
++    ...extra,
++  }) as Message
++
++const toolPart = (id: string, messageID: string, tool: string, state: Record<string, unknown>, sessionID = SID) =>
++  ({ id, sessionID, messageID, type: "tool", tool, callID: `call_${id}`, state }) as unknown as Part
++
++const taskState = (status: "running" | "completed", start: number, end?: number) => ({
++  status,
++  input: { subagent_type: "explore", description: "probe" },
++  metadata: { sessionId: CHILD },
++  time: end === undefined ? { start } : { start, end },
++  ...(status === "completed" ? { output: "<task><task_result>ok</task_result></task>", title: "probe" } : {}),
++})
++
++const treeState = () =>
++  baseState({ session: [rootSession({ id: SID }), rootSession({ id: CHILD, parentID: SID })] })
++
++const liveOf = (store: any, now: number) => {
++  const messages = store.message[SID] ?? []
++  const parts = (id: string) => store.part[id] ?? []
++  const busy = store.session_status[SID]?.type === "busy"
++  const built = buildTrajectory({ messages, parts, now, busy, language })
++  const tree = collectTreeRequests(SID, store.session, store.permission, store.question)
++  return buildRuntime(
++    {
++      mode: "live",
++      sessionID: SID,
++      parts,
++      status: store.session_status[SID],
++      permissions: tree.permissions,
++      questions: tree.questions,
++      childStatus: (id: string) => store.session_status[id],
++      childMessages: (id: string) => store.message[id],
++      parentOf: (id: string) => store.session.find((s: Session) => s.id === id)?.parentID,
++      requests: built.requests,
++    },
++    now,
++  )
++}
++
++const replayOf = (store: any, at: number) => {
++  const messages = store.message[SID] ?? []
++  const parts = (id: string) => store.part[id] ?? []
++  const busy = store.session_status[SID]?.type === "busy"
++  const view = snapshotAt(messages, parts, at, inFlightOf(messages, busy))
++  const built = buildTrajectory({ messages: view.messages, parts: view.parts, now: at, busy: view.busy, language })
++  return buildRuntime(
++    {
++      mode: "replay",
++      sessionID: SID,
++      parts: view.parts,
++      status: undefined,
++      permissions: [],
++      questions: [],
++      childStatus: () => undefined,
++      childMessages: (id: string) => store.message[id],
++      parentOf: (id: string) => store.session.find((s: Session) => s.id === id)?.parentID,
++      requests: built.requests,
++    },
++    at,
++  )
++}
++
++/** Root turn with one running `task` call whose child session is CHILD. */
++const startTask = (store: any, setStore: any) => {
++  feed(store, setStore, "session.status", { sessionID: SID, status: { type: "busy" } })
++  feed(store, setStore, "message.updated", { info: userMessage("msg_u1", SID, T0) })
++  feed(store, setStore, "message.updated", { info: assistantMessage("msg_a1", SID, T0 + 100) })
++  feed(store, setStore, "message.part.updated", { part: toolPart("prt_t1", "msg_a1", "task", taskState("running", T0 + 200)) })
++  feed(store, setStore, "session.status", { sessionID: CHILD, status: { type: "busy" } })
++}
++
++const childPermission = { id: "per_child", sessionID: CHILD, permission: "bash", patterns: ["rm -rf tmp"], metadata: {}, always: [] }
++
++describe("runtime M2 over the real reducer", () => {
++  test("a child permission reaches root attention with the child's own sessionID, and replying clears it", () => {
++    const [store, setStore] = createStore(treeState())
++    startTask(store, setStore)
++    feed(store, setStore, "permission.asked", childPermission)
++    const asked = liveOf(store, T0 + 1000)
++    expect(asked.run.state).toBe("waiting-user")
++    expect(asked.run.attention.map((a) => [a.kind, a.id, a.sessionID])).toEqual([["permission", "per_child", CHILD]])
++    expect(asked.tools.find((t) => t.id === "prt_t1")?.child?.lifecycle).toBe("waiting-user")
++
++    feed(store, setStore, "permission.replied", { sessionID: CHILD, requestID: "per_child" })
++    const replied = liveOf(store, T0 + 1100)
++    expect(replied.run.attention).toEqual([])
++    expect(replied.run.state).toBe("working")
++    expect(replied.tools.find((t) => t.id === "prt_t1")?.child?.lifecycle).toBe("running")
++  })
++
++  test("replay of the same data has no attention and says the attention is unknown", () => {
++    const [store, setStore] = createStore(treeState())
++    startTask(store, setStore)
++    feed(store, setStore, "permission.asked", childPermission)
++    expect(liveOf(store, T0 + 1000).run.attention).toHaveLength(1)
++
++    const replay = replayOf(store, T0 + 1000)
++    expect(replay.mode).toBe("replay")
++    expect(replay.run.attention).toEqual([])
++    expect(replay.run.attentionKnown).toBe(false)
++    expect(replay.run.state).not.toBe("waiting-user")
++    expect(replay.tools.find((t) => t.id === "prt_t1")?.child?.lifecycle).toBe("unknown")
++  })
++
++  test("an aborted request ends with focus cancelled and a request.cancelled event", () => {
++    const [store, setStore] = createStore(baseState({}))
++    feed(store, setStore, "session.status", { sessionID: SID, status: { type: "busy" } })
++    feed(store, setStore, "message.updated", { info: userMessage("msg_u1", SID, T0) })
++    feed(store, setStore, "message.updated", { info: assistantMessage("msg_a1", SID, T0 + 100) })
++    feed(store, setStore, "message.part.updated", {
++      part: toolPart("prt_b1", "msg_a1", "bash", { status: "running", input: { command: "sleep 60" }, time: { start: T0 + 200 } }),
++    })
++    const running = liveOf(store, T0 + 300)
++    expect(running.focus.kind).toBe("working")
++    expect(running.tools[0]?.state).toBe("running")
++
++    feed(store, setStore, "message.updated", {
++      info: assistantMessage("msg_a1", SID, T0 + 100, {
++        time: { created: T0 + 100, completed: T0 + 900 },
++        error: { name: "MessageAbortedError", data: { message: "aborted" } },
++      }),
++    })
++    feed(store, setStore, "message.part.updated", {
++      part: toolPart("prt_b1", "msg_a1", "bash", {
++        status: "error",
++        input: { command: "sleep 60" },
++        error: "Tool execution aborted",
++        time: { start: T0 + 200, end: T0 + 900 },
++      }),
++    })
++    feed(store, setStore, "session.status", { sessionID: SID, status: { type: "idle" } })
++    const done = liveOf(store, T0 + 1000)
++    expect(done.run.state).toBe("idle")
++    expect(done.focus.kind).toBe("cancelled")
++    expect(done.tools[0]?.cancelled).toBe(true)
++    expect(done.events.map((e) => e.kind)).toContain("request.cancelled")
++    expect(done.events.map((e) => e.kind)).not.toContain("request.error")
++  })
++
++  test("retry → busy → idle moves run.state retrying → working → idle", () => {
++    const [store, setStore] = createStore(baseState({}))
++    feed(store, setStore, "message.updated", { info: userMessage("msg_u1", SID, T0) })
++    const states: string[] = []
++    feed(store, setStore, "session.status", {
++      sessionID: SID,
++      status: { type: "retry", attempt: 1, message: "Rate limit reached (mock)", next: T0 + 1000 },
++    })
++    const retrying = liveOf(store, T0 + 10)
++    states.push(retrying.run.state)
++    expect(retrying.focus).toEqual({ kind: "retry", attempt: 1, message: "Rate limit reached (mock)", next: T0 + 1000 })
++    feed(store, setStore, "session.status", { sessionID: SID, status: { type: "busy" } })
++    states.push(liveOf(store, T0 + 1100).run.state)
++    feed(store, setStore, "message.updated", {
++      info: assistantMessage("msg_a1", SID, T0 + 1100, { time: { created: T0 + 1100, completed: T0 + 1500 }, finish: "stop" }),
++    })
++    feed(store, setStore, "session.status", { sessionID: SID, status: { type: "idle" } })
++    states.push(liveOf(store, T0 + 1600).run.state)
++    expect(states).toEqual(["retrying", "working", "idle"])
++    expect(liveOf(store, T0 + 1600).run.retry).toBeUndefined()
++  })
++
++  test("a pending root permission is the focus while a child keeps running; both are shown", () => {
++    const [store, setStore] = createStore(treeState())
++    startTask(store, setStore)
++    feed(store, setStore, "permission.asked", {
++      id: "per_root",
++      sessionID: SID,
++      permission: "edit",
++      patterns: ["a.ts"],
++      metadata: {},
++      always: [],
++    })
++    const model = liveOf(store, T0 + 1000)
++    expect(model.focus.kind).toBe("attention")
++    if (model.focus.kind === "attention") {
++      expect(model.focus.attention.id).toBe("per_root")
++      expect(model.focus.attention.sessionID).toBe(SID)
++    }
++    const task = model.tools.find((t) => t.id === "prt_t1")
++    expect(task?.child?.lifecycle).toBe("running")
++    expect(task?.awaiting).toBeUndefined()
++  })
++
++  test("a background task: task completed while the child is busy stays running; child idle + completed is done", () => {
++    const [store, setStore] = createStore(treeState())
++    startTask(store, setStore)
++    feed(store, setStore, "message.part.updated", {
++      part: toolPart("prt_t1", "msg_a1", "task", taskState("completed", T0 + 200, T0 + 400)),
++    })
++    const background = liveOf(store, T0 + 500).tools.find((t) => t.id === "prt_t1")
++    expect(background?.state).toBe("completed")
++    expect(background?.child?.lifecycle).toBe("running")
++
++    feed(store, setStore, "message.updated", { info: userMessage("msg_cu1", CHILD, T0 + 210) })
++    feed(store, setStore, "message.updated", {
++      info: assistantMessage("msg_ca1", CHILD, T0 + 220, { time: { created: T0 + 220, completed: T0 + 800 }, finish: "stop" }),
++    })
++    feed(store, setStore, "session.status", { sessionID: CHILD, status: { type: "idle" } })
++    const finished = liveOf(store, T0 + 900).tools.find((t) => t.id === "prt_t1")
++    expect(finished?.state).toBe("completed")
++    expect(finished?.child?.lifecycle).toBe("done")
++  })
++})
 diff --git a/packages/app/src/components/session/session-runtime-i18n.test.ts b/packages/app/src/components/session/session-runtime-i18n.test.ts
 new file mode 100644
 index 0000000..fa82f1a
@@ -214,10 +845,10 @@ index 0000000..fa82f1a
 +})
 diff --git a/packages/app/src/components/session/session-runtime-i18n.ts b/packages/app/src/components/session/session-runtime-i18n.ts
 new file mode 100644
-index 0000000..a755e97
+index 0000000..ad3d766
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-i18n.ts
-@@ -0,0 +1,231 @@
+@@ -0,0 +1,306 @@
 +// oco (patches/opencode/0019): copy for the runtime view. Same arrangement as session-trajectory-i18n.ts
 +// (patch 0013): upstream's locale-parity test would require every locale, and oco maintains en / zh / zht.
 +import type { useLanguage } from "@/context/language"
@@ -238,7 +869,7 @@ index 0000000..a755e97
 +  "stage.fill": "Returning results",
 +  "focus.attention.permission": "Waiting for your approval: {{what}}",
 +  "focus.attention.question": "The agent is asking you a question: {{what}}",
-+  "focus.attention.hint": "Answer it in the Chat view (this view does not act on requests yet).",
++  "focus.attention.hint": "Approve or deny here. A question can be answered in Chat.",
 +  "focus.retry": "Retrying (attempt {{attempt}}): {{message}}",
 +  "focus.error": "Failed: {{message}}",
 +  "focus.error.unknown": "Failed (no error message)",
@@ -289,6 +920,31 @@ index 0000000..a755e97
 +  "replay.step": "Step {{n}} of {{total}}",
 +  "replay.new": "{{count}} new since you paused",
 +  "replay.attention": "History does not record approval waits, so an empty list here does not mean there were none.",
++  "focus.cancelled": "Cancelled",
++  "action.permission.once": "Allow once",
++  "action.permission.always": "Always allow",
++  "action.permission.reject": "Deny",
++  "action.question.answer": "Answer in chat",
++  "action.question.reject": "Deny",
++  "action.pending": "Working on it",
++  "action.failed": "That did not go through. Try again.",
++  "action.stop": "Stop",
++  "cancel.requested": "Cancel requested",
++  "tool.cancelled": "Cancelled",
++  "event.request.cancelled": "Model request cancelled",
++  "retry.countdown": "Retry {{attempt}}, in {{seconds}} s",
++  "retry.soon": "About to retry",
++  "child.lifecycle.running": "Subagent running",
++  "child.lifecycle.retrying": "Subagent retrying",
++  "child.lifecycle.waiting-user": "Subagent waiting for you",
++  "child.lifecycle.done": "Subagent finished",
++  "child.lifecycle.error": "Subagent failed",
++  "child.lifecycle.cancelled": "Subagent cancelled",
++  "child.lifecycle.unknown": "Subagent lifecycle unknown",
++  "child.expand": "Expand",
++  "child.collapse": "Collapse",
++  "child.open": "Open in chat",
++  "child.replay.unknown": "In history the subagent lifecycle is unknown (inferred).",
 +} as const
 +
 +type Key = keyof typeof en
@@ -311,7 +967,7 @@ index 0000000..a755e97
 +  "stage.fill": "结果回填",
 +  "focus.attention.permission": "等你批准：{{what}}",
 +  "focus.attention.question": "智能体在向你提问：{{what}}",
-+  "focus.attention.hint": "请在“对话”视图里处理（本视图暂不执行这类操作）。",
++  "focus.attention.hint": "可在此批准或拒绝。提问可到“对话”里回答。",
 +  "focus.retry": "重试中（第 {{attempt}} 次）：{{message}}",
 +  "focus.error": "失败：{{message}}",
 +  "focus.error.unknown": "失败（没有错误信息）",
@@ -362,6 +1018,31 @@ index 0000000..a755e97
 +  "replay.step": "第 {{n}} / {{total}} 步",
 +  "replay.new": "暂停后新增 {{count}} 条",
 +  "replay.attention": "历史不记录权限等待，所以这里为空不代表当时没有等待。",
++  "focus.cancelled": "已取消",
++  "action.permission.once": "允许一次",
++  "action.permission.always": "总是允许",
++  "action.permission.reject": "拒绝",
++  "action.question.answer": "去对话中回答",
++  "action.question.reject": "拒绝",
++  "action.pending": "处理中",
++  "action.failed": "操作失败，请重试",
++  "action.stop": "停止",
++  "cancel.requested": "已请求取消",
++  "tool.cancelled": "已取消",
++  "event.request.cancelled": "模型请求已取消",
++  "retry.countdown": "第 {{attempt}} 次重试，{{seconds}} 秒后",
++  "retry.soon": "即将重试",
++  "child.lifecycle.running": "子代理运行中",
++  "child.lifecycle.retrying": "子代理重试中",
++  "child.lifecycle.waiting-user": "子代理等你处理",
++  "child.lifecycle.done": "子代理已结束",
++  "child.lifecycle.error": "子代理出错",
++  "child.lifecycle.cancelled": "子代理已取消",
++  "child.lifecycle.unknown": "子代理生命周期未知",
++  "child.expand": "展开",
++  "child.collapse": "收起",
++  "child.open": "在对话中打开",
++  "child.replay.unknown": "回看时子代理生命周期未知（推断）。",
 +}
 +
 +const zht: Record<Key, string> = {
@@ -380,7 +1061,7 @@ index 0000000..a755e97
 +  "stage.fill": "結果回填",
 +  "focus.attention.permission": "等你批准：{{what}}",
 +  "focus.attention.question": "智慧體在向你提問：{{what}}",
-+  "focus.attention.hint": "請在「對話」視圖處理（本視圖暫不執行這類操作）。",
++  "focus.attention.hint": "可在此批准或拒絕。提問可到「對話」裡回答。",
 +  "focus.retry": "重試中（第 {{attempt}} 次）：{{message}}",
 +  "focus.error": "失敗：{{message}}",
 +  "focus.error.unknown": "失敗（沒有錯誤訊息）",
@@ -431,6 +1112,31 @@ index 0000000..a755e97
 +  "replay.step": "第 {{n}} / {{total}} 步",
 +  "replay.new": "暫停後新增 {{count}} 筆",
 +  "replay.attention": "歷史不記錄權限等待，所以這裡為空不代表當時沒有等待。",
++  "focus.cancelled": "已取消",
++  "action.permission.once": "允許一次",
++  "action.permission.always": "總是允許",
++  "action.permission.reject": "拒絕",
++  "action.question.answer": "去對話中回答",
++  "action.question.reject": "拒絕",
++  "action.pending": "處理中",
++  "action.failed": "操作失敗，請重試",
++  "action.stop": "停止",
++  "cancel.requested": "已請求取消",
++  "tool.cancelled": "已取消",
++  "event.request.cancelled": "模型請求已取消",
++  "retry.countdown": "第 {{attempt}} 次重試，{{seconds}} 秒後",
++  "retry.soon": "即將重試",
++  "child.lifecycle.running": "子代理執行中",
++  "child.lifecycle.retrying": "子代理重試中",
++  "child.lifecycle.waiting-user": "子代理等你處理",
++  "child.lifecycle.done": "子代理已結束",
++  "child.lifecycle.error": "子代理出錯",
++  "child.lifecycle.cancelled": "子代理已取消",
++  "child.lifecycle.unknown": "子代理生命週期未知",
++  "child.expand": "展開",
++  "child.collapse": "收起",
++  "child.open": "在對話中打開",
++  "child.replay.unknown": "回看時子代理生命週期未知（推斷）。",
 +}
 +
 +const dicts: Partial<Record<string, Record<Key, string>>> = { zh, zht }
@@ -449,12 +1155,67 @@ index 0000000..a755e97
 +    t: (key: Key, params?: Params) => fill(dict()[key], params),
 +  }
 +}
+diff --git a/packages/app/src/components/session/session-runtime-keyed.test.ts b/packages/app/src/components/session/session-runtime-keyed.test.ts
+new file mode 100644
+index 0000000..5b46734
+--- /dev/null
++++ b/packages/app/src/components/session/session-runtime-keyed.test.ts
+@@ -0,0 +1,19 @@
++// oco (patches/opencode/0019): keyed projection tests.
++import { describe, expect, test } from "bun:test"
++import { sameIds } from "./session-runtime-keyed"
++
++describe("sameIds", () => {
++  test("equal sequences match", () => {
++    expect(sameIds(["a", "b"], ["a", "b"])).toBe(true)
++    expect(sameIds([], [])).toBe(true)
++  })
++
++  test("different lengths do not match", () => {
++    expect(sameIds(["a"], ["a", "b"])).toBe(false)
++    expect(sameIds(["a", "b"], ["a"])).toBe(false)
++  })
++
++  test("a different order does not match", () => {
++    expect(sameIds(["a", "b"], ["b", "a"])).toBe(false)
++  })
++})
+diff --git a/packages/app/src/components/session/session-runtime-keyed.ts b/packages/app/src/components/session/session-runtime-keyed.ts
+new file mode 100644
+index 0000000..53db1fa
+--- /dev/null
++++ b/packages/app/src/components/session/session-runtime-keyed.ts
+@@ -0,0 +1,24 @@
++// oco (patches/opencode/0019): stable keyed row projection for reactive lists.
++import { createMemo, type Accessor } from "solid-js"
++
++export const sameIds = (prev: string[], next: string[]) => {
++  if (prev.length !== next.length) return false
++  for (let i = 0; i < prev.length; i++) if (prev[i] !== next[i]) return false
++  return true
++}
++
++/** Projects a reactive list into stable ids plus a latest-value lookup.
++ *  ids is a memo with content equality: an unchanged id sequence does not notify.
++ *  get(id) reads the current object. */
++export function keyed<T>(
++  list: Accessor<T[]>,
++  key: (item: T) => string,
++): { ids: Accessor<string[]>; get: (id: string) => T | undefined } {
++  const ids = createMemo(() => list().map(key), [] as string[], { equals: sameIds })
++  const byId = createMemo(() => {
++    const map = new Map<string, T>()
++    for (const item of list()) map.set(key(item), item)
++    return map
++  })
++  return { ids, get: (id) => byId().get(id) }
++}
 diff --git a/packages/app/src/components/session/session-runtime-model.test.ts b/packages/app/src/components/session/session-runtime-model.test.ts
 new file mode 100644
-index 0000000..5f51319
+index 0000000..2dcddc6
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-model.test.ts
-@@ -0,0 +1,912 @@
+@@ -0,0 +1,1447 @@
 +// oco (patches/opencode/0019): runtime view data model.
 +import { describe, expect, test } from "bun:test"
 +import { buildTrajectory } from "./session-trajectory-model"
@@ -463,6 +1224,7 @@ index 0000000..5f51319
 +  buildRuntime,
 +  collectTreeRequests,
 +  eventSessionID,
++  inFlightOf,
 +  lastLine,
 +  mergeFreshness,
 +  snapshotAt,
@@ -1367,12 +2129,546 @@ index 0000000..5f51319
 +    expect(collected.questions).toEqual([])
 +  })
 +})
++
++describe("inFlightOf", () => {
++  test("returns the last assistant id when it is unfinished and the session is busy", () => {
++    const open = assistant(u, T0 + 100, { time: { created: T0 + 100 } })
++    expect(inFlightOf([u, open], true)).toBe(open.id)
++  })
++
++  test("returns undefined when the last assistant completed even if an earlier one did not", () => {
++    const open = assistant(u, T0 + 100, { time: { created: T0 + 100 } })
++    const done = assistant(u, T0 + 3000)
++    expect(done.time.completed).toBeDefined()
++    expect(inFlightOf([u, open, done], true)).toBeUndefined()
++  })
++
++  test("returns undefined when the session is not busy", () => {
++    const open = assistant(u, T0 + 100, { time: { created: T0 + 100 } })
++    expect(inFlightOf([u, open], false)).toBeUndefined()
++  })
++})
++
++describe("cancellation, subagent lifecycle, nested attention", () => {
++  test("MessageAbortedError is cancelled, idle, and not a run error", () => {
++    const a = assistant(u, T0 + 100, { error: { name: "MessageAbortedError", data: { message: "Aborted" } } })
++    const aborted = tool(
++      T0 + 200,
++      "bash",
++      { status: "error", input: { command: "sleep 100" }, error: "Tool execution aborted", time: { start: T0 + 200, end: T0 + 400 } },
++      { messageID: a.id },
++    )
++    const other = tool(
++      T0 + 210,
++      "read",
++      { status: "error", input: { filePath: "/a.ts" }, error: "disk", time: { start: T0 + 210, end: T0 + 420 } },
++      { messageID: a.id },
++    )
++    const now = T0 + 10_000
++    const parts = (messageID: string) => (messageID === a.id ? [aborted, other] : [])
++    const trajectory = buildTrajectory({ messages: [u, a], parts, now, busy: false, language })
++    // buildTrajectory folds every message.error into status "error" (text "MessageAbortedError: Aborted").
++    expect(trajectory.requests[0].status).toBe("error")
++    const m = runtime({
++      messages: [u, a],
++      parts: { [a.id]: [aborted, other] },
++      now,
++      busy: false,
++      input: { status: { type: "idle" } },
++    })
++    expect(m.requests[0]).toMatchObject({ status: "error", cancelled: true })
++    expect(m.events.some((e) => e.kind === "request.cancelled")).toBe(true)
++    expect(m.events.some((e) => e.kind === "request.error")).toBe(false)
++    expect(m.run.state).toBe("idle")
++    expect(m.focus).toEqual({ kind: "cancelled" })
++    expect(m.tools[0].cancelled).toBe(true)
++    expect(m.tools[1].cancelled).toBe(false)
++  })
++
++  test("a tool is cancelled from its own abort signal, not from the request", () => {
++    const a = assistant(u, T0 + 100, { error: { name: "APIError", data: { message: "boom" } } })
++    const abortedText = tool(
++      T0 + 200,
++      "bash",
++      { status: "error", input: { command: "sleep 100" }, error: "Tool execution aborted", time: { start: T0 + 200, end: T0 + 400 } },
++      { messageID: a.id },
++    )
++    const interruptedFlag = tool(
++      T0 + 210,
++      "read",
++      {
++        status: "error",
++        input: { filePath: "/a.ts" },
++        error: "disk",
++        metadata: { interrupted: true },
++        time: { start: T0 + 210, end: T0 + 420 },
++      },
++      { messageID: a.id },
++    )
++    const real = tool(
++      T0 + 220,
++      "edit",
++      { status: "error", input: { filePath: "/b.ts" }, error: "disk", time: { start: T0 + 220, end: T0 + 430 } },
++      { messageID: a.id },
++    )
++    const m = runtime({ messages: [u, a], parts: { [a.id]: [abortedText, interruptedFlag, real] }, busy: false })
++    expect(m.requests[0].cancelled).toBe(false)
++    expect(m.tools.map((t) => t.cancelled)).toEqual([true, true, false])
++  })
++
++  test("an ordinary error request stays an error and is not cancelled", () => {
++    const a = assistant(u, T0 + 100, { error: { name: "APIError", data: { message: "boom" } } })
++    const failed = tool(
++      T0 + 200,
++      "bash",
++      { status: "error", input: { command: "x" }, error: "exit 1", time: { start: T0 + 200, end: T0 + 300 } },
++      { messageID: a.id },
++    )
++    const m = runtime({ messages: [u, a], parts: { [a.id]: [failed] }, busy: false })
++    expect(m.requests[0]).toMatchObject({ status: "error", cancelled: false })
++    expect(m.run.state).toBe("error")
++    expect(m.focus.kind).toBe("error")
++    expect(m.tools[0].cancelled).toBe(false)
++    expect(m.events.some((e) => e.kind === "request.error")).toBe(true)
++    expect(m.events.some((e) => e.kind === "request.cancelled")).toBe(false)
++  })
++
++  test("a completed background task stays completed while its busy child is running", () => {
++    const a = assistant(u, T0 + 100)
++    const task = tool(
++      T0 + 200,
++      "task",
++      {
++        status: "completed",
++        input: { subagent_type: "explore", description: "find usages", background: true },
++        output: "started",
++        title: "t",
++        metadata: { sessionId: "ses_child", background: true },
++        time: { start: T0 + 200, end: T0 + 300 },
++      },
++      { messageID: a.id },
++    )
++    const m = runtime({
++      messages: [u, a],
++      parts: { [a.id]: [task] },
++      input: { childStatus: (id) => (id === "ses_child" ? { type: "busy" } : undefined) },
++    })
++    expect(m.tools[0].state).toBe("completed")
++    expect(m.tools[0].child).toMatchObject({ lifecycle: "running", evidence: "event", background: true })
++  })
++
++  test("a loaded idle child with a finished assistant is done; an unloaded child stays unknown", () => {
++    const a = assistant(u, T0 + 100)
++    const task = tool(
++      T0 + 200,
++      "task",
++      {
++        status: "completed",
++        input: { subagent_type: "explore", description: "find usages" },
++        output: "done",
++        title: "t",
++        metadata: { sessionId: "ses_child" },
++        time: { start: T0 + 200, end: T0 + 300 },
++      },
++      { messageID: a.id },
++    )
++    const child = assistant(u, T0 + 400, { sessionID: "ses_child" })
++    const loaded = runtime({
++      messages: [u, a],
++      parts: { [a.id]: [task] },
++      busy: false,
++      input: {
++        status: { type: "idle" },
++        childStatus: (id) => (id === "ses_child" ? { type: "idle" } : undefined),
++        childMessages: (id) => (id === "ses_child" ? [child] : undefined),
++      },
++    })
++    expect(loaded.tools[0].state).toBe("completed")
++    expect(loaded.tools[0].child).toMatchObject({ lifecycle: "done", evidence: "event" })
++    const unloaded = runtime({
++      messages: [u, a],
++      parts: { [a.id]: [task] },
++      busy: false,
++      input: {
++        childStatus: (id) => (id === "ses_child" ? { type: "idle" } : undefined),
++        childMessages: () => undefined,
++      },
++    })
++    expect(unloaded.tools[0].state).toBe("completed")
++    expect(unloaded.tools[0].child).toMatchObject({ lifecycle: "unknown", evidence: "inferred" })
++  })
++
++  test("child lifecycle follows the child message or childStatus, not the task part", () => {
++    const a = assistant(u, T0 + 100)
++    const task = tool(
++      T0 + 200,
++      "task",
++      {
++        status: "completed",
++        input: { subagent_type: "explore", description: "find usages" },
++        output: "done",
++        title: "t",
++        metadata: { sessionId: "ses_child" },
++        time: { start: T0 + 200, end: T0 + 300 },
++      },
++      { messageID: a.id },
++    )
++    const base = { messages: [u, a], parts: { [a.id]: [task] }, busy: false }
++    const aborted = assistant(u, T0 + 400, {
++      error: { name: "MessageAbortedError", data: { message: "Aborted" } },
++      sessionID: "ses_child",
++    })
++    const cancelled = runtime({
++      ...base,
++      input: {
++        childStatus: () => ({ type: "idle" }),
++        childMessages: (id) => (id === "ses_child" ? [aborted] : undefined),
++      },
++    })
++    expect(cancelled.tools[0].state).toBe("completed")
++    expect(cancelled.tools[0].child).toMatchObject({ lifecycle: "cancelled", evidence: "event" })
++
++    const failed = assistant(u, T0 + 400, { error: { name: "APIError", data: { message: "boom" } }, sessionID: "ses_child" })
++    const errored = runtime({
++      ...base,
++      input: {
++        childStatus: () => ({ type: "idle" }),
++        childMessages: (id) => (id === "ses_child" ? [failed] : undefined),
++      },
++    })
++    expect(errored.tools[0].child).toMatchObject({ lifecycle: "error", evidence: "event" })
++
++    const retrying = runtime({
++      ...base,
++      input: {
++        childStatus: (id) => (id === "ses_child" ? { type: "retry", attempt: 2, message: "429", next: T0 + 9_000 } : undefined),
++        childMessages: (id) => (id === "ses_child" ? [assistant(u, T0 + 400, { sessionID: "ses_child" })] : undefined),
++      },
++    })
++    expect(retrying.tools[0].state).toBe("completed")
++    expect(retrying.tools[0].child).toMatchObject({ lifecycle: "retrying", evidence: "event" })
++  })
++
++  test("a grandchild permission marks the direct child task awaiting and waiting-user", () => {
++    const a = assistant(u, T0 + 100)
++    const task = tool(
++      T0 + 200,
++      "task",
++      {
++        status: "running",
++        input: { subagent_type: "explore", description: "find usages" },
++        metadata: { sessionId: "ses_child" },
++        time: { start: T0 + 200 },
++      },
++      { messageID: a.id },
++    )
++    const perm = {
++      id: "per_grand",
++      sessionID: "ses_grand",
++      permission: "bash",
++      patterns: ["rm"],
++      metadata: {},
++      always: [],
++      tool: { messageID: "msg_grand", callID: "c_grand" },
++    } as any
++    const m = runtime({
++      messages: [u, a],
++      parts: { [a.id]: [task] },
++      input: {
++        status: { type: "busy" },
++        permissions: [perm],
++        childStatus: (id) => (id === "ses_child" ? { type: "busy" } : undefined),
++        parentOf: (id) => (id === "ses_grand" ? "ses_child" : id === "ses_child" ? "s" : undefined),
++      },
++    })
++    expect(m.tools[0].awaiting).toEqual({ kind: "permission", id: "per_grand" })
++    expect(m.tools[0].child).toMatchObject({ lifecycle: "waiting-user", evidence: "event" })
++    expect(m.focus.kind).toBe("attention")
++    expect(m.run.attention[0]).toMatchObject({ id: "per_grand", sessionID: "ses_grand" })
++    expect(m.run.state).toBe("waiting-user")
++  })
++
++  test("only the last task row that shares a child session id is awaiting", () => {
++    const a1 = assistant(u, T0 + 100)
++    const a2 = assistant(u, T0 + 3000)
++    const row = (ms: number, messageID: string) =>
++      tool(
++        ms,
++        "task",
++        {
++          status: "running",
++          input: { subagent_type: "explore", description: "d" },
++          metadata: { sessionId: "ses_child" },
++          time: { start: ms },
++        },
++        { messageID },
++      )
++    const perm = { id: "per_shared", sessionID: "ses_child", permission: "edit", patterns: [], metadata: {}, always: [] } as any
++    const m = runtime({
++      messages: [u, a1, a2],
++      parts: { [a1.id]: [row(T0 + 200, a1.id)], [a2.id]: [row(T0 + 3100, a2.id), row(T0 + 3200, a2.id)] },
++      input: { permissions: [perm], status: { type: "busy" } },
++    })
++    expect(m.tools.map((t) => t.awaiting?.id)).toEqual([undefined, undefined, "per_shared"])
++    expect(m.tools.every((t) => t.child?.lifecycle === "waiting-user")).toBe(true)
++  })
++
++  test("exact call matches stay on earlier rows when session-id fallback is limited to the last row", () => {
++    const a1 = assistant(u, T0 + 100)
++    const a2 = assistant(u, T0 + 3000)
++    const row = (ms: number, messageID: string, callID: string) =>
++      tool(
++        ms,
++        "task",
++        {
++          status: "running",
++          input: { subagent_type: "explore", description: "d" },
++          metadata: { sessionId: "ses_child" },
++          time: { start: ms },
++        },
++        { messageID, callID },
++      )
++    const permExact = {
++      id: "per_exact",
++      sessionID: "somewhere_else",
++      permission: "edit",
++      patterns: [],
++      metadata: {},
++      always: [],
++      tool: { messageID: a1.id, callID: "call_exact_perm" },
++    } as any
++    const questExact = {
++      id: "que_exact",
++      sessionID: "somewhere_else",
++      questions: [{ question: "Continue?", header: "h", options: [] }],
++      tool: { messageID: a2.id, callID: "call_exact_q" },
++    } as any
++    const permFallback = {
++      id: "per_fallback",
++      sessionID: "ses_child",
++      permission: "bash",
++      patterns: [],
++      metadata: {},
++      always: [],
++    } as any
++    const m = runtime({
++      messages: [u, a1, a2],
++      parts: {
++        [a1.id]: [row(T0 + 200, a1.id, "call_exact_perm")],
++        [a2.id]: [row(T0 + 3100, a2.id, "call_exact_q"), row(T0 + 3200, a2.id, "call_last")],
++      },
++      input: { permissions: [permExact, permFallback], questions: [questExact], status: { type: "busy" } },
++    })
++    expect(m.tools.map((t) => t.awaiting)).toEqual([
++      { kind: "permission", id: "per_exact" },
++      { kind: "question", id: "que_exact" },
++      { kind: "permission", id: "per_fallback" },
++    ])
++  })
++
++  test("a parentOf cycle stops the walk and does not match a session outside it", () => {
++    const a = assistant(u, T0 + 100)
++    const task = tool(
++      T0 + 200,
++      "task",
++      {
++        status: "running",
++        input: { subagent_type: "explore", description: "d" },
++        metadata: { sessionId: "ses_child" },
++        time: { start: T0 + 200 },
++      },
++      { messageID: a.id },
++    )
++    const perm = { id: "per_cycle", sessionID: "a", permission: "bash", patterns: [], metadata: {}, always: [] } as any
++    const m = runtime({
++      messages: [u, a],
++      parts: { [a.id]: [task] },
++      input: {
++        status: { type: "busy" },
++        permissions: [perm],
++        parentOf: (id) => (id === "a" ? "b" : id === "b" ? "a" : undefined),
++      },
++    })
++    expect(m.tools[0].awaiting).toBeUndefined()
++    expect(m.tools[0].child?.lifecycle).not.toBe("waiting-user")
++  })
++
++  test("a cancelled request with no tokens is settled and unknown, and usage does not count it as zero", () => {
++    const done = assistant(u, T0 + 100)
++    const aborted = assistant(u, T0 + 3000, {
++      error: { name: "MessageAbortedError", data: { message: "Aborted" } },
++      tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
++    })
++    const m = runtime({ messages: [u, done, aborted], busy: false, input: { status: { type: "idle" } } })
++    expect(m.requests[1]).toMatchObject({ cancelled: true, settled: true, known: false })
++    expect(m.requests[1].tokens).toBeUndefined()
++    expect(m.usage.knownRequests).toBe(1)
++    expect(m.usage.tokens).toEqual({ input: 100, output: 50, reasoning: 0, cacheRead: 900, cacheWrite: 0 })
++    const only = runtime({
++      messages: [u, aborted],
++      busy: false,
++      input: { status: { type: "idle" } },
++    })
++    expect(only.requests[0]).toMatchObject({ settled: true, known: false })
++    expect(only.requests[0].tokens).toBeUndefined()
++    expect(only.usage.tokens).toBeUndefined()
++    expect(only.usage.knownRequests).toBe(0)
++  })
++
++  test("child lifecycle prefers a pending item over retry, and retry over busy", () => {
++    const a = assistant(u, T0 + 100)
++    const task = (ms: number, sid: string) =>
++      tool(
++        ms,
++        "task",
++        {
++          status: "completed",
++          input: { subagent_type: "explore", description: "d" },
++          output: "done",
++          title: "t",
++          metadata: { sessionId: sid },
++          time: { start: ms, end: ms + 10 },
++        },
++        { messageID: a.id },
++      )
++    const perm = { id: "per_both", sessionID: "ses_both", permission: "bash", patterns: [], metadata: {}, always: [] } as any
++    const retry = { type: "retry", attempt: 3, message: "429", next: T0 + 9_000 } as const
++    const m = runtime({
++      messages: [u, a],
++      parts: { [a.id]: [task(T0 + 200, "ses_both"), task(T0 + 210, "ses_retry"), task(T0 + 220, "ses_busy")] },
++      busy: false,
++      input: {
++        permissions: [perm],
++        childStatus: (id) => {
++          if (id === "ses_both" || id === "ses_retry") return retry
++          if (id === "ses_busy") return { type: "busy" }
++          return undefined
++        },
++        childMessages: (id) =>
++          id === "ses_both" || id === "ses_retry" || id === "ses_busy" ? [assistant(u, T0 + 400, { sessionID: id })] : undefined,
++      },
++    })
++    expect(m.tools.map((t) => t.child?.lifecycle)).toEqual(["waiting-user", "retrying", "running"])
++  })
++
++  test("a cancelled request stays working while the session status is still busy", () => {
++    const a = assistant(u, T0 + 100, { error: { name: "MessageAbortedError", data: { message: "Aborted" } } })
++    const aborted = tool(
++      T0 + 200,
++      "bash",
++      {
++        status: "error",
++        input: { command: "sleep 100" },
++        error: "Tool execution aborted",
++        metadata: { interrupted: true },
++        time: { start: T0 + 200, end: T0 + 400 },
++      },
++      { messageID: a.id },
++    )
++    const m = runtime({
++      messages: [u, a],
++      parts: { [a.id]: [aborted] },
++      busy: true,
++      input: { status: { type: "busy" } },
++    })
++    expect(m.requests[0].cancelled).toBe(true)
++    expect(m.run.state).toBe("working")
++    expect(m.focus.kind).toBe("working")
++  })
++
++  test("each child session state follows that child's lifecycle and evidence", () => {
++    const a = assistant(u, T0 + 100)
++    const task = (ms: number, sid: string) =>
++      tool(
++        ms,
++        "task",
++        {
++          status: "completed",
++          input: { subagent_type: "explore", description: "d" },
++          output: "done",
++          title: "t",
++          metadata: { sessionId: sid },
++          time: { start: ms, end: ms + 10 },
++        },
++        { messageID: a.id },
++      )
++    const ids = ["ses_running", "ses_retry", "ses_wait", "ses_done", "ses_error", "ses_cancel", "ses_unknown"] as const
++    const perm = { id: "per_wait", sessionID: "ses_wait", permission: "bash", patterns: [], metadata: {}, always: [] } as any
++    const retry = { type: "retry", attempt: 1, message: "429", next: T0 + 9_000 } as const
++    const messages: Record<string, any[] | undefined> = {
++      ses_done: [assistant(u, T0 + 500, { sessionID: "ses_done" })],
++      ses_error: [assistant(u, T0 + 600, { sessionID: "ses_error", error: { name: "APIError", data: { message: "boom" } } })],
++      ses_cancel: [
++        assistant(u, T0 + 700, {
++          sessionID: "ses_cancel",
++          error: { name: "MessageAbortedError", data: { message: "Aborted" } },
++        }),
++      ],
++    }
++    const m = runtime({
++      messages: [u, a],
++      parts: { [a.id]: ids.map((sid, i) => task(T0 + 200 + i, sid)) },
++      busy: false,
++      input: {
++        permissions: [perm],
++        childStatus: (id) => {
++          if (id === "ses_running") return { type: "busy" }
++          if (id === "ses_retry") return retry
++          if (id === "ses_done" || id === "ses_error" || id === "ses_cancel" || id === "ses_unknown" || id === "ses_wait")
++            return { type: "idle" }
++          return undefined
++        },
++        childMessages: (id) => messages[id],
++      },
++    })
++    const child = (id: string) => m.sessions.find((s) => s.id === id)
++    expect(m.sessions[0]).toMatchObject({ id: "s", kind: "root", evidence: "inferred" })
++    expect(child("ses_running")).toMatchObject({ kind: "child", state: "working", evidence: "event" })
++    expect(child("ses_retry")).toMatchObject({ kind: "child", state: "retrying", evidence: "event" })
++    expect(child("ses_wait")).toMatchObject({ kind: "child", state: "waiting-user", evidence: "event" })
++    expect(child("ses_done")).toMatchObject({ kind: "child", state: "idle", evidence: "event" })
++    expect(child("ses_error")).toMatchObject({ kind: "child", state: "error", evidence: "event" })
++    expect(child("ses_cancel")).toMatchObject({ kind: "child", state: "idle", evidence: "event" })
++    expect(child("ses_unknown")).toMatchObject({ kind: "child", state: "unknown", evidence: "inferred" })
++  })
++
++  test("replay keeps lifecycle unknown and inferred, with an empty attention list", () => {
++    const a = assistant(u, T0 + 100)
++    const task = tool(
++      T0 + 200,
++      "task",
++      {
++        status: "completed",
++        input: { subagent_type: "explore", description: "find usages" },
++        output: "done",
++        title: "t",
++        metadata: { sessionId: "ses_child" },
++        time: { start: T0 + 200, end: T0 + 300 },
++      },
++      { messageID: a.id },
++    )
++    const perm = { id: "per_grand", sessionID: "ses_grand", permission: "bash", patterns: [], metadata: {}, always: [] } as any
++    const m = runtime({
++      messages: [u, a],
++      parts: { [a.id]: [task] },
++      input: {
++        mode: "replay",
++        permissions: [perm],
++        childStatus: (id) => (id === "ses_child" ? { type: "busy" } : undefined),
++        childMessages: (id) => (id === "ses_child" ? [assistant(u, T0 + 400, { sessionID: "ses_child" })] : undefined),
++        parentOf: (id) => (id === "ses_grand" ? "ses_child" : undefined),
++      },
++    })
++    expect(m.tools[0].child).toMatchObject({ lifecycle: "unknown", evidence: "inferred" })
++    expect(m.run.attention).toEqual([])
++  })
++})
 diff --git a/packages/app/src/components/session/session-runtime-model.ts b/packages/app/src/components/session/session-runtime-model.ts
 new file mode 100644
-index 0000000..f005fae
+index 0000000..c7542e5
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-model.ts
-@@ -0,0 +1,560 @@
+@@ -0,0 +1,661 @@
 +// oco (patches/opencode/0019): runtime view data model. Pure functions over the sync store's data; no network,
 +// no Solid. Contract and rules: docs/superpowers/specs/2026-10-02-runtime-dashboard-design.md (sections 1, 4).
 +import type { Message, Part, PermissionRequest, QuestionRequest, Session, SessionStatus, ToolPart } from "@opencode-ai/sdk/v2/client"
@@ -1413,14 +2709,19 @@ index 0000000..f005fae
 +  lastEventAt?: number
 +  /** Context window of the last request's model, when known. */
 +  contextLimit?: number
++  /** Loaded child-session messages. Undefined (or a missing function) means not loaded. */
++  childMessages?: (sessionID: string) => Message[] | undefined
++  /** Parent session of `sessionID`, when known. Used to walk a grandchild's pending item up to a direct child. */
++  parentOf?: (sessionID: string) => string | undefined
 +}
 +
++export type ChildLifecycle = "running" | "retrying" | "waiting-user" | "done" | "error" | "cancelled" | "unknown"
 +export type RuntimeChild = {
 +  sessionID?: string
 +  agent: string
 +  description: string
 +  background: boolean
-+  lifecycle: "running" | "unknown"
++  lifecycle: ChildLifecycle
 +  evidence: Evidence
 +}
 +export type RuntimeTool = {
@@ -1432,6 +2733,8 @@ index 0000000..f005fae
 +  state: "pending" | "running" | "completed" | "error"
 +  /** Inferred: tool was still pending or running when its request was interrupted. */
 +  interrupted: boolean
++  /** Error state whose own signal is an abort: error text "Tool execution aborted", or metadata.interrupted. */
++  cancelled: boolean
 +  input: string         // one-line summary
 +  lastOutput?: string   // last non-empty line; never set for task (subagent) rows
 +  start?: number
@@ -1449,6 +2752,8 @@ index 0000000..f005fae
 +  firstToken?: number
 +  end?: number
 +  status: "running" | "done" | "error" | "interrupted"
++  /** Raw message.error.name === "MessageAbortedError". Independent of trajectory status. */
++  cancelled: boolean
 +  evidence: Evidence            // "inferred" only for interrupted
 +  error?: string
 +  settled: boolean              // done or error
@@ -1467,6 +2772,7 @@ index 0000000..f005fae
 +  | { kind: "attention"; attention: RuntimeAttention }
 +  | { kind: "retry"; attempt: number; message: string; next: number }
 +  | { kind: "error"; message: string }
++  | { kind: "cancelled" }
 +  | { kind: "working"; stage: Stage; tool?: RuntimeTool }
 +  | { kind: "interrupted" }
 +  | { kind: "done" }
@@ -1475,7 +2781,7 @@ index 0000000..f005fae
 +  id: string
 +  at: number
 +  role: "model" | "tool" | "subagent"
-+  kind: "request.start" | "request.end" | "request.error" | "tool.start" | "tool.end" | "tool.error"
++  kind: "request.start" | "request.end" | "request.error" | "request.cancelled" | "tool.start" | "tool.end" | "tool.error"
 +  label: string            // tool name, or subagent agent; "" for model events
 +  request: number
 +}
@@ -1521,6 +2827,8 @@ index 0000000..f005fae
 +  return [...permissions, ...questions]
 +}
 +
++const messageAborted = (message: { error?: { name: string } | undefined }) => message.error?.name === "MessageAbortedError"
++
 +const runOf = (input: RuntimeInput): RuntimeRun => {
 +  if (input.mode === "replay") {
 +    const working = input.requests.some((r) => r.status === "running")
@@ -1531,15 +2839,18 @@ index 0000000..f005fae
 +  const retry =
 +    status?.type === "retry" ? { attempt: status.attempt, message: status.message, next: status.next } : undefined
 +  const last = input.requests[input.requests.length - 1]
++  const lastCancelled = !!last && messageAborted(last.message)
 +  const state: RunState = attention.length
 +    ? "waiting-user"
 +    : retry
 +      ? "retrying"
 +      : status?.type === "busy"
 +        ? "working"
-+        : last?.status === "error"
-+          ? "error"
-+          : "idle"
++        : lastCancelled
++          ? "idle"
++          : last?.status === "error"
++            ? "error"
++            : "idle"
 +  return { state, evidence: status ? "event" : "inferred", retry, attention, attentionKnown: true }
 +}
 +
@@ -1580,28 +2891,72 @@ index 0000000..f005fae
 +const sameCall = (ref: { messageID: string; callID: string } | undefined, part: ToolPart) =>
 +  !!ref && ref.messageID === part.messageID && ref.callID === part.callID
 +
++/** True when `sessionID` is `target` or a descendant of it, walking `parentOf`. */
++const ascendsTo = (sessionID: string, target: string, parentOf: RuntimeInput["parentOf"]): boolean => {
++  const seen = new Set<string>()
++  let current: string | undefined = sessionID
++  while (current && !seen.has(current)) {
++    if (current === target) return true
++    seen.add(current)
++    current = parentOf?.(current)
++  }
++  return false
++}
++
++/** Live only. Replay is always unknown. A task part's own state is not an input. */
++const childLifecycleOf = (
++  sessionID: string | undefined,
++  input: RuntimeInput,
++): { lifecycle: ChildLifecycle; evidence: Evidence } => {
++  if (input.mode !== "live" || !sessionID) return { lifecycle: "unknown", evidence: "inferred" }
++  const pending = (id: string) => ascendsTo(id, sessionID, input.parentOf)
++  if (input.permissions.some((p) => pending(p.sessionID)) || input.questions.some((q) => pending(q.sessionID)))
++    return { lifecycle: "waiting-user", evidence: "event" }
++  const status = input.childStatus(sessionID)
++  if (status?.type === "retry") return { lifecycle: "retrying", evidence: "event" }
++  if (status?.type === "busy") return { lifecycle: "running", evidence: "event" }
++  const messages = input.childMessages?.(sessionID)
++  if (messages === undefined) return { lifecycle: "unknown", evidence: "inferred" }
++  let last: Extract<Message, { role: "assistant" }> | undefined
++  for (let i = messages.length - 1; i >= 0; i--) {
++    const message = messages[i]
++    if (message.role === "assistant") {
++      last = message
++      break
++    }
++  }
++  if (!last) return { lifecycle: "unknown", evidence: "inferred" }
++  if (messageAborted(last)) return { lifecycle: "cancelled", evidence: "event" }
++  if (last.error) return { lifecycle: "error", evidence: "event" }
++  if (last.time.completed !== undefined) return { lifecycle: "done", evidence: "event" }
++  return { lifecycle: "unknown", evidence: "inferred" }
++}
++
 +const toolOf = (
 +  part: ToolPart,
 +  request: number,
 +  input: RuntimeInput,
-+  requestStatus?: TrajectoryRequest["status"],
++  requestStatus: TrajectoryRequest["status"] | undefined,
++  assignSession: boolean,
 +): RuntimeTool => {
 +  const s = part.state
 +  const sub = subagentOf(part)
 +  const live = input.mode === "live"
-+  const childStatus = live && sub?.session ? input.childStatus(sub.session) : undefined
-+  const childRunning = !!childStatus && childStatus.type !== "idle"
++  const session = sub?.session
++  // Several task rows can name one child session. Session-id fallback belongs to the last row only.
++  // An exact {messageID, callID} match stays on the row it names.
 +  const permission = live
 +    ? (input.permissions.find((p) => sameCall(p.tool, part)) ??
-+       (sub?.session ? input.permissions.find((p) => p.sessionID === sub.session) : undefined))
++      (assignSession && session ? input.permissions.find((p) => ascendsTo(p.sessionID, session, input.parentOf)) : undefined))
 +    : undefined
 +  const question = live
 +    ? (input.questions.find((q) => sameCall(q.tool, part)) ??
-+       (sub?.session ? input.questions.find((q) => q.sessionID === sub.session) : undefined))
++      (assignSession && session ? input.questions.find((q) => ascendsTo(q.sessionID, session, input.parentOf)) : undefined))
 +    : undefined
 +  const reqStatus = requestStatus ?? (input.requests.find((r) => r.index === request) ?? input.requests[request])?.status
 +  // Inferred: tool was still pending or running when its request was interrupted.
 +  const interrupted = (s.status === "pending" || s.status === "running") && reqStatus === "interrupted"
++  const cancelled = s.status === "error" && (s.error === "Tool execution aborted" || s.metadata?.interrupted === true)
 +  const replayRunning = !live && s.status === "running"
 +  return {
 +    id: part.id,
@@ -1611,6 +2966,7 @@ index 0000000..f005fae
 +    name: part.tool,
 +    state: s.status,
 +    interrupted,
++    cancelled,
 +    input: toolInputSummary(part),
 +    lastOutput: sub || replayRunning ? undefined : lastOutputOf(part),
 +    start: s.status === "pending" ? undefined : s.time.start,
@@ -1626,21 +2982,28 @@ index 0000000..f005fae
 +          agent: sub.agent,
 +          description: sub.description,
 +          background: part.state.input.background === true,
-+          lifecycle: childRunning ? "running" : "unknown",
-+          evidence: childRunning ? "event" : "inferred",
++          ...childLifecycleOf(sub.session, input),
 +        }
 +      : undefined,
 +  }
 +}
 +
 +const toolsOf = (input: RuntimeInput): RuntimeTool[] => {
-+  const tools: RuntimeTool[] = []
++  const rows: { part: ToolPart; request: number; status: TrajectoryRequest["status"] }[] = []
 +  for (const r of input.requests) {
 +    for (const part of input.parts(r.message.id)) {
-+      if (part.type === "tool") tools.push(toolOf(part, r.index, input, r.status))
++      if (part.type === "tool") rows.push({ part, request: r.index, status: r.status })
 +    }
 +  }
-+  return tools
++  const lastForSession = new Map<string, number>()
++  for (let index = 0; index < rows.length; index++) {
++    const session = subagentOf(rows[index].part)?.session
++    if (session) lastForSession.set(session, index)
++  }
++  return rows.map((row, index) => {
++    const session = subagentOf(row.part)?.session
++    return toolOf(row.part, row.request, input, row.status, !!session && lastForSession.get(session) === index)
++  })
 +}
 +
 +const rawTokens = (r: TrajectoryRequest): RuntimeTokens => {
@@ -1656,6 +3019,7 @@ index 0000000..f005fae
 +const tokenTotal = (t: RuntimeTokens) => t.input + t.output + t.reasoning + t.cacheRead + t.cacheWrite
 +
 +const requestOf = (r: TrajectoryRequest): RuntimeRequest => {
++  const cancelled = messageAborted(r.message)
 +  const settled = r.status === "done" || r.status === "error"
 +  const raw = rawTokens(r)
 +  const known = settled && tokenTotal(raw) > 0
@@ -1667,6 +3031,7 @@ index 0000000..f005fae
 +    firstToken: r.firstToken,
 +    end: r.end,
 +    status: r.status,
++    cancelled,
 +    evidence: r.status === "interrupted" ? "inferred" : "event",
 +    error: r.error,
 +    settled,
@@ -1710,6 +3075,7 @@ index 0000000..f005fae
 +  if (run.attention.length) return { kind: "attention", attention: run.attention[0] }
 +  if (run.retry) return { kind: "retry", ...run.retry }
 +  const last = requests[requests.length - 1]
++  if (last?.cancelled && run.state === "idle") return { kind: "cancelled" }
 +  if (run.state === "error" || (run.state === "idle" && last?.status === "error"))
 +    return { kind: "error", message: last?.error ?? "" }
 +  if (run.state === "working") {
@@ -1729,7 +3095,7 @@ index 0000000..f005fae
 +        id: `${r.messageID}:end`,
 +        at: r.end,
 +        role: "model",
-+        kind: r.status === "error" ? "request.error" : "request.end",
++        kind: r.status === "error" ? (r.cancelled ? "request.cancelled" : "request.error") : "request.end",
 +        label: "",
 +        request: r.index,
 +      })
@@ -1780,6 +3146,24 @@ index 0000000..f005fae
 +  }
 +}
 +
++const childSessionState = (lifecycle: ChildLifecycle): RunState => {
++  switch (lifecycle) {
++    case "running":
++      return "working"
++    case "retrying":
++      return "retrying"
++    case "waiting-user":
++      return "waiting-user"
++    case "done":
++    case "cancelled":
++      return "idle"
++    case "error":
++      return "error"
++    case "unknown":
++      return "unknown"
++  }
++}
++
 +const sessionsOf = (input: RuntimeInput, run: RuntimeRun, tools: RuntimeTool[]): RuntimeSession[] => {
 +  const list: RuntimeSession[] = [{ id: input.sessionID, kind: "root", state: run.state, evidence: run.evidence }]
 +  const seen = new Set<string>([input.sessionID])
@@ -1791,7 +3175,7 @@ index 0000000..f005fae
 +      id: c.sessionID,
 +      kind: "child",
 +      agent: c.agent,
-+      state: c.lifecycle === "running" ? "working" : "unknown",
++      state: childSessionState(c.lifecycle),
 +      evidence: c.evidence,
 +    })
 +  }
@@ -1933,20 +3317,35 @@ index 0000000..f005fae
 +  }
 +  return { messages: kept, parts: (messageID: string) => visible.get(messageID) ?? [], busy }
 +}
++
++/** Id of the live in-flight assistant message. Only the last assistant message counts:
++ *  it must have no time.completed, and the session must be busy. An earlier unfinished
++ *  assistant is not in flight once a later assistant has completed. */
++export function inFlightOf(messages: readonly Message[], busy: boolean): string | undefined {
++  if (!busy) return undefined
++  for (let i = messages.length - 1; i >= 0; i--) {
++    const message = messages[i]
++    if (message.role !== "assistant") continue
++    return message.time.completed === undefined ? message.id : undefined
++  }
++  return undefined
++}
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
 new file mode 100644
-index 0000000..ccbba9d
+index 0000000..6530265
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -0,0 +1,408 @@
-+// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view. Read-only: it renders buildRuntime() over
-+// the session already in the sync store. Live updates once a second while the session is busy; "Pause following"
-+// replays by step (no per-token typing). It never claims a disconnect: only "last event xx ago", marked inferred.
-+import { createMemo, createSignal, For, Match, onCleanup, onMount, Show, Switch } from "solid-js"
-+import type { JSX } from "solid-js"
+@@ -0,0 +1,719 @@
++// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view. It renders buildRuntime() over
++// the session already in the sync store, and answers permission / question / stop from here.
++// Live updates once a second while the session is busy; "Pause following" replays by step (no per-token typing).
++// It never claims a disconnect: only "last event xx ago", marked inferred. Replay renders no action buttons.
++import { createEffect, createMemo, createSignal, For, Match, onCleanup, onMount, Show, Switch, untrack } from "solid-js"
++import type { Accessor, JSX } from "solid-js"
 +import type { Message, Part } from "@opencode-ai/sdk/v2/client"
 +import { useSync } from "@/context/sync"
 +import { useSDK } from "@/context/sdk"
++import { useServerSync } from "@/context/server-sync"
 +import { useLanguage } from "@/context/language"
 +import { useProviders } from "@/hooks/use-providers"
 +import { getSessionContext } from "./session-context-metrics"
@@ -1958,20 +3357,35 @@ index 0000000..ccbba9d
 +  buildRuntime,
 +  collectTreeRequests,
 +  eventSessionID,
++  inFlightOf,
 +  mergeFreshness,
 +  snapshotAt,
 +  treeSessionIDs,
++  type ChildLifecycle,
 +  type RuntimeAttention,
 +  type RuntimeEvent,
 +  type RuntimeModel,
 +  type RuntimeTool,
 +  type Stage,
 +} from "./session-runtime-model"
++import { keyed } from "./session-runtime-keyed"
++import {
++  actionsVisible,
++  autoSyncTargets,
++  cancelLabel,
++  failureVisible,
++  pinTargets,
++  retryWait,
++  stopClickExpired,
++  stopClickedAt,
++} from "./session-runtime-actions"
++import { RuntimeChildPanel } from "./session-runtime-child"
 +
 +const emptyMessages: Message[] = []
 +const emptyParts: Part[] = []
 +const STAGES: Exclude<Stage, "idle">[] = ["prepare", "model", "tools", "fill"]
 +const GLYPH = { pending: "○", running: "◐", completed: "✓", error: "✕" } as const
++const BTN = "h-6 px-2 rounded-[5px] text-12-medium bg-surface-inset-base text-text-base disabled:opacity-50"
 +const COLOR = {
 +  model: "var(--syntax-property)",
 +  tool: "var(--syntax-warning)",
@@ -2005,9 +3419,22 @@ index 0000000..ccbba9d
 +
 +const roleColor = (role: RuntimeEvent["role"]) => COLOR[role]
 +
-+export function SessionRuntime(props: { sessionID: string; onView: (view: SessionViewMode) => void; actions?: JSX.Element }) {
++const sameRefs = (prev: readonly unknown[], next: readonly unknown[]) => {
++  if (prev.length !== next.length) return false
++  for (let i = 0; i < prev.length; i++) if (prev[i] !== next[i]) return false
++  return true
++}
++
++export function SessionRuntime(props: {
++  sessionID: string
++  onView: (view: SessionViewMode) => void
++  actions?: JSX.Element
++  onStop?: () => void
++  onOpenSession?: (sessionID: string) => void
++}) {
 +  const sync = useSync()
 +  const sdk = useSDK()
++  const serverSync = useServerSync()
 +  const providers = useProviders(() => sdk().directory)
 +  const language = useLanguage()
 +  const trajectory = trajectoryText(language)
@@ -2027,48 +3454,79 @@ index 0000000..ccbba9d
 +
 +  const contextLimit = createMemo(() => getSessionContext(messages(), [...providers.all().values()])?.limit)
 +
-+  /** ID of the live in-flight assistant message: latest assistant message with no time.completed only while busy() is true. */
-+  const inFlightMessageID = createMemo(() => {
-+    if (!busy()) return undefined
-+    const list = messages()
-+    for (let i = list.length - 1; i >= 0; i--) {
-+      const m = list[i]
-+      if (m.role === "assistant" && m.time.completed === undefined) return m.id
-+    }
-+    return undefined
-+  })
++  /** ID of the live in-flight assistant message: the last assistant only, and only while it is unfinished and busy. */
++  const inFlightMessageID = createMemo(() => inFlightOf(messages(), busy()))
 +
 +  const treeIds = createMemo(() => treeSessionIDs(props.sessionID, sync().data.session))
-+  const treeRequests = createMemo(() =>
-+    collectTreeRequests(props.sessionID, sync().data.session, sync().data.permission, sync().data.question),
++  const treeRequests = createMemo(
++    () => collectTreeRequests(props.sessionID, sync().data.session, sync().data.permission, sync().data.question),
++    { permissions: [], questions: [] } as ReturnType<typeof collectTreeRequests>,
++    {
++      equals: (prev, next) => sameRefs(prev.permissions, next.permissions) && sameRefs(prev.questions, next.questions),
++    },
 +  )
++
++  const childMessagesOf = (id: string) => sync().data.message[id] as Message[] | undefined
++  const parentOfSession = (id: string) => sync().session.get(id)?.parentID
 +
 +  const assemble = (
 +    view: { messages: Message[]; parts: (id: string) => Part[]; busy?: boolean },
 +    mode: "live" | "replay",
 +    at: number,
++    scope?: {
++      sessionID: string
++      busy: boolean
++      status: ReturnType<typeof status>
++      permissions: ReturnType<typeof treeRequests>["permissions"]
++      questions: ReturnType<typeof treeRequests>["questions"]
++      contextLimit?: number
++    },
 +  ) => {
 +    const built = buildTrajectory({
 +      messages: view.messages,
 +      parts: view.parts,
 +      now: at,
-+      busy: mode === "live" ? busy() : (view.busy ?? false),
++      busy: mode === "live" ? (scope?.busy ?? busy()) : (view.busy ?? false),
 +      language: trajectory,
 +    })
 +    return buildRuntime(
 +      {
 +        mode,
-+        sessionID: props.sessionID,
++        sessionID: scope?.sessionID ?? props.sessionID,
 +        parts: view.parts,
-+        status: mode === "live" ? status() : undefined,
-+        permissions: mode === "live" ? treeRequests().permissions : [],
-+        questions: mode === "live" ? treeRequests().questions : [],
++        status: mode === "live" ? (scope ? scope.status : status()) : undefined,
++        permissions: mode === "live" ? (scope ? scope.permissions : treeRequests().permissions) : [],
++        questions: mode === "live" ? (scope ? scope.questions : treeRequests().questions) : [],
 +        childStatus: mode === "live" ? ((id) => sync().data.session_status[id]) : (() => undefined),
++        childMessages: childMessagesOf,
++        parentOf: parentOfSession,
 +        requests: built.requests,
-+        contextLimit: contextLimit(),
++        contextLimit: scope ? scope.contextLimit : contextLimit(),
 +      },
 +      at,
 +    )
++  }
++
++  // Same assemble path as the root, fed with this child session's own messages, status, and pending requests.
++  const assembleChild = (sessionID: string) => {
++    const childMessages = (sync().data.message[sessionID] ?? emptyMessages) as Message[]
++    const childStatus = sync().data.session_status[sessionID]
++    const childBusy = (childStatus?.type ?? "idle") !== "idle"
++    const mode = model().mode
++    const at = mode === "replay" ? (cursor() ?? Date.now()) : Date.now()
++    const view =
++      mode === "replay"
++        ? snapshotAt(childMessages, parts, at, inFlightOf(childMessages, childBusy))
++        : { messages: childMessages, parts, busy: childBusy }
++    const reqs = collectTreeRequests(sessionID, sync().data.session, sync().data.permission, sync().data.question)
++    return assemble(view, mode, at, {
++      sessionID,
++      busy: childBusy,
++      status: childStatus,
++      permissions: reqs.permissions,
++      questions: reqs.questions,
++      contextLimit: getSessionContext(childMessages, [...providers.all().values()])?.limit,
++    })
 +  }
 +
 +  const live = createMemo<RuntimeModel>(() => assemble({ messages: messages(), parts }, "live", Date.now()))
@@ -2112,43 +3570,273 @@ index 0000000..ccbba9d
 +  }
 +  const seek = (index: number) => setCursor(steps()[Math.min(Math.max(index, 0), steps().length - 1)])
 +
-+  const active = createMemo(() => model().tools.filter((x) => !x.interrupted && (x.state === "pending" || x.state === "running")))
-+  const interrupted = createMemo(() => model().tools.filter((x) => x.interrupted))
-+  const finished = createMemo(() => model().tools.filter((x) => x.state === "completed" || x.state === "error"))
++  const isSubagent = (x: RuntimeTool) => x.child !== undefined
++  const active = createMemo(() =>
++    model().tools.filter((x) => !isSubagent(x) && !x.interrupted && (x.state === "pending" || x.state === "running")),
++  )
++  const subagents = createMemo(() => model().tools.filter(isSubagent))
++  const interrupted = createMemo(() => model().tools.filter((x) => !isSubagent(x) && x.interrupted))
++  const finished = createMemo(() => model().tools.filter((x) => !isSubagent(x) && (x.state === "completed" || x.state === "error")))
++  const blocked = createMemo(() => finished().filter((x) => x.state === "error" || x.awaiting))
++  const recentEvents = createMemo(() => model().events.slice(-60))
 +  const attention = createMemo(() => model().run.attention)
++  const activeKeys = keyed(active, (x) => x.id)
++  const subagentKeys = keyed(subagents, (x) => x.id)
++  const interruptedKeys = keyed(interrupted, (x) => x.id)
++  const blockedKeys = keyed(blocked, (x) => x.id)
++  const eventKeys = keyed(recentEvents, (e) => e.id)
++  const attentionKeys = keyed(attention, (a) => a.id)
++  const [openChildren, setOpenChildren] = createSignal<ReadonlySet<string>>(new Set())
++  const syncedChildren = new Set<string>()
++  // Auto-sync never retries a failure; expanding the child does.
++  const failedChildren = new Set<string>()
++  const requestChildSync = (id: string) => {
++    syncedChildren.add(id)
++    failedChildren.delete(id)
++    void Promise.resolve(sync().session.sync(id)).catch(() => failedChildren.add(id))
++  }
++  const childOpen = (id: string) => openChildren().has(id)
++  const toggleChild = (id: string) => {
++    const opening = !openChildren().has(id)
++    setOpenChildren((prev) => {
++      const next = new Set(prev)
++      if (next.has(id)) next.delete(id)
++      else next.add(id)
++      return next
++    })
++    if (opening && (!syncedChildren.has(id) || failedChildren.has(id))) requestChildSync(id)
++  }
++  let autoTurn: number | undefined
++  let autoCount = 0
++  createEffect(() => {
++    const m = live()
++    const lastTurn = m.requests[m.requests.length - 1]?.turn
++    if (lastTurn !== autoTurn) {
++      autoTurn = lastTurn
++      autoCount = 0
++    }
++    const tools = m.tools.flatMap((tool) => {
++      if (!tool.child) return []
++      const turn = m.requests.find((request) => request.index === tool.request)?.turn
++      if (turn === undefined) return []
++      return [{ sessionID: tool.child.sessionID, turn }]
++    })
++    const ids = autoSyncTargets(tools, lastTurn, syncedChildren, 8, autoCount)
++    autoCount += ids.length
++    untrack(() => ids.forEach(requestChildSync))
++  })
++  const pinnedChildren = createMemo(
++    () =>
++      pinTargets(
++        live().tools.flatMap((tool) =>
++          tool.child ? [{ sessionID: tool.child.sessionID, lifecycle: tool.child.lifecycle }] : [],
++        ),
++        openChildren(),
++      ),
++    [] as string[],
++    { equals: (prev, next) => prev.length === next.length && prev.every((id, index) => id === next[index]) },
++  )
++  createEffect(() => {
++    const api = serverSync()
++    const ids = pinnedChildren()
++    for (const id of ids) api.session.pin(id)
++    onCleanup(() => {
++      for (const id of ids) api.session.unpin(id)
++    })
++  })
++  const [pending, setPending] = createSignal<Readonly<Record<string, true>>>({})
++  const [failed, setFailed] = createSignal<Readonly<Record<string, true>>>({})
++  const [clickedAt, setClickedAt] = createSignal<number | undefined>()
++  // Replay-aware: the label may say "cancelled" from the snapshot focus. "requested" is suppressed unless live.
++  const lastRequestStart = () => {
++    const requests = model().requests
++    return requests.length ? requests[requests.length - 1]!.start : undefined
++  }
++  const cancelKind = () => cancelLabel(clickedAt(), busy(), model().focus.kind, lastRequestStart(), model().mode)
++
++  const pruneGone = (prev: Readonly<Record<string, true>>, liveIds: ReadonlySet<string>) => {
++    let changed = false
++    const next: Record<string, true> = {}
++    for (const id in prev) {
++      if (liveIds.has(id)) next[id] = true
++      else changed = true
++    }
++    return changed ? next : prev
++  }
++  createEffect(() => {
++    // Live attention, not the replay snapshot: pausing would otherwise drop in-flight "working on it" marks.
++    const liveIds = new Set(live().run.attention.map((item) => item.id))
++    setPending((prev) => pruneGone(prev, liveIds))
++    setFailed((prev) => pruneGone(prev, liveIds))
++  })
++  createEffect(() => {
++    const at = clickedAt()
++    if (at === undefined) return
++    const requests = live().requests
++    const start = requests.length ? requests[requests.length - 1]!.start : undefined
++    if (stopClickExpired(at, busy(), start)) setClickedAt(undefined)
++  })
++
++  const respond = (a: Accessor<RuntimeAttention>, reply: "once" | "always" | "reject") => {
++    const item = a()
++    if (pending()[item.id]) return
++    setFailed((prev) => {
++      if (!prev[item.id]) return prev
++      const next = { ...prev }
++      delete next[item.id]
++      return next
++    })
++    setPending((prev) => ({ ...prev, [item.id]: true }))
++    const task =
++      item.kind === "permission"
++        ? sdk().api.permission.reply({ sessionID: item.sessionID, requestID: item.id, reply })
++        : sdk().api.question.reject({ sessionID: item.sessionID, requestID: item.id })
++    void Promise.resolve(task).catch(() => {
++      setPending((prev) => {
++        if (!prev[item.id]) return prev
++        const next = { ...prev }
++        delete next[item.id]
++        return next
++      })
++      // The request already left the live store: nothing failed from the user's point of view.
++      if (!failureVisible(item.id, live().run.attention.map((entry) => entry.id))) return
++      setFailed((prev) => (prev[item.id] ? prev : { ...prev, [item.id]: true }))
++    })
++  }
++  const requestStop = () => {
++    const at = stopClickedAt(!!props.onStop, Date.now())
++    if (at === undefined) return
++    setClickedAt(at)
++    props.onStop?.()
++  }
++
 +  const stateColor = () => {
 +    const s = model().run.state
 +    return s === "error" ? COLOR.error : s === "waiting-user" ? COLOR.attention : s === "working" ? COLOR.ok : undefined
 +  }
 +
-+  const toolRow = (x: RuntimeTool) => (
++  function ExpandedChild(panel: { sessionID: string; lifecycle: ChildLifecycle }) {
++    const built = createMemo(() => assembleChild(panel.sessionID))
++    return (
++      <RuntimeChildPanel
++        sessionID={panel.sessionID}
++        lifecycle={panel.lifecycle}
++        model={built}
++        now={wall}
++        t={t}
++        onOpen={props.onOpenSession}
++      />
++    )
++  }
++
++  const toolRow = (x: Accessor<RuntimeTool>) => {
++    const name = () => {
++      const child = x().child
++      return child ? child.agent : x().name
++    }
++    const detail = () => {
++      const child = x().child
++      return child ? child.description : x().input
++    }
++    return (
 +    <div
-+      data-oco-runtime-tool={x.id}
++      data-oco-runtime-tool={x().id}
 +      class="flex flex-col gap-0.5 rounded-md px-2 py-1.5 bg-surface-inset-base"
-+      classList={{ "opacity-75": x.interrupted }}
-+      style={{ "border-left": `3px solid ${x.child ? COLOR.subagent : COLOR.tool}` }}
++      classList={{ "opacity-75": x().interrupted }}
++      style={{ "border-left": `3px solid ${x().child ? COLOR.subagent : COLOR.tool}` }}
 +    >
 +      <div class="flex items-center gap-2 min-w-0">
-+        <span aria-hidden="true">{GLYPH[x.state]}</span>
-+        <span class="text-12-medium text-text-strong shrink-0">{x.child ? x.child.agent : x.name}</span>
-+        <span class="min-w-0 truncate text-12-regular text-text-weak">{x.child ? x.child.description : x.input}</span>
++        <span aria-hidden="true">{x().cancelled ? "⊘" : x().interrupted ? "◌" : GLYPH[x().state]}</span>
++        <span class="text-12-medium text-text-strong shrink-0">{name()}</span>
++        <span class="min-w-0 truncate text-12-regular text-text-weak">{detail()}</span>
 +        <span class="ml-auto shrink-0 text-12-regular text-text-weak">
-+          {x.interrupted ? t("tool.interrupted") : t(`tool.state.${x.state}`)}
++          {x().cancelled ? t("tool.cancelled") : x().interrupted ? t("tool.interrupted") : t(`tool.state.${x().state}`)}
 +        </span>
 +      </div>
-+      <Show when={x.awaiting}>
++      <Show when={x().awaiting}>
 +        <div class="text-12-medium" style={{ color: COLOR.attention }}>! {t("tool.awaiting")}</div>
 +      </Show>
-+      <Show when={x.child}>
-+        {(c) => (
-+          <div class="text-12-regular text-text-weak">
-+            {c().lifecycle === "running" ? t("child.running") : t("child.unknown")}
-+            <Show when={c().background}> · {t("tool.background")}</Show>
-+          </div>
-+        )}
++      <Show when={x().child}>
++        {(c) => {
++          const sessionID = () => c().sessionID
++          return (
++            <>
++              <div class="text-12-regular text-text-weak">
++                {t(`child.lifecycle.${c().lifecycle}` as "child.lifecycle.running")}
++                <Show when={c().background}> · {t("tool.background")}</Show>
++              </div>
++              <Show when={sessionID()}>
++                {(id) => (
++                  <>
++                    <button
++                      type="button"
++                      class={`${BTN} self-start`}
++                      data-oco-runtime-child-toggle={id()}
++                      aria-expanded={childOpen(id())}
++                      onClick={() => toggleChild(id())}
++                    >
++                      {childOpen(id()) ? t("child.collapse") : t("child.expand")}
++                    </button>
++                    <Show when={childOpen(id())}>
++                      <ExpandedChild sessionID={id()} lifecycle={c().lifecycle} />
++                    </Show>
++                  </>
++                )}
++              </Show>
++            </>
++          )
++        }}
 +      </Show>
-+      <Show when={x.lastOutput}>
-+        <div class="min-w-0 truncate text-12-regular font-mono text-text-weak">{x.lastOutput}</div>
++      <Show when={x().lastOutput}>
++        <div class="min-w-0 truncate text-12-regular font-mono text-text-weak">{x().lastOutput}</div>
++      </Show>
++    </div>
++    )
++  }
++
++  const eventRow = (e: Accessor<RuntimeEvent>) => (
++    <div data-oco-runtime-event={e().kind} class="flex items-baseline gap-2 text-12-regular">
++      <span class="shrink-0 font-mono text-text-weak">{new Date(e().at).toLocaleTimeString(copy.intl())}</span>
++      <span class="min-w-0 break-words" style={{ color: roleColor(e().role) }}>{eventText(t, e())}</span>
++    </div>
++  )
++
++  const attentionRow = (a: Accessor<RuntimeAttention>) => (
++    <div
++      data-oco-runtime-attention={a().id}
++      data-oco-runtime-attention-kind={a().kind}
++      data-oco-runtime-pending={pending()[a().id] ? "" : undefined}
++      class="flex flex-col gap-1"
++    >
++      <div>{attentionText(t, a())}</div>
++      <Show when={pending()[a().id]}>
++        <div class="text-12-regular text-text-weak">{t("action.pending")}</div>
++      </Show>
++      <Show when={failed()[a().id]}>
++        <div class="text-12-regular" style={{ color: COLOR.error }}>{t("action.failed")}</div>
++      </Show>
++      <Show when={model().mode === "live"}>
++        <div class="flex flex-wrap gap-1">
++          <Show when={a().kind === "permission"}>
++            <button type="button" class={BTN} data-oco-runtime-reply="once" disabled={!!pending()[a().id]} onClick={() => respond(a, "once")}>
++              {t("action.permission.once")}
++            </button>
++            <button type="button" class={BTN} data-oco-runtime-reply="always" disabled={!!pending()[a().id]} onClick={() => respond(a, "always")}>
++              {t("action.permission.always")}
++            </button>
++            <button type="button" class={BTN} data-oco-runtime-reply="reject" disabled={!!pending()[a().id]} onClick={() => respond(a, "reject")}>
++              {t("action.permission.reject")}
++            </button>
++          </Show>
++          <Show when={a().kind === "question"}>
++            <button type="button" class={BTN} data-oco-runtime-question="answer" disabled={!!pending()[a().id]} onClick={() => props.onView("chat")}>
++              {t("action.question.answer")}
++            </button>
++            <button type="button" class={BTN} data-oco-runtime-question="reject" disabled={!!pending()[a().id]} onClick={() => respond(a, "reject")}>
++              {t("action.question.reject")}
++            </button>
++          </Show>
++        </div>
 +      </Show>
 +    </div>
 +  )
@@ -2178,6 +3866,14 @@ index 0000000..ccbba9d
 +          </Show>
 +          <Show when={model().sessions.length > 1}>
 +            <span>{t("header.sessions", { count: model().sessions.length })}</span>
++          </Show>
++          <Show when={!!props.onStop && actionsVisible(model().mode, model().run.state)}>
++            <button type="button" class={BTN} data-oco-runtime-stop onClick={requestStop}>
++              {t("action.stop")}
++            </button>
++          </Show>
++          <Show when={cancelKind() === "requested"}>
++            <span data-oco-runtime-cancel="requested">{t("cancel.requested")}</span>
 +          </Show>
 +          <Show when={model().mode === "live"}>
 +            <span data-oco-runtime-last>
@@ -2225,16 +3921,24 @@ index 0000000..ccbba9d
 +          style={{ "border-left": `3px solid ${model().focus.kind === "error" ? COLOR.error : model().focus.kind === "attention" ? COLOR.attention : COLOR.model}` }}
 +        >
 +          <Switch>
-+            <Match when={model().focus.kind === "attention" && (model().focus as { attention: RuntimeAttention }).attention}>
-+              {(a) => (
-+                <>
-+                  <div>{attentionText(t, a())}</div>
-+                  <div class="text-12-regular text-text-weak">{t("focus.attention.hint")}</div>
-+                </>
-+              )}
++            <Match when={model().focus.kind === "attention" && attention().length}>
++              <For each={attentionKeys.ids().slice(0, 1)}>{(id) => attentionRow(() => attentionKeys.get(id)!)}</For>
++              <div class="text-12-regular text-text-weak">{t("focus.attention.hint")}</div>
 +            </Match>
-+            <Match when={model().focus.kind === "retry" && (model().focus as { attempt: number; message: string })}>
-+              {(r) => <div>{t("focus.retry", { attempt: r().attempt, message: r().message })}</div>}
++            <Match when={model().focus.kind === "retry" && (model().focus as { attempt: number; message: string; next: number })}>
++              {(r) => {
++                const wait = () => retryWait(r().next, wall())
++                return (
++                  <div data-oco-runtime-retry>
++                    {wait().due
++                      ? t("retry.soon")
++                      : t("retry.countdown", { attempt: r().attempt, seconds: wait().seconds })}
++                    <Show when={r().message}>
++                      <div class="text-12-regular text-text-weak">{r().message}</div>
++                    </Show>
++                  </div>
++                )
++              }}
 +            </Match>
 +            <Match when={model().focus.kind === "error" && (model().focus as { message: string })}>
 +              {(r) => <div>{r().message ? t("focus.error", { message: r().message }) : t("focus.error.unknown")}</div>}
@@ -2251,6 +3955,9 @@ index 0000000..ccbba9d
 +            <Match when={model().focus.kind === "interrupted"}>
 +              <div>{t("focus.interrupted")}</div>
 +            </Match>
++            <Match when={model().focus.kind === "cancelled"}>
++              <div data-oco-runtime-cancel="cancelled">{t("focus.cancelled")}</div>
++            </Match>
 +            <Match when={model().focus.kind === "done"}>
 +              <div>{t("focus.done")}</div>
 +            </Match>
@@ -2259,6 +3966,12 @@ index 0000000..ccbba9d
 +            </Match>
 +          </Switch>
 +        </div>
++
++        <Show when={attentionKeys.ids().length > 1}>
++          <div class="flex flex-col gap-2">
++            <For each={attentionKeys.ids().slice(1)}>{(id) => attentionRow(() => attentionKeys.get(id)!)}</For>
++          </div>
++        </Show>
 +
 +        <ol
 +          aria-label={t("stage.label")}
@@ -2283,11 +3996,13 @@ index 0000000..ccbba9d
 +
 +        <div class="flex flex-col gap-1.5">
 +          <div class="text-12-medium text-text-base">{t("tools.title")}</div>
-+          <Show when={active().length} fallback={<div class="text-12-regular text-text-weak">{t("tools.none")}</div>}>
-+            <For each={active()}>{toolRow}</For>
++          <Show when={active().length === 0 && subagents().length === 0}>
++            <div class="text-12-regular text-text-weak">{t("tools.none")}</div>
 +          </Show>
-+          <For each={interrupted()}>{toolRow}</For>
-+          <For each={finished().filter((x) => x.state === "error" || x.awaiting)}>{toolRow}</For>
++          <For each={activeKeys.ids()}>{(id) => toolRow(() => activeKeys.get(id)!)}</For>
++          <For each={subagentKeys.ids()}>{(id) => toolRow(() => subagentKeys.get(id)!)}</For>
++          <For each={interruptedKeys.ids()}>{(id) => toolRow(() => interruptedKeys.get(id)!)}</For>
++          <For each={blockedKeys.ids()}>{(id) => toolRow(() => blockedKeys.get(id)!)}</For>
 +          <Show when={finished().length}>
 +            <div class="text-12-regular text-text-weak">{t("tools.finished", { count: finished().length })}</div>
 +          </Show>
@@ -2296,14 +4011,7 @@ index 0000000..ccbba9d
 +        <div class="flex flex-col gap-1" data-oco-runtime-events>
 +          <div class="text-12-medium text-text-base">{t("events.title")}</div>
 +          <Show when={model().events.length} fallback={<div class="text-12-regular text-text-weak">{t("events.none")}</div>}>
-+            <For each={model().events.slice(-60)}>
-+              {(e) => (
-+                <div data-oco-runtime-event={e.kind} class="flex items-baseline gap-2 text-12-regular">
-+                  <span class="shrink-0 font-mono text-text-weak">{new Date(e.at).toLocaleTimeString(copy.intl())}</span>
-+                  <span class="min-w-0 break-words" style={{ color: roleColor(e.role) }}>{eventText(t, e)}</span>
-+                </div>
-+              )}
-+            </For>
++            <For each={eventKeys.ids()}>{(id) => eventRow(() => eventKeys.get(id)!)}</For>
 +          </Show>
 +        </div>
 +
@@ -2415,7 +4123,7 @@ index 939d645..d76148d 100644
          </div>
        </div>
 diff --git a/packages/app/src/pages/session.tsx b/packages/app/src/pages/session.tsx
-index 0de8b86..0500624 100644
+index 0de8b86..20c4cdc 100644
 --- a/packages/app/src/pages/session.tsx
 +++ b/packages/app/src/pages/session.tsx
 @@ -42,6 +42,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/r
@@ -2435,21 +4143,141 @@ index 0de8b86..0500624 100644
    view: "chat" as SessionViewMode,
  })
  
-@@ -2126,7 +2127,16 @@ export default function Page() {
+@@ -2126,11 +2127,32 @@ export default function Page() {
              {(id) => (
                <SessionTrajectory
                  sessionID={id()}
 -                onChat={() => setStore("view", "chat")}
 +                onView={(view) => setStore("view", view)}
-+                actions={platform.embedded ? <SessionHeaderEmbeddedActions /> : undefined}
-+              />
-+            )}
-+          </Match>
+                 actions={platform.embedded ? <SessionHeaderEmbeddedActions /> : undefined}
+               />
+             )}
+           </Match>
 +          <Match when={params.id && store.view === "runtime" ? params.id : undefined}>
 +            {(id) => (
 +              <SessionRuntime
 +                sessionID={id()}
 +                onView={(view) => setStore("view", view)}
-                 actions={platform.embedded ? <SessionHeaderEmbeddedActions /> : undefined}
-               />
-             )}
++                actions={platform.embedded ? <SessionHeaderEmbeddedActions /> : undefined}
++                onStop={() => {
++                  const sessionID = id()
++                  setFollowup("paused", sessionID, true)
++                  void sdk().api.session.interrupt({ sessionID }).catch(() => {})
++                }}
++                onOpenSession={(sessionID) => {
++                  navigate(
++                    params.serverKey
++                      ? sessionHref(requireServerKey(params.serverKey), sessionID)
++                      : legacySessionHref(sdk().directory, sessionID),
++                  )
++                }}
++              />
++            )}
++          </Match>
+           <Match when={params.id}>
+             <Show when={messagesReady() ? params.id : undefined} keyed>
+               {(_id) => (
+diff --git a/packages/app/test-browser/session-runtime-keyed.test.ts b/packages/app/test-browser/session-runtime-keyed.test.ts
+new file mode 100644
+index 0000000..0528d23
+--- /dev/null
++++ b/packages/app/test-browser/session-runtime-keyed.test.ts
+@@ -0,0 +1,98 @@
++import { describe, expect, test } from "bun:test"
++import { createEffect, createRoot, createSignal } from "solid-js"
++import { keyed } from "@/components/session/session-runtime-keyed"
++
++type Item = { id: string; value: number }
++
++describe("keyed", () => {
++  test("same id sequence keeps the ids reference and does not rerun an effect", () => {
++    let runs = 0
++    let ids: () => string[] = () => []
++    let setItems: (next: Item[]) => void = () => {}
++    let dispose = () => {}
++    createRoot((done: () => void) => {
++      dispose = done
++      const [items, set] = createSignal<Item[]>([
++        { id: "a", value: 1 },
++        { id: "b", value: 2 },
++      ])
++      setItems = set
++      ids = keyed(items, (item: Item) => item.id).ids
++      createEffect(() => {
++        ids()
++        runs++
++      })
++    })
++    try {
++      expect(runs).toBe(1)
++      const initial = ids()
++      expect(initial).toEqual(["a", "b"])
++      setItems([
++        { id: "a", value: 10 },
++        { id: "b", value: 20 },
++      ])
++      expect(ids()).toBe(initial)
++      expect(runs).toBe(1)
++    } finally {
++      dispose()
++    }
++  })
++
++  test("get returns the latest object for an id", () => {
++    createRoot((dispose: () => void) => {
++      const [items, setItems] = createSignal<Item[]>([
++        { id: "a", value: 1 },
++        { id: "b", value: 2 },
++      ])
++      const { get } = keyed(items, (item: Item) => item.id)
++      expect(get("a")).toEqual({ id: "a", value: 1 })
++      expect(get("c")).toBeUndefined()
++
++      setItems([
++        { id: "a", value: 10 },
++        { id: "b", value: 20 },
++      ])
++      expect(get("a")).toEqual({ id: "a", value: 10 })
++      expect(get("b")).toEqual({ id: "b", value: 20 })
++      dispose()
++    })
++  })
++
++  test("an id order change updates ids and reruns an effect", () => {
++    let runs = 0
++    let ids: () => string[] = () => []
++    let get: (id: string) => Item | undefined = () => undefined
++    let setItems: (next: Item[]) => void = () => {}
++    let dispose = () => {}
++    createRoot((done: () => void) => {
++      dispose = done
++      const [items, set] = createSignal<Item[]>([
++        { id: "a", value: 1 },
++        { id: "b", value: 2 },
++      ])
++      setItems = set
++      const view = keyed(items, (item: Item) => item.id)
++      ids = view.ids
++      get = view.get
++      createEffect(() => {
++        ids()
++        runs++
++      })
++    })
++    try {
++      expect(runs).toBe(1)
++      const initial = ids()
++      setItems([
++        { id: "b", value: 20 },
++        { id: "a", value: 10 },
++      ])
++      expect(runs).toBe(2)
++      expect(ids()).toEqual(["b", "a"])
++      expect(ids()).not.toBe(initial)
++      expect(get("a")).toEqual({ id: "a", value: 10 })
++      expect(get("b")).toEqual({ id: "b", value: 20 })
++    } finally {
++      dispose()
++    }
++  })
++})
