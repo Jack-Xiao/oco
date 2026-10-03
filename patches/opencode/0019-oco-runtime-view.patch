@@ -1121,7 +1121,7 @@ index 0000000..3768196
 +}
 diff --git a/packages/app/src/components/session/session-runtime-child.tsx b/packages/app/src/components/session/session-runtime-child.tsx
 new file mode 100644
-index 0000000..e903521
+index 0000000..c25d12b
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-child.tsx
 @@ -0,0 +1,322 @@
@@ -1134,12 +1134,12 @@ index 0000000..e903521
 +
 +const GLYPH = { pending: "○", running: "◐", completed: "✓", error: "✕" } as const
 +const COLOR = {
-+  model: "var(--syntax-property)",
-+  tool: "var(--syntax-warning)",
-+  subagent: "var(--syntax-keyword)",
-+  attention: "var(--syntax-info)",
-+  error: "var(--syntax-critical)",
-+  ok: "var(--syntax-success)",
++  model: "var(--rt-main)",
++  tool: "var(--rt-tool)",
++  subagent: "var(--rt-sub)",
++  attention: "var(--rt-attn)",
++  error: "var(--rt-err)",
++  ok: "var(--rt-ok)",
 +} as const
 +
 +const stageKey = (s: Stage): Exclude<Stage, "idle"> => (s === "idle" ? "prepare" : s)
@@ -1886,10 +1886,10 @@ index 0000000..fa82f1a
 +})
 diff --git a/packages/app/src/components/session/session-runtime-i18n.ts b/packages/app/src/components/session/session-runtime-i18n.ts
 new file mode 100644
-index 0000000..b6ec293
+index 0000000..f3be2f5
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-i18n.ts
-@@ -0,0 +1,480 @@
+@@ -0,0 +1,573 @@
 +// oco (patches/opencode/0019): copy for the runtime view. Same arrangement as session-trajectory-i18n.ts
 +// (patch 0013): upstream's locale-parity test would require every locale, and oco maintains en / zh / zht.
 +import type { useLanguage } from "@/context/language"
@@ -1904,6 +1904,17 @@ index 0000000..b6ec293
 +  "state.unknown": "Unknown",
 +  "evidence.inferred": "inferred",
 +  "stage.label": "Request cycle",
++  "life.short.running": "Running",
++  "life.short.retrying": "Retrying",
++  "life.short.waiting-user": "Waiting",
++  "life.short.done": "Done",
++  "life.short.error": "Error",
++  "life.short.cancelled": "Cancelled",
++  "life.short.unknown": "Unknown",
++  "stage.short.prepare": "Prepare",
++  "stage.short.model": "Model",
++  "stage.short.tools": "Tools",
++  "stage.short.fill": "Return",
 +  "stage.prepare": "Preparing request",
 +  "stage.model": "Model responding",
 +  "stage.tools": "Running tools",
@@ -1989,6 +2000,8 @@ index 0000000..b6ec293
 +  "child.replay.unknown": "In history the subagent lifecycle is unknown (inferred).",
 +  "reasoning.streaming": "Streaming",
 +  "reasoning.completed": "Reasoning complete",
++  "think.title": "Thinking",
++  "think.none": "No reasoning in this request yet",
 +  "reasoning.truncated": "Beginning may be missing if joined midway",
 +  "reasoning.replay.running": "Thinking (in-progress text not shown in replay)",
 +  "reasoning.expand": "Expand reasoning",
@@ -2044,6 +2057,24 @@ index 0000000..b6ec293
 +  "summary.tools_waiting_only": "Tools [{{waiting}} waiting]",
 +  "summary.request": "Request {{n}}",
 +  "summary.tokens": "Usage {{tokens}}",
++  "attention.title": "Needs your attention · {{count}}",
++  "attention.none": "None",
++  "attention.readonly": "Read-only in replay",
++  "attention.other_count": "Other issues: {{count}}",
++  "attention.wait_in_panel": "Waiting for approval · handle in left panel",
++  "roster.title": "Subagents · {{count}}",
++  "lane.empty": "Idle",
++  "child.enter": "Enter ›",
++  "tool.details_link": "Details ›",
++  "replay.readonly_badge": "Read-only replay · {{time}}",
++  "replay.seg_live": "● Live",
++  "replay.seg_replay": "⏮ Replay",
++  "detail.title": "Details",
++  "detail.close": "Close",
++  "crumb.main": "Main agent",
++  "child.loading": "Loading…",
++  "summary.context": "Context {{used}} / {{limit}}",
++  "summary.cost": "Cost ${{cost}}",
 +} as const
 +
 +type Key = keyof typeof en
@@ -2060,6 +2091,17 @@ index 0000000..b6ec293
 +  "state.unknown": "未知",
 +  "evidence.inferred": "推断",
 +  "stage.label": "请求周期",
++  "life.short.running": "运行中",
++  "life.short.retrying": "重试中",
++  "life.short.waiting-user": "等你",
++  "life.short.done": "完成",
++  "life.short.error": "出错",
++  "life.short.cancelled": "已取消",
++  "life.short.unknown": "未知",
++  "stage.short.prepare": "准备",
++  "stage.short.model": "模型",
++  "stage.short.tools": "工具",
++  "stage.short.fill": "回填",
 +  "stage.prepare": "准备请求",
 +  "stage.model": "模型响应",
 +  "stage.tools": "执行工具",
@@ -2145,6 +2187,8 @@ index 0000000..b6ec293
 +  "child.replay.unknown": "回看时子代理生命周期未知（推断）。",
 +  "reasoning.streaming": "显示中",
 +  "reasoning.completed": "思考完成",
++  "think.title": "思考",
++  "think.none": "这次请求还没有思考内容",
 +  "reasoning.truncated": "中途接入时开头可能缺失",
 +  "reasoning.replay.running": "思考中（回看不显示进行中的文字）",
 +  "reasoning.expand": "展开思考",
@@ -2200,6 +2244,24 @@ index 0000000..b6ec293
 +  "summary.tools_waiting_only": "工具 [{{waiting}} 等待]",
 +  "summary.request": "请求 {{n}}",
 +  "summary.tokens": "用量 {{tokens}}",
++  "attention.title": "需你处理 · {{count}}",
++  "attention.none": "暂无",
++  "attention.readonly": "回放中只读",
++  "attention.other_count": "其他异常 {{count}}",
++  "attention.wait_in_panel": "等你批准 · 在左侧处理",
++  "roster.title": "子代理 · {{count}}",
++  "lane.empty": "空闲",
++  "child.enter": "进入 ›",
++  "tool.details_link": "详情 ›",
++  "replay.readonly_badge": "只读回放 · {{time}}",
++  "replay.seg_live": "● 实时",
++  "replay.seg_replay": "⏮ 回放",
++  "detail.title": "详情",
++  "detail.close": "关闭",
++  "crumb.main": "主 agent",
++  "child.loading": "加载中",
++  "summary.context": "上下文 {{used}} / {{limit}}",
++  "summary.cost": "花费 ${{cost}}",
 +}
 +
 +const zht: Record<Key, string> = {
@@ -2212,6 +2274,17 @@ index 0000000..b6ec293
 +  "state.unknown": "未知",
 +  "evidence.inferred": "推斷",
 +  "stage.label": "請求週期",
++  "life.short.running": "執行中",
++  "life.short.retrying": "重試中",
++  "life.short.waiting-user": "等你",
++  "life.short.done": "完成",
++  "life.short.error": "出錯",
++  "life.short.cancelled": "已取消",
++  "life.short.unknown": "未知",
++  "stage.short.prepare": "準備",
++  "stage.short.model": "模型",
++  "stage.short.tools": "工具",
++  "stage.short.fill": "回填",
 +  "stage.prepare": "準備請求",
 +  "stage.model": "模型回應",
 +  "stage.tools": "執行工具",
@@ -2297,6 +2370,8 @@ index 0000000..b6ec293
 +  "child.replay.unknown": "回看時子代理生命週期未知（推斷）。",
 +  "reasoning.streaming": "顯示中",
 +  "reasoning.completed": "思考完成",
++  "think.title": "思考",
++  "think.none": "這次請求還沒有思考內容",
 +  "reasoning.truncated": "中途接入時開頭可能缺失",
 +  "reasoning.replay.running": "思考中（回看不顯示進行中的文字）",
 +  "reasoning.expand": "展開思考",
@@ -2352,6 +2427,24 @@ index 0000000..b6ec293
 +  "summary.tools_waiting_only": "工具 [{{waiting}} 等待]",
 +  "summary.request": "請求 {{n}}",
 +  "summary.tokens": "用量 {{tokens}}",
++  "attention.title": "需您處理 · {{count}}",
++  "attention.none": "暫無",
++  "attention.readonly": "回放中唯讀",
++  "attention.other_count": "其他異常 {{count}}",
++  "attention.wait_in_panel": "等您批准 · 在左側處理",
++  "roster.title": "子代理 · {{count}}",
++  "lane.empty": "空閒",
++  "child.enter": "進入 ›",
++  "tool.details_link": "詳情 ›",
++  "replay.readonly_badge": "唯讀回放 · {{time}}",
++  "replay.seg_live": "● 即時",
++  "replay.seg_replay": "⏮ 回放",
++  "detail.title": "詳情",
++  "detail.close": "關閉",
++  "crumb.main": "主 agent",
++  "child.loading": "載入中",
++  "summary.context": "上下文 {{used}} / {{limit}}",
++  "summary.cost": "花費 ${{cost}}",
 +}
 +
 +const dicts: Partial<Record<string, Record<Key, string>>> = { zh, zht }
@@ -2427,37 +2520,30 @@ index 0000000..53db1fa
 +}
 diff --git a/packages/app/src/components/session/session-runtime-mechanism-view.tsx b/packages/app/src/components/session/session-runtime-mechanism-view.tsx
 new file mode 100644
-index 0000000..310006e
+index 0000000..98795e9
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-mechanism-view.tsx
-@@ -0,0 +1,935 @@
-+// oco (patches/opencode/0019): agent tree runtime view (Task 4c).
-+// Contract and rules: docs/superpowers/plans/2026-10-03-runtime-dashboard-m3.md (Task 4c).
-+import { createMemo, createSignal, For, onCleanup, onMount, Show, type Accessor, type JSX } from "solid-js"
-+import type { RuntimeAttention, RuntimeModel, RuntimeTool, Stage } from "./session-runtime-model"
+@@ -0,0 +1,792 @@
++// oco (patches/opencode/0019): fixed-frame agent tree mechanism view (Task 4d).
++// Contract and rules: docs/superpowers/plans/2026-10-03-runtime-dashboard-m3.md (改版 2: 固定框架).
++import { createEffect, createMemo, createSignal, For, onCleanup, Show, type Accessor, type JSX } from "solid-js"
++import type { ChildLifecycle, RuntimeAttention, RuntimeModel, RuntimeTool, Stage } from "./session-runtime-model"
 +import type { RuntimeText } from "./session-runtime-i18n"
-+import { mechanismOf, slotGlyph, type Mechanism, type MechanismSlot } from "./session-runtime-mechanism"
-+import { BTN, FOCUS, toolDetail } from "./session-runtime-actions"
-+import { RuntimeChildPanel } from "./session-runtime-child"
++import { lanesOf, mechanismOf, slotGlyph, type Lane, type Mechanism, type MechanismSlot } from "./session-runtime-mechanism"
++import { FOCUS, retryWait, toolDetail } from "./session-runtime-actions"
++import type { RuntimeReasoning } from "./session-runtime-reasoning"
 +
 +export const COLOR = {
-+  model: "var(--syntax-property)",
-+  tool: "var(--syntax-warning)",
-+  subagent: "var(--syntax-keyword)",
-+  attention: "var(--syntax-info)",
-+  error: "var(--syntax-critical)",
-+  ok: "var(--syntax-success)",
++  model: "var(--rt-main)",
++  tool: "var(--rt-tool)",
++  subagent: "var(--rt-sub)",
++  attention: "var(--rt-attn)",
++  error: "var(--rt-err)",
++  ok: "var(--rt-ok)",
++  accent: "var(--rt-accent)",
 +} as const
 +
 +const STAGES: Exclude<Stage, "idle">[] = ["prepare", "model", "tools", "fill"]
-+
-+const countCompact = (n: number, locale: string) =>
-+  new Intl.NumberFormat(locale, { notation: "compact" }).format(n)
-+
-+const attentionText = (t: RuntimeText["t"], a: RuntimeAttention) =>
-+  a.kind === "permission"
-+    ? t("focus.attention.permission", { what: [a.permission, ...a.patterns].join(" ") })
-+    : t("focus.attention.question", { what: a.text })
 +
 +export type RuntimeMechanismProps = {
 +  model: Accessor<RuntimeModel>
@@ -2465,6 +2551,8 @@ index 0000000..310006e
 +  copy?: RuntimeText
 +  childOf?: (sessionID: string) => RuntimeModel | undefined
 +  narrow?: Accessor<boolean>
++  isStack?: Accessor<boolean>
++  isNarrow560?: Accessor<boolean>
 +  isToolOpen?: (id: string) => boolean
 +  toggleTool?: (id: string) => void
 +  childOpen?: (id: string) => boolean
@@ -2478,905 +2566,776 @@ index 0000000..310006e
 +  onView?: (view: any) => void
 +  renderedAttentionIds?: () => Set<string>
 +  reasoningElement?: JSX.Element
-+}
-+
-+function MechanismLegend(props: { t: RuntimeText["t"] }) {
-+  return (
-+    <div
-+      data-oco-runtime-legend
-+      class="flex flex-wrap items-center gap-x-3 gap-y-1 text-11-regular font-mono text-text-weak my-1"
-+    >
-+      <span class="flex items-center gap-1">
-+        <span aria-hidden="true" style={{ color: COLOR.model }}>■</span>
-+        <span>{props.t("legend.main")}</span>
-+      </span>
-+      <span class="flex items-center gap-1">
-+        <span aria-hidden="true" style={{ color: COLOR.subagent }}>■</span>
-+        <span>{props.t("legend.child")}</span>
-+      </span>
-+      <span class="flex items-center gap-1">
-+        <span aria-hidden="true" style={{ color: COLOR.tool }}>■</span>
-+        <span>{props.t("legend.tool")}</span>
-+      </span>
-+      <span class="flex items-center gap-1">
-+        <span aria-hidden="true" style={{ color: COLOR.attention }}>■</span>
-+        <span>{props.t("legend.attention")}</span>
-+      </span>
-+      <span class="flex items-center gap-1">
-+        <span aria-hidden="true">· ··●</span>
-+        <span>{props.t("legend.flow")}</span>
-+      </span>
-+    </div>
-+  )
-+}
-+
-+function MechanismDispatchEdge(props: {
-+  slot: MechanismSlot
-+  isReplay: boolean
-+  t: RuntimeText["t"]
-+}) {
-+  const slot = () => props.slot
-+  const isAwaiting = () => slot().awaiting
-+  const isActive = () => slot().dispatch
-+  const hasFlow = () => isActive() && !props.isReplay && !isAwaiting()
-+
-+  return (
-+    <div
-+      data-oco-runtime-edge={slot().toolID}
-+      data-oco-runtime-edge-dir="dispatch"
-+      data-oco-runtime-edge-active={isActive() ? "true" : "false"}
-+      edge-dir="dispatch"
-+      edge-active={isActive() ? "true" : "false"}
-+      class="relative overflow-hidden flex items-center justify-between px-2 py-0.5 text-11-regular font-mono rounded border min-w-0"
-+      classList={{
-+        "border-solid": isAwaiting(),
-+        "border-dashed": !isAwaiting(),
-+        "opacity-50": !isActive() && !isAwaiting(),
-+      }}
-+      style={{
-+        "border-color": isAwaiting()
-+          ? COLOR.attention
-+          : isActive()
-+            ? slot().kind === "child"
-+              ? COLOR.subagent
-+              : COLOR.tool
-+            : undefined,
-+        color: isAwaiting()
-+          ? COLOR.attention
-+          : isActive()
-+            ? slot().kind === "child"
-+              ? COLOR.subagent
-+              : COLOR.tool
-+            : undefined,
-+      }}
-+    >
-+      <span class="flex items-center gap-1 z-10">
-+        <span aria-hidden="true">↓</span>
-+        <span>{props.t("mechanism.dispatch")}</span>
-+      </span>
-+      <span class="text-10-regular text-text-weak z-10">
-+        {isActive() ? props.t("tool.state.running") : isAwaiting() ? props.t("tool.awaiting") : ""}
-+      </span>
-+      <Show when={hasFlow()}>
-+        <span
-+          data-oco-runtime-flow
-+          class="oco-flow-dispatch motion-reduce:animate-none absolute inset-x-0 h-0.5 opacity-40 pointer-events-none"
-+          style={{ "background-color": slot().kind === "child" ? COLOR.subagent : COLOR.tool }}
-+          aria-hidden="true"
-+        />
-+      </Show>
-+    </div>
-+  )
-+}
-+
-+function MechanismReturnEdge(props: {
-+  slot: MechanismSlot
-+  isReplay: boolean
-+  t: RuntimeText["t"]
-+}) {
-+  const slot = () => props.slot
-+  const isActive = () => slot().returning
-+  const hasFlow = () => isActive() && !props.isReplay
-+
-+  return (
-+    <div
-+      data-oco-runtime-edge={slot().toolID}
-+      data-oco-runtime-edge-dir="return"
-+      data-oco-runtime-edge-active={isActive() ? "true" : "false"}
-+      edge-dir="return"
-+      edge-active={isActive() ? "true" : "false"}
-+      class="relative overflow-hidden flex items-center justify-between px-2 py-0.5 text-11-regular font-mono rounded border border-dashed min-w-0"
-+      classList={{
-+        "opacity-50": !isActive(),
-+      }}
-+      style={{
-+        "border-color": isActive()
-+          ? slot().kind === "child"
-+            ? COLOR.subagent
-+            : COLOR.tool
-+          : undefined,
-+        color: isActive()
-+          ? slot().kind === "child"
-+            ? COLOR.subagent
-+            : COLOR.tool
-+          : undefined,
-+      }}
-+    >
-+      <span class="flex items-center gap-1 z-10">
-+        <span aria-hidden="true">↑</span>
-+        <span>{props.t("mechanism.return")}</span>
-+      </span>
-+      <span class="text-10-regular text-text-weak z-10">
-+        {isActive() ? props.t("tool.state.running") : ""}
-+      </span>
-+      <Show when={hasFlow()}>
-+        <span
-+          data-oco-runtime-flow
-+          class="oco-flow-return motion-reduce:animate-none absolute inset-x-0 h-0.5 opacity-40 pointer-events-none"
-+          style={{ "background-color": slot().kind === "child" ? COLOR.subagent : COLOR.tool }}
-+          aria-hidden="true"
-+        />
-+      </Show>
-+    </div>
-+  )
-+}
-+
-+function MechanismToolSlot(props: {
-+  slot: MechanismSlot
-+  rawTool: Accessor<RuntimeTool | undefined>
-+  isReplay: boolean
-+  t: RuntimeText["t"]
-+  copy?: RuntimeText
-+  isOpen: boolean
-+  onToggle: () => void
-+  attention?: RuntimeAttention
-+  pending?: boolean
-+  failed?: boolean
-+  onRespond?: (reply: "once" | "always" | "reject") => void
-+  onView?: (view: any) => void
-+}) {
-+  const slot = () => props.slot
-+  const glyph = () => slotGlyph(slot())
-+  const statusText = () =>
-+    slot().state === "running"
-+      ? props.t("tool.state.running")
-+      : slot().state === "completed"
-+        ? props.t("tool.state.completed")
-+        : slot().state === "error"
-+          ? props.t("tool.state.error")
-+          : props.t("tool.state.pending")
-+
-+  const info = createMemo(() => {
-+    const raw = props.rawTool()
-+    if (!raw) {
-+      return {
-+        startText: props.t("tool.detail.unknown"),
-+        endText: props.t("tool.detail.unknown"),
-+        durationText: props.t("tool.detail.unknown"),
-+        evidence: undefined,
-+        callID: slot().toolID,
-+        sessionID: undefined,
-+        error: slot().error,
-+      }
-+    }
-+    return toolDetail(raw, props.t, props.copy?.intl())
-+  })
-+
-+  return (
-+    <div
-+      data-oco-runtime-tool={slot().toolID}
-+      data-oco-runtime-node={slot().toolID}
-+      data-oco-runtime-node-kind="tool"
-+      node-kind="tool"
-+      data-oco-runtime-attention={props.attention ? props.attention.id : undefined}
-+      data-oco-runtime-attention-kind={props.attention ? props.attention.kind : undefined}
-+      data-oco-runtime-pending={props.pending ? "" : undefined}
-+      class="flex flex-col gap-1.5 p-2 rounded bg-surface-inset-base font-mono text-11-regular min-w-0 break-words"
-+      classList={{
-+        "border border-solid": Boolean(slot().awaiting),
-+        "border border-dashed border-border-subtle": !slot().awaiting,
-+      }}
-+      style={{
-+        "border-color": slot().awaiting ? COLOR.attention : COLOR.tool,
-+      }}
-+    >
-+      <button
-+        type="button"
-+        class={`w-full flex items-center gap-1.5 min-w-0 text-left bg-transparent border-0 p-0 ${FOCUS} rounded cursor-pointer font-mono`}
-+        data-oco-runtime-tool-toggle={slot().toolID}
-+        aria-expanded={props.isOpen}
-+        aria-controls={`oco-runtime-tool-detail-${slot().toolID}`}
-+        onClick={props.onToggle}
-+      >
-+        <span aria-hidden="true">{glyph()}</span>
-+        <span class="text-12-medium text-text-strong break-words">{slot().label}</span>
-+        <span class="text-text-weak shrink-0">· {props.t("legend.tool")}</span>
-+        <span class="ml-auto shrink-0 text-text-weak">{statusText()}</span>
-+      </button>
-+
-+      <div class="text-text-weak break-words font-mono">{slot().input}</div>
-+
-+      <Show when={slot().awaiting && props.attention}>
-+        {(att) => (
-+          <div class="flex flex-col gap-1 p-1 rounded bg-surface-base font-mono">
-+            <div class="text-11-medium" style={{ color: COLOR.attention }}>
-+              <span aria-hidden="true">!</span> {attentionText(props.t, att())}
-+            </div>
-+            <Show when={props.pending}>
-+              <div class="text-10-regular text-text-weak">{props.t("action.pending")}</div>
-+            </Show>
-+            <Show when={props.failed}>
-+              <div class="text-10-regular" style={{ color: COLOR.error }}>{props.t("action.failed")}</div>
-+            </Show>
-+            <Show when={!props.isReplay}>
-+              <div class="flex flex-wrap gap-1 mt-0.5">
-+                <Show when={att().kind === "permission"}>
-+                  <button
-+                    type="button"
-+                    class={BTN}
-+                    data-oco-runtime-reply="once"
-+                    disabled={props.pending}
-+                    onClick={() => props.onRespond?.("once")}
-+                  >
-+                    {props.t("action.permission.once")}
-+                  </button>
-+                  <button
-+                    type="button"
-+                    class={BTN}
-+                    data-oco-runtime-reply="always"
-+                    disabled={props.pending}
-+                    onClick={() => props.onRespond?.("always")}
-+                  >
-+                    {props.t("action.permission.always")}
-+                  </button>
-+                  <button
-+                    type="button"
-+                    class={BTN}
-+                    data-oco-runtime-reply="reject"
-+                    disabled={props.pending}
-+                    onClick={() => props.onRespond?.("reject")}
-+                  >
-+                    {props.t("action.permission.reject")}
-+                  </button>
-+                </Show>
-+                <Show when={att().kind === "question"}>
-+                  <button
-+                    type="button"
-+                    class={BTN}
-+                    data-oco-runtime-question="answer"
-+                    disabled={props.pending}
-+                    onClick={() => props.onView?.("chat")}
-+                  >
-+                    {props.t("action.question.answer")}
-+                  </button>
-+                  <button
-+                    type="button"
-+                    class={BTN}
-+                    data-oco-runtime-question="reject"
-+                    disabled={props.pending}
-+                    onClick={() => props.onRespond?.("reject")}
-+                  >
-+                    {props.t("action.question.reject")}
-+                  </button>
-+                </Show>
-+              </div>
-+            </Show>
-+          </div>
-+        )}
-+      </Show>
-+
-+      <Show when={slot().lastOutput}>
-+        <div class="min-w-0 break-words whitespace-pre-wrap text-10-regular text-text-weak">
-+          {slot().lastOutput}
-+        </div>
-+      </Show>
-+
-+      <Show when={slot().error}>
-+        <div class="min-w-0 break-words text-10-regular" style={{ color: COLOR.error }}>
-+          {slot().error}
-+        </div>
-+      </Show>
-+
-+      <Show when={props.isOpen}>
-+        <div
-+          id={`oco-runtime-tool-detail-${slot().toolID}`}
-+          data-oco-runtime-tool-detail={slot().toolID}
-+          class="flex flex-col gap-1 pt-1.5 border-t border-border-subtle text-10-regular text-text-weak font-mono"
-+        >
-+          <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-+            <span>
-+              <span class="text-text-strong">{props.t("tool.detail.start")}:</span> {info().startText}
-+            </span>
-+            <span>
-+              <span class="text-text-strong">{props.t("tool.detail.end")}:</span> {info().endText}
-+            </span>
-+            <span>
-+              <span class="text-text-strong">{props.t("tool.detail.duration")}:</span> {info().durationText}
-+            </span>
-+            <Show when={info().evidence}>
-+              {(ev) => (
-+                <span>
-+                  <span class="text-text-strong">{props.t("tool.detail.evidence")}:</span> {props.t(`evidence.${ev()}` as any) || ev()}
-+                </span>
-+              )}
-+            </Show>
-+          </div>
-+          <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-+            <span>
-+              <span class="text-text-strong">{props.t("tool.detail.call_id")}:</span> {info().callID}
-+            </span>
-+          </div>
-+        </div>
-+      </Show>
-+    </div>
-+  )
-+}
-+
-+function MechanismChildSlot(props: {
-+  slot: MechanismSlot
-+  rawTool: Accessor<RuntimeTool | undefined>
-+  isReplay: boolean
-+  t: RuntimeText["t"]
-+  copy?: RuntimeText
-+  isOpen: boolean
-+  onToggle: () => void
-+  isChildOpen: boolean
-+  onToggleChild: () => void
-+  assembleChild?: (sessionID: string) => RuntimeModel
-+  now?: Accessor<number>
-+  onOpenSession?: (sessionID: string) => void
-+}) {
-+  const slot = () => props.slot
-+  const glyph = () => slotGlyph(slot())
-+  const rawChild = () => props.rawTool()?.child
-+  const sessionID = () => rawChild()?.sessionID
-+
-+  const lifecycleText = () =>
-+    props.isReplay
-+      ? props.t("child.lifecycle.unknown")
-+      : slot().lifecycle
-+        ? props.t(`child.lifecycle.${slot().lifecycle}` as any)
-+        : props.t("child.lifecycle.unknown")
-+
-+  const taskStatusText = () =>
-+    slot().state === "running"
-+      ? props.t("tool.state.running")
-+      : slot().state === "completed"
-+        ? props.t("tool.state.completed")
-+        : slot().state === "error"
-+          ? props.t("tool.state.error")
-+          : props.t("tool.state.pending")
-+
-+  const info = createMemo(() => {
-+    const raw = props.rawTool()
-+    if (!raw) {
-+      return {
-+        startText: props.t("tool.detail.unknown"),
-+        endText: props.t("tool.detail.unknown"),
-+        durationText: props.t("tool.detail.unknown"),
-+        evidence: undefined,
-+        callID: slot().toolID,
-+        sessionID: sessionID(),
-+        error: slot().error,
-+      }
-+    }
-+    return toolDetail(raw, props.t, props.copy?.intl())
-+  })
-+
-+  return (
-+    <div
-+      data-oco-runtime-tool={slot().toolID}
-+      data-oco-runtime-node={slot().toolID}
-+      data-oco-runtime-node-kind="child"
-+      node-kind="child"
-+      class="flex flex-col gap-1.5 p-2 rounded bg-surface-inset-base font-mono text-11-regular border border-dashed min-w-0 break-words"
-+      style={{
-+        "border-color": COLOR.subagent,
-+      }}
-+    >
-+      <button
-+        type="button"
-+        class={`w-full flex items-center gap-1.5 min-w-0 text-left bg-transparent border-0 p-0 ${FOCUS} rounded cursor-pointer font-mono`}
-+        data-oco-runtime-tool-toggle={slot().toolID}
-+        aria-expanded={props.isOpen}
-+        aria-controls={`oco-runtime-tool-detail-${slot().toolID}`}
-+        onClick={props.onToggle}
-+      >
-+        <span aria-hidden="true">{glyph()}</span>
-+        <span class="text-12-medium text-text-strong break-words" style={{ color: COLOR.subagent }}>{slot().label}</span>
-+        <span class="text-text-weak shrink-0">· {props.t("legend.child")}</span>
-+        <span class="ml-auto shrink-0 text-text-weak">{taskStatusText()}</span>
-+      </button>
-+
-+      <Show when={slot().description || slot().input}>
-+        <div class="text-text-weak break-words font-mono">
-+          {slot().description || slot().input}
-+        </div>
-+      </Show>
-+
-+      <div class="flex flex-wrap items-center gap-1.5 text-11-regular font-mono text-text-strong">
-+        <span>{taskStatusText()}</span>
-+        <span class="text-text-weak">·</span>
-+        <span>{lifecycleText()}</span>
-+        <Show when={slot().activity}>
-+          <span class="text-text-weak">·</span>
-+          <span>{slot().activity!.name}{slot().activity!.count > 1 ? ` ×${slot().activity!.count}` : ""}</span>
-+        </Show>
-+      </div>
-+
-+      <Show when={slot().activity}>
-+        <div class="text-text-weak font-mono break-words text-10-regular">
-+          └ {props.t("child.current_tool", { name: slot().activity!.name })}
-+        </div>
-+      </Show>
-+
-+      <Show when={slot().nested > 0}>
-+        <div class="text-text-weak font-mono text-10-regular">
-+          └ {props.t("child.nested_count", { count: slot().nested })}
-+        </div>
-+      </Show>
-+
-+      <Show when={sessionID()}>
-+        {(sid) => (
-+          <div class="mt-1">
-+            <button
-+              type="button"
-+              class={`${BTN} self-start`}
-+              data-oco-runtime-child-toggle={sid()}
-+              aria-expanded={props.isChildOpen}
-+              onClick={props.onToggleChild}
-+            >
-+              {props.isChildOpen ? props.t("child.collapse") : props.t("child.expand")}
-+            </button>
-+            <Show when={props.isChildOpen}>
-+              <div class="mt-2">
-+                <RuntimeChildPanel
-+                  sessionID={sid()}
-+                  lifecycle={props.isReplay ? "unknown" : (slot().lifecycle ?? "unknown")}
-+                  model={createMemo(() =>
-+                    props.assembleChild ? props.assembleChild(sid()) : ({} as RuntimeModel),
-+                  )}
-+                  now={props.now ?? (() => Date.now())}
-+                  t={props.t}
-+                  depth={1}
-+                  ancestors={[sid()]}
-+                  childOpen={() => props.isChildOpen}
-+                  toggleChild={() => props.onToggleChild()}
-+                  assembleChild={props.assembleChild}
-+                  onOpen={props.onOpenSession}
-+                />
-+              </div>
-+            </Show>
-+          </div>
-+        )}
-+      </Show>
-+
-+      <Show when={props.isOpen}>
-+        <div
-+          id={`oco-runtime-tool-detail-${slot().toolID}`}
-+          data-oco-runtime-tool-detail={slot().toolID}
-+          class="flex flex-col gap-1 pt-1.5 border-t border-border-subtle text-10-regular text-text-weak font-mono"
-+        >
-+          <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-+            <span>
-+              <span class="text-text-strong">{props.t("tool.detail.start")}:</span> {info().startText}
-+            </span>
-+            <span>
-+              <span class="text-text-strong">{props.t("tool.detail.end")}:</span> {info().endText}
-+            </span>
-+            <span>
-+              <span class="text-text-strong">{props.t("tool.detail.duration")}:</span> {info().durationText}
-+            </span>
-+            <Show when={info().evidence}>
-+              {(ev) => (
-+                <span>
-+                  <span class="text-text-strong">{props.t("tool.detail.evidence")}:</span> {props.t(`evidence.${ev()}` as any) || ev()}
-+                </span>
-+              )}
-+            </Show>
-+          </div>
-+          <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-+            <span>
-+              <span class="text-text-strong">{props.t("tool.detail.call_id")}:</span> {info().callID}
-+            </span>
-+            <Show when={info().sessionID}>
-+              {(id) => (
-+                <span>
-+                  <span class="text-text-strong">{props.t("tool.detail.session_id")}:</span> {id()}
-+                </span>
-+              )}
-+            </Show>
-+          </div>
-+        </div>
-+      </Show>
-+    </div>
-+  )
++  enteredStack?: Accessor<string[]>
++  onEnterChild?: (sessionID: string) => void
++  onNavigateCrumb?: (index: number) => void
++  openDetailId?: Accessor<string | undefined>
++  onToggleDetail?: (id: string | undefined) => void
++  otherAttentionTools?: Accessor<RuntimeTool[]>
++  reasoningList?: Accessor<RuntimeReasoning[]>
 +}
 +
 +export function RuntimeMechanism(props: RuntimeMechanismProps) {
-+  let rootRef: HTMLDivElement | undefined
-+  const [internalNarrow, setInternalNarrow] = createSignal(false)
++  const t = props.t
++  const copy = props.copy
++  const now = () => props.now?.() ?? Date.now()
 +
-+  onMount(() => {
-+    if (typeof ResizeObserver === "function" && rootRef) {
-+      const ro = new ResizeObserver((entries) => {
-+        for (const entry of entries) {
-+          setInternalNarrow(entry.contentRect.width < 560)
-+        }
-+      })
-+      ro.observe(rootRef)
-+      setInternalNarrow(rootRef.clientWidth < 560)
-+      onCleanup(() => ro.disconnect())
-+    }
-+  })
-+
-+  const isNarrow = () => props.narrow?.() ?? internalNarrow()
-+  const mechanism = createMemo(() => mechanismOf(props.model(), props.childOf))
-+  const isReplay = () => props.model().mode === "replay"
-+
-+  const [localOpenTools, setLocalOpenTools] = createSignal<ReadonlySet<string>>(new Set())
-+  const isToolOpen = (id: string) => (props.isToolOpen ? props.isToolOpen(id) : localOpenTools().has(id))
-+  const toggleTool = (id: string) => {
-+    if (props.toggleTool) {
-+      props.toggleTool(id)
++  // Local navigation and detail state fallbacks
++  const [internalEnteredStack, setInternalEnteredStack] = createSignal<string[]>([])
++  const enteredStack = () => props.enteredStack?.() ?? internalEnteredStack()
++  const onEnterChild = (id: string) => {
++    if (props.onEnterChild) {
++      props.onEnterChild(id)
 +    } else {
-+      setLocalOpenTools((prev) => {
-+        const next = new Set(prev)
-+        if (next.has(id)) next.delete(id)
-+        else next.add(id)
-+        return next
-+      })
++      if (props.childOpen && !props.childOpen(id)) {
++        props.toggleChild?.(id)
++      }
++      setInternalEnteredStack((prev) => [...prev, id])
++    }
++  }
++  const onNavigateCrumb = (index: number) => {
++    if (props.onNavigateCrumb) {
++      props.onNavigateCrumb(index)
++    } else {
++      setInternalEnteredStack((prev) => (index < 0 ? [] : prev.slice(0, index + 1)))
 +    }
 +  }
 +
-+  const [localOpenChildren, setLocalOpenChildren] = createSignal<ReadonlySet<string>>(new Set())
-+  const isChildOpen = (id: string) => (props.childOpen ? props.childOpen(id) : localOpenChildren().has(id))
-+  const toggleChild = (id: string) => {
-+    if (props.toggleChild) {
-+      props.toggleChild(id)
++  const [internalDetailId, setInternalDetailId] = createSignal<string | undefined>()
++  const openDetailId = () => props.openDetailId?.() ?? internalDetailId()
++  const toggleDetail = (id: string | undefined) => {
++    if (props.onToggleDetail) {
++      props.onToggleDetail(id)
 +    } else {
-+      setLocalOpenChildren((prev) => {
-+        const next = new Set(prev)
-+        if (next.has(id)) next.delete(id)
-+        else next.add(id)
-+        return next
-+      })
++      setInternalDetailId((prev) => (prev === id ? undefined : id))
 +    }
 +  }
 +
-+  const allSlots = createMemo<MechanismSlot[]>(() => {
-+    const m = mechanism()
-+    return [...m.tools, ...m.children]
++  // Active target session model: if inside a child session, resolve that child
++  const currentSessionID = () => {
++    const stack = enteredStack()
++    return stack.length > 0 ? stack[stack.length - 1] : undefined
++  }
++
++  const currentChildModel = createMemo<RuntimeModel | undefined>(() => {
++    const id = currentSessionID()
++    if (!id) return undefined
++    return props.childOf?.(id) ?? props.assembleChild?.(id)
 +  })
 +
-+  const rawToolMap = createMemo(() => {
-+    const map = new Map<string, RuntimeTool>()
-+    for (const tool of props.model().tools) {
-+      map.set(tool.id, tool)
++  // The model displayed in the tree: child model if navigated into child, else root model
++  const activeModel = () => currentChildModel() ?? props.model()
++  const isReplay = () => activeModel().mode === "replay"
++  const isLive = () => activeModel().mode === "live"
++
++  const mechanism = createMemo(() =>
++    mechanismOf(activeModel(), (id) => props.childOf?.(id) ?? props.assembleChild?.(id)),
++  )
++
++  const lanes = createMemo<Lane[]>(() => lanesOf(mechanism()))
++
++  // Find lifecycle & agent of current entered session in parent
++  const currentChildInfo = createMemo(() => {
++    const id = currentSessionID()
++    if (!id) return undefined
++    const parentTools = props.model().tools
++    const tRow = parentTools.find((t) => t.child?.sessionID === id)
++    return {
++      agent: tRow?.child?.agent ?? tRow?.name ?? id,
++      lifecycle: tRow?.child?.lifecycle ?? ("running" as ChildLifecycle),
 +    }
-+    return map
 +  })
 +
-+  const attentionMap = createMemo(() => {
-+    const map = new Map<string, RuntimeAttention>()
-+    const atts = props.model().run.attention
-+    for (const att of atts) {
-+      for (const tool of props.model().tools) {
-+        if (tool.awaiting?.id === att.id || (att.toolRef && tool.messageID === att.toolRef.messageID && tool.callID === att.toolRef.callID)) {
-+          map.set(tool.id, att)
-+        }
++  // Breadcrumb agent names
++  const agentNameFor = (id: string) => {
++    const parentTools = props.model().tools
++    const tRow = parentTools.find((t) => t.child?.sessionID === id)
++    return tRow?.child?.agent ?? tRow?.name ?? id
++  }
++
++  // Focus sentence for active model
++  const focus = () => activeModel().focus
++  const focusSentence = () => {
++    const f = focus()
++    if (f.kind === "attention") {
++      const a = f.attention
++      return a.kind === "permission"
++        ? t("focus.attention.permission", { what: [a.permission, ...a.patterns].join(" ") })
++        : t("focus.attention.question", { what: a.text })
++    }
++    if (f.kind === "retry") {
++      return t("focus.retry", { attempt: f.attempt, message: f.message })
++    }
++    if (f.kind === "error") {
++      return f.message ? t("focus.error", { message: f.message }) : t("focus.error.unknown")
++    }
++    if (f.kind === "working") {
++      return f.tool
++        ? t("focus.working.tool", { tool: f.tool.child?.agent ?? f.tool.name, input: f.tool.input })
++        : t(`stage.${f.stage === "idle" ? "prepare" : f.stage}` as any)
++    }
++    if (f.kind === "interrupted") return t("focus.interrupted")
++    if (f.kind === "cancelled") return t("focus.cancelled")
++    if (f.kind === "done") return t("focus.done")
++    return t("focus.idle")
++  }
++
++  const retryWaitText = () => {
++    const f = focus()
++    if (f.kind !== "retry" || !(f as { next?: number }).next) return ""
++    const wait = retryWait((f as { next: number }).next, now())
++    return wait.due ? t("retry.soon") : `${wait.seconds}s`
++  }
++
++  // Active reasoning
++  const currentReasoning = createMemo<RuntimeReasoning | undefined>(() => {
++    const list = props.reasoningList?.()
++    if (list && list.length > 0) return list[list.length - 1]
++    return undefined
++  })
++
++  let thinkBodyRef: HTMLDivElement | undefined
++  createEffect(() => {
++    const r = currentReasoning()
++    if (r?.streaming && thinkBodyRef) {
++      thinkBodyRef.scrollTop = thinkBodyRef.scrollHeight
++    }
++  })
++
++  const thinkState = () => {
++    const r = currentReasoning()
++    if (!r) return t("think.title")
++    if (isReplay()) {
++      return r.streaming ? t("reasoning.replay.running") : t("reasoning.completed")
++    }
++    return r.streaming ? t("reasoning.streaming") : t("reasoning.completed")
++  }
++
++  // Active detail tool
++  const activeDetailTool = createMemo<RuntimeTool | undefined>(() => {
++    const id = openDetailId()
++    if (!id) return undefined
++    if (id === "__other__") {
++      return {
++        id: "__other__",
++        callID: "",
++        messageID: "",
++        request: 0,
++        name: t("runtime.other_attention"),
++        state: "error",
++        interrupted: false,
++        cancelled: false,
++        input: "",
 +      }
 +    }
-+    return map
++    return activeModel().tools.find((t) => t.id === id) ?? props.model().tools.find((t) => t.id === id)
 +  })
 +
-+  const mainAgent = () => mechanism().main.agent ?? props.t("mechanism.main")
-+  const mainModel = () => mechanism().main.model ?? props.t("runtime.unknown")
-+  const mainCost = () => {
-+    const lastReq = props.model().requests[props.model().requests.length - 1]
-+    return lastReq?.cost
-+  }
-+
-+  const locale = () => props.copy?.intl() ?? "en"
-+
-+  const usageInputText = () => {
-+    const u = props.model().usage.tokens
-+    if (u) return countCompact(u.input, locale())
-+    return props.model().usage.settled ? props.t("usage.unknown") : props.t("usage.counting")
-+  }
-+
-+  const usageOutputText = () => {
-+    const u = props.model().usage.tokens
-+    if (u) return countCompact(u.output, locale())
-+    return props.t("runtime.unsettled")
-+  }
-+
-+  const usageContextText = () => {
-+    const ctx = props.model().usage.context
-+    if (ctx.used !== undefined) {
-+      const used = countCompact(ctx.used, locale())
-+      return ctx.limit ? `${used}/${countCompact(ctx.limit, locale())}` : used
++  const dispatchText = () => {
++    if (mechanism().slotsFrom) {
++      return t("mechanism.slots_from", { n: mechanism().slotsFrom! })
 +    }
-+    return props.t("runtime.unknown")
++    const candidateSlots = lanes().filter((l) => l.kind === "child" || l.kind === "tool")
++    return t("mechanism.dispatch.parallel", { count: candidateSlots.length })
 +  }
++
++  const mainAgent = () => mechanism().main.agent ?? t("mechanism.main")
++  const mainModel = () => mechanism().main.model ?? t("runtime.unknown")
++  const activeStage = () => mechanism().stage
++
++  const isEntered = (sessId?: string) => Boolean(sessId && enteredStack().includes(sessId))
 +
 +  return (
-+    <div
-+      ref={rootRef}
-+      data-oco-runtime-mechanism="expanded"
-+      class="flex flex-col gap-3 min-w-0 font-mono"
-+    >
-+      <style>{`
-+        @keyframes oco-flow-down {
-+          0% { transform: translateY(-100%); opacity: 0; }
-+          50% { opacity: 1; }
-+          100% { transform: translateY(100%); opacity: 0; }
-+        }
-+        @keyframes oco-flow-up {
-+          0% { transform: translateY(100%); opacity: 0; }
-+          50% { opacity: 1; }
-+          100% { transform: translateY(-100%); opacity: 0; }
-+        }
-+        .oco-flow-dispatch {
-+          animation: oco-flow-down 1.2s linear infinite;
-+        }
-+        .oco-flow-return {
-+          animation: oco-flow-up 1.2s linear infinite;
-+        }
-+        @media (prefers-reduced-motion: reduce) {
-+          .oco-flow-dispatch,
-+          .oco-flow-return,
-+          [data-oco-runtime-flow] {
-+            animation-name: none !important;
-+            animation: none !important;
-+          }
-+        }
-+      `}</style>
++    <div class="tree-wrapper flex flex-col min-h-0 min-w-0 h-full relative">
++      {/* Breadcrumb when inside subagent */}
++      <Show when={enteredStack().length > 0}>
++        <nav data-oco-runtime-crumb class="flex items-center gap-2 text-12-regular mb-3 whitespace-nowrap overflow-x-auto shrink-0 font-mono">
++          <button
++            type="button"
++            class="bg-transparent border-0 p-0 cursor-pointer font-mono hover:underline"
++            style={{ color: "var(--rt-main)" }}
++            onClick={() => onNavigateCrumb(-1)}
++          >
++            {t("crumb.main")}
++          </button>
++          <For each={enteredStack()}>
++            {(sessId, idx) => (
++              <span class="flex items-center gap-2">
++                <span style={{ color: "var(--rt-faint)" }}>›</span>
++                <button
++                  type="button"
++                  class="bg-transparent border-0 p-0 cursor-pointer font-mono hover:underline"
++                  style={{ color: idx() === enteredStack().length - 1 ? "var(--rt-sub)" : "var(--rt-weak)" }}
++                  onClick={() => onNavigateCrumb(idx())}
++                >
++                  {agentNameFor(sessId)}
++                </button>
++              </span>
++            )}
++          </For>
++        </nav>
++      </Show>
 +
-+      {/* 3. Legend */}
-+      <MechanismLegend t={props.t} />
-+
-+      {/* 4. Agent Tree */}
-+      <div class="flex flex-col gap-3 min-w-0">
-+        {/* Main Agent Node + Reasoning */}
-+        <div
-+          class="grid gap-3 items-start min-w-0"
-+          classList={{
-+            "grid-cols-1": isNarrow() || !props.reasoningElement,
-+            "grid-cols-1 md:grid-cols-2": !isNarrow() && Boolean(props.reasoningElement),
-+          }}
-+        >
-+          {/* Main Node */}
++      {/* Main tree or subagent loading state */}
++      <Show
++        when={!currentSessionID() || currentChildModel()}
++        fallback={
 +          <div
-+            data-oco-runtime-node="main"
-+            data-oco-runtime-node-kind="main"
-+            node-kind="main"
-+            class="flex flex-col gap-1.5 p-2.5 rounded border border-dashed bg-surface-inset-base font-mono text-11-regular min-w-0 break-words"
-+            style={{ "border-color": COLOR.model }}
++            data-oco-runtime-child={currentSessionID()}
++            data-oco-runtime-child-lifecycle={currentChildInfo()?.lifecycle ?? "running"}
++            data-oco-runtime-child-depth={enteredStack().length}
++            class="rounded-lg p-8 flex items-center justify-center text-12-regular flex-1 font-mono"
++            style={{ background: "var(--rt-panel)", border: "1px solid var(--rt-line)", color: "var(--rt-weak)" }}
 +          >
-+            <div class="flex flex-wrap items-center justify-between gap-2 min-w-0">
-+              <div class="flex items-center gap-1.5 min-w-0 font-medium" style={{ color: COLOR.model }}>
-+                <span>{mainAgent()}</span>
-+                <span class="text-text-weak font-normal">· {props.t("legend.main")}</span>
-+              </div>
-+              <div class="text-11-regular text-text-weak shrink-0">
-+                <span>{mainModel()}</span>
-+                <span> · {props.t("runtime.request_num", { n: mechanism().main.request })}</span>
-+              </div>
-+            </div>
-+
-+            {/* Stage chips */}
-+            <ol
-+              aria-label={props.t("stage.label")}
-+              data-oco-runtime-stage={props.model().stage}
-+              class="m-0 p-0 list-none flex flex-wrap items-center gap-1.5 my-0.5"
-+            >
-+              <For each={STAGES}>
-+                {(s) => {
-+                  const isCurrent = () => props.model().stage === s
-+                  return (
-+                    <li
-+                      aria-current={isCurrent() ? "step" : undefined}
-+                      class="px-1.5 py-0.5 rounded text-10-regular border min-w-0"
-+                      classList={{
-+                        "border-solid bg-surface-base text-text-strong font-medium": isCurrent(),
-+                        "border-border-subtle text-text-weak": !isCurrent(),
-+                      }}
-+                      style={{
-+                        "border-color": isCurrent() ? COLOR.model : undefined,
-+                        color: isCurrent() ? COLOR.model : undefined,
-+                      }}
-+                    >
-+                      {props.t(`stage.${s}` as any)}
-+                    </li>
-+                  )
-+                }}
-+              </For>
-+            </ol>
-+
-+            {/* Usage line */}
-+            <div data-oco-runtime-usage class="text-11-regular text-text-weak font-mono flex flex-wrap items-center gap-x-2 gap-y-0.5">
-+              <span>{props.t("runtime.usage.input", { value: usageInputText() })}</span>
-+              <span>·</span>
-+              <span>{props.t("runtime.usage.output", { value: usageOutputText() })}</span>
-+              <span>·</span>
-+              <span>{props.t("runtime.usage.context", { value: usageContextText() })}</span>
-+              <Show when={mainCost() !== undefined && mainCost()! > 0}>
-+                <span>·</span>
-+                <span>{props.t("runtime.usage.cost", { value: String(mainCost()) })}</span>
-+              </Show>
-+            </div>
++            {t("child.loading")}
 +          </div>
-+
-+          {/* Reasoning Side-Note */}
-+          <Show when={props.reasoningElement}>
-+            <div class="min-w-0">{props.reasoningElement}</div>
-+          </Show>
-+        </div>
-+
-+        {/* Dispatch Section */}
-+        <div class="flex flex-col gap-1 min-w-0">
-+          <div class="flex items-center justify-center gap-2 text-11-regular font-mono text-text-weak my-0.5">
-+            <span>{props.t("mechanism.dispatch.parallel", { count: allSlots().length })}</span>
-+            <Show when={mechanism().slotsFrom}>
-+              {(n) => <span data-oco-runtime-slots-from={n()}>{props.t("mechanism.slots_from", { n: n() })}</span>}
-+            </Show>
-+          </div>
-+
-+          <Show
-+            when={!mechanism().empty}
-+            fallback={
-+              <div class="text-11-regular text-text-weak py-3 text-center bg-surface-inset-base rounded border border-dashed border-border-subtle font-mono">
-+                {props.t("mechanism.empty")}
-+              </div>
-+            }
++        }
++      >
++        <div
++          {...(currentSessionID()
++            ? {
++                "data-oco-runtime-child": currentSessionID(),
++                "data-oco-runtime-child-lifecycle": currentChildInfo()?.lifecycle ?? "running",
++                "data-oco-runtime-child-depth": enteredStack().length,
++              }
++            : {})}
++          class="flex-1 min-h-0 min-w-0 flex flex-col"
++        >
++          <div
++            data-oco-runtime-mechanism="expanded"
++            class="tree rounded-lg py-4 px-5 grid min-h-0 min-w-0 flex-1 relative font-mono select-none"
++            style={{
++              background: "var(--rt-panel)",
++              border: "1px solid var(--rt-line)",
++              // Row minimums fit their content; the frame reserves at least their sum, so nothing spills.
++              "grid-template-rows": props.isStack?.() ? "auto 30px auto 30px auto" : "minmax(128px, 168px) 30px minmax(116px, 176px) 30px auto",
++              "align-content": "center",
++            }}
 +          >
-+            {/* Slot Rail: narrow uses vertical track, wide uses grid */}
++            {/* Row 1: Top Row (Main Node + Think Box) */}
 +            <div
-+              class="min-w-0"
-+              data-oco-runtime-rail={isNarrow() ? "vertical" : "grid"}
-+              classList={{
-+                "border-l border-dashed border-border-strong pl-3 ml-2 flex flex-col gap-3": isNarrow(),
-+                "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3": !isNarrow(),
-+              }}
++              class="grid gap-6 min-h-0"
++              style={{ "grid-template-columns": props.isNarrow560?.() ? "minmax(0, 1fr)" : "minmax(0, 3fr) minmax(0, 2fr)" }}
 +            >
-+              <For each={allSlots()}>
-+                {(slot) => {
-+                  const rawTool = () => rawToolMap().get(slot.toolID)
-+                  const att = () => attentionMap().get(slot.toolID)
-+                  const isPending = () => Boolean(props.pending?.()[att()?.id ?? ""])
-+                  const isFailed = () => Boolean(props.failed?.()[att()?.id ?? ""])
-+                  const handleRespond = (reply: "once" | "always" | "reject") => {
-+                    const a = att()
-+                    if (a && props.respond) props.respond(() => a, reply)
-+                  }
-+
-+                  return (
-+                    <div class="flex flex-col gap-1 min-w-0">
-+                      {/* Dispatch Edge */}
-+                      <MechanismDispatchEdge
-+                        slot={slot}
-+                        isReplay={isReplay()}
-+                        t={props.t}
-+                      />
-+
-+                      {/* Slot Node */}
-+                      <Show
-+                        when={slot.kind === "child"}
-+                        fallback={
-+                          <MechanismToolSlot
-+                            slot={slot}
-+                            rawTool={rawTool}
-+                            isReplay={isReplay()}
-+                            t={props.t}
-+                            copy={props.copy}
-+                            isOpen={isToolOpen(slot.toolID)}
-+                            onToggle={() => toggleTool(slot.toolID)}
-+                            attention={att()}
-+                            pending={isPending()}
-+                            failed={isFailed()}
-+                            onRespond={handleRespond}
-+                            onView={props.onView}
-+                          />
-+                        }
++              {/* Main Agent Node */}
++              <div
++                data-oco-runtime-node="main"
++                data-oco-runtime-node-kind="main"
++                node-kind="main"
++                class="rounded-md py-3 px-4 flex flex-col justify-center gap-1.5 min-w-0 min-h-0 overflow-hidden"
++                style={{ background: "var(--rt-inset)", border: "1px solid var(--rt-main)" }}
++              >
++                <div class="font-bold tracking-wide ell text-13-bold" style={{ color: "var(--rt-main)" }}>
++                  {mainAgent()}
++                </div>
++                <div class="ell text-12-regular" style={{ color: "var(--rt-weak)" }}>
++                  {mainModel()} · {t("summary.request", { n: mechanism().main.request })}
++                </div>
++                <div
++                  data-oco-runtime-focus={focus().kind}
++                  class="ell text-12-regular"
++                  style={{
++                    color: focus().kind === "error" ? "var(--rt-err)" : focus().kind === "attention" ? "var(--rt-attn)" : "var(--rt-text)",
++                  }}
++                  title={focusSentence()}
++                >
++                  {focusSentence()}
++                  <Show when={focus().kind === "retry" && (focus() as any).next}>
++                    <span data-oco-runtime-retry class="ml-2 font-mono">({retryWaitText()})</span>
++                  </Show>
++                  <Show when={focus().kind === "cancelled"}>
++                    <span data-oco-runtime-cancel="cancelled" class="ml-2 font-mono">({t("focus.cancelled")})</span>
++                  </Show>
++                </div>
++                <div data-oco-runtime-stage class="grid grid-cols-4 gap-2">
++                  <For each={STAGES}>
++                    {(s) => (
++                      <span
++                        class="text-center text-12-regular py-1 px-2 rounded border ell"
++                        classList={{ "font-semibold": activeStage() === s }}
++                        style={{
++                          "border-color": activeStage() === s ? "var(--rt-main)" : "var(--rt-line)",
++                          color: activeStage() === s ? "var(--rt-main)" : "var(--rt-weak)",
++                          background: activeStage() === s ? "color-mix(in srgb, var(--rt-main) 8%, transparent)" : "transparent",
++                        }}
 +                      >
-+                        <MechanismChildSlot
-+                          slot={slot}
-+                          rawTool={rawTool}
-+                          isReplay={isReplay()}
-+                          t={props.t}
-+                          copy={props.copy}
-+                          isOpen={isToolOpen(slot.toolID)}
-+                          onToggle={() => toggleTool(slot.toolID)}
-+                          isChildOpen={isChildOpen(rawTool()?.child?.sessionID ?? "")}
-+                          onToggleChild={() => toggleChild(rawTool()?.child?.sessionID ?? "")}
-+                          assembleChild={props.assembleChild}
-+                          now={props.now}
-+                          onOpenSession={props.onOpenSession}
++                        {t(`stage.short.${s}` as any)}
++                      </span>
++                    )}
++                  </For>
++                </div>
++              </div>
++
++              {/* Think Box */}
++              <div
++                data-oco-runtime-think
++                class="rounded-md py-3 px-4 grid gap-1.5 min-w-0 min-h-0 overflow-hidden"
++                style={{
++                  // Stacked layout has content-sized rows, so the think box carries its own fixed height.
++                  height: props.isStack?.() ? "148px" : undefined,
++                  background: "var(--rt-inset)",
++                  border: "1px dashed var(--rt-accent)",
++                  "grid-template-rows": "auto minmax(0, 1fr)",
++                }}
++              >
++                <div class="text-12-bold tracking-wide shrink-0 font-bold" style={{ color: "var(--rt-accent)" }}>
++                  {thinkState()}
++                </div>
++                <div
++                  ref={thinkBodyRef}
++                  class="overflow-y-auto min-h-0 text-12-regular leading-relaxed"
++                  style={{ color: "var(--rt-weak)" }}
++                >
++                  <Show
++                    when={currentReasoning()}
++                    fallback={<p class="m-0 italic" style={{ color: "var(--rt-faint)" }}>{t("think.none")}</p>}
++                  >
++                    {(r) => (
++                      <div
++                        data-oco-runtime-reasoning={r().partID}
++                        data-oco-runtime-reasoning-state={r().streaming ? "streaming" : "done"}
++                        class="whitespace-pre-wrap break-words"
++                      >
++                        {r().text || (r().streaming ? t("reasoning.replay.running") : "")}
++                      </div>
++                    )}
++                  </Show>
++                </div>
++              </div>
++            </div>
++
++            {/* Row 2: Dispatch Wire (44px) */}
++            <div class="wire relative h-[30px]">
++              <div class="stem absolute left-1/2 top-0 h-1/2 border-l border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
++              <div class="bus absolute left-[12.5%] right-[12.5%] top-1/2 border-t border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
++              <For each={lanes()}>
++                {(lane, i) => {
++                  const slot = lane.kind === "child" || lane.kind === "tool" ? lane.slot : undefined
++                  const isActive = slot?.dispatch ?? false
++                  const isAwaiting = slot?.awaiting ?? false
++                  return (
++                    <div
++                      class="drop absolute top-1/2 h-1/2 border-l border-dashed"
++                      style={{
++                        left: `${12.5 + i() * 25}%`,
++                        "border-color": isAwaiting
++                          ? "var(--rt-attn)"
++                          : isActive
++                            ? slot?.kind === "child"
++                              ? "var(--rt-sub)"
++                              : "var(--rt-tool)"
++                            : "var(--rt-line-strong)",
++                      }}
++                      data-oco-runtime-edge={slot?.toolID}
++                      data-oco-runtime-edge-dir="dispatch"
++                      data-oco-runtime-edge-active={isActive ? "true" : "false"}
++                      edge-dir="dispatch"
++                      edge-active={isActive ? "true" : "false"}
++                    >
++                      <Show when={isActive && isLive() && !isAwaiting}>
++                        <i
++                          data-oco-runtime-flow
++                          class="oco-flow-down motion-reduce:animate-none absolute w-[7px] h-[7px] rounded-full -ml-[3.5px]"
++                          style={{ background: slot?.kind === "child" ? "var(--rt-sub)" : "var(--rt-tool)" }}
 +                        />
 +                      </Show>
-+
-+                      {/* Return Edge */}
-+                      <MechanismReturnEdge
-+                        slot={slot}
-+                        isReplay={isReplay()}
-+                        t={props.t}
-+                      />
 +                    </div>
 +                  )
 +                }}
 +              </For>
-+
-+              {/* Tools Overflow Node */}
-+              <Show when={mechanism().toolsOverflow.total > 0}>
-+                <div
-+                  data-oco-runtime-overflow="tools"
-+                  class="flex items-center justify-center p-2 rounded bg-surface-inset-base border border-dashed border-border-subtle text-11-regular text-text-weak font-mono text-center min-w-0"
-+                >
-+                  {props.t("mechanism.overflow", {
-+                    total: mechanism().toolsOverflow.total,
-+                    running: mechanism().toolsOverflow.running,
-+                  })}
-+                </div>
-+              </Show>
-+
-+              {/* Children Overflow Node */}
-+              <Show when={mechanism().childrenOverflow.total > 0}>
-+                <div
-+                  data-oco-runtime-overflow="children"
-+                  class="flex items-center justify-center p-2 rounded bg-surface-inset-base border border-dashed border-border-subtle text-11-regular text-text-weak font-mono text-center min-w-0"
-+                >
-+                  {props.t("mechanism.overflow", {
-+                    total: mechanism().childrenOverflow.total,
-+                    running: mechanism().childrenOverflow.running,
-+                  })}
-+                </div>
-+              </Show>
++              <span
++                class="tag absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3.5 text-12-regular whitespace-nowrap"
++                style={{ background: "var(--rt-panel)", color: "var(--rt-weak)" }}
++                data-oco-runtime-slots-from={mechanism().slotsFrom}
++              >
++                {dispatchText()}
++              </span>
 +            </div>
-+          </Show>
-+        </div>
 +
-+        {/* Return Status Line */}
-+        <div class="flex items-center justify-center gap-2 text-11-regular font-mono text-text-weak my-0.5">
-+          <span>
-+            {props.model().stage === "fill"
-+              ? props.t("mechanism.return.flowing")
-+              : props.t("mechanism.return.idle")}
-+          </span>
-+        </div>
++            {/* Row 3: 4 Fixed Lanes */}
++            <div
++              data-oco-runtime-rail={props.isNarrow560?.() ? "vertical" : "grid"}
++              class="lanes grid gap-5 min-h-0"
++              style={{
++                "grid-template-columns": props.isNarrow560?.()
++                  ? "1fr"
++                  : props.isStack?.()
++                    ? "repeat(2, minmax(0, 1fr))"
++                    : "repeat(4, minmax(0, 1fr))",
++              }}
++            >
++              <For each={lanes()}>
++                {(lane, index) => {
++                  if (lane.kind === "empty") {
++                    return (
++                      <div
++                        data-oco-runtime-lane={index()}
++                        data-oco-runtime-lane-kind="empty"
++                        class="rounded-md border border-dashed flex items-center justify-center p-4 text-12-regular min-h-0 min-w-0"
++                        style={{ "border-color": "var(--rt-line)", color: "var(--rt-faint)", background: "transparent" , "min-height": props.isStack?.() ? "116px" : undefined }}
++                      >
++                        {t("lane.empty")}
++                      </div>
++                    )
++                  }
 +
-+        {/* Fill Node */}
-+        <div class="flex justify-center min-w-0">
-+          <div
-+            data-oco-runtime-fill
-+            class="flex flex-col items-center justify-center text-center px-4 py-2 rounded border border-dashed border-border-strong bg-surface-inset-base font-mono min-w-[240px] max-w-full"
-+          >
-+            <div class="text-12-medium text-text-strong break-words">
-+              {props.t("mechanism.fill.target", { agent: mainAgent() })}
++                  if (lane.kind === "overflow") {
++                    return (
++                      <div
++                        data-oco-runtime-lane={index()}
++                        data-oco-runtime-lane-kind="overflow"
++                        data-oco-runtime-overflow="tools"
++                        class="rounded-md border border-dashed flex items-center justify-center p-4 text-12-regular min-h-0 min-w-0 font-semibold"
++                        style={{ "border-color": "var(--rt-line-strong)", color: "var(--rt-weak)", background: "var(--rt-inset)" , "min-height": props.isStack?.() ? "116px" : undefined }}
++                      >
++                        +{lane.total} ({lane.running} {t("tool.state.running")})
++                      </div>
++                    )
++                  }
++
++                  const slot = lane.slot
++                  const isDone = slot.state === "completed" || (slot.kind === "child" && slot.lifecycle === "done")
++                  const isAwaiting = slot.awaiting
++                  const isError = slot.state === "error" || (slot.kind === "child" && slot.lifecycle === "error")
++                  const glyph = slotGlyph(slot)
++
++                  const statusText = () => {
++                    if (slot.kind === "child") return t(`tool.state.${slot.state}`)
++                    if (slot.interrupted) return t("tool.interrupted")
++                    return t(`tool.state.${slot.state}`)
++                  }
++
++                  const descOrInput = slot.description || slot.input
++                  const line3Text = () => {
++                    if (isAwaiting) return t("attention.wait_in_panel")
++                    if (slot.error) return slot.error
++                    // Subagent: lifecycle (separate from the task state in the header) plus what it is doing now.
++                    if (slot.kind === "child") {
++                      const life = t(`child.lifecycle.${slot.lifecycle ?? "unknown"}` as any)
++                      return slot.activity ? `${life} · ${slot.activity.name} ×${slot.activity.count}` : life
++                    }
++                    if (slot.lastOutput) return slot.lastOutput
++                    return "—"
++                  }
++
++                  const childSessionID = () => {
++                    if (slot.kind !== "child") return undefined
++                    const tRow = activeModel().tools.find((t) => t.id === slot.toolID)
++                    return tRow?.child?.sessionID
++                  }
++
++                  const isCurrentDetail = () => openDetailId() === slot.toolID
++
++                  return (
++                    <div
++                      data-oco-runtime-lane={index()}
++                      data-oco-runtime-lane-kind={lane.kind}
++                      data-oco-runtime-tool={slot.toolID}
++                      data-oco-runtime-node={slot.toolID}
++                      data-oco-runtime-node-kind={slot.kind}
++                      node-kind={slot.kind}
++                      class="rounded-md py-3 px-3.5 flex flex-col gap-1.5 min-h-0 min-w-0 overflow-hidden text-12-regular"
++                      style={{
++                        "min-height": props.isStack?.() ? "116px" : undefined,
++                        background: isAwaiting
++                          ? "color-mix(in srgb, var(--rt-attn) 8%, var(--rt-inset))"
++                          : "var(--rt-inset)",
++                        border: isAwaiting
++                          ? "1px solid var(--rt-attn)"
++                          : slot.kind === "child"
++                            ? "1px solid var(--rt-sub)"
++                            : "1px solid var(--rt-tool)",
++                        opacity: isDone ? "0.62" : "1",
++                      }}
++                    >
++                      {/* Line 1: Header button (toggle detail panel) */}
++                      <button
++                        type="button"
++                        data-oco-runtime-tool-toggle={slot.toolID}
++                        aria-expanded={isCurrentDetail()}
++                        class={`w-full flex items-center justify-between gap-2 text-left bg-transparent border-0 p-0 rounded cursor-pointer font-mono min-w-0 ${FOCUS}`}
++                        onClick={() => toggleDetail(slot.toolID)}
++                        onKeyDown={(e) => {
++                          if (e.key === "Enter" || e.key === " ") {
++                            e.preventDefault()
++                            toggleDetail(slot.toolID)
++                          }
++                        }}
++                      >
++                        <span
++                          class="ell text-13-bold font-bold flex items-center gap-1.5 min-w-0"
++                          style={{
++                            color: isAwaiting
++                              ? "var(--rt-attn)"
++                              : slot.kind === "child"
++                                ? "var(--rt-sub)"
++                                : "var(--rt-tool)",
++                          }}
++                        >
++                          <span aria-hidden="true">{glyph}</span>
++                          <span class="ell">{slot.label}</span>
++                        </span>
++                        <span class="text-12-regular shrink-0" style={{ color: "var(--rt-weak)" }}>
++                          {statusText()}
++                        </span>
++                      </button>
++
++                      {/* Line 2: Description or input */}
++                      <div class="ell text-12-regular" style={{ color: "var(--rt-text)" }} title={descOrInput}>
++                        {descOrInput}
++                      </div>
++
++                      {/* Line 3: Activity or waiting or error */}
++                      <div
++                        class="ell text-12-regular"
++                        style={{
++                          color: isAwaiting
++                            ? "var(--rt-attn)"
++                            : isError
++                              ? "var(--rt-err)"
++                              : "var(--rt-weak)",
++                        }}
++                        title={line3Text()}
++                      >
++                        {line3Text()}
++                      </div>
++
++                      {/* Line 4: Action (enter subagent or details) */}
++                      <Show
++                        when={slot.kind === "child" && childSessionID()}
++                        fallback={
++                          <div class="mt-auto text-right text-12-regular">
++                            <span
++                              class="cursor-pointer hover:underline"
++                              style={{ color: "var(--rt-tool)" }}
++                              onClick={() => toggleDetail(slot.toolID)}
++                            >
++                              {t("tool.details_link")}
++                            </span>
++                          </div>
++                        }
++                      >
++                        {(sid) => (
++                          <div class="mt-auto text-right text-12-regular">
++                            <button
++                              type="button"
++                              data-oco-runtime-child-toggle={sid()}
++                              aria-expanded={isEntered(sid())}
++                              class="bg-transparent border-0 p-0 text-12-regular cursor-pointer font-mono hover:underline"
++                              style={{ color: "var(--rt-sub)" }}
++                              onClick={(e) => {
++                                e.stopPropagation()
++                                onEnterChild(sid())
++                              }}
++                            >
++                              {t("child.enter")}
++                            </button>
++                          </div>
++                        )}
++                      </Show>
++                    </div>
++                  )
++                }}
++              </For>
 +            </div>
-+            <div class="text-11-regular text-text-weak">
-+              {props.t("mechanism.fill.progress", {
-+                done: mechanism().fill.done,
-+                total: mechanism().fill.total,
-+              })}
++
++            {/* Row 4: Return Wire (44px) */}
++            <div class="wire relative h-[30px]">
++              <For each={lanes()}>
++                {(lane, i) => {
++                  const slot = lane.kind === "child" || lane.kind === "tool" ? lane.slot : undefined
++                  const isActive = slot?.returning ?? false
++                  return (
++                    <div
++                      class="drop absolute top-0 h-1/2 border-l border-dashed"
++                      style={{
++                        left: `${12.5 + i() * 25}%`,
++                        "border-color": isActive
++                          ? slot?.kind === "child"
++                            ? "var(--rt-sub)"
++                            : "var(--rt-tool)"
++                          : "var(--rt-line-strong)",
++                      }}
++                      data-oco-runtime-edge={slot?.toolID}
++                      data-oco-runtime-edge-dir="return"
++                      data-oco-runtime-edge-active={isActive ? "true" : "false"}
++                      edge-dir="return"
++                      edge-active={isActive ? "true" : "false"}
++                    >
++                      <Show when={isActive && isLive()}>
++                        <i
++                          data-oco-runtime-flow
++                          class="oco-flow-up motion-reduce:animate-none absolute w-[7px] h-[7px] rounded-full -ml-[3.5px]"
++                          style={{ background: slot?.kind === "child" ? "var(--rt-sub)" : "var(--rt-tool)" }}
++                        />
++                      </Show>
++                    </div>
++                  )
++                }}
++              </For>
++              <div class="bus absolute left-[12.5%] right-[12.5%] top-1/2 border-t border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
++              <div class="stem absolute left-1/2 top-1/2 h-1/2 border-l border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
 +            </div>
++
++            {/* Row 5: Fill Node */}
++            <div
++              data-oco-runtime-fill
++              class="fill justify-self-center rounded-md px-6 py-2.5 text-12-regular whitespace-nowrap border"
++              style={{
++                background: "var(--rt-inset)",
++                "border-color": "var(--rt-ok)",
++                color: "var(--rt-ok)",
++              }}
++            >
++              {t("mechanism.fill.target", { agent: mechanism().main.agent ?? t("mechanism.main") })}{" "}
++              <b class="font-semibold ml-1.5" style={{ color: "var(--rt-text)" }}>
++                {mechanism().fill.done} / {mechanism().fill.total}
++              </b>
++            </div>
++
++            {/* Absolutely Positioned Detail Panel */}
++            <Show when={activeDetailTool()}>
++              {(tool) => {
++                const isOther = () => tool().id === "__other__"
++                const info = createMemo(() => toolDetail(tool(), t, copy?.intl()))
++                return (
++                  <div
++                    data-oco-runtime-tool-detail={isOther() ? "other" : tool().id}
++                    class="absolute right-0 top-0 bottom-0 z-20 rounded-r-lg p-5 flex flex-col gap-3 font-mono text-12-regular select-text"
++                    style={{
++                      width: "45%",
++                      "max-width": "480px",
++                      background: "var(--rt-panel)",
++                      border: "1px solid var(--rt-line-strong)",
++                      "box-shadow": "-4px 0 16px rgba(0, 0, 0, 0.3)",
++                    }}
++                  >
++                    <div class="flex items-center justify-between pb-2 border-b" style={{ "border-color": "var(--rt-line)" }}>
++                      <h4 class="m-0 text-13-bold font-bold" style={{ color: "var(--rt-text)" }}>
++                        {isOther() ? t("runtime.other_attention") : tool().name}
++                      </h4>
++                      <button
++                        type="button"
++                        class="bg-transparent border-0 cursor-pointer text-12-regular p-1 font-mono hover:opacity-80"
++                        style={{ color: "var(--rt-weak)" }}
++                        onClick={() => toggleDetail(undefined)}
++                      >
++                        {t("detail.close")} ✕
++                      </button>
++                    </div>
++                    <div class="flex-1 overflow-y-auto flex flex-col gap-2.5 min-h-0" style={{ color: "var(--rt-weak)" }}>
++                      <Show
++                        when={!isOther()}
++                        fallback={
++                          <div class="flex flex-col gap-2">
++                            <For each={props.otherAttentionTools?.() ?? []}>
++                              {(tItem) => (
++                                <div
++                                  class="p-2.5 rounded border border-dashed mb-1"
++                                  style={{ "border-color": "var(--rt-line-strong)", background: "var(--rt-inset)" }}
++                                >
++                                  <div class="font-bold mb-1" style={{ color: "var(--rt-attn)" }}>
++                                    {tItem.name}
++                                  </div>
++                                  <div class="ell text-11-regular">{tItem.input}</div>
++                                  <Show when={tItem.lastOutput}>
++                                    <div class="text-11-regular mt-1 whitespace-pre-wrap">{tItem.lastOutput}</div>
++                                  </Show>
++                                </div>
++                              )}
++                            </For>
++                          </div>
++                        }
++                      >
++                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
++                          <span>
++                            <span class="font-semibold text-text-strong">{t("tool.detail.duration")}:</span> {info().durationText}
++                          </span>
++                          <span>
++                            <span class="font-semibold text-text-strong">{t("tool.detail.start")}:</span> {info().startText}
++                          </span>
++                          <span>
++                            <span class="font-semibold text-text-strong">{t("tool.detail.end")}:</span> {info().endText}
++                          </span>
++                          <Show when={info().evidence}>
++                            {(ev) => (
++                              <span>
++                                <span class="font-semibold text-text-strong">{t("tool.detail.evidence")}:</span> {ev()}
++                              </span>
++                            )}
++                          </Show>
++                        </div>
++                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
++                          <span>
++                            <span class="font-semibold text-text-strong">{t("tool.detail.call_id")}:</span> {info().callID}
++                          </span>
++                          <Show when={info().sessionID}>
++                            {(sid) => (
++                              <span>
++                                <span class="font-semibold text-text-strong">{t("tool.detail.session_id")}:</span> {sid()}
++                              </span>
++                            )}
++                          </Show>
++                        </div>
++                        <Show when={info().error}>
++                          {(err) => (
++                            <div class="text-11-regular break-words" style={{ color: "var(--rt-err)" }}>
++                              <span class="font-semibold text-text-strong">{t("tool.detail.error")}:</span> {err()}
++                            </div>
++                          )}
++                        </Show>
++                        <div class="flex flex-col gap-1 mt-1">
++                          <span class="font-semibold text-text-strong">Input:</span>
++                          <div
++                            class="p-2 rounded font-mono text-11-regular whitespace-pre-wrap break-words max-h-40 overflow-y-auto"
++                            style={{ background: "var(--rt-inset)" }}
++                          >
++                            {tool().input}
++                          </div>
++                        </div>
++                        <Show when={tool().lastOutput}>
++                          <div class="flex flex-col gap-1 mt-1">
++                            <span class="font-semibold text-text-strong">Output:</span>
++                            <div
++                              class="p-2 rounded font-mono text-11-regular whitespace-pre-wrap break-words max-h-48 overflow-y-auto"
++                              style={{ background: "var(--rt-inset)" }}
++                            >
++                              {tool().lastOutput}
++                            </div>
++                          </div>
++                        </Show>
++                      </Show>
++                    </div>
++                  </div>
++                )
++              }}
++            </Show>
 +          </div>
 +        </div>
-+      </div>
++      </Show>
 +    </div>
 +  )
 +}
 diff --git a/packages/app/src/components/session/session-runtime-mechanism.test.ts b/packages/app/src/components/session/session-runtime-mechanism.test.ts
 new file mode 100644
-index 0000000..e181dbc
+index 0000000..983b181
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-mechanism.test.ts
-@@ -0,0 +1,747 @@
+@@ -0,0 +1,965 @@
 +// oco (patches/opencode/0019): unit tests for mechanismOf pure projection.
 +// Test cases 1-9 per docs/superpowers/plans/2026-10-03-runtime-dashboard-m3.md (Task 2).
 +import { describe, expect, test } from "bun:test"
-+import { mechanismOf, mechanismView, type Mechanism } from "./session-runtime-mechanism"
++import {
++  lanesOf,
++  mechanismOf,
++  mechanismView,
++  rosterOf,
++  type Lane,
++  type Mechanism,
++  type RosterItem,
++} from "./session-runtime-mechanism"
 +import type { RuntimeModel, RuntimeRequest, RuntimeTool, Stage } from "./session-runtime-model"
++
 +
 +function createMockModel(overrides: Partial<RuntimeModel> = {}): RuntimeModel {
 +  return {
@@ -4119,12 +4078,221 @@ index 0000000..e181dbc
 +    })
 +  })
 +})
++
++describe("lanesOf", () => {
++  test("1. empty mechanism yields 4 empty lanes", () => {
++    const model = createMockModel({ requests: [] })
++    const m = mechanismOf(model)
++    const lanes = lanesOf(m)
++    expect(lanes.length).toBe(4)
++    expect(lanes).toEqual([
++      { kind: "empty" },
++      { kind: "empty" },
++      { kind: "empty" },
++      { kind: "empty" },
++    ])
++  })
++
++  test("2. fewer than 4 slots pads with empty lanes", () => {
++    const childTool = createMockChildTool({ id: "child-1" })
++    const tool1 = createMockTool({ id: "tool-1" })
++    const model = createMockModel({ tools: [childTool, tool1] })
++    const m = mechanismOf(model)
++    const lanes = lanesOf(m)
++
++    expect(lanes.length).toBe(4)
++    expect(lanes[0].kind).toBe("child")
++    expect(lanes[1].kind).toBe("tool")
++    expect(lanes[2]).toEqual({ kind: "empty" })
++    expect(lanes[3]).toEqual({ kind: "empty" })
++  })
++
++  test("3. children are prioritized before tools", () => {
++    const tool1 = createMockTool({ id: "t1" })
++    const child1 = createMockChildTool({ id: "c1" })
++    const model = createMockModel({ tools: [tool1, child1] })
++    const m = mechanismOf(model)
++    const lanes = lanesOf(m)
++
++    expect(lanes[0].kind).toBe("child")
++    if (lanes[0].kind === "child") {
++      expect(lanes[0].slot.toolID).toBe("c1")
++    }
++    expect(lanes[1].kind).toBe("tool")
++    if (lanes[1].kind === "tool") {
++      expect(lanes[1].slot.toolID).toBe("t1")
++    }
++  })
++
++  test("4. exactly 4 slots yields 4 lanes without overflow", () => {
++    const tools = [
++      createMockChildTool({ id: "c1" }),
++      createMockTool({ id: "t1" }),
++      createMockTool({ id: "t2" }),
++      createMockTool({ id: "t3" }),
++    ]
++    const model = createMockModel({ tools })
++    const m = mechanismOf(model)
++    const lanes = lanesOf(m)
++
++    expect(lanes.length).toBe(4)
++    expect(lanes.map((l) => l.kind)).toEqual(["child", "tool", "tool", "tool"])
++  })
++
++  test("5. more than 4 slots yields first 3 slots and 4th lane is overflow with running count", () => {
++    const tools = [
++      createMockChildTool({ id: "c1", child: { sessionID: "s1", agent: "w1", description: "d", background: false, lifecycle: "running", evidence: "event" } }),
++      createMockChildTool({ id: "c2", child: { sessionID: "s2", agent: "w2", description: "d", background: false, lifecycle: "done", evidence: "event" } }),
++      createMockTool({ id: "t1", state: "completed" }),
++      createMockTool({ id: "t2", state: "running" }),
++      createMockTool({ id: "t3", state: "completed" }),
++    ]
++    const model = createMockModel({ tools })
++    const m = mechanismOf(model)
++    const lanes = lanesOf(m)
++
++    expect(lanes.length).toBe(4)
++    expect(lanes[0].kind).toBe("child")
++    expect(lanes[1].kind).toBe("child")
++    expect(lanes[2].kind).toBe("tool")
++    expect(lanes[3]).toEqual({
++      kind: "overflow",
++      total: 2,
++      running: 1, // t2 is running, t3 is completed
++    })
++  })
++
++  test("6. overflow counts combine remaining candidate slots and mechanism overflow", () => {
++    // 5 candidate tools in request (4 in m.tools + 1 in m.toolsOverflow)
++    const tools = [
++      createMockTool({ id: "t1", state: "completed" }),
++      createMockTool({ id: "t2", state: "completed" }),
++      createMockTool({ id: "t3", state: "completed" }),
++      createMockTool({ id: "t4", state: "running" }),
++      createMockTool({ id: "t5", state: "running" }),
++    ]
++    const model = createMockModel({ tools })
++    const m = mechanismOf(model)
++    expect(m.tools.length).toBe(4)
++    expect(m.toolsOverflow).toEqual({ total: 1, running: 1 })
++
++    const lanes = lanesOf(m)
++    expect(lanes.length).toBe(4)
++    expect(lanes[0].kind).toBe("tool")
++    expect(lanes[1].kind).toBe("tool")
++    expect(lanes[2].kind).toBe("tool")
++    expect(lanes[3]).toEqual({
++      kind: "overflow",
++      total: 2, // t4 from allSlots + 1 from toolsOverflow
++      running: 2, // t4 running + 1 running from toolsOverflow
++    })
++  })
++})
++
++describe("rosterOf", () => {
++  test("1. returns empty array if model has no child tools", () => {
++    const model = createMockModel({ tools: [createMockTool({ id: "t1" })] })
++    expect(rosterOf(model)).toEqual([])
++  })
++
++  test("2. deduplicates multiple task rows for same session keeping last row, preserving first appearance order", () => {
++    const taskA1 = createMockChildTool({
++      id: "task-a1",
++      request: 0,
++      child: { sessionID: "sess-a", agent: "agent-a", description: "first desc", background: false, lifecycle: "running", evidence: "event" },
++    })
++    const taskB = createMockChildTool({
++      id: "task-b",
++      request: 0,
++      child: { sessionID: "sess-b", agent: "agent-b", description: "desc b", background: false, lifecycle: "running", evidence: "event" },
++    })
++    const taskA2 = createMockChildTool({
++      id: "task-a2",
++      request: 1,
++      child: { sessionID: "sess-a", agent: "agent-a", description: "updated desc", background: false, lifecycle: "done", evidence: "event" },
++    })
++
++    const model = createMockModel({
++      requests: [
++        { index: 0, messageID: "m0", turn: 0, start: 1000, status: "done", cancelled: false, evidence: "event", settled: true, known: true },
++        { index: 1, messageID: "m1", turn: 1, start: 2000, status: "running", cancelled: false, evidence: "event", settled: false, known: false },
++      ],
++      tools: [taskA1, taskB, taskA2],
++    })
++
++    const roster = rosterOf(model)
++    expect(roster.length).toBe(2)
++    // Order is sess-a first (appeared at index 0), then sess-b
++    expect(roster[0].sessionID).toBe("sess-a")
++    expect(roster[0].toolID).toBe("task-a2") // Kept last row
++    expect(roster[0].description).toBe("updated desc")
++    expect(roster[0].lifecycle).toBe("done")
++    expect(roster[0].request).toBe(1)
++
++    expect(roster[1].sessionID).toBe("sess-b")
++    expect(roster[1].toolID).toBe("task-b")
++    expect(roster[1].request).toBe(0)
++  })
++
++  test("3. handles child tools without sessionID", () => {
++    const taskNoId = createMockChildTool({
++      id: "task-no-id",
++      request: 0,
++      child: { agent: "anonymous", description: "desc", background: false, lifecycle: "running", evidence: "event" },
++    })
++    const model = createMockModel({ tools: [taskNoId] })
++    const roster = rosterOf(model)
++
++    expect(roster.length).toBe(1)
++    expect(roster[0].toolID).toBe("task-no-id")
++    expect(roster[0].sessionID).toBeUndefined()
++    expect(roster[0].agent).toBe("anonymous")
++  })
++
++  test("4. activity is omitted when childOf is not provided or child has no active tools", () => {
++    const task = createMockChildTool({
++      id: "task-1",
++      child: { sessionID: "sess-1", agent: "agent-1", description: "desc", background: false, lifecycle: "running", evidence: "event" },
++    })
++    const model = createMockModel({ tools: [task] })
++
++    // No childOf
++    expect(rosterOf(model)[0].activity).toBeUndefined()
++
++    // childOf returns child model with only completed tools
++    const childModel = createMockModel({
++      requests: [{ index: 0, messageID: "m0", turn: 0, start: 1000, status: "running", cancelled: false, evidence: "event", settled: false, known: false }],
++      tools: [createMockTool({ id: "t1", name: "read", state: "completed", request: 0 })],
++    })
++    const rosterWithChildOf = rosterOf(model, (id) => (id === "sess-1" ? childModel : undefined))
++    expect(rosterWithChildOf[0].activity).toBeUndefined()
++  })
++
++  test("5. activity includes active tool name and count when child has pending/running tools", () => {
++    const task = createMockChildTool({
++      id: "task-1",
++      child: { sessionID: "sess-1", agent: "agent-1", description: "desc", background: false, lifecycle: "running", evidence: "event" },
++    })
++    const model = createMockModel({ tools: [task] })
++
++    const childModel = createMockModel({
++      requests: [{ index: 0, messageID: "m0", turn: 0, start: 1000, status: "running", cancelled: false, evidence: "event", settled: false, known: false }],
++      tools: [
++        createMockTool({ id: "t1", name: "read", state: "completed", request: 0 }),
++        createMockTool({ id: "t2", name: "read", state: "running", request: 0 }),
++        createMockTool({ id: "t3", name: "read", state: "running", request: 0 }),
++      ],
++    })
++    const roster = rosterOf(model, (id) => (id === "sess-1" ? childModel : undefined))
++    expect(roster[0].activity).toEqual({ name: "read", count: 3 })
++  })
++})
 diff --git a/packages/app/src/components/session/session-runtime-mechanism.ts b/packages/app/src/components/session/session-runtime-mechanism.ts
 new file mode 100644
-index 0000000..fa55219
+index 0000000..699394a
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-mechanism.ts
-@@ -0,0 +1,340 @@
+@@ -0,0 +1,427 @@
 +// oco (patches/opencode/0019): pure projection from RuntimeModel to mechanism diagram state.
 +// Contract and rules: docs/superpowers/plans/2026-10-03-runtime-dashboard-m3.md (Task 2 & Task 4).
 +import type { ChildLifecycle, RuntimeModel, RuntimeTool, Stage } from "./session-runtime-model"
@@ -4464,6 +4632,93 @@ index 0000000..fa55219
 +      active: mechanism.stage === "fill",
 +    },
 +  }
++}
++
++export type Lane =
++  | { kind: "child" | "tool"; slot: MechanismSlot }
++  | { kind: "overflow"; total: number; running: number }
++  | { kind: "empty" }
++
++export function lanesOf(m: Mechanism): Lane[] {
++  const allSlots: Array<{ kind: "child" | "tool"; slot: MechanismSlot }> = [
++    ...m.children.map((slot) => ({ kind: "child" as const, slot })),
++    ...m.tools.map((slot) => ({ kind: "tool" as const, slot })),
++  ]
++  const overflowTotalFromMechanism = (m.childrenOverflow?.total ?? 0) + (m.toolsOverflow?.total ?? 0)
++  const overflowRunningFromMechanism = (m.childrenOverflow?.running ?? 0) + (m.toolsOverflow?.running ?? 0)
++  const totalCandidateCount = allSlots.length + overflowTotalFromMechanism
++
++  if (totalCandidateCount <= 4) {
++    const lanes: Lane[] = [...allSlots]
++    while (lanes.length < 4) {
++      lanes.push({ kind: "empty" })
++    }
++    return lanes
++  }
++
++  const lanes: Lane[] = allSlots.slice(0, 3)
++  const overflowSlice = allSlots.slice(3)
++  const total = overflowSlice.length + overflowTotalFromMechanism
++  const running =
++    overflowSlice.filter(
++      (s) =>
++        s.slot.state === "running" ||
++        (s.kind === "child" && s.slot.lifecycle === "running"),
++    ).length + overflowRunningFromMechanism
++
++  lanes.push({ kind: "overflow", total, running })
++  return lanes
++}
++
++export type RosterItem = {
++  toolID: string
++  sessionID?: string
++  agent: string
++  description?: string
++  lifecycle?: ChildLifecycle
++  state: RuntimeTool["state"]
++  request: number
++  activity?: { name: string; count: number }
++}
++
++export function rosterOf(
++  model: RuntimeModel,
++  childOf?: (sessionID: string) => RuntimeModel | undefined,
++): RosterItem[] {
++  const lastIds = lastChildToolIds(model.tools)
++  const sessionOrder: string[] = []
++  const keyToTool = new Map<string, RuntimeTool>()
++
++  for (const tool of model.tools) {
++    if (!tool.child) continue
++    const key = tool.child.sessionID ?? `tool:${tool.id}`
++    if (!sessionOrder.includes(key)) {
++      sessionOrder.push(key)
++    }
++    if (!tool.child.sessionID || lastIds.has(tool.id)) {
++      keyToTool.set(key, tool)
++    }
++  }
++
++  const items: RosterItem[] = []
++  for (const key of sessionOrder) {
++    const tool = keyToTool.get(key)
++    if (!tool || !tool.child) continue
++    const child = tool.child
++    const activity = childActivityOf(child.sessionID, childOf)
++    items.push({
++      toolID: tool.id,
++      ...(child.sessionID ? { sessionID: child.sessionID } : {}),
++      agent: child.agent || tool.name,
++      ...(child.description ? { description: child.description } : {}),
++      ...(child.lifecycle ? { lifecycle: child.lifecycle } : {}),
++      state: tool.state,
++      request: tool.request,
++      ...(activity ? { activity } : {}),
++    })
++  }
++
++  return items
 +}
 diff --git a/packages/app/src/components/session/session-runtime-model.test.ts b/packages/app/src/components/session/session-runtime-model.test.ts
 new file mode 100644
@@ -7050,15 +7305,13 @@ index 0000000..f6906fc
 +}
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
 new file mode 100644
-index 0000000..5617dd5
+index 0000000..3250fa0
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -0,0 +1,1010 @@
-+// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view. It renders buildRuntime() over
-+// the session already in the sync store, and answers permission / question / stop from here.
-+// Live updates once a second while the session is busy; "Pause following" replays by step (no per-token typing).
-+// It never claims a disconnect: only "last event xx ago", marked inferred. Replay renders no action buttons.
-+import { createEffect, createMemo, createSignal, For, Match, onCleanup, onMount, Show, Switch, untrack } from "solid-js"
+@@ -0,0 +1,1090 @@
++// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view.
++// Fixed-frame Tokyo Night layout (改版 2: 固定框架 / Task 4d).
++import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, untrack } from "solid-js"
 +import type { Accessor, JSX } from "solid-js"
 +import type { Message, Part } from "@opencode-ai/sdk/v2/client"
 +import { useSync } from "@/context/sync"
@@ -7089,7 +7342,6 @@ index 0000000..5617dd5
 +import { keyed } from "./session-runtime-keyed"
 +import {
 +  actionsVisible,
-+  BTN,
 +  cancelLabel,
 +  failureVisible,
 +  FOCUS,
@@ -7097,26 +7349,24 @@ index 0000000..5617dd5
 +  retryWait,
 +  stopClickExpired,
 +  stopClickedAt,
-+  toolDetail,
 +} from "./session-runtime-actions"
 +import { createChildSync } from "./session-runtime-child-sync"
-+import { RuntimeChildPanel } from "./session-runtime-child"
-+import { firstLine, reasoningAt, reasoningOf, tailLines, type RuntimeReasoning } from "./session-runtime-reasoning"
++import { reasoningAt, reasoningOf, type RuntimeReasoning } from "./session-runtime-reasoning"
 +import { RuntimeMechanism } from "./session-runtime-mechanism-view"
-+import { mechanismOf } from "./session-runtime-mechanism"
++import { mechanismOf, rosterOf, slotGlyph } from "./session-runtime-mechanism"
 +
 +const emptyMessages: Message[] = []
 +const emptyParts: Part[] = []
-+const STAGES: Exclude<Stage, "idle">[] = ["prepare", "model", "tools", "fill"]
-+const GLYPH = { pending: "○", running: "◐", completed: "✓", error: "✕" } as const
++
 +const COLOR = {
-+  model: "var(--syntax-property)",
-+  tool: "var(--syntax-warning)",
-+  subagent: "var(--syntax-keyword)",
-+  attention: "var(--syntax-info)",
-+  error: "var(--syntax-critical)",
-+  ok: "var(--syntax-success)",
-+}
++  model: "var(--rt-main)",
++  tool: "var(--rt-tool)",
++  subagent: "var(--rt-sub)",
++  attention: "var(--rt-attn)",
++  error: "var(--rt-err)",
++  ok: "var(--rt-ok)",
++  accent: "var(--rt-accent)",
++} as const
 +
 +const stageKey = (s: Stage): Exclude<Stage, "idle"> => (s === "idle" ? "prepare" : s)
 +
@@ -7139,8 +7389,6 @@ index 0000000..5617dd5
 +  const kind = e.kind === "tool.start" ? "start" : e.kind === "tool.end" ? "end" : "error"
 +  return t(`event.${e.role}.${kind}` as "event.tool.start", { label: e.label })
 +}
-+
-+const roleColor = (role: RuntimeEvent["role"]) => COLOR[role]
 +
 +const sameRefs = (prev: readonly unknown[], next: readonly unknown[]) => {
 +  if (prev.length !== next.length) return false
@@ -7177,7 +7425,6 @@ index 0000000..5617dd5
 +
 +  const contextLimit = createMemo(() => getSessionContext(messages(), [...providers.all().values()])?.limit)
 +
-+  /** ID of the live in-flight assistant message: the last assistant only, and only while it is unfinished and busy. */
 +  const inFlightMessageID = createMemo(() => inFlightOf(messages(), busy()))
 +
 +  const treeIds = createMemo(() => treeSessionIDs(props.sessionID, sync().data.session))
@@ -7230,7 +7477,6 @@ index 0000000..5617dd5
 +    )
 +  }
 +
-+  // Same assemble path as the root, fed with this child session's own messages, status, and pending requests.
 +  const assembleChild = (sessionID: string) => {
 +    const childMessages = (sync().data.message[sessionID] ?? emptyMessages) as Message[]
 +    const childStatus = sync().data.session_status[sessionID]
@@ -7264,13 +7510,16 @@ index 0000000..5617dd5
 +    const at = cursor()
 +    return at === undefined ? -1 : steps().filter((x) => x <= at).length - 1
 +  })
++  // Live follows the newest step, so the timeline reads "n / n" until the user pauses.
++  const shownStep = () => (cursor() === undefined ? steps().length : stepIndex() + 1)
 +  const newSince = createMemo(() => {
 +    const p = pausedAt()
 +    return p === undefined ? 0 : Math.max(0, steps().length - p)
 +  })
 +
 +  let containerRef: HTMLDivElement | undefined
-+  const [narrow, setNarrow] = createSignal(false)
++  const [isStack, setIsStack] = createSignal(false)
++  const [isNarrow560, setIsNarrow560] = createSignal(false)
 +
 +  onMount(() => {
 +    const tick = setInterval(() => {
@@ -7284,11 +7533,15 @@ index 0000000..5617dd5
 +    if (typeof ResizeObserver === "function" && containerRef) {
 +      ro = new ResizeObserver((entries) => {
 +        for (const entry of entries) {
-+          setNarrow(entry.contentRect.width < 560)
++          const w = entry.contentRect.width
++          setIsStack(w < 900)
++          setIsNarrow560(w < 560)
 +        }
 +      })
 +      ro.observe(containerRef)
-+      setNarrow(containerRef.clientWidth < 560)
++      const w = containerRef.clientWidth
++      setIsStack(w < 900)
++      setIsNarrow560(w < 560)
 +    }
 +    onCleanup(() => {
 +      clearInterval(tick)
@@ -7308,16 +7561,9 @@ index 0000000..5617dd5
 +  const seek = (index: number) => setCursor(steps()[Math.min(Math.max(index, 0), steps().length - 1)])
 +
 +  const isSubagent = (x: RuntimeTool) => x.child !== undefined
-+  const active = createMemo(() =>
-+    model().tools.filter((x) => !isSubagent(x) && !x.interrupted && (x.state === "pending" || x.state === "running")),
-+  )
-+  const subagents = createMemo(() => model().tools.filter(isSubagent))
-+  const interrupted = createMemo(() => model().tools.filter((x) => !isSubagent(x) && x.interrupted))
-+  const finished = createMemo(() => model().tools.filter((x) => !isSubagent(x) && (x.state === "completed" || x.state === "error")))
-+  const blocked = createMemo(() => finished().filter((x) => x.state === "error" || x.awaiting))
 +  const recentEvents = createMemo(() => model().events.slice(-60))
 +  const attention = createMemo(() => model().run.attention)
-+  // Changes only when the state or focus changes; the retry countdown is left out on purpose (it ticks every second).
++
 +  const liveSentence = createMemo(() => {
 +    const m = model()
 +    const state = t(`state.${m.run.state}`) + (m.run.evidence === "inferred" ? ` (${t("evidence.inferred")})` : "")
@@ -7338,10 +7584,7 @@ index 0000000..5617dd5
 +              : t(`focus.${f.kind}`)
 +    return `${state}. ${focus}`
 +  })
-+  const activeKeys = keyed(active, (x) => x.id)
-+  const subagentKeys = keyed(subagents, (x) => x.id)
-+  const interruptedKeys = keyed(interrupted, (x) => x.id)
-+  const blockedKeys = keyed(blocked, (x) => x.id)
++
 +  const eventKeys = keyed(recentEvents, (e) => e.id)
 +  const attentionKeys = keyed(attention, (a) => a.id)
 +
@@ -7361,33 +7604,9 @@ index 0000000..5617dd5
 +    )
 +  })
 +
-+  const renderedToolIds = createMemo(() => {
-+    const ids = new Set(treeToolIds())
-+    for (const t of otherAttentionTools()) ids.add(t.id)
-+    return ids
-+  })
-+
-+  const toolForAttention = (a: RuntimeAttention) =>
-+    model().tools.find(
-+      (t) =>
-+        t.awaiting?.id === a.id ||
-+        (a.toolRef && t.messageID === a.toolRef.messageID && t.callID === a.toolRef.callID),
-+    )
-+
-+  const isAttentionInToolNode = (a: RuntimeAttention) => {
-+    const tool = toolForAttention(a)
-+    return Boolean(tool && renderedToolIds().has(tool.id))
-+  }
-+
-+  const attForTool = (toolID: string) => {
-+    const tool = model().tools.find((t) => t.id === toolID)
-+    if (!tool) return undefined
-+    return model().run.attention.find(
-+      (a) =>
-+        tool.awaiting?.id === a.id ||
-+        (a.toolRef && tool.messageID === a.toolRef.messageID && tool.callID === a.toolRef.callID),
-+    )
-+  }
++  const rosterItems = createMemo(() =>
++    rosterOf(model(), (id) => (childMessagesOf(id) ? assembleChild(id) : undefined)),
++  )
 +
 +  const summaryAgent = () => mechanism().main.agent ?? t("mechanism.main")
 +  const summaryModel = () => mechanism().main.model ?? t("runtime.unknown")
@@ -7411,7 +7630,7 @@ index 0000000..5617dd5
 +    return t("summary.tools", { running, waiting })
 +  }
 +
-+  const summaryTokens = () => {
++  const summaryUsage = () => {
 +    const u = model().usage.tokens
 +    if (!u) {
 +      return model().usage.requests === 0
@@ -7420,8 +7639,24 @@ index 0000000..5617dd5
 +          ? t("usage.unknown")
 +          : t("usage.counting")
 +    }
-+    return t("summary.tokens", { tokens: count(u.input, copy.intl()) })
++    return `${count(u.input, copy.intl())} / ${count(u.output, copy.intl())}`
 +  }
++
++  const summaryContext = () => {
++    const c = getSessionContext(messages(), [...providers.all().values()])
++    if (!c || c.limit === undefined) return ""
++    return t("summary.context", {
++      used: count(c.total ?? 0, copy.intl()),
++      limit: count(c.limit, copy.intl()),
++    })
++  }
++
++  const summaryCost = () => {
++    const reqs = model().requests
++    const cost = reqs.reduce((acc, r) => acc + (r.cost ?? 0), 0)
++    return cost > 0 ? t("summary.cost", { cost: cost.toFixed(4) }) : undefined
++  }
++
 +  const activeReasonings = createMemo<RuntimeReasoning[]>(() => {
 +    const m = model()
 +    if (m.mode === "replay") {
@@ -7437,20 +7672,10 @@ index 0000000..5617dd5
 +    if (!targetID) return []
 +    return reasoningOf(parts(targetID), inFlight === targetID)
 +  })
-+  const reasoningKeys = keyed(activeReasonings, (r) => r.partID)
-+  const lastChildTools = createMemo(() => lastChildToolIds(model().tools))
++
 +  const [openChildren, setOpenChildren] = createSignal<ReadonlySet<string>>(new Set())
 +  const childOpen = (id: string) => openChildren().has(id)
-+  const [openTools, setOpenTools] = createSignal<ReadonlySet<string>>(new Set())
-+  const isToolOpen = (id: string) => openTools().has(id)
-+  const toggleTool = (id: string) => {
-+    setOpenTools((prev) => {
-+      const next = new Set(prev)
-+      if (next.has(id)) next.delete(id)
-+      else next.add(id)
-+      return next
-+    })
-+  }
++
 +  const childSync = createChildSync({
 +    sync: (id) => sync().session.sync(id),
 +    pin: (id) => serverSync().session.pin(id),
@@ -7460,6 +7685,7 @@ index 0000000..5617dd5
 +    open: openChildren,
 +    tools: () => live().tools,
 +  })
++
 +  const toggleChild = (id: string) => {
 +    const opening = !openChildren().has(id)
 +    setOpenChildren((prev) => {
@@ -7472,13 +7698,32 @@ index 0000000..5617dd5
 +      childSync.requestSync(id)
 +    }
 +  }
++
++  // Navigation stack for entering subagents
++  const [enteredStack, setEnteredStack] = createSignal<string[]>([])
++  const onEnterChild = (id: string) => {
++    if (!openChildren().has(id)) {
++      toggleChild(id)
++    }
++    setEnteredStack((prev) => [...prev, id])
++  }
++  const onNavigateCrumb = (index: number) => {
++    setEnteredStack((prev) => (index < 0 ? [] : prev.slice(0, index + 1)))
++  }
++
++  // Tool detail panel state
++  const [openDetailId, setOpenDetailId] = createSignal<string | undefined>()
++  const onToggleDetail = (id: string | undefined) => {
++    setOpenDetailId((prev) => (prev === id ? undefined : id))
++  }
++
 +  const [pending, setPending] = createSignal<Readonly<Record<string, true>>>({})
 +  const [failed, setFailed] = createSignal<Readonly<Record<string, true>>>({})
 +  const [clickedAt, setClickedAt] = createSignal<number | undefined>()
-+  // Replay-aware: the label may say "cancelled" from the snapshot focus. "requested" is suppressed unless live.
++
 +  const lastRequestStart = () => {
-+    const requests = model().requests
-+    return requests.length ? requests[requests.length - 1]!.start : undefined
++    const reqs = model().requests
++    return reqs.length ? reqs[reqs.length - 1]!.start : undefined
 +  }
 +  const cancelKind = () => cancelLabel(clickedAt(), busy(), model().focus.kind, lastRequestStart(), model().mode)
 +
@@ -7491,17 +7736,18 @@ index 0000000..5617dd5
 +    }
 +    return changed ? next : prev
 +  }
++
 +  createEffect(() => {
-+    // Live attention, not the replay snapshot: pausing would otherwise drop in-flight "working on it" marks.
 +    const liveIds = new Set(live().run.attention.map((item) => item.id))
 +    setPending((prev) => pruneGone(prev, liveIds))
 +    setFailed((prev) => pruneGone(prev, liveIds))
 +  })
++
 +  createEffect(() => {
 +    const at = clickedAt()
 +    if (at === undefined) return
-+    const requests = live().requests
-+    const start = requests.length ? requests[requests.length - 1]!.start : undefined
++    const reqs = live().requests
++    const start = reqs.length ? reqs[reqs.length - 1]!.start : undefined
 +    if (stopClickExpired(at, busy(), start)) setClickedAt(undefined)
 +  })
 +
@@ -7526,11 +7772,11 @@ index 0000000..5617dd5
 +        delete next[item.id]
 +        return next
 +      })
-+      // The request already left the live store: nothing failed from the user's point of view.
 +      if (!failureVisible(item.id, live().run.attention.map((entry) => entry.id))) return
 +      setFailed((prev) => (prev[item.id] ? prev : { ...prev, [item.id]: true }))
 +    })
 +  }
++
 +  const requestStop = () => {
 +    const at = stopClickedAt(!!props.onStop, Date.now())
 +    if (at === undefined) return
@@ -7544,522 +7790,611 @@ index 0000000..5617dd5
 +    }
 +  }
 +
-+  const stateColor = () => {
-+    const s = model().run.state
-+    return s === "error" ? COLOR.error : s === "waiting-user" ? COLOR.attention : s === "working" ? COLOR.ok : undefined
-+  }
-+
-+  function ExpandedChild(panel: { sessionID: string; lifecycle: ChildLifecycle }) {
-+    const built = createMemo(() => assembleChild(panel.sessionID))
-+    return (
-+      <RuntimeChildPanel
-+        sessionID={panel.sessionID}
-+        lifecycle={panel.lifecycle}
-+        model={built}
-+        now={wall}
-+        t={t}
-+        depth={1}
-+        ancestors={[panel.sessionID]}
-+        childOpen={childOpen}
-+        toggleChild={toggleChild}
-+        assembleChild={assembleChild}
-+        onOpen={props.onOpenSession}
-+      />
-+    )
-+  }
-+
-+  const toolRow = (x: Accessor<RuntimeTool>) => {
-+    const isLastChild = () => lastChildTools().has(x().id)
-+    const name = () => {
-+      const child = x().child
-+      return child ? child.agent : x().name
-+    }
-+    const detail = () => {
-+      const child = x().child
-+      return child ? child.description : x().input
-+    }
-+    const statusText = () =>
-+      x().cancelled ? t("tool.cancelled") : x().interrupted ? t("tool.interrupted") : t(`tool.state.${x().state}`)
-+    const info = createMemo(() => toolDetail(x(), t, copy.intl()))
-+    const att = () => attForTool(x().id)
-+
-+    return (
-+      <div
-+        data-oco-runtime-tool={x().id}
-+        class="flex flex-col gap-1 rounded p-2 bg-surface-inset-base border border-dashed font-mono text-11-regular min-w-0 break-words"
-+        classList={{ "opacity-75": x().interrupted }}
-+        style={{ "border-color": x().awaiting ? COLOR.attention : x().child ? COLOR.subagent : COLOR.tool }}
-+      >
-+        <button
-+          type="button"
-+          class={`w-full flex items-center gap-2 min-w-0 text-left bg-transparent border-0 p-0 ${FOCUS} rounded-[3px] cursor-pointer font-mono`}
-+          data-oco-runtime-tool-toggle={x().id}
-+          aria-expanded={isToolOpen(x().id)}
-+          aria-controls={`oco-runtime-tool-detail-${x().id}`}
-+          onClick={() => toggleTool(x().id)}
-+        >
-+          <span aria-hidden="true">{x().cancelled ? "⊘" : x().interrupted ? "◌" : GLYPH[x().state]}</span>
-+          <span class="text-12-medium text-text-strong shrink-0">{name()}</span>
-+          <span class="min-w-0 break-words text-11-regular text-text-weak">{detail()}</span>
-+          <span class="ml-auto shrink-0 text-11-regular text-text-weak">
-+            {statusText()}
-+          </span>
-+        </button>
-+        <Show when={x().awaiting && att()}>
-+          {(attItem) => attentionRow(attItem)}
-+        </Show>
-+        <Show when={x().child}>
-+          {(c) => {
-+            const sessionID = () => c().sessionID
-+            return (
-+              <>
-+                <div class="text-11-regular text-text-weak">
-+                  {t(`child.lifecycle.${c().lifecycle}` as "child.lifecycle.running")}
-+                  <Show when={c().background}> · {t("tool.background")}</Show>
-+                </div>
-+                <Show when={isLastChild() ? sessionID() : undefined}>
-+                  {(id) => (
-+                    <>
-+                      <button
-+                        type="button"
-+                        class={`${BTN} self-start`}
-+                        data-oco-runtime-child-toggle={id()}
-+                        aria-expanded={childOpen(id())}
-+                        onClick={() => toggleChild(id())}
-+                      >
-+                        {childOpen(id()) ? t("child.collapse") : t("child.expand")}
-+                      </button>
-+                      <Show when={childOpen(id())}>
-+                        <ExpandedChild sessionID={id()} lifecycle={c().lifecycle} />
-+                      </Show>
-+                    </>
-+                  )}
-+                </Show>
-+              </>
-+            )
-+          }}
-+        </Show>
-+        <Show when={x().lastOutput}>
-+          <div class="min-w-0 break-words whitespace-pre-wrap text-11-regular font-mono text-text-weak">{x().lastOutput}</div>
-+        </Show>
-+        <Show when={isToolOpen(x().id)}>
-+          <div
-+            id={`oco-runtime-tool-detail-${x().id}`}
-+            data-oco-runtime-tool-detail={x().id}
-+            class="flex flex-col gap-1 pt-1.5 border-t border-border-subtle text-11-regular text-text-weak font-mono"
-+          >
-+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-+              <span>
-+                <span class="text-text-strong">{t("tool.detail.start")}:</span> {info().startText}
-+              </span>
-+              <span>
-+                <span class="text-text-strong">{t("tool.detail.end")}:</span> {info().endText}
-+              </span>
-+              <span>
-+                <span class="text-text-strong">{t("tool.detail.duration")}:</span> {info().durationText}
-+              </span>
-+              <Show when={info().evidence}>
-+                {(ev) => (
-+                  <span>
-+                    <span class="text-text-strong">{t("tool.detail.evidence")}:</span> {t(`evidence.${ev()}` as any) || ev()}
-+                  </span>
-+                )}
-+              </Show>
-+            </div>
-+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-+              <span>
-+                <span class="text-text-strong">{t("tool.detail.call_id")}:</span> <span class="font-mono">{info().callID}</span>
-+              </span>
-+              <Show when={info().sessionID}>
-+                {(sid) => (
-+                  <span>
-+                    <span class="text-text-strong">{t("tool.detail.session_id")}:</span> <span class="font-mono">{sid()}</span>
-+                  </span>
-+                )}
-+              </Show>
-+            </div>
-+            <Show when={info().error}>
-+              {(err) => (
-+                <div class="text-11-regular break-words" style={{ color: COLOR.error }}>
-+                  <span class="text-text-strong">{t("tool.detail.error")}:</span> {err()}
-+                </div>
-+              )}
-+            </Show>
-+          </div>
-+        </Show>
-+      </div>
-+    )
-+  }
-+
-+  const eventRow = (e: Accessor<RuntimeEvent>) => {
++  // Event row renderer (newest on top)
++  const eventRow = (e: Accessor<RuntimeEvent>, isCurrent: Accessor<boolean>) => {
 +    const ev = e()
 +    const req = model().requests[ev.request]
 +    const roleLabel = ev.label || (ev.role === "model" ? (req?.agent ?? "main") : ev.role)
 +    const isErrorOrAttention = ev.kind === "tool.error" || ev.kind === "request.error"
++    const roleCol =
++      ev.role === "model"
++        ? "var(--rt-main)"
++        : ev.role === "subagent"
++          ? "var(--rt-sub)"
++          : ev.role === "tool"
++            ? "var(--rt-tool)"
++            : "var(--rt-attn)"
++
 +    return (
 +      <div
 +        data-oco-runtime-event={ev.kind}
-+        class="flex items-baseline gap-2 text-11-regular font-mono min-w-0"
-+        classList={{ "bg-surface-base px-1 rounded": isErrorOrAttention }}
++        class="grid grid-cols-[80px_130px_minmax(0,1fr)] gap-4 px-2.5 py-0.5 rounded text-12-regular font-mono min-w-0"
++        classList={{
++          "bg-[color-mix(in_srgb,var(--rt-accent)_20%,var(--rt-inset))]": isCurrent(),
++          "bg-[color-mix(in_srgb,var(--rt-err)_10%,transparent)]": isErrorOrAttention && !isCurrent(),
++        }}
 +      >
-+        <span class="shrink-0 text-text-weak">{new Date(ev.at).toLocaleTimeString(copy.intl())}</span>
-+        <span class="shrink-0 font-medium" style={{ color: roleColor(ev.role) }}>{roleLabel}</span>
-+        <span class="min-w-0 break-words text-text-strong">{eventText(t, ev)}</span>
++        <span class="shrink-0" style={{ color: "var(--rt-faint)" }}>
++          {new Date(ev.at).toLocaleTimeString(copy.intl())}
++        </span>
++        <span class="shrink-0 font-semibold ell" style={{ color: roleCol }}>
++          {roleLabel}
++        </span>
++        <span class="ell min-w-0" style={{ color: isErrorOrAttention ? "var(--rt-err)" : "var(--rt-text)" }}>
++          {eventText(t, ev)}
++        </span>
 +      </div>
 +    )
 +  }
 +
-+  const attentionRow = (a: Accessor<RuntimeAttention>) => (
-+    <div
-+      data-oco-runtime-attention={a().id}
-+      data-oco-runtime-attention-kind={a().kind}
-+      data-oco-runtime-pending={pending()[a().id] ? "" : undefined}
-+      class="flex flex-col gap-1 font-mono text-11-regular"
-+    >
-+      <div class="break-words">{attentionText(t, a())}</div>
-+      <Show when={pending()[a().id]}>
-+        <div class="text-10-regular text-text-weak">{t("action.pending")}</div>
-+      </Show>
-+      <Show when={failed()[a().id]}>
-+        <div class="text-10-regular" style={{ color: COLOR.error }}>{t("action.failed")}</div>
-+      </Show>
-+      <Show when={model().mode === "live"}>
-+        <div class="flex flex-wrap gap-1 mt-0.5">
-+          <Show when={a().kind === "permission"}>
-+            <button type="button" class={BTN} data-oco-runtime-reply="once" disabled={!!pending()[a().id]} onClick={() => respond(a, "once")}>
-+              {t("action.permission.once")}
-+            </button>
-+            <button type="button" class={BTN} data-oco-runtime-reply="always" disabled={!!pending()[a().id]} onClick={() => respond(a, "always")}>
-+              {t("action.permission.always")}
-+            </button>
-+            <button type="button" class={BTN} data-oco-runtime-reply="reject" disabled={!!pending()[a().id]} onClick={() => respond(a, "reject")}>
-+              {t("action.permission.reject")}
-+            </button>
-+          </Show>
-+          <Show when={a().kind === "question"}>
-+            <button type="button" class={BTN} data-oco-runtime-question="answer" disabled={!!pending()[a().id]} onClick={() => props.onView("chat")}>
-+              {t("action.question.answer")}
-+            </button>
-+            <button type="button" class={BTN} data-oco-runtime-question="reject" disabled={!!pending()[a().id]} onClick={() => respond(a, "reject")}>
-+              {t("action.question.reject")}
-+            </button>
-+          </Show>
-+        </div>
-+      </Show>
-+    </div>
-+  )
-+
-+  function RuntimeReasoningBlock(block: {
-+    reasoning: Accessor<RuntimeReasoning | undefined>
-+    t: RuntimeText["t"]
-+    isReplay: Accessor<boolean>
-+  }) {
-+    const [expanded, setExpanded] = createSignal(false)
-+    const r = block.reasoning
-+    const copy = block.t
-+
-+    return (
-+      <Show when={r()}>
-+        {(item) => (
-+          <div
-+            data-oco-runtime-reasoning={item().partID}
-+            data-oco-runtime-reasoning-state={item().streaming ? "streaming" : "done"}
-+            class="rounded-md px-3 py-2 bg-surface-inset-base text-11-regular font-mono flex flex-col gap-1.5 border border-dashed border-border-subtle min-w-0 break-words"
-+          >
-+            <Switch>
-+              <Match when={block.isReplay() && item().streaming}>
-+                <div class="flex items-center min-w-0">
-+                  <span class="text-11-medium text-text-weak">{copy("reasoning.replay.running")}</span>
-+                </div>
-+              </Match>
-+              <Match when={item().streaming}>
-+                <div class="flex items-center justify-between gap-2 min-w-0">
-+                  <div class="flex flex-wrap items-baseline gap-x-2 min-w-0">
-+                    <span class="text-11-medium text-text-strong shrink-0">{copy("reasoning.streaming")}</span>
-+                    <span class="text-10-regular text-text-weak min-w-0 break-words">{copy("reasoning." + "truncated" as any)}</span>
-+                  </div>
-+                </div>
-+                <div class="whitespace-pre-wrap break-words font-mono text-11-regular text-text-weak">
-+                  {tailLines(item().text, 6)}
-+                </div>
-+              </Match>
-+              <Match when={true}>
-+                <div class="flex items-center justify-between gap-2 min-w-0">
-+                  <div class="flex items-center gap-2 min-w-0">
-+                    <span class="text-11-medium text-text-strong shrink-0">{copy("reasoning.completed")}</span>
-+                    <Show when={!expanded()}>
-+                      <span class="min-w-0 break-words font-mono text-text-weak">{firstLine(item().text)}</span>
-+                    </Show>
-+                  </div>
-+                  <button
-+                    type="button"
-+                    class={BTN}
-+                    aria-expanded={expanded()}
-+                    onClick={() => setExpanded((prev) => !prev)}
-+                  >
-+                    {expanded() ? copy("reasoning.collapse") : copy("reasoning.expand")}
-+                  </button>
-+                </div>
-+                <Show when={expanded()}>
-+                  <div class="whitespace-pre-wrap break-words font-mono text-11-regular text-text-weak max-h-80 overflow-auto">
-+                    {item().text}
-+                  </div>
-+                </Show>
-+              </Match>
-+            </Switch>
-+          </div>
-+        )}
-+      </Show>
-+    )
-+  }
-+
 +  return (
-+    <div ref={containerRef} data-oco-runtime data-oco-runtime-mode={model().mode} class="relative flex flex-col h-full min-h-0 font-mono">
-+      <div class="shrink-0 h-12 flex items-center justify-between gap-2 pl-4 pr-3">
-+        <div class="min-w-0 break-words text-14-medium text-text-strong">{info()?.title ?? ""}</div>
++    <div
++      ref={containerRef}
++      data-oco-runtime
++      data-oco-runtime-mode={model().mode}
++      data-oco-runtime-layout={isStack() ? "stack" : "wide"}
++      class="relative flex flex-col h-full min-h-0 font-mono select-none overflow-hidden"
++      style={{
++        "--rt-bg": "#1a1b26",
++        "--rt-panel": "#1f2335",
++        "--rt-inset": "#24283b",
++        "--rt-line": "#2f3549",
++        "--rt-line-strong": "#4a5272",
++        "--rt-text": "#c0caf5",
++        "--rt-weak": "#9aa3c7",
++        "--rt-faint": "#8189ad",
++        "--rt-main": "#7dcfff",
++        "--rt-sub": "#7aa2f7",
++        "--rt-tool": "#9ece6a",
++        "--rt-attn": "#ff9e64",
++        "--rt-err": "#f7768e",
++        "--rt-ok": "#73daca",
++        "--rt-accent": "#bb9af7",
++        "background-color": "var(--rt-bg)",
++        color: "var(--rt-text)",
++        "font-family": '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "PingFang SC", monospace',
++      }}
++    >
++      <style>{`
++        @keyframes oco-flow-down { from { top: 0%; } to { top: 100%; } }
++        @keyframes oco-flow-up { from { top: 100%; } to { top: 0%; } }
++        [data-oco-runtime] .oco-flow-down { animation: oco-flow-down 1.1s linear infinite; }
++        [data-oco-runtime] .oco-flow-up { animation: oco-flow-up 1.1s linear infinite; }
++        @media (prefers-reduced-motion: reduce) {
++          [data-oco-runtime] .oco-flow-down, [data-oco-runtime] .oco-flow-up { animation: none !important; }
++        }
++        [data-oco-runtime] .ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
++        [data-oco-runtime] button:focus-visible { outline: 2px solid var(--rt-sub); outline-offset: 2px; }
++        [data-oco-runtime] .oco-runtime-view, [data-oco-runtime] .oco-runtime-view * { font-family: var(--font-family-mono); }
++      `}</style>
++
++      {/* Upstream Title & Mode Bar */}
++      <div class="shrink-0 h-12 flex items-center justify-between gap-2 pl-4 pr-3 border-b" style={{ "border-color": "var(--rt-line)" }}>
++        <div class="min-w-0 ell text-14-medium font-bold text-text-strong">{info()?.title ?? ""}</div>
 +        <div class="shrink-0 flex items-center gap-2">
 +          <SessionViewToggle value="runtime" onChange={props.onView} />
 +          {props.actions}
 +        </div>
 +      </div>
 +
-+      <div class="min-h-0 flex-1 overflow-auto flex flex-col gap-4 px-4 pb-6">
-+        <div class="flex flex-col gap-4">
-+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-12-regular text-text-weak">
++      {/* Fixed Layout Content */}
++      <div
++        class="oco-runtime-view flex-1 min-h-0"
++        style={{
++          display: isStack() ? "flex" : "grid",
++          "flex-direction": isStack() ? "column" : undefined,
++          // The middle row never shrinks below what the tree needs, so boxes never overlap; a short window scrolls.
++          "grid-template-rows": isStack() ? undefined : "auto minmax(374px, 1fr) clamp(104px, 16vh, 176px) auto",
++          gap: "16px",
++          padding: isStack() ? "16px" : "16px 24px",
++          "overflow-y": "auto",
++        }}
++      >
++        {/* Row 1: 顶栏 (Top Bar) */}
++        <div
++          class="top flex items-center gap-5 min-w-0 pb-4 border-b flex-wrap shrink-0 [&>*]:min-h-[34px] [&>*]:flex [&>*]:items-center"
++          style={{ "border-color": "var(--rt-line-strong)" }}
++        >
++          {/* State */}
++          <div class="flex items-center gap-2 font-bold tracking-wide shrink-0">
 +            <span
-+              data-oco-runtime-state={model().run.state}
-+              class="text-12-medium"
-+              style={{ color: stateColor() }}
-+            >
++              class="w-2 h-2 rounded-full inline-block"
++              style={{
++                background:
++                  model().run.state === "working"
++                    ? "var(--rt-ok)"
++                    : model().run.state === "error"
++                      ? "var(--rt-err)"
++                      : model().run.state === "waiting-user"
++                        ? "var(--rt-attn)"
++                        : "var(--rt-faint)",
++              }}
++            />
++            <span data-oco-runtime-state={model().run.state}>
 +              {t(`state.${model().run.state}`)}
 +              <Show when={model().run.evidence === "inferred"}> ({t("evidence.inferred")})</Show>
 +            </span>
-+            <Show when={attention().length}>
-+              <span style={{ color: COLOR.attention }}>{t("header.pending", { count: attention().length })}</span>
++          </div>
++
++          {/* Attention Chip */}
++          <span
++            class="px-3 py-0.5 rounded-full text-12-regular border"
++            style={{
++              "border-color": attention().length ? "var(--rt-attn)" : "var(--rt-line-strong)",
++              color: attention().length ? "var(--rt-attn)" : "var(--rt-weak)",
++            }}
++          >
++            {t("header.pending", { count: attention().length })}
++          </span>
++
++          {/* Sessions count */}
++          <Show when={model().sessions.length > 1}>
++            <span class="text-12-regular" style={{ color: "var(--rt-weak)" }}>
++              {t("header.sessions", { count: model().sessions.length })}
++            </span>
++          </Show>
++
++          {/* Stop button */}
++          <Show when={actionsVisible(model().mode, model().run.state, busy()) && !!props.onStop}>
++            <button
++              type="button"
++              data-oco-runtime-stop
++              class="bg-transparent border rounded px-4 py-1 cursor-pointer text-12-regular font-mono"
++              style={{ "border-color": "var(--rt-err)", color: "var(--rt-err)" }}
++              onClick={requestStop}
++            >
++              ■ {t("action.stop")}
++            </button>
++          </Show>
++
++          {/* Cancel status */}
++          <Show when={cancelKind() === "requested"}>
++            <span data-oco-runtime-cancel="requested" class="text-12-regular" style={{ color: "var(--rt-weak)" }}>
++              {t("cancel.requested")}
++            </span>
++          </Show>
++
++          {/* Last event */}
++          <Show when={model().mode === "live"}>
++            <span data-oco-runtime-last class="text-12-regular" style={{ color: "var(--rt-weak)" }}>
++              {freshness().lastEventAt === undefined
++                ? t("last.none")
++                : t("last.event", { ago: ago(t, wall() - freshness().lastEventAt!) })}
++            </span>
++          </Show>
++
++          {/* Right Permanent Timeline */}
++          <div data-oco-runtime-replay class="ml-auto flex flex-wrap items-center justify-end gap-3.5 min-w-0 [&>*]:shrink-0">
++            <Show when={model().mode === "replay"}>
++              <span
++                class="px-3 py-0.5 rounded text-12-regular whitespace-nowrap"
++                style={{
++                  background: "color-mix(in srgb, var(--rt-accent) 15%, var(--rt-panel))",
++                  color: "var(--rt-accent)",
++                }}
++              >
++                {t("replay.readonly_badge", { time: new Date(cursor() ?? Date.now()).toLocaleTimeString(copy.intl()) })}
++              </span>
 +            </Show>
-+            <Show when={model().sessions.length > 1}>
-+              <span>{t("header.sessions", { count: model().sessions.length })}</span>
-+            </Show>
-+            <Show when={!!props.onStop && actionsVisible(model().mode, model().run.state, busy())}>
++            <div class="flex border rounded overflow-hidden" style={{ "border-color": "var(--rt-line-strong)" }}>
 +              <button
 +                type="button"
-+                class={BTN}
-+                data-oco-runtime-stop
-+                aria-label={t("action.stop")}
-+                onClick={requestStop}
++                data-oco-runtime-replay-live
++                class="bg-transparent border-0 px-4 py-1.5 cursor-pointer text-12-regular font-mono"
++                style={{
++                  background: model().mode === "live" ? "color-mix(in srgb, var(--rt-sub) 30%, var(--rt-inset))" : "transparent",
++                  color: model().mode === "live" ? "var(--rt-text)" : "var(--rt-weak)",
++                }}
++                onClick={goLive}
 +              >
-+                {t("action.stop")}
++                {t("replay.seg_live")}
 +              </button>
-+            </Show>
-+            <Show when={cancelKind() === "requested"}>
-+              <span data-oco-runtime-cancel="requested">{t("cancel.requested")}</span>
-+            </Show>
-+            <Show when={model().mode === "live"}>
-+              <span data-oco-runtime-last>
-+                {freshness().lastEventAt === undefined
-+                  ? t("last.none")
-+                  : t("last.event", { ago: ago(t, wall() - freshness().lastEventAt!) })}
++              <button
++                type="button"
++                data-oco-runtime-replay-pause
++                class="bg-transparent border-0 px-4 py-1.5 cursor-pointer text-12-regular font-mono"
++                style={{
++                  background: model().mode === "replay" ? "color-mix(in srgb, var(--rt-sub) 30%, var(--rt-inset))" : "transparent",
++                  color: model().mode === "replay" ? "var(--rt-text)" : "var(--rt-weak)",
++                }}
++                onClick={pause}
++              >
++                {t("replay.seg_replay")}
++              </button>
++            </div>
++            <input
++              type="range"
++              min={0}
++              max={Math.max(0, steps().length - 1)}
++              value={cursor() === undefined ? Math.max(0, steps().length - 1) : Math.max(0, stepIndex())}
++              class="w-36"
++              style={{ "accent-color": "var(--rt-sub)" }}
++              onInput={(e) => seek(Number(e.currentTarget.value))}
++              aria-label={t("replay.step", { n: shownStep(), total: steps().length })}
++            />
++            <span class="text-12-regular whitespace-nowrap" style={{ color: "var(--rt-weak)" }}>
++              {shownStep()} / {steps().length}
++            </span>
++            <Show when={newSince() > 0}>
++              <span class="text-12-regular whitespace-nowrap" style={{ color: "var(--rt-weak)" }}>
++                {t("replay.new", { count: newSince() })}
 +              </span>
 +            </Show>
 +          </div>
-+
-+          <div class="flex flex-wrap items-center gap-2" data-oco-runtime-replay>
-+            <Show
-+              when={cursor() !== undefined}
-+              fallback={
-+                <button type="button" class={BTN} onClick={pause}>
-+                  {t("replay.pause")}
-+                </button>
-+              }
-+            >
-+              <button type="button" class={`h-6 px-2 rounded-[5px] text-12-medium bg-surface-base-active text-text-strong ${FOCUS}`} onClick={goLive}>
-+                {t("replay.live")}
-+              </button>
-+              <input
-+                type="range"
-+                aria-label={t("replay.step", { n: stepIndex() + 1, total: steps().length })}
-+                min={0}
-+                max={Math.max(0, steps().length - 1)}
-+                value={Math.max(0, stepIndex())}
-+                onInput={(e) => seek(Number(e.currentTarget.value))}
-+              />
-+              <span class="text-12-regular text-text-weak">{t("replay.step", { n: stepIndex() + 1, total: steps().length })}</span>
-+              <Show when={newSince() > 0}>
-+                <span class="text-12-regular text-text-weak">{t("replay.new", { count: newSince() })}</span>
-+              </Show>
-+            </Show>
-+          </div>
-+
-+          <Show when={model().mode === "replay"}>
-+            <div class="text-12-regular text-text-weak" data-oco-runtime-replay-note>{t("replay.attention")}</div>
-+          </Show>
-+
-+          {/* 2. Focus sentence */}
-+          <div
-+            data-oco-runtime-focus={model().focus.kind}
-+            class="rounded-md px-3 py-2 bg-surface-inset-base text-14-medium text-text-strong font-mono"
-+            style={{ "border-left": `3px solid ${model().focus.kind === "error" ? COLOR.error : model().focus.kind === "attention" ? COLOR.attention : COLOR.model}` }}
-+          >
-+            <Switch>
-+              <Match when={model().focus.kind === "attention" && attention().length}>
-+                {(() => {
-+                  const firstAtt = () => attention()[0]
-+                  const inNode = () => isAttentionInToolNode(firstAtt())
-+                  return (
-+                    <Show
-+                      when={!inNode()}
-+                      fallback={
-+                        <div>
-+                          <div class="break-words">{attentionText(t, firstAtt())}</div>
-+                          <div class="text-11-regular text-text-weak mt-0.5">{t("focus.attention.hint")}</div>
-+                        </div>
-+                      }
-+                    >
-+                      <div class="flex flex-col gap-1">
-+                        {attentionRow(firstAtt)}
-+                        <div class="text-11-regular text-text-weak mt-0.5">{t("focus.attention.hint")}</div>
-+                      </div>
-+                    </Show>
-+                  )
-+                })()}
-+              </Match>
-+              <Match when={model().focus.kind === "retry" && (model().focus as { attempt: number; message: string; next: number })}>
-+                {(r) => {
-+                  const wait = () => retryWait(r().next, wall())
-+                  return (
-+                    <div data-oco-runtime-retry>
-+                      {wait().due
-+                        ? t("retry.soon")
-+                        : t("retry.countdown", { attempt: r().attempt, seconds: wait().seconds })}
-+                      <Show when={r().message}>
-+                        <div class="text-12-regular text-text-weak">{r().message}</div>
-+                      </Show>
-+                    </div>
-+                  )
-+                }}
-+              </Match>
-+              <Match when={model().focus.kind === "error" && (model().focus as { message: string })}>
-+                {(r) => <div>{r().message ? t("focus.error", { message: r().message }) : t("focus.error.unknown")}</div>}
-+              </Match>
-+              <Match when={model().focus.kind === "working" && (model().focus as { tool?: RuntimeTool; stage: Stage })}>
-+                {(w) => (
-+                  <div>
-+                    {w().tool
-+                      ? t("focus.working.tool", { tool: w().tool!.child?.agent ?? w().tool!.name, input: w().tool!.input })
-+                      : t(`stage.${stageKey(w().stage)}`)}
-+                  </div>
-+                )}
-+              </Match>
-+              <Match when={model().focus.kind === "interrupted"}>
-+                <div>{t("focus.interrupted")}</div>
-+              </Match>
-+              <Match when={model().focus.kind === "cancelled"}>
-+                <div data-oco-runtime-cancel="cancelled">{t("focus.cancelled")}</div>
-+              </Match>
-+              <Match when={model().focus.kind === "done"}>
-+                <div>{t("focus.done")}</div>
-+              </Match>
-+              <Match when={true}>
-+                <div>{t("focus.idle")}</div>
-+              </Match>
-+            </Switch>
-+          </div>
-+
-+          {/* Screen-reader mirror: run state + one focus sentence only. No ticking timers, buttons or attributes E2E selects on. */}
-+          <div class="sr-only" aria-live="polite" data-oco-runtime-live>
-+            {liveSentence()}
-+          </div>
 +        </div>
 +
-+        {/* Secondary attention items not rendered inside tool nodes */}
-+        <Show when={attention().length > 1}>
-+          <div class="flex flex-col gap-2">
-+            <For each={attention().slice(1)}>
-+              {(item) => (
-+                <Show when={!isAttentionInToolNode(item)}>
-+                  {attentionRow(() => item)}
++        {/* Row 2: 中部 (Middle: Left Column 290px + Tree) */}
++        <div
++          class="mid min-h-0"
++          style={{
++            flex: isStack() ? "none" : undefined,
++            display: isStack() ? "flex" : "grid",
++            "flex-direction": isStack() ? "column" : undefined,
++            "grid-template-columns": isStack() ? undefined : "minmax(0, 290px) minmax(0, 1fr)",
++            gap: "20px",
++          }}
++        >
++          {/* Left Column (Attention Panel + Roster) */}
++          <aside
++            class="left grid gap-4 min-h-0 min-w-0"
++            style={{
++              display: isStack() ? "contents" : "grid",
++              "grid-template-rows": "auto minmax(112px, 1fr)",
++            }}
++          >
++            {/* Box 1: Needs Attention */}
++            <div
++              data-oco-runtime-attention-panel
++              class="box rounded-lg p-4 flex flex-col gap-3 min-h-0 min-w-0 overflow-hidden"
++              style={{ background: "var(--rt-panel)", border: "1px solid var(--rt-line)", order: 1 }}
++            >
++              <h3 class="m-0 text-12-bold tracking-wider font-bold" style={{ color: "var(--rt-weak)" }}>
++                {t("attention.title", { count: attention().length })}
++              </h3>
++              <div class="flex flex-col gap-2.5 overflow-y-auto min-h-0">
++                <Show
++                  when={attention().length > 0}
++                  fallback={
++                    <div
++                      class="text-12-regular"
++                      style={{ color: "var(--rt-weak)" }}
++                      data-oco-runtime-replay-note={model().mode === "replay" ? "" : undefined}
++                    >
++                      {model().mode === "replay" ? t("attention.readonly") : t("attention.none")}
++                    </div>
++                  }
++                >
++                  <For each={attentionKeys.ids()}>
++                    {(id) => {
++                      const a = () => attentionKeys.get(id)!
++                      // Permission: bold kind (e.g. bash), then the exact command/pattern once. The panel title already
++                      // says it is waiting for you, so neither line repeats that.
++                      const itemText = () => {
++                        const it = a()
++                        return it.kind === "permission" ? it.permission : attentionText(t, it)
++                      }
++                      const itemDetail = () => {
++                        const it = a()
++                        if (it.kind === "permission") return it.patterns.join(" ")
++                        return it.text === itemText() ? "" : it.text
++                      }
++                      return (
++                        <div
++                          data-oco-runtime-attention={a().id}
++                          data-oco-runtime-attention-kind={a().kind}
++                          data-oco-runtime-pending={pending()[a().id] ? "" : undefined}
++                          class="p-3 rounded border flex flex-col gap-1 min-w-0"
++                          style={{
++                            border: "1px solid var(--rt-attn)",
++                            background: "color-mix(in srgb, var(--rt-attn) 7%, transparent)",
++                          }}
++                        >
++                          <div class="font-bold text-12-regular" style={{ color: "var(--rt-attn)" }}>
++                            {itemText()}
++                          </div>
++                          <div class="ell text-11-regular" style={{ color: "var(--rt-weak)" }} title={itemDetail()}>
++                            {itemDetail()}
++                          </div>
++                          <Show when={pending()[a().id]}>
++                            <div class="text-10-regular text-text-weak">{t("action.pending")}</div>
++                          </Show>
++                          <Show when={failed()[a().id]}>
++                            <div class="text-10-regular" style={{ color: "var(--rt-err)" }}>
++                              {t("action.failed")}
++                            </div>
++                          </Show>
++                          <Show
++                            when={model().mode === "live"}
++                            fallback={
++                              <div data-oco-runtime-replay-note class="text-11-regular mt-1" style={{ color: "var(--rt-weak)" }}>
++                                {t("replay.attention")}
++                              </div>
++                            }
++                          >
++                            <Show when={a().kind === "permission"}>
++                              <div class="grid grid-cols-2 gap-2 mt-2">
++                                <button
++                                  type="button"
++                                  class="col-span-2 h-[34px] px-2 rounded border bg-transparent cursor-pointer font-mono text-12-regular whitespace-nowrap"
++                                  style={{
++                                    "border-color": "var(--rt-ok)",
++                                    color: "var(--rt-ok)",
++                                    background: "var(--rt-inset)",
++                                  }}
++                                  data-oco-runtime-reply="once"
++                                  disabled={!!pending()[a().id]}
++                                  onClick={() => respond(a, "once")}
++                                >
++                                  {t("action.permission.once")}
++                                </button>
++                                <button
++                                  type="button"
++                                  class="h-[34px] px-2 rounded border bg-transparent cursor-pointer font-mono text-12-regular whitespace-nowrap"
++                                  style={{
++                                    "border-color": "var(--rt-line-strong)",
++                                    color: "var(--rt-text)",
++                                    background: "var(--rt-inset)",
++                                  }}
++                                  data-oco-runtime-reply="always"
++                                  disabled={!!pending()[a().id]}
++                                  onClick={() => respond(a, "always")}
++                                >
++                                  {t("action.permission.always")}
++                                </button>
++                                <button
++                                  type="button"
++                                  class="h-[34px] px-2 rounded border bg-transparent cursor-pointer font-mono text-12-regular whitespace-nowrap"
++                                  style={{
++                                    "border-color": "var(--rt-err)",
++                                    color: "var(--rt-err)",
++                                    background: "var(--rt-inset)",
++                                  }}
++                                  data-oco-runtime-reply="reject"
++                                  disabled={!!pending()[a().id]}
++                                  onClick={() => respond(a, "reject")}
++                                >
++                                  {t("action.permission.reject")}
++                                </button>
++                              </div>
++                            </Show>
++                            <Show when={a().kind === "question"}>
++                              <div class="grid grid-cols-2 gap-2 mt-2">
++                                <button
++                                  type="button"
++                                  class="h-[34px] px-2 rounded border bg-transparent cursor-pointer font-mono text-12-regular whitespace-nowrap"
++                                  style={{
++                                    "border-color": "var(--rt-ok)",
++                                    color: "var(--rt-ok)",
++                                    background: "var(--rt-inset)",
++                                  }}
++                                  data-oco-runtime-question="answer"
++                                  disabled={!!pending()[a().id]}
++                                  onClick={() => props.onView("chat")}
++                                >
++                                  {t("action.question.answer")}
++                                </button>
++                                <button
++                                  type="button"
++                                  class="h-[34px] px-2 rounded border bg-transparent cursor-pointer font-mono text-12-regular whitespace-nowrap"
++                                  style={{
++                                    "border-color": "var(--rt-err)",
++                                    color: "var(--rt-err)",
++                                    background: "var(--rt-inset)",
++                                  }}
++                                  data-oco-runtime-question="reject"
++                                  disabled={!!pending()[a().id]}
++                                  onClick={() => respond(a, "reject")}
++                                >
++                                  {t("action.question.reject")}
++                                </button>
++                              </div>
++                            </Show>
++                          </Show>
++                        </div>
++                      )
++                    }}
++                  </For>
 +                </Show>
-+              )}
-+            </For>
-+          </div>
-+        </Show>
++              </div>
 +
-+        {/* 3. Legend + 4. Agent Tree (Main + Thinking side-note + Dispatch + Slots + Return + Fill) */}
-+        <RuntimeMechanism
-+          model={model}
-+          t={t}
-+          copy={copy}
-+          childOf={(id) => (childMessagesOf(id) ? assembleChild(id) : undefined)}
-+          narrow={narrow}
-+          isToolOpen={isToolOpen}
-+          toggleTool={toggleTool}
-+          childOpen={childOpen}
-+          toggleChild={toggleChild}
-+          assembleChild={assembleChild}
-+          onOpenSession={props.onOpenSession}
-+          now={wall}
-+          pending={pending}
-+          failed={failed}
-+          respond={respond}
-+          onView={props.onView}
-+          reasoningElement={
-+            <Show when={reasoningKeys.ids().length > 0}>
-+              <div class="flex flex-col gap-2 min-w-0">
-+                <For each={reasoningKeys.ids()}>
-+                  {(id) => (
-+                    <RuntimeReasoningBlock
-+                      reasoning={() => reasoningKeys.get(id)}
-+                      t={t}
-+                      isReplay={() => model().mode === "replay"}
-+                    />
-+                  )}
++              {/* Other attention issues button */}
++              <Show when={otherAttentionTools().length > 0}>
++                <button
++                  type="button"
++                  data-oco-runtime-other
++                  class="mt-1 text-left text-12-regular cursor-pointer bg-transparent border-0 p-0 font-mono flex items-center gap-1.5"
++                  style={{ color: "var(--rt-attn)" }}
++                  onClick={() => onToggleDetail("__other__")}
++                >
++                  <span class="font-bold">!</span>
++                  <span>{t("attention.other_count", { count: otherAttentionTools().length })}</span>
++                </button>
++              </Show>
++            </div>
++
++            {/* Box 2: Subagents Roster */}
++            <div
++              data-oco-runtime-roster
++              class="box rounded-lg p-4 flex flex-col gap-3 min-h-0 min-w-0 overflow-hidden"
++              style={{
++                background: "var(--rt-panel)",
++                border: "1px solid var(--rt-line)",
++                order: 3,
++                "max-height": isStack() ? "240px" : undefined,
++              }}
++            >
++              <h3 class="m-0 text-12-bold tracking-wider font-bold" style={{ color: "var(--rt-weak)" }}>
++                {t("roster.title", { count: rosterItems().length })}
++              </h3>
++              <div class="overflow-y-auto flex-1 flex flex-col gap-1.5 min-h-0">
++                <For each={rosterItems()}>
++                  {(item) => {
++                    const glyph =
++                      item.lifecycle === "done"
++                        ? "✓"
++                        : item.lifecycle === "running"
++                          ? "◐"
++                          : item.lifecycle === "waiting-user"
++                            ? "!"
++                            : item.lifecycle === "error"
++                              ? "✕"
++                              : "○"
++                    const glyphColor =
++                      item.lifecycle === "done"
++                        ? "var(--rt-ok)"
++                        : item.lifecycle === "error"
++                          ? "var(--rt-err)"
++                          : item.lifecycle === "waiting-user"
++                            ? "var(--rt-attn)"
++                            : "var(--rt-sub)"
++                    const activityText = item.activity
++                      ? `${item.activity.name} ×${item.activity.count}`
++                      : item.description || ""
++                    // Short word so the agent name keeps its column (full lifecycle sentence is in the title).
++                    const lifecycleText = item.lifecycle
++                      ? t(`life.short.${item.lifecycle}` as any)
++                      : t(`tool.state.${item.state}`)
++                    return (
++                      <div
++                        data-oco-runtime-roster-item={item.sessionID ?? item.toolID}
++                        class="grid grid-cols-[16px_minmax(0,1fr)_auto] items-center gap-x-2.5 gap-y-0.5 p-2 rounded cursor-pointer text-12-regular"
++                        title={item.lifecycle ? t(`child.lifecycle.${item.lifecycle}` as any) : undefined}
++                        style={{
++                          background: "transparent",
++                        }}
++                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--rt-inset)")}
++                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
++                        onClick={() => {
++                          if (item.sessionID) onEnterChild(item.sessionID)
++                        }}
++                      >
++                        <span style={{ color: glyphColor }}>{glyph}</span>
++                        <span class="ell font-semibold" style={{ color: "var(--rt-sub)" }}>
++                          {item.agent}
++                        </span>
++                        <span class="ell text-right text-11-regular" style={{ color: "var(--rt-weak)" }}>
++                          {lifecycleText}
++                        </span>
++                        <Show when={activityText}>
++                          <div class="col-start-2 col-end-4 ell text-11-regular" style={{ color: "var(--rt-weak)" }}>
++                            {activityText}
++                          </div>
++                        </Show>
++                      </div>
++                    )
++                  }}
 +                </For>
 +              </div>
-+            </Show>
-+          }
-+        />
-+
-+        {/* 5. Other items needing attention (tools not in current slice but error/interrupted/awaiting) */}
-+        <Show when={otherAttentionTools().length > 0}>
-+          <div class="flex flex-col gap-1.5 font-mono">
-+            <div class="text-12-medium text-text-base flex items-center gap-1.5">
-+              <span style={{ color: COLOR.attention }}>!</span>
-+              <span>{t("runtime.other_attention")}</span>
 +            </div>
-+            <For each={otherAttentionTools()}>
-+              {(tool) => toolRow(() => tool)}
-+            </For>
-+          </div>
-+        </Show>
++          </aside>
 +
-+        {/* 6. Session Log */}
-+        <div class="flex flex-col gap-1 font-mono" data-oco-runtime-events>
-+          <div class="flex items-baseline justify-between gap-2 min-w-0">
-+            <span class="text-12-medium text-text-base">{t("runtime.log_title")}</span>
-+            <span class="text-11-regular text-text-weak">{t("runtime.log_hint")}</span>
-+          </div>
-+          <div class="flex flex-col gap-1 p-2 rounded border border-dashed border-border-subtle bg-surface-inset-base max-h-60 overflow-auto min-w-0">
-+            <Show when={model().events.length} fallback={<div class="text-11-regular text-text-weak">{t("events.none")}</div>}>
-+              <For each={eventKeys.ids()}>{(id) => eventRow(() => eventKeys.get(id)!)}</For>
++          {/* Right Column: Tree Mechanism */}
++          <section class="tree-section flex-1 min-h-0 min-w-0 flex flex-col" style={{ flex: isStack() ? "none" : undefined, order: 2 }}>
++            <RuntimeMechanism
++              model={model}
++              t={t}
++              copy={copy}
++              childOf={(id) => (childMessagesOf(id) ? assembleChild(id) : undefined)}
++              isStack={isStack}
++              isNarrow560={isNarrow560}
++              childOpen={childOpen}
++              toggleChild={toggleChild}
++              assembleChild={assembleChild}
++              onOpenSession={props.onOpenSession}
++              now={wall}
++              pending={pending}
++              failed={failed}
++              respond={respond}
++              onView={props.onView}
++              enteredStack={enteredStack}
++              onEnterChild={onEnterChild}
++              onNavigateCrumb={onNavigateCrumb}
++              openDetailId={openDetailId}
++              onToggleDetail={onToggleDetail}
++              otherAttentionTools={otherAttentionTools}
++              reasoningList={activeReasonings}
++            />
++          </section>
++        </div>
++
++        {/* Row 3: 会话日志 (Session Log) */}
++        <div
++          data-oco-runtime-events
++          class="box rounded-lg p-4 flex flex-col gap-2.5 overflow-hidden shrink-0"
++          style={{
++            background: "var(--rt-panel)",
++            border: "1px solid var(--rt-line)",
++            height: isStack() ? "176px" : "clamp(104px, 16vh, 176px)",
++          }}
++        >
++          <h3 class="m-0 text-12-bold tracking-wider shrink-0 font-bold" style={{ color: "var(--rt-weak)" }}>
++            {t("runtime.log_title")}
++          </h3>
++          <div class="overflow-y-auto flex flex-col gap-1 text-12-regular leading-relaxed min-h-0 flex-1">
++            <Show
++              when={model().events.length > 0}
++              fallback={<div class="text-12-regular" style={{ color: "var(--rt-weak)" }}>{t("events.none")}</div>}
++            >
++              <For each={[...eventKeys.ids()].reverse()}>
++                {(id) => {
++                  const ev = () => eventKeys.get(id)!
++                  const isCurrent = () => cursor() !== undefined && ev().at === cursor()
++                  return eventRow(ev, isCurrent)
++                }}
++              </For>
 +            </Show>
 +          </div>
 +        </div>
 +
-+        {/* 7. Bottom Summary */}
++        {/* Row 4: 状态栏 (Bottom Summary) */}
 +        <div
 +          data-oco-runtime-summary
-+          class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 border-t border-border-subtle text-11-regular font-mono text-text-weak shrink-0 min-w-0"
++          class="flex items-center gap-8 text-12-regular whitespace-nowrap overflow-hidden px-1 shrink-0 font-mono"
++          style={{ color: "var(--rt-weak)" }}
 +        >
 +          <span>
-+            <span class="text-text-strong font-medium">{summaryAgent()}</span>
-+            <span> · </span>
-+            <span>{summaryModel()}</span>
++            <b style={{ color: "var(--rt-main)" }}>{summaryAgent()}</b> · {summaryModel()}
 +          </span>
 +          <span>{summaryChildren()}</span>
 +          <span>{summaryTools()}</span>
 +          <span>{summaryRequest()}</span>
-+          <span>{summaryTokens()}</span>
++          <span data-oco-runtime-usage>{summaryUsage()}</span>
++          <Show when={summaryContext()}>
++            <span>{summaryContext()}</span>
++          </Show>
++          <Show when={summaryCost()}>
++            <span>{summaryCost()}</span>
++          </Show>
++          {/* Legend (moved from the top bar so the top bar stays on one line) */}
++            <div data-oco-runtime-legend class="ml-auto flex items-center gap-4 text-12-regular whitespace-nowrap" style={{ color: "var(--rt-weak)" }}>
++              <span class="flex items-center gap-1.5">
++                <i class="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "var(--rt-main)" }}></i>
++                {t("legend.main")}
++              </span>
++              <span class="flex items-center gap-1.5">
++                <i class="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "var(--rt-sub)" }}></i>
++                {t("legend.child")}
++              </span>
++              <span class="flex items-center gap-1.5">
++                <i class="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "var(--rt-tool)" }}></i>
++                {t("legend.tool")}
++              </span>
++              <span class="flex items-center gap-1.5">
++                <i class="inline-block w-2.5 h-2.5 rounded-sm" style={{ background: "var(--rt-attn)" }}></i>
++                {t("legend.attention")}
++              </span>
++              <span class="flex items-center gap-1.5">
++                <span>··●</span>
++                <span>{t("legend.flow")}</span>
++              </span>
++            </div>
++
 +        </div>
++      </div>
++
++      {/* Screen-reader mirror: run state + one focus sentence only */}
++      <div class="sr-only" aria-live="polite" data-oco-runtime-live>
++        {liveSentence()}
 +      </div>
 +    </div>
 +  )

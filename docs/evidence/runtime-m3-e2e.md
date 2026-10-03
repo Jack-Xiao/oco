@@ -100,3 +100,19 @@
 
 - `git -C vendor/opencode diff deb241e -- packages/app > patches/opencode/0019-oco-runtime-view.patch`（vendor HEAD `9bd20f1`）：23 个文件，+8356/−5；`diff --check` 干净（先修掉 `test-browser/session-runtime-child-sync.test.ts` 文件末尾多出的空行，vendor `9bd20f1`）。
 - 干净 `51ef4be`（独立 worktree）上依序 `git apply --check` + apply 0001→0019：PASS 19/19；`packages/app/src`、`test-browser` 与开发树 `diff -r` 一致；重放树 session 单测 205/0。重放 worktree 用后已删除。
+
+## 改版 2：固定框架（2026-10-04）
+
+实现：Gemini Task 4d（vendor `aa7bba4`、`72dfe58`）+ 主线程真实界面视觉修复（`96b6e45`、`4385e3f`）。视觉检查用 `scripts/look-runtime.mjs`（隔离 VS Code，1600 / 1100 / 700 宽，并行子代理、权限、回放；输出截图与重叠/溢出/裁切诊断）。
+
+4d 原样在真实 VS Code 中的问题（look 基线，root 实测 1584×649，权限栏出现时 581 高）：树内主节点、思考框、回填溢出树框；700 宽时树与左栏、日志、状态栏重叠，卡片内容被裁掉；顶栏换两行；阶段标签换行挤坏主节点；回放时名册 agent 名被长生命周期文字挤没；E2E 点“回复/实时”被滑块挡住。单测与 4d 自查均未发现这些问题。修复后 8 个状态（1600/1100/700 × 运行/结束，权限，回放）诊断全为 0。
+
+| 套件 | 结果 | results.json |
+| --- | --- | --- |
+| c5-runtime（en） | PASS 32/32 | `runs/20261003-171403-c5-runtime-d294/results.json` |
+| c5-runtime（zh-cn） | PASS 32/32 | `runs/20261003-171520-c5-runtime-1d9c/results.json` |
+| c4-trajectory（回归） | PASS 17/17 | `runs/20261003-171628-c4-trajectory-a203/results.json` |
+
+新增断言：`reply-in-panel`、`width-1600`、`parallel-subagents`（3 个子代理同时占 3 条通道、≥2 条派发边活跃、名册 ≥3）、`geometry-stable`（运行中 / 结束后 / 回放三时刻 4 条通道与思考框矩形完全相等）；`keyboard` 加“打开详情面板不改变通道矩形”；`reasoning` 改为思考框流式与完成后矩形相等。截图：`runs/20261003-171403-c5-runtime-d294/par-running.png`、`par-done.png`、`par-replay.png`。
+
+Task 8：0019 重新生成（vendor HEAD `4385e3f`，23 个文件，+8691/−5，`diff --check` 干净）；干净 `51ef4be` 上 0001→0019 PASS 19/19，`src`、`test-browser` 与开发树 `diff -r` 一致，重放树 session 单测 216/0。
