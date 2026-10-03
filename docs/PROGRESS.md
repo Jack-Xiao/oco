@@ -447,3 +447,4 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 教训：单测与代理自查都通过的界面，在真实 VS Code 里仍严重溢出重叠（底部输入框占去大量高度）。界面任务必须在真实宿主里截图诊断，已固化为 `scripts/look-runtime.mjs`。
 - 委派：Gemini 完成 preflight、Task 1–6、4b、4c、4d、终审；Task 7 首次因 Gemini 额度 429 + Grok 402 由主线程接手；4d 视觉修复因“自查通过但真实界面错乱”的证据矛盾与快速迭代需要由主线程完成；见 [账本](evidence/delegation-runtime-m3-2026-10-03.md)。
 - NOT RUN：亮色主题、嵌套 ≥2 层 E2E、真实模型、Remote。本地提交，未推送，未部署。
+- 终审修复波（同日）：Gemini 终审 12 条，主线程修 10 条（含阻断 D-01：流式更新整卡重建致焦点丢失，新增 `focus-stable` 并做对照）；最终 vendor `73998c9`，E2E en/zh 33/33、c4 17/17，干净重放 19/19。最终包 `oco-0.0.4-6412ceb.vsix` 已安装到本机 VS Code（需 Reload Window）。
