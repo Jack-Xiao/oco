@@ -122,4 +122,30 @@ describe("mock-llm 429 retry-once", () => {
     expect(resMain2.status).toBe(200)
     await resMain2.text()
   })
+
+  test("SLOW-REASON-<tag> streams 6 reasoning chunks with 300ms interval", async () => {
+    const payload = {
+      messages: [{ role: "user", content: "Write slow reasoning SLOW-REASON-test1" }],
+      tools: [{ type: "function", function: { name: "bash" } }],
+      stream: true,
+    }
+
+    const t0 = Date.now()
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+    expect(res.status).toBe(200)
+
+    const raw = await res.text()
+    const elapsed = Date.now() - t0
+    expect(elapsed).toBeGreaterThanOrEqual(1500)
+
+    // Count reasoning chunks
+    const reasoningMatches = [...raw.matchAll(/"reasoning_content":/g)]
+    expect(reasoningMatches.length).toBe(6)
+    expect(raw).toContain("data: [DONE]")
+  })
 })
+

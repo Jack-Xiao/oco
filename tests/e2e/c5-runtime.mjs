@@ -1,11 +1,12 @@
-// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 - runtime view E2E.
+// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 - runtime view E2E (M3 Agent Tree Redesign).
 // Verifies the third view "Runtime" (data-oco-view="runtime"), live updates, tool executions,
-// usage stats, last event, step replay, and locale strings.
-// M2: permission approve/reject and question routing from the runtime view, stop, 429 retry, subagent expand,
-// and no actions in replay. The degradation each assertion catches is listed in docs/evidence/runtime-m2-e2e.md.
+// usage stats, last event, step replay, locale strings, permission approval inside tool nodes,
+// stop, 429 retry, subagent tree expand, and M3 agent tree features:
+// width-420, width-560, width-wide, theme-dark, mechanism, legend, summary, fill, reply-in-node,
+// reasoning streaming/done/toggle, motion-on, reduced-motion, and keyboard accessibility.
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot } from "./vscode.mjs"
+import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, fitGroups } from "./vscode.mjs"
 import { api, messages, waitReply, waitIdle, MODEL } from "./server.mjs"
 
 const REQUIRED = [
@@ -25,13 +26,31 @@ const REQUIRED = [
   "retry",
   "subagent",
   "replay-no-actions",
+  "width-420",
+  "width-560",
+  "width-wide",
+  "theme-dark",
+  "mechanism",
+  "legend",
+  "summary",
+  "fill",
+  "reply-in-node",
+  "reasoning",
+  "motion-on",
+  "reduced-motion",
+  "keyboard",
 ]
 
 const run = createRun({ suite: "c5-runtime", required: REQUIRED, scriptPath: fileURLToPath(import.meta.url) })
 const health = await api("GET", "/global/health").catch(() => null)
 const LOCALE = process.env.OCO_E2E_LOCALE ?? ""
 run.setEnv({ serverVersion: health?.version ?? null, modelMode: MODEL.mode, locale: LOCALE || "default" })
-const { app, page } = await launch({ profile: "c5-runtime", run, env: LOCALE ? { OCO_DEV_LOCALE: LOCALE } : {} })
+const { app, page } = await launch({
+  profile: "c5-runtime",
+  run,
+  settings: { "workbench.colorTheme": "Default Dark Modern" },
+  env: LOCALE ? { OCO_DEV_LOCALE: LOCALE } : {},
+})
 
 const COPY = {
   en: {
@@ -140,6 +159,56 @@ try {
     { state: idleStateAttr, focus: idleFocusAttr },
   )
 
+  // theme-dark: background relative luminance < 0.2, text foreground > background + 0.3
+  const themeCheck = await fA.evaluate(() => {
+    function parseRgb(colorStr) {
+      const m = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/)
+      if (!m) return null
+      return {
+        r: parseInt(m[1], 10),
+        g: parseInt(m[2], 10),
+        b: parseInt(m[3], 10),
+        a: m[4] !== undefined ? parseFloat(m[4]) : 1,
+      }
+    }
+    function relativeLuminance(rgb) {
+      const srgb = [rgb.r / 255, rgb.g / 255, rgb.b / 255].map((val) =>
+        val <= 0.03928 ? val / 12.92 : Math.pow((val + 0.055) / 1.055, 2.4)
+      )
+      return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2]
+    }
+    let curr = document.querySelector("[data-oco-runtime]")
+    let bgRgb = null
+    while (curr) {
+      const cs = window.getComputedStyle(curr)
+      const parsed = parseRgb(cs.backgroundColor)
+      if (parsed && parsed.a > 0.9) {
+        bgRgb = parsed
+        break
+      }
+      curr = curr.parentElement
+    }
+    if (!bgRgb) {
+      const bodyParsed = parseRgb(window.getComputedStyle(document.body).backgroundColor)
+      if (bodyParsed && bodyParsed.a > 0.9) bgRgb = bodyParsed
+    }
+    const bgLum = bgRgb ? relativeLuminance(bgRgb) : 1
+    const textEl = document.querySelector("[data-oco-runtime] [data-oco-runtime-focus]") || document.querySelector("[data-oco-runtime]")
+    const fgParsed = parseRgb(window.getComputedStyle(textEl).color)
+    const fgLum = fgParsed ? relativeLuminance(fgParsed) : 0
+    return {
+      bgLum,
+      fgLum,
+      bgDark: bgLum < 0.2,
+      contrastOk: fgLum > bgLum + 0.3,
+    }
+  })
+  run.record(
+    "theme-dark",
+    themeCheck.bgDark && themeCheck.contrastOk ? "PASS" : "FAIL",
+    themeCheck,
+  )
+
   // 9. locale-copy
   // with OCO_E2E_LOCALE=zh-cn the third toggle label is "运行" and state text is Chinese; under en it's "Runtime" and English.
   const toggleLabel = (await fA.locator('[data-oco-view="runtime"]').innerText()).trim()
@@ -228,7 +297,7 @@ try {
   const lastText = (await lastEl.innerText().catch(() => "")).trim()
   const hasLastEventText = lastText.includes("Last event") || lastText.includes("最后事件")
   const panelText = await fA.locator("[data-oco-runtime]").innerText().catch(() => "")
-  const noDisconnect = !/disconnect|断连|斷連|斷線/i.test(panelText)
+  const noDisconnect = !/disconnect|断连|斷連|断線|斷線/i.test(panelText)
 
   run.record(
     "last-event",
@@ -363,12 +432,25 @@ try {
   const replyKinds = () =>
     fA.locator("[data-oco-runtime-reply]").evaluateAll((els) => [...new Set(els.map((e) => e.getAttribute("data-oco-runtime-reply")))].sort())
 
-  // perm-approve: a bash ask shows three reply buttons; "once" lets the tool finish and the attention goes away.
+  // perm-approve & reply-in-node:
+  // a bash ask shows three reply buttons inside the tool node; unique across DOM; "once" lets tool finish.
   await openRuntime()
   const bashBefore = (await tools("bash")).length
   await send(fA, `Use the bash tool to run exactly: echo ${MARK}-approve . Then reply with the output.`)
   const approveAsked = await waitAttention("permission")
   const approveKinds = await replyKinds()
+
+  // reply-in-node verification:
+  const permToolNode = fA.locator('[data-oco-runtime-tool]', { has: fA.locator('[data-oco-runtime-reply="once"]') }).first()
+  const permToolVis = await permToolNode.isVisible().catch(() => false)
+  const inNodeOnce = (await permToolNode.locator('[data-oco-runtime-reply="once"]').count()) === 1
+  const inNodeAlways = (await permToolNode.locator('[data-oco-runtime-reply="always"]').count()) === 1
+  const inNodeReject = (await permToolNode.locator('[data-oco-runtime-reply="reject"]').count()) === 1
+  const onceTotal = await count(fA, '[data-oco-runtime-reply="once"]')
+  const alwaysTotal = await count(fA, '[data-oco-runtime-reply="always"]')
+  const rejectTotal = await count(fA, '[data-oco-runtime-reply="reject"]')
+  const replyButtonsUnique = onceTotal === 1 && alwaysTotal === 1 && rejectTotal === 1 && inNodeOnce && inNodeAlways && inNodeReject
+
   await fA.locator('[data-oco-runtime-reply="once"]').first().click()
   let approvePendingSeen = false
   const approveCleared = await waitUntil(async () => {
@@ -377,10 +459,17 @@ try {
   }, 30000, 100).then(() => true, () => false)
   await waitReply(A)
   const approveTool = (await tools("bash")).slice(bashBefore).at(-1)
+
   run.record(
     "perm-approve",
     approveAsked && approveKinds.join() === "always,once,reject" && approveCleared && approveTool?.state?.status === "completed" ? "PASS" : "FAIL",
     { approveAsked, approveKinds, approvePendingSeen, approveCleared, toolStatus: approveTool?.state?.status ?? null },
+  )
+
+  run.record(
+    "reply-in-node",
+    permToolVis && replyButtonsUnique && approveCleared && approveTool?.state?.status === "completed" ? "PASS" : "FAIL",
+    { permToolVis, replyButtonsUnique, inNodeOnce, inNodeAlways, inNodeReject, onceTotal, alwaysTotal, rejectTotal, approveCleared, toolStatus: approveTool?.state?.status ?? null },
   )
 
   // perm-reject: "reject" ends the tool with an error and clears the attention.
@@ -522,6 +611,342 @@ try {
       : "FAIL",
     { replayAsked, liveReplies, inReplay, replayReplies, replayQuestions, replayStops, backReplies, backStop },
   )
+
+  // ---- M3: keyboard, reasoning, widths, mechanism, motion, legend/summary/fill ----
+
+  // keyboard: Tab to tool toggle, focus-visible outline or box-shadow, Enter to expand, Space to collapse,
+  // duration text in tool detail, button button count 0, live region has focus sentence and no reasoning.
+  const toolToggle = fA.locator("[data-oco-runtime-tool-toggle]").first()
+  await toolToggle.waitFor({ state: "visible", timeout: 10000 })
+
+  // Focus preceding element and Tab to tool toggle
+  await fA.locator('[data-oco-view="chat"]').first().focus()
+  let tabFocused = false
+  for (let i = 0; i < 20; i++) {
+    await page.keyboard.press("Tab")
+    const isTarget = await toolToggle.evaluate((el) => document.activeElement === el).catch(() => false)
+    if (isTarget) {
+      tabFocused = true
+      break
+    }
+  }
+  if (!tabFocused) {
+    await toolToggle.focus()
+  }
+
+  const focusStyle = await toolToggle.evaluate((el) => {
+    const cs = window.getComputedStyle(el)
+    const hasOutline = cs.outlineStyle !== "none" && cs.outlineWidth !== "0px" && cs.outlineWidth !== ""
+    const hasBoxShadow = cs.boxShadow !== "none" && cs.boxShadow !== ""
+    return {
+      outline: cs.outline,
+      boxShadow: cs.boxShadow,
+      hasOutlineOrBoxShadow: hasOutline || hasBoxShadow,
+    }
+  })
+
+  // Enter to expand
+  const kbBeforeEnter = (await toolToggle.getAttribute("aria-expanded")) === "true"
+  await page.keyboard.press("Enter")
+  await sleep(250)
+  const kbAfterEnter = (await toolToggle.getAttribute("aria-expanded")) === "true"
+  const toolDetailEl = fA.locator("[data-oco-runtime-tool-detail]").first()
+  const detailVisible = await toolDetailEl.isVisible()
+  const detailText = detailVisible ? await toolDetailEl.innerText() : ""
+  const hasDuration = /duration|耗时|未知|\d+\s*(ms|s)/i.test(detailText)
+
+  // Space to collapse
+  await page.keyboard.press("Space")
+  await sleep(250)
+  const kbAfterSpace = (await toolToggle.getAttribute("aria-expanded")) === "true"
+
+  // Button nesting count
+  const nestedButtonCount = await count(fA, "[data-oco-runtime] button button")
+
+  // Live region
+  const liveEl = fA.locator("[data-oco-runtime-live]")
+  const liveVisible = (await liveEl.count()) >= 1
+  const liveText = liveVisible ? (await liveEl.innerText()).trim() : ""
+  const liveHasFocus = liveText.length > 0
+  const liveHasReasoning = (await liveEl.locator("[data-oco-runtime-reasoning]").count()) > 0 || /reasoning|思考/i.test(liveText)
+
+  const kbPass =
+    focusStyle.hasOutlineOrBoxShadow &&
+    !kbBeforeEnter &&
+    kbAfterEnter &&
+    !kbAfterSpace &&
+    detailVisible &&
+    hasDuration &&
+    nestedButtonCount === 0 &&
+    liveVisible &&
+    liveHasFocus &&
+    !liveHasReasoning
+
+  run.record(
+    "keyboard",
+    kbPass ? "PASS" : "FAIL",
+    {
+      tabFocused,
+      focusStyle,
+      kbBeforeEnter,
+      kbAfterEnter,
+      kbAfterSpace,
+      detailVisible,
+      hasDuration,
+      detailText: detailText.slice(0, 100),
+      nestedButtonCount,
+      liveVisible,
+      liveText: liveText.slice(0, 100),
+      liveHasReasoning,
+    },
+  )
+
+  // reasoning: streaming -> done, collapsed to one line, expand button aria-expanded toggle
+  await send(fA, `SLOW-REASON-${MARK}`)
+  let sawReasonStreaming = false
+  let sawReasonDone = false
+  const rStart = Date.now()
+  while (Date.now() - rStart < 15000) {
+    const rState = await fA.evaluate(() => {
+      const el = document.querySelector("[data-oco-runtime-reasoning-state]")
+      return el ? el.getAttribute("data-oco-runtime-reasoning-state") : null
+    }).catch(() => null)
+    if (rState === "streaming") sawReasonStreaming = true
+    if (rState === "done") {
+      sawReasonDone = true
+      break
+    }
+    await sleep(50)
+  }
+  await waitReply(A)
+  await sleep(300)
+
+  const reasonEl = fA.locator("[data-oco-runtime-reasoning-state]")
+  const reasonStateFinal = await reasonEl.getAttribute("data-oco-runtime-reasoning-state")
+  const reasonToggle = reasonEl.locator("button")
+  const reasonBtnVisible = await reasonToggle.isVisible()
+  const reasonExpandedBefore = await reasonToggle.getAttribute("aria-expanded")
+  await reasonToggle.click()
+  await sleep(200)
+  const reasonExpandedAfter = await reasonToggle.getAttribute("aria-expanded")
+  await reasonToggle.click()
+  await sleep(200)
+  const reasonExpandedFinal = await reasonToggle.getAttribute("aria-expanded")
+
+  const reasonPass =
+    sawReasonStreaming &&
+    sawReasonDone &&
+    reasonStateFinal === "done" &&
+    reasonBtnVisible &&
+    reasonExpandedBefore === "false" &&
+    reasonExpandedAfter === "true" &&
+    reasonExpandedFinal === "false"
+
+  run.record(
+    "reasoning",
+    reasonPass ? "PASS" : "FAIL",
+    {
+      sawReasonStreaming,
+      sawReasonDone,
+      reasonStateFinal,
+      reasonBtnVisible,
+      reasonExpandedBefore,
+      reasonExpandedAfter,
+      reasonExpandedFinal,
+    },
+  )
+
+  // Fit to 420
+  await fitGroups(app, page, 420)
+
+  // Trigger sleep 3 for deterministic tool running window
+  await send(fA, "Use the bash tool to run: echo 'long command name with parameter echo and output' && sleep 3")
+  await waitUntil(async () => (await fA.locator('[data-oco-runtime-reply="once"]').count()) >= 1, 30000, 100)
+  await fA.locator('[data-oco-runtime-reply="once"]').first().click()
+
+  // Wait for running edge to appear
+  await waitUntil(
+    async () => (await count(fA, '[data-oco-runtime-edge-dir="dispatch"][data-oco-runtime-edge-active="true"]')) >= 1,
+    4000,
+    50,
+  )
+
+  // Within running window at width 420:
+  const w420StopVis = await fA.locator("[data-oco-runtime-stop]").isVisible().catch(() => false)
+  const w420FocusVis = await fA.locator("[data-oco-runtime-focus]").isVisible().catch(() => false)
+  const w420Overflow = await fA.evaluate(() => {
+    const root = document.querySelector("[data-oco-runtime]")
+    return {
+      scrollWidth: root.scrollWidth,
+      clientWidth: root.clientWidth,
+      noOverflow: root.scrollWidth <= root.clientWidth + 1,
+    }
+  })
+  const w420Vertical = (await fA.locator(".border-l.border-dashed").count()) >= 1 || (await fA.locator(".border-l").count()) >= 1
+
+  // Screenshot width-420.png into run artifact directory
+  await page.screenshot({ path: run.artifact("width-420.png") })
+
+  run.record(
+    "width-420",
+    w420StopVis && w420FocusVis && w420Overflow.noOverflow && w420Vertical ? "PASS" : "FAIL",
+    { stopVisible: w420StopVis, focusVisible: w420FocusVis, isVertical: w420Vertical, ...w420Overflow },
+  )
+
+  // motion-on: active edge flow animation-name is not none
+  const activeDispatchEdgeCount = await count(fA, '[data-oco-runtime-edge-dir="dispatch"][data-oco-runtime-edge-active="true"]')
+  const flowCountRunning = await count(fA, '[data-oco-runtime-flow]')
+  const flowEl = fA.locator('[data-oco-runtime-flow]').first()
+  const motionOnAnimName = flowCountRunning >= 1
+    ? await flowEl.evaluate((el) => window.getComputedStyle(el).animationName)
+    : "none"
+  const motionOnPass = motionOnAnimName !== "none" && motionOnAnimName !== ""
+  run.record(
+    "motion-on",
+    motionOnPass ? "PASS" : "FAIL",
+    { activeDispatchEdgeCount, flowCountRunning, animationName: motionOnAnimName },
+  )
+
+  // reduced-motion: with reduce motion, animation-name is none, edge is still active, tool.start in log
+  await page.emulateMedia({ reducedMotion: "reduce" })
+  await sleep(100)
+  const reducedAnimName = flowCountRunning >= 1
+    ? await flowEl.evaluate((el) => window.getComputedStyle(el).animationName)
+    : "none"
+  const reducedEdgeActive = (await count(fA, '[data-oco-runtime-edge-dir="dispatch"][data-oco-runtime-edge-active="true"]')) >= 1
+  const reducedHasToolStart = (await count(fA, '[data-oco-runtime-event="tool.start"]')) >= 1
+  await page.emulateMedia({ reducedMotion: "no-preference" })
+
+  const reducedPass = reducedAnimName === "none" && reducedEdgeActive && reducedHasToolStart
+  run.record(
+    "reduced-motion",
+    reducedPass ? "PASS" : "FAIL",
+    { reducedAnimName, reducedEdgeActive, reducedHasToolStart },
+  )
+
+  // Wait for sleep 3 to finish
+  await waitIdle(A)
+  await sleep(400)
+
+  // Check mechanism after finish:
+  const mechState = await attr("[data-oco-runtime-mechanism]", "data-oco-runtime-mechanism")
+  const mechToggleCount = await count(fA, "[data-oco-runtime-mechanism-toggle]")
+  const activeEdgesAfter = await count(fA, '[data-oco-runtime-edge-active="true"]')
+
+  // Pause following (replay mode): no data-oco-runtime-flow and no reply buttons
+  const pauseBtn2 = fA.locator("[data-oco-runtime-replay] button").first()
+  await pauseBtn2.click()
+  await waitUntil(async () => (await attr("[data-oco-runtime]", "data-oco-runtime-mode")) === "replay", 5000, 100)
+  const replayFlowCount = await count(fA, "[data-oco-runtime-flow]")
+  const replayReplyCount = await count(fA, "[data-oco-runtime-reply]")
+  // Back to live
+  await pauseBtn2.click()
+  await waitUntil(async () => (await attr("[data-oco-runtime]", "data-oco-runtime-mode")) === "live", 5000, 100)
+
+  const mechPass =
+    mechState === "expanded" &&
+    mechToggleCount === 0 &&
+    activeDispatchEdgeCount >= 1 &&
+    flowCountRunning >= 1 &&
+    activeEdgesAfter === 0 &&
+    replayFlowCount === 0 &&
+    replayReplyCount === 0
+
+  run.record(
+    "mechanism",
+    mechPass ? "PASS" : "FAIL",
+    {
+      mechState,
+      mechToggleCount,
+      activeDispatchEdgeCount,
+      flowCountRunning,
+      activeEdgesAfter,
+      replayFlowCount,
+      replayReplyCount,
+    },
+  )
+
+  // width-560
+  await fitGroups(app, page, 560)
+  await send(fA, "Use the bash tool to run: sleep 3")
+  await waitUntil(async () => (await fA.locator('[data-oco-runtime-reply="once"]').count()) >= 1, 30000, 100)
+  await fA.locator('[data-oco-runtime-reply="once"]').first().click()
+  await waitUntil(async () => (await count(fA, '[data-oco-runtime-edge-dir="dispatch"][data-oco-runtime-edge-active="true"]')) >= 1, 4000, 50)
+  const w560StopVis = await fA.locator("[data-oco-runtime-stop]").isVisible().catch(() => false)
+  const w560FocusVis = await fA.locator("[data-oco-runtime-focus]").isVisible().catch(() => false)
+  const w560Overflow = await fA.evaluate(() => {
+    const root = document.querySelector("[data-oco-runtime]")
+    return {
+      scrollWidth: root.scrollWidth,
+      clientWidth: root.clientWidth,
+      noOverflow: root.scrollWidth <= root.clientWidth + 1,
+    }
+  })
+  // Screenshot width-560.png into run artifact directory
+  await page.screenshot({ path: run.artifact("width-560.png") })
+  await waitIdle(A)
+  run.record(
+    "width-560",
+    w560StopVis && w560FocusVis && w560Overflow.noOverflow ? "PASS" : "FAIL",
+    { stopVisible: w560StopVis, focusVisible: w560FocusVis, ...w560Overflow },
+  )
+
+  // width-wide (1200)
+  await fitGroups(app, page, 1200)
+  await send(fA, "Use the bash tool to run: sleep 3")
+  await waitUntil(async () => (await fA.locator('[data-oco-runtime-reply="once"]').count()) >= 1, 30000, 100)
+  await fA.locator('[data-oco-runtime-reply="once"]').first().click()
+  await waitUntil(async () => (await count(fA, '[data-oco-runtime-edge-dir="dispatch"][data-oco-runtime-edge-active="true"]')) >= 1, 4000, 50)
+  const wWideStopVis = await fA.locator("[data-oco-runtime-stop]").isVisible().catch(() => false)
+  const wWideFocusVis = await fA.locator("[data-oco-runtime-focus]").isVisible().catch(() => false)
+  const wWideOverflow = await fA.evaluate(() => {
+    const root = document.querySelector("[data-oco-runtime]")
+    return {
+      scrollWidth: root.scrollWidth,
+      clientWidth: root.clientWidth,
+      noOverflow: root.scrollWidth <= root.clientWidth + 1,
+    }
+  })
+  // Screenshot width-wide.png into run artifact directory
+  await page.screenshot({ path: run.artifact("width-wide.png") })
+  await waitIdle(A)
+  run.record(
+    "width-wide",
+    wWideStopVis && wWideFocusVis && wWideOverflow.noOverflow ? "PASS" : "FAIL",
+    { stopVisible: wWideStopVis, focusVisible: wWideFocusVis, ...wWideOverflow },
+  )
+
+  // legend / summary / fill
+  const legendEl = fA.locator("[data-oco-runtime-legend]")
+  const legendCount = await count(fA, "[data-oco-runtime-legend]")
+  const legendText = legendCount >= 1 ? (await legendEl.innerText()).trim() : ""
+  run.record(
+    "legend",
+    legendCount >= 1 && legendText.length > 0 ? "PASS" : "FAIL",
+    { legendCount, legendText: legendText.replace(/\s+/g, " ").slice(0, 100) },
+  )
+
+  const summaryEl = fA.locator("[data-oco-runtime-summary]")
+  const summaryCount = await count(fA, "[data-oco-runtime-summary]")
+  const summaryText = summaryCount >= 1 ? (await summaryEl.innerText()).trim() : ""
+  const summaryHasReq = /(Request|请求|請求)\s*#?\d+/i.test(summaryText) || /\d+/.test(summaryText)
+  run.record(
+    "summary",
+    summaryCount >= 1 && summaryHasReq ? "PASS" : "FAIL",
+    { summaryCount, summaryText: summaryText.replace(/\s+/g, " ").slice(0, 120), summaryHasReq },
+  )
+
+  const fillEl = fA.locator("[data-oco-runtime-fill]")
+  const fillCount = await count(fA, "[data-oco-runtime-fill]")
+  const fillText = fillCount >= 1 ? (await fillEl.innerText()).trim() : ""
+  const fillMatch = fillText.match(/(\d+)\s*\/\s*(\d+)/)
+  const fillCompleted = !!fillMatch && Number(fillMatch[1]) === Number(fillMatch[2])
+  run.record(
+    "fill",
+    fillCount >= 1 && fillCompleted ? "PASS" : "FAIL",
+    { fillCount, fillText: fillText.replace(/\s+/g, " ").slice(0, 100), fillMatch: fillMatch ? fillMatch[0] : null, fillCompleted },
+  )
+
 } catch (e) {
   run.record("run", "FAIL", { error: String(e?.message ?? e).slice(0, 500) })
   await runShot(page, run, "error")

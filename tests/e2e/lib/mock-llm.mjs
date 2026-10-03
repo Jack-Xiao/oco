@@ -66,14 +66,19 @@ export function plan(body) {
     return { tool: "write", args: { filePath: abs(m[1]), content: m[2] + "\n" } }
   if (tools.has("read") && (m = /Use the read tool on (\S+) with offset (\d+) and limit (\d+)/i.exec(prompt)))
     return { tool: "read", args: { filePath: abs(m[1]), offset: Number(m[2]), limit: Number(m[3]) } }
-  if ((m = /Reply with exactly this line and nothing else:\s*(.+)$/im.exec(prompt))) return { lines: [m[1].trim()] }
+  if ((m = /Reply with exactly this line and nothing else:\s*(.+)$/im.exec(prompt))) {
+    return { lines: [m[1].trim()], slowReason: /SLOW-REASON-[\w-]+/.test(prompt) }
+  }
 
   const n = Number(/(\d+) numbered sentences|from 1 to (\d+)|1 to (\d+)/i.exec(prompt)?.slice(1).find(Boolean) ?? 0)
   // "in one paragraph": plain words, no list markup, so the rendered text equals the raw text.
-  if (n > 0 && /one paragraph/i.test(prompt)) return { lines: Array.from({ length: n }, (_, i) => `word${i + 1}`), sep: " " }
+  if (n > 0 && /one paragraph/i.test(prompt)) return { lines: Array.from({ length: n }, (_, i) => `word${i + 1}`), sep: " ", slowReason: /SLOW-REASON-[\w-]+/.test(prompt) }
   // Long "sentence" answers are what stop/close tests interrupt; stream them slower (300 lines ~ 45s) so a
   // test that polls host state (~1s per read) still sees the run busy.
-  if (n > 0) return { lines: Array.from({ length: n }, (_, i) => `${i + 1}. Mock line ${i + 1}.`), lineMs: /sentence/i.test(prompt) ? SENTENCE_MS : LINE_MS }
+  if (n > 0) return { lines: Array.from({ length: n }, (_, i) => `${i + 1}. Mock line ${i + 1}.`), lineMs: /sentence/i.test(prompt) ? SENTENCE_MS : LINE_MS, slowReason: /SLOW-REASON-[\w-]+/.test(prompt) }
+
+  const slowTag = /SLOW-REASON-[\w-]+/.exec(prompt)?.[0]
+  if (slowTag) return { lines: [`OK ${slowTag}`], slowReason: true }
 
   const tag = /TAG-[\w-]+/.exec(prompt)?.[0]
   return { lines: [tag ? `OK ${tag}` : "OK"] }
@@ -127,9 +132,13 @@ async function complete(req, res, body) {
   } else {
     // Long answers start with a reasoning block, as the real test model does. OpenCode stores a part's
     // text when the part ends, so tests that wait for "> 200 chars stored" see it while text still streams.
-    if (step.lines.length > 1) {
-      for (let i = 0; i < 6; i++) chunk(res, id, { reasoning_content: `Planning the list, step ${i + 1}: keep every item short and numbered in order. ` })
-      await sleep(LINE_MS)
+    if (step.lines.length > 1 || step.slowReason) {
+      for (let i = 0; i < 6; i++) {
+        if (closed) return
+        chunk(res, id, { reasoning_content: `Planning the list, step ${i + 1}: keep every item short and numbered in order. ` })
+        if (step.slowReason) await sleep(300)
+      }
+      if (!step.slowReason) await sleep(LINE_MS)
     }
     for (const [i, line] of step.lines.entries()) {
       if (closed) return
