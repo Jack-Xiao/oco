@@ -2,7 +2,8 @@
 // Verifies the third view "Runtime" (data-oco-view="runtime"), live updates, tool executions,
 // usage stats, last event, step replay, locale strings, permission approval inside tool nodes,
 // stop, 429 retry, subagent tree expand, and M3 agent tree features:
-// width-420, width-560, width-wide, theme-dark, mechanism, legend, summary, fill, reply-in-node,
+// width-420, width-560, width-wide, width-1600, theme-dark, mechanism, legend, summary, fill, reply-in-panel,
+// parallel-subagents, geometry-stable (redesign 2: fixed frame),
 // reasoning streaming/done/toggle, motion-on, reduced-motion, and keyboard accessibility.
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
@@ -34,7 +35,10 @@ const REQUIRED = [
   "legend",
   "summary",
   "fill",
-  "reply-in-node",
+  "reply-in-panel",
+  "width-1600",
+  "parallel-subagents",
+  "geometry-stable",
   "reasoning",
   "motion-on",
   "reduced-motion",
@@ -316,9 +320,9 @@ try {
   const liveToolCount = await count(fA, "[data-oco-runtime-tool]")
   const liveCountsValid = liveToolEndCount >= 1 && liveReqEndCount >= 1
 
-  const pauseBtn = fA.locator("[data-oco-runtime-replay] button")
-  const pauseBtnText = (await pauseBtn.innerText().catch(() => "")).trim()
-  const pauseBtnMatches = pauseBtnText === L.pauseFollowing
+  // Redesign 2: the timeline is always visible; "Replay" / "Live" are two segment buttons.
+  const pauseBtn = fA.locator("[data-oco-runtime-replay-pause]")
+  const pauseBtnMatches = await pauseBtn.isVisible().catch(() => false)
   await pauseBtn.click()
 
   await waitUntil(async () => (await fA.locator("[data-oco-runtime]").getAttribute("data-oco-runtime-mode")) === "replay", 5000, 100)
@@ -327,7 +331,7 @@ try {
   const sliderVisible = await slider.waitFor({ state: "visible", timeout: 5000 }).then(() => true, () => false)
   const noteVisible = await fA.locator("[data-oco-runtime-replay-note]").waitFor({ state: "visible", timeout: 5000 }).then(() => true, () => false)
 
-  const stepLabelBefore = (await fA.locator("[data-oco-runtime-replay] span").first().innerText().catch(() => "")).trim()
+  const stepLabelBefore = (await fA.locator("[data-oco-runtime-replay]").innerText().catch(() => "")).trim()
   const sliderMax = Number(await slider.getAttribute("max").catch(() => "0"))
   const sliderHasSteps = sliderMax >= 1
 
@@ -338,7 +342,7 @@ try {
   })
   await sleep(250)
 
-  const stepLabelAfter = (await fA.locator("[data-oco-runtime-replay] span").first().innerText().catch(() => "")).trim()
+  const stepLabelAfter = (await fA.locator("[data-oco-runtime-replay]").innerText().catch(() => "")).trim()
   const stepLabelChanged = Boolean(stepLabelBefore && stepLabelAfter && stepLabelBefore !== stepLabelAfter)
   const step0ToolEndCount = await count(fA, '[data-oco-runtime-event="tool.end"]')
   const step0ReqEndCount = await count(fA, '[data-oco-runtime-event="request.end"]')
@@ -347,9 +351,8 @@ try {
   const countUnderOrEqual = step0ToolCount <= liveToolCount
 
   // Click "Back to live"/"返回实时"
-  const liveBtn = fA.locator("[data-oco-runtime-replay] button")
-  const liveBtnText = (await liveBtn.innerText().catch(() => "")).trim()
-  const liveBtnMatches = liveBtnText === L.backToLive
+  const liveBtn = fA.locator("[data-oco-runtime-replay-live]")
+  const liveBtnMatches = await liveBtn.isVisible().catch(() => false)
   await liveBtn.click()
   await waitUntil(async () => (await fA.locator("[data-oco-runtime]").getAttribute("data-oco-runtime-mode")) === "live", 5000, 100)
   const modeLive = (await fA.locator("[data-oco-runtime]").getAttribute("data-oco-runtime-mode")) === "live"
@@ -432,24 +435,26 @@ try {
   const replyKinds = () =>
     fA.locator("[data-oco-runtime-reply]").evaluateAll((els) => [...new Set(els.map((e) => e.getAttribute("data-oco-runtime-reply")))].sort())
 
-  // perm-approve & reply-in-node:
-  // a bash ask shows three reply buttons inside the tool node; unique across DOM; "once" lets tool finish.
+  // perm-approve & reply-in-panel:
+  // a bash ask shows three reply buttons in the fixed left "needs you" panel, each once in the DOM and none
+  // inside the tree; "once" lets the tool finish.
   await openRuntime()
   const bashBefore = (await tools("bash")).length
   await send(fA, `Use the bash tool to run exactly: echo ${MARK}-approve . Then reply with the output.`)
   const approveAsked = await waitAttention("permission")
   const approveKinds = await replyKinds()
 
-  // reply-in-node verification:
-  const permToolNode = fA.locator('[data-oco-runtime-tool]', { has: fA.locator('[data-oco-runtime-reply="once"]') }).first()
-  const permToolVis = await permToolNode.isVisible().catch(() => false)
-  const inNodeOnce = (await permToolNode.locator('[data-oco-runtime-reply="once"]').count()) === 1
-  const inNodeAlways = (await permToolNode.locator('[data-oco-runtime-reply="always"]').count()) === 1
-  const inNodeReject = (await permToolNode.locator('[data-oco-runtime-reply="reject"]').count()) === 1
+  // reply-in-panel verification:
+  const permPanel = fA.locator("[data-oco-runtime-attention-panel]")
+  const permToolVis = await permPanel.isVisible().catch(() => false)
+  const inNodeOnce = (await permPanel.locator('[data-oco-runtime-reply="once"]').count()) === 1
+  const inNodeAlways = (await permPanel.locator('[data-oco-runtime-reply="always"]').count()) === 1
+  const inNodeReject = (await permPanel.locator('[data-oco-runtime-reply="reject"]').count()) === 1
+  const treeReplies = await count(fA, "[data-oco-runtime-mechanism] [data-oco-runtime-reply]")
   const onceTotal = await count(fA, '[data-oco-runtime-reply="once"]')
   const alwaysTotal = await count(fA, '[data-oco-runtime-reply="always"]')
   const rejectTotal = await count(fA, '[data-oco-runtime-reply="reject"]')
-  const replyButtonsUnique = onceTotal === 1 && alwaysTotal === 1 && rejectTotal === 1 && inNodeOnce && inNodeAlways && inNodeReject
+  const replyButtonsUnique = onceTotal === 1 && alwaysTotal === 1 && rejectTotal === 1 && inNodeOnce && inNodeAlways && inNodeReject && treeReplies === 0
 
   await fA.locator('[data-oco-runtime-reply="once"]').first().click()
   let approvePendingSeen = false
@@ -467,9 +472,9 @@ try {
   )
 
   run.record(
-    "reply-in-node",
+    "reply-in-panel",
     permToolVis && replyButtonsUnique && approveCleared && approveTool?.state?.status === "completed" ? "PASS" : "FAIL",
-    { permToolVis, replyButtonsUnique, inNodeOnce, inNodeAlways, inNodeReject, onceTotal, alwaysTotal, rejectTotal, approveCleared, toolStatus: approveTool?.state?.status ?? null },
+    { permToolVis, replyButtonsUnique, treeReplies, inNodeOnce, inNodeAlways, inNodeReject, onceTotal, alwaysTotal, rejectTotal, approveCleared, toolStatus: approveTool?.state?.status ?? null },
   )
 
   // perm-reject: "reject" ends the tool with an error and clears the attention.
@@ -567,13 +572,16 @@ try {
   const toggleShown = await toggle.waitFor({ state: "visible", timeout: 30000 }).then(() => true, () => false)
   const childID = toggleShown ? await toggle.getAttribute("data-oco-runtime-child-toggle") : null
   if (toggleShown) await toggle.click()
-  const expanded = toggleShown ? (await toggle.getAttribute("aria-expanded")) === "true" : false
+  // Redesign 2: "enter" replaces the tree with the child's tree and shows a breadcrumb back to the main agent.
   const panel = fA.locator(`[data-oco-runtime-child="${childID}"]`)
   const panelShown = childID ? await panel.waitFor({ state: "visible", timeout: 15000 }).then(() => true, () => false) : false
+  const expanded = await fA.locator("[data-oco-runtime-crumb]").isVisible().catch(() => false)
   await waitReply(A)
   const childDone = childID
     ? await waitUntil(async () => (await attr(`[data-oco-runtime-child="${childID}"]`, "data-oco-runtime-child-lifecycle")) === "done", 30000, 200).then(() => true, () => false)
     : false
+  await fA.locator("[data-oco-runtime-crumb] button").first().click().catch(() => {})
+  await fA.locator(`[data-oco-runtime-child-toggle="${childID}"]`).waitFor({ state: "visible", timeout: 5000 }).catch(() => {})
   const row = fA.locator("[data-oco-runtime-tool]", { has: fA.locator(`[data-oco-runtime-child-toggle="${childID}"]`) }).first()
   const rowText = childID ? await row.innerText().catch(() => "") : ""
   const taskPart = (await tools("task")).at(-1)
@@ -591,13 +599,13 @@ try {
   await send(fA, `Use the bash tool to run exactly: echo ${MARK}-replay . Then reply with the output.`)
   const replayAsked = await waitAttention("permission")
   const liveReplies = await count(fA, "[data-oco-runtime-reply]")
-  await fA.locator("[data-oco-runtime-replay] button").first().click()
+  await fA.locator("[data-oco-runtime-replay-pause]").click()
   await waitUntil(async () => (await attr("[data-oco-runtime]", "data-oco-runtime-mode")) === "replay", 5000, 100).catch(() => {})
   const inReplay = (await attr("[data-oco-runtime]", "data-oco-runtime-mode")) === "replay"
   const replayReplies = await count(fA, "[data-oco-runtime-reply]")
   const replayQuestions = await count(fA, "[data-oco-runtime-question]")
   const replayStops = await count(fA, "[data-oco-runtime-stop]")
-  await fA.locator("[data-oco-runtime-replay] button").first().click()
+  await fA.locator("[data-oco-runtime-replay-live]").click()
   await waitUntil(async () => (await attr("[data-oco-runtime]", "data-oco-runtime-mode")) === "live", 5000, 100).catch(() => {})
   const backReplies = await waitUntil(async () => (await count(fA, "[data-oco-runtime-reply]")) >= 1, 5000, 100).then(() => true, () => false)
   const backStop = (await count(fA, "[data-oco-runtime-stop]")) >= 1
@@ -622,7 +630,7 @@ try {
   // Focus preceding element and Tab to tool toggle
   await fA.locator('[data-oco-view="chat"]').first().focus()
   let tabFocused = false
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 40; i++) {
     await page.keyboard.press("Tab")
     const isTarget = await toolToggle.evaluate((el) => document.activeElement === el).catch(() => false)
     if (isTarget) {
@@ -645,6 +653,17 @@ try {
     }
   })
 
+  // Geometry of the four lanes; opening the detail panel must not move or resize any of them.
+  const laneRects = () =>
+    fA.evaluate(() =>
+      [...document.querySelectorAll("[data-oco-runtime-lane]")]
+        .map((e) => {
+          const r = e.getBoundingClientRect()
+          return [r.x, r.y, r.width, r.height].map(Math.round).join(",")
+        })
+        .join("|"),
+    )
+  const lanesBeforeDetail = await laneRects()
   // Enter to expand
   const kbBeforeEnter = (await toolToggle.getAttribute("aria-expanded")) === "true"
   await page.keyboard.press("Enter")
@@ -654,6 +673,8 @@ try {
   const detailVisible = await toolDetailEl.isVisible()
   const detailText = detailVisible ? await toolDetailEl.innerText() : ""
   const hasDuration = /duration|耗时|未知|\d+\s*(ms|s)/i.test(detailText)
+  const lanesWithDetail = await laneRects()
+  const detailKeepsLayout = lanesBeforeDetail.length > 0 && lanesBeforeDetail === lanesWithDetail
 
   // Space to collapse
   await page.keyboard.press("Space")
@@ -677,6 +698,7 @@ try {
     !kbAfterSpace &&
     detailVisible &&
     hasDuration &&
+    detailKeepsLayout &&
     nestedButtonCount === 0 &&
     liveVisible &&
     liveHasFocus &&
@@ -694,6 +716,7 @@ try {
       detailVisible,
       hasDuration,
       detailText: detailText.slice(0, 100),
+      detailKeepsLayout,
       nestedButtonCount,
       liveVisible,
       liveText: liveText.slice(0, 100),
@@ -701,7 +724,16 @@ try {
     },
   )
 
-  // reasoning: streaming -> done, collapsed to one line, expand button aria-expanded toggle
+  // reasoning: streaming -> done inside a fixed-size think box (same rect while streaming and after), no
+  // collapse button.
+  const thinkRect = () =>
+    fA.evaluate(() => {
+      const el = document.querySelector("[data-oco-runtime-think]")
+      if (!el) return null
+      const r = el.getBoundingClientRect()
+      return [r.x, r.y, r.width, r.height].map(Math.round).join(",")
+    })
+  let thinkWhileStreaming = null
   await send(fA, `SLOW-REASON-${MARK}`)
   let sawReasonStreaming = false
   let sawReasonDone = false
@@ -711,7 +743,10 @@ try {
       const el = document.querySelector("[data-oco-runtime-reasoning-state]")
       return el ? el.getAttribute("data-oco-runtime-reasoning-state") : null
     }).catch(() => null)
-    if (rState === "streaming") sawReasonStreaming = true
+    if (rState === "streaming") {
+      sawReasonStreaming = true
+      thinkWhileStreaming ??= await thinkRect()
+    }
     if (rState === "done") {
       sawReasonDone = true
       break
@@ -723,24 +758,11 @@ try {
 
   const reasonEl = fA.locator("[data-oco-runtime-reasoning-state]")
   const reasonStateFinal = await reasonEl.getAttribute("data-oco-runtime-reasoning-state")
-  const reasonToggle = reasonEl.locator("button")
-  const reasonBtnVisible = await reasonToggle.isVisible()
-  const reasonExpandedBefore = await reasonToggle.getAttribute("aria-expanded")
-  await reasonToggle.click()
-  await sleep(200)
-  const reasonExpandedAfter = await reasonToggle.getAttribute("aria-expanded")
-  await reasonToggle.click()
-  await sleep(200)
-  const reasonExpandedFinal = await reasonToggle.getAttribute("aria-expanded")
+  const thinkAfterDone = await thinkRect()
+  const thinkButtons = await count(fA, "[data-oco-runtime-think] button")
+  const thinkStable = thinkWhileStreaming !== null && thinkWhileStreaming === thinkAfterDone
 
-  const reasonPass =
-    sawReasonStreaming &&
-    sawReasonDone &&
-    reasonStateFinal === "done" &&
-    reasonBtnVisible &&
-    reasonExpandedBefore === "false" &&
-    reasonExpandedAfter === "true" &&
-    reasonExpandedFinal === "false"
+  const reasonPass = sawReasonStreaming && sawReasonDone && reasonStateFinal === "done" && thinkStable && thinkButtons === 0
 
   run.record(
     "reasoning",
@@ -749,10 +771,9 @@ try {
       sawReasonStreaming,
       sawReasonDone,
       reasonStateFinal,
-      reasonBtnVisible,
-      reasonExpandedBefore,
-      reasonExpandedAfter,
-      reasonExpandedFinal,
+      thinkWhileStreaming,
+      thinkAfterDone,
+      thinkButtons,
     },
   )
 
@@ -785,20 +806,27 @@ try {
   // Layout signal: the slot rail's data attribute AND its computed layout must agree (vertical = flex column).
   const railOf = () =>
     fA.evaluate(() => {
+      // Redesign 2: the layout attribute and the rail must agree with the measured widths and with where the
+      // four lanes actually sit (one column = vertical rail, side by side = grid).
+      const root = document.querySelector("[data-oco-runtime]")
       const el = document.querySelector("[data-oco-runtime-rail]")
-      // The product switches on the mechanism container's own width (< 560 px), not the window or group width.
       const mechWidth = document.querySelector("[data-oco-runtime-mechanism]")?.clientWidth ?? null
-      if (!el) return { rail: null, display: null, direction: null, mechWidth }
-      const cs = getComputedStyle(el)
-      return { rail: el.getAttribute("data-oco-runtime-rail"), display: cs.display, direction: cs.flexDirection, mechWidth }
+      const xs = new Set([...document.querySelectorAll("[data-oco-runtime-lane]")].map((e) => Math.round(e.getBoundingClientRect().x)))
+      return {
+        rail: el?.getAttribute("data-oco-runtime-rail") ?? null,
+        layout: root?.getAttribute("data-oco-runtime-layout") ?? null,
+        rootWidth: root?.clientWidth ?? null,
+        rootScrolls: root ? root.scrollHeight > root.clientHeight + 1 : null,
+        laneColumns: xs.size,
+        mechWidth,
+      }
     })
   const w420Rail = await railOf()
   const railMatchesWidth = (r) =>
     r.mechWidth !== null &&
-    (r.mechWidth < 560
-      ? r.rail === "vertical" && r.display === "flex" && r.direction === "column"
-      : r.rail === "grid" && r.display === "grid")
-  const w420Vertical = railMatchesWidth(w420Rail) && w420Rail.rail === "vertical" && w420Rail.display === "flex" && w420Rail.direction === "column"
+    r.layout === (r.rootWidth < 900 ? "stack" : "wide") &&
+    (r.mechWidth < 560 ? r.rail === "vertical" && r.laneColumns === 1 : r.rail === "grid" && r.laneColumns >= 2)
+  const w420Vertical = railMatchesWidth(w420Rail) && w420Rail.rail === "vertical"
   // fill during the running window: the bash slot is not terminal yet, so done < total.
   const fillOf = async () => {
     const text = (await fA.locator("[data-oco-runtime-fill]").first().innerText().catch(() => "")).replace(/\s+/g, " ").trim()
@@ -857,13 +885,12 @@ try {
   const activeEdgesAfter = await count(fA, '[data-oco-runtime-edge-active="true"]')
 
   // Pause following (replay mode): no data-oco-runtime-flow and no reply buttons
-  const pauseBtn2 = fA.locator("[data-oco-runtime-replay] button").first()
-  await pauseBtn2.click()
+  await fA.locator("[data-oco-runtime-replay-pause]").click()
   await waitUntil(async () => (await attr("[data-oco-runtime]", "data-oco-runtime-mode")) === "replay", 5000, 100)
   const replayFlowCount = await count(fA, "[data-oco-runtime-flow]")
   const replayReplyCount = await count(fA, "[data-oco-runtime-reply]")
   // Back to live
-  await pauseBtn2.click()
+  await fA.locator("[data-oco-runtime-replay-live]").click()
   await waitUntil(async () => (await attr("[data-oco-runtime]", "data-oco-runtime-mode")) === "live", 5000, 100)
 
   const mechPass =
@@ -937,8 +964,71 @@ try {
   await waitIdle(A)
   run.record(
     "width-wide",
-    wWideStopVis && wWideFocusVis && wWideOverflow.noOverflow && wWideRail.rail === "grid" && wWideRail.display === "grid" ? "PASS" : "FAIL",
+    wWideStopVis && wWideFocusVis && wWideOverflow.noOverflow && railMatchesWidth(wWideRail) && wWideRail.layout === "wide" && wWideRail.rootScrolls === false ? "PASS" : "FAIL",
     { stopVisible: wWideStopVis, focusVisible: wWideFocusVis, ...wWideRail, ...wWideOverflow },
+  )
+
+  // ---- Redesign 2: full-screen width, parallel subagents, geometry stability ----
+  // One message dispatches three slow subagents (mock "task tool 3 times in parallel"). At 1600 px the frame is
+  // "wide" and does not scroll; the four lanes and the think box keep exactly the same rects while running,
+  // after the turn ends and in replay. If the layout regresses to content-sized boxes, geometry-stable fails;
+  // if subagents are serialised or dropped from the tree, parallel-subagents fails.
+  await fitGroups(app, page, 1600)
+  const geom = () =>
+    fA.evaluate(() =>
+      [...document.querySelectorAll("[data-oco-runtime-lane], [data-oco-runtime-think]")]
+        .map((e) => {
+          const r = e.getBoundingClientRect()
+          return [r.x, r.y, r.width, r.height].map(Math.round).join(",")
+        })
+        .join("|"),
+    )
+  await send(fA, "Use the task tool 3 times in parallel: find callers; check cache; read docs")
+  let parChildLanes = 0
+  let parActiveEdges = 0
+  const parSeen = await waitUntil(async () => {
+    parChildLanes = await count(fA, '[data-oco-runtime-lane-kind="child"]')
+    parActiveEdges = await count(fA, '[data-oco-runtime-edge-dir="dispatch"][data-oco-runtime-edge-active="true"]')
+    return parChildLanes >= 3 && parActiveEdges >= 2
+  }, 20000, 100).then(() => true, () => false)
+  const parRoster = await count(fA, "[data-oco-runtime-roster-item]")
+  const w1600Rail = await railOf()
+  const w1600StopVis = await fA.locator("[data-oco-runtime-stop]").isVisible().catch(() => false)
+  const w1600FocusVis = await fA.locator("[data-oco-runtime-focus]").isVisible().catch(() => false)
+  const w1600Overflow = await fA.evaluate(() => {
+    const root = document.querySelector("[data-oco-runtime]")
+    return { scrollWidth: root.scrollWidth, clientWidth: root.clientWidth, noOverflow: root.scrollWidth <= root.clientWidth + 1 }
+  })
+  const geomRunning = await geom()
+  await page.screenshot({ path: run.artifact("par-running.png") })
+  await waitIdle(A)
+  await sleep(600)
+  const geomDone = await geom()
+  await page.screenshot({ path: run.artifact("par-done.png") })
+  await fA.locator("[data-oco-runtime-replay-pause]").click()
+  await waitUntil(async () => (await attr("[data-oco-runtime]", "data-oco-runtime-mode")) === "replay", 5000, 100).catch(() => {})
+  await fA.locator('[data-oco-runtime-replay] input[type="range"]').evaluate((el) => {
+    el.value = String(Math.floor(Number(el.max) * 0.9))
+    el.dispatchEvent(new Event("input", { bubbles: true }))
+  })
+  await sleep(300)
+  const geomReplay = await geom()
+  await page.screenshot({ path: run.artifact("par-replay.png") })
+  await fA.locator("[data-oco-runtime-replay-live]").click()
+  await waitUntil(async () => (await attr("[data-oco-runtime]", "data-oco-runtime-mode")) === "live", 5000, 100).catch(() => {})
+
+  run.record(
+    "width-1600",
+    w1600StopVis && w1600FocusVis && w1600Overflow.noOverflow && railMatchesWidth(w1600Rail) && w1600Rail.layout === "wide" && w1600Rail.rootScrolls === false
+      ? "PASS"
+      : "FAIL",
+    { stopVisible: w1600StopVis, focusVisible: w1600FocusVis, ...w1600Rail, ...w1600Overflow },
+  )
+  run.record("parallel-subagents", parSeen && parRoster >= 3 ? "PASS" : "FAIL", { parChildLanes, parActiveEdges, parRoster })
+  run.record(
+    "geometry-stable",
+    geomRunning.split("|").length === 5 && geomRunning === geomDone && geomDone === geomReplay ? "PASS" : "FAIL",
+    { geomRunning, geomDone, geomReplay },
   )
 
   // legend / summary / fill
