@@ -383,8 +383,6 @@ try {
       sliderMax,
       stepLabelBefore,
       stepLabelAfter,
-      pauseBtnText,
-      liveBtnText,
       pauseBtnMatches,
       liveBtnMatches,
       modeReplay,
