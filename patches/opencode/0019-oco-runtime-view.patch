@@ -1,9 +1,9 @@
 diff --git a/packages/app/src/components/session/session-runtime-actions.test.ts b/packages/app/src/components/session/session-runtime-actions.test.ts
 new file mode 100644
-index 0000000..e20f55b
+index 0000000..4a92ff4
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-actions.test.ts
-@@ -0,0 +1,177 @@
+@@ -0,0 +1,246 @@
 +// oco (patches/opencode/0019): branch coverage for runtime action predicates.
 +import { describe, expect, test } from "bun:test"
 +import {
@@ -11,6 +11,8 @@ index 0000000..e20f55b
 +  autoSyncTargets,
 +  cancelLabel,
 +  failureVisible,
++  lastChildToolIds,
++  pinDiff,
 +  pinTargets,
 +  retryWait,
 +  stopClickExpired,
@@ -23,28 +25,42 @@ index 0000000..e20f55b
 +const MODES: RuntimeMode[] = ["live", "replay"]
 +
 +describe("actionsVisible", () => {
-+  test("live and an in-progress state shows the stop control", () => {
-+    expect(actionsVisible("live", "working")).toBe(true)
-+    expect(actionsVisible("live", "retrying")).toBe(true)
-+    expect(actionsVisible("live", "waiting-user")).toBe(true)
++  test("live, busy, and an in-progress state shows the stop control", () => {
++    expect(actionsVisible("live", "working", true)).toBe(true)
++    expect(actionsVisible("live", "retrying", true)).toBe(true)
++    expect(actionsVisible("live", "waiting-user", true)).toBe(true)
 +  })
 +
-+  test("live and a settled state hides it", () => {
-+    expect(actionsVisible("live", "idle")).toBe(false)
-+    expect(actionsVisible("live", "error")).toBe(false)
-+    expect(actionsVisible("live", "unknown")).toBe(false)
++  test("live, busy, and a settled state hides it", () => {
++    expect(actionsVisible("live", "idle", true)).toBe(false)
++    expect(actionsVisible("live", "error", true)).toBe(false)
++    expect(actionsVisible("live", "unknown", true)).toBe(false)
 +  })
 +
-+  test("replay hides it for every run state", () => {
-+    for (const state of STATES) expect(actionsVisible("replay", state)).toBe(false)
++  test("an idle root session hides it even when run state is in-progress", () => {
++    expect(actionsVisible("live", "waiting-user", false)).toBe(false)
++    expect(actionsVisible("live", "working", false)).toBe(false)
++    expect(actionsVisible("live", "retrying", false)).toBe(false)
++    expect(actionsVisible("live", "idle", false)).toBe(false)
 +  })
 +
-+  test("every mode and state pair is decided", () => {
-+    const shown = MODES.flatMap((mode) => STATES.map((state) => [mode, state, actionsVisible(mode, state)] as const))
-+    expect(shown.filter(([, , on]) => on).map(([mode, state]) => `${mode}:${state}`)).toEqual([
-+      "live:working",
-+      "live:waiting-user",
-+      "live:retrying",
++  test("replay hides it for every run state and busy value", () => {
++    for (const state of STATES) {
++      expect(actionsVisible("replay", state, true)).toBe(false)
++      expect(actionsVisible("replay", state, false)).toBe(false)
++    }
++  })
++
++  test("every mode, state, and busy triplet is decided", () => {
++    const shown = MODES.flatMap((mode) =>
++      STATES.flatMap((state) =>
++        [true, false].map((busy) => [mode, state, busy, actionsVisible(mode, state, busy)] as const),
++      ),
++    )
++    expect(shown.filter(([, , , on]) => on).map(([mode, state, busy]) => `${mode}:${state}:${busy}`)).toEqual([
++      "live:working:true",
++      "live:waiting-user:true",
++      "live:retrying:true",
 +    ])
 +  })
 +})
@@ -181,12 +197,65 @@ index 0000000..e20f55b
 +    expect(retryWait(9_000, 10_000)).toEqual({ due: true, seconds: 0 })
 +  })
 +})
++
++describe("pinDiff", () => {
++  test("calculates newly added and removed session IDs", () => {
++    const diff = pinDiff(["a", "b"], ["b", "c"])
++    expect(diff).toEqual({ pin: ["c"], unpin: ["a"] })
++  })
++
++  test("handles empty previous set (initial pin)", () => {
++    const diff = pinDiff([], ["a", "b"])
++    expect(diff).toEqual({ pin: ["a", "b"], unpin: [] })
++  })
++
++  test("handles empty next set (cleanup unpin)", () => {
++    const diff = pinDiff(["a", "b"], [])
++    expect(diff).toEqual({ pin: [], unpin: ["a", "b"] })
++  })
++
++  test("returns empty arrays when sets are identical", () => {
++    const diff = pinDiff(["a", "b"], ["a", "b"])
++    expect(diff).toEqual({ pin: [], unpin: [] })
++  })
++
++  test("works with Sets and deduplicates inputs", () => {
++    const diff = pinDiff(new Set(["a", "b"]), ["b", "b", "c"])
++    expect(diff).toEqual({ pin: ["c"], unpin: ["a"] })
++  })
++})
++
++describe("lastChildToolIds", () => {
++  test("returns only the last tool id when multiple task rows reference the same child session", () => {
++    const tools = [
++      { id: "tool-1", child: { sessionID: "child-s1" } },
++      { id: "tool-2", child: { sessionID: "child-s2" } },
++      { id: "tool-3", child: { sessionID: "child-s1" } },
++    ]
++    const lastIds = lastChildToolIds(tools)
++    expect(lastIds).toEqual(new Set(["tool-2", "tool-3"]))
++    expect(lastIds.has("tool-1")).toBe(false)
++  })
++
++  test("ignores tools without child or with undefined sessionID", () => {
++    const tools = [
++      { id: "tool-1" },
++      { id: "tool-2", child: {} },
++      { id: "tool-3", child: { sessionID: "child-s1" } },
++    ]
++    expect(lastChildToolIds(tools)).toEqual(new Set(["tool-3"]))
++  })
++
++  test("handles empty tools list", () => {
++    expect(lastChildToolIds([])).toEqual(new Set())
++  })
++})
 diff --git a/packages/app/src/components/session/session-runtime-actions.ts b/packages/app/src/components/session/session-runtime-actions.ts
 new file mode 100644
-index 0000000..40311c7
+index 0000000..d17ed84
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-actions.ts
-@@ -0,0 +1,106 @@
+@@ -0,0 +1,148 @@
 +// oco (patches/opencode/0019): pure predicates for runtime-view actions.
 +// "requested" is click state only. "cancelled" is focus data only (MessageAbortedError).
 +
@@ -196,9 +265,9 @@ index 0000000..40311c7
 +
 +const STOP_STATES: ReadonlySet<ActionRunState> = new Set(["working", "retrying", "waiting-user"])
 +
-+/** Stop renders only while live and the run is still in progress (including a user wait or a retry). */
-+export function actionsVisible(mode: RuntimeMode, runState: ActionRunState): boolean {
-+  return mode === "live" && STOP_STATES.has(runState)
++/** Stop renders only while live, root session is busy, and the run is still in progress (including a user wait or a retry). */
++export function actionsVisible(mode: RuntimeMode, runState: ActionRunState, busy: boolean): boolean {
++  return mode === "live" && busy && STOP_STATES.has(runState)
 +}
 +
 +/**
@@ -292,6 +361,48 @@ index 0000000..40311c7
 +  const delta = next - now
 +  if (delta <= 0) return { due: true, seconds: 0 }
 +  return { due: false, seconds: Math.ceil(delta / 1000) }
++}
++
++export type PinDiff = {
++  pin: string[]
++  unpin: string[]
++}
++
++/**
++ * Computes incremental diff between previous and next sets of pinned session IDs.
++ * - `pin`: IDs in next but not in prev
++ * - `unpin`: IDs in prev but not in next
++ */
++export function pinDiff(prev: Iterable<string>, next: Iterable<string>): PinDiff {
++  const prevSet = prev instanceof Set ? (prev as Set<string>) : new Set(prev)
++  const nextSet = next instanceof Set ? (next as Set<string>) : new Set(next)
++  const pin: string[] = []
++  const unpin: string[] = []
++  for (const id of nextSet) {
++    if (!prevSet.has(id)) pin.push(id)
++  }
++  for (const id of prevSet) {
++    if (!nextSet.has(id)) unpin.push(id)
++  }
++  return { pin, unpin }
++}
++
++export type ChildToolLike = { id: string; child?: { sessionID?: string } }
++
++/**
++ * Computes the set of tool IDs that are the last row referencing each child session.
++ * When multiple task rows reference the same child session, only the last row renders
++ * the expand/collapse toggle and the expanded child panel.
++ */
++export function lastChildToolIds(tools: readonly ChildToolLike[]): Set<string> {
++  const lastForSession = new Map<string, string>()
++  for (const tool of tools) {
++    const sessionID = tool.child?.sessionID
++    if (sessionID) {
++      lastForSession.set(sessionID, tool.id)
++    }
++  }
++  return new Set(lastForSession.values())
 +}
 diff --git a/packages/app/src/components/session/session-runtime-child.tsx b/packages/app/src/components/session/session-runtime-child.tsx
 new file mode 100644
@@ -3332,10 +3443,10 @@ index 0000000..c7542e5
 +}
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
 new file mode 100644
-index 0000000..6530265
+index 0000000..d92f37f
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -0,0 +1,719 @@
+@@ -0,0 +1,741 @@
 +// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view. It renders buildRuntime() over
 +// the session already in the sync store, and answers permission / question / stop from here.
 +// Live updates once a second while the session is busy; "Pause following" replays by step (no per-token typing).
@@ -3374,6 +3485,8 @@ index 0000000..6530265
 +  autoSyncTargets,
 +  cancelLabel,
 +  failureVisible,
++  lastChildToolIds,
++  pinDiff,
 +  pinTargets,
 +  retryWait,
 +  stopClickExpired,
@@ -3429,7 +3542,7 @@ index 0000000..6530265
 +  sessionID: string
 +  onView: (view: SessionViewMode) => void
 +  actions?: JSX.Element
-+  onStop?: () => void
++  onStop?: () => void | Promise<unknown>
 +  onOpenSession?: (sessionID: string) => void
 +}) {
 +  const sync = useSync()
@@ -3586,6 +3699,7 @@ index 0000000..6530265
 +  const blockedKeys = keyed(blocked, (x) => x.id)
 +  const eventKeys = keyed(recentEvents, (e) => e.id)
 +  const attentionKeys = keyed(attention, (a) => a.id)
++  const lastChildTools = createMemo(() => lastChildToolIds(model().tools))
 +  const [openChildren, setOpenChildren] = createSignal<ReadonlySet<string>>(new Set())
 +  const syncedChildren = new Set<string>()
 +  // Auto-sync never retries a failure; expanding the child does.
@@ -3604,7 +3718,9 @@ index 0000000..6530265
 +      else next.add(id)
 +      return next
 +    })
-+    if (opening && (!syncedChildren.has(id) || failedChildren.has(id))) requestChildSync(id)
++    if (opening && (!syncedChildren.has(id) || failedChildren.has(id) || childMessagesOf(id) === undefined)) {
++      requestChildSync(id)
++    }
 +  }
 +  let autoTurn: number | undefined
 +  let autoCount = 0
@@ -3636,12 +3752,22 @@ index 0000000..6530265
 +    [] as string[],
 +    { equals: (prev, next) => prev.length === next.length && prev.every((id, index) => id === next[index]) },
 +  )
++  let lastPinned = new Set<string>()
 +  createEffect(() => {
-+    const api = serverSync()
-+    const ids = pinnedChildren()
-+    for (const id of ids) api.session.pin(id)
-+    onCleanup(() => {
-+      for (const id of ids) api.session.unpin(id)
++    const nextIds = pinnedChildren()
++    untrack(() => {
++      const api = serverSync()
++      const { pin, unpin } = pinDiff(lastPinned, nextIds)
++      for (const id of unpin) api.session.unpin(id)
++      for (const id of pin) api.session.pin(id)
++      lastPinned = new Set(nextIds)
++    })
++  })
++  onCleanup(() => {
++    untrack(() => {
++      const api = serverSync()
++      for (const id of lastPinned) api.session.unpin(id)
++      lastPinned.clear()
 +    })
 +  })
 +  const [pending, setPending] = createSignal<Readonly<Record<string, true>>>({})
@@ -3707,7 +3833,13 @@ index 0000000..6530265
 +    const at = stopClickedAt(!!props.onStop, Date.now())
 +    if (at === undefined) return
 +    setClickedAt(at)
-+    props.onStop?.()
++    try {
++      void Promise.resolve(props.onStop?.()).catch(() => {
++        setClickedAt(undefined)
++      })
++    } catch {
++      setClickedAt(undefined)
++    }
 +  }
 +
 +  const stateColor = () => {
@@ -3730,6 +3862,7 @@ index 0000000..6530265
 +  }
 +
 +  const toolRow = (x: Accessor<RuntimeTool>) => {
++    const isLastChild = () => lastChildTools().has(x().id)
 +    const name = () => {
 +      const child = x().child
 +      return child ? child.agent : x().name
@@ -3765,7 +3898,7 @@ index 0000000..6530265
 +                {t(`child.lifecycle.${c().lifecycle}` as "child.lifecycle.running")}
 +                <Show when={c().background}> · {t("tool.background")}</Show>
 +              </div>
-+              <Show when={sessionID()}>
++              <Show when={isLastChild() ? sessionID() : undefined}>
 +                {(id) => (
 +                  <>
 +                    <button
@@ -3867,7 +4000,7 @@ index 0000000..6530265
 +          <Show when={model().sessions.length > 1}>
 +            <span>{t("header.sessions", { count: model().sessions.length })}</span>
 +          </Show>
-+          <Show when={!!props.onStop && actionsVisible(model().mode, model().run.state)}>
++          <Show when={!!props.onStop && actionsVisible(model().mode, model().run.state, busy())}>
 +            <button type="button" class={BTN} data-oco-runtime-stop onClick={requestStop}>
 +              {t("action.stop")}
 +            </button>
@@ -4123,7 +4256,7 @@ index 939d645..d76148d 100644
          </div>
        </div>
 diff --git a/packages/app/src/pages/session.tsx b/packages/app/src/pages/session.tsx
-index 0de8b86..20c4cdc 100644
+index 0de8b86..9a21a8f 100644
 --- a/packages/app/src/pages/session.tsx
 +++ b/packages/app/src/pages/session.tsx
 @@ -42,6 +42,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/r
@@ -4143,7 +4276,7 @@ index 0de8b86..20c4cdc 100644
    view: "chat" as SessionViewMode,
  })
  
-@@ -2126,11 +2127,32 @@ export default function Page() {
+@@ -2126,11 +2127,37 @@ export default function Page() {
              {(id) => (
                <SessionTrajectory
                  sessionID={id()}
@@ -4159,10 +4292,15 @@ index 0de8b86..20c4cdc 100644
 +                sessionID={id()}
 +                onView={(view) => setStore("view", view)}
 +                actions={platform.embedded ? <SessionHeaderEmbeddedActions /> : undefined}
-+                onStop={() => {
++                onStop={async () => {
 +                  const sessionID = id()
 +                  setFollowup("paused", sessionID, true)
-+                  void sdk().api.session.interrupt({ sessionID }).catch(() => {})
++                  try {
++                    await sdk().api.session.interrupt({ sessionID })
++                  } catch (err) {
++                    fail(err)
++                    throw err
++                  }
 +                }}
 +                onOpenSession={(sessionID) => {
 +                  navigate(
