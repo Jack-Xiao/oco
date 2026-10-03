@@ -13,7 +13,7 @@
   - 自带 Tokyo Night 风格配色（`--rt-*` 只在根节点定义一次），全部等宽字体。
   - 宽 ≥ 900 时整屏固定、内容变化不改变任何框的位置尺寸；窗口过矮时整体滚动而不重叠。< 900 单列堆叠（需你处理 → 树 → 名册），< 560 通道单列。
 - 检查（本轮实测，vendor HEAD `6164506`）：session 单测 218/218，test:browser 48/48，vendor 类型 0 错误；根 `verify:brief` typecheck PASS、unit 190/190；E2E（mock，独立服务 4617）`c5-runtime` en 34/34、zh 34/34（含 width-1600 测内层框架不滚动且状态栏可见、parallel-subagents、geometry-stable、focus-stable 与 focus-on-change（两项均有去掉修复的对照 FAIL）、reply-in-panel），`c4-trajectory` 17/17；补丁 0001→0019 干净重放 19/19，重放树单测 218/218。终审 12 条全部处理（含窄屏竖轨、子代理加载失败可重试）。真实界面在本机最高窗口（框架 601 px）下 1600/1100 宽不滚动、状态栏可见。
-- 本地包：见 PROGRESS 本批最后一行（最终包名），已安装到本机 VS Code（需 Reload Window）。
+- 本地包：`oco-0.0.4-a66baa8.vsix`，已安装到本机 VS Code（需 Reload Window）。
 - NOT RUN / 限制：亮色主题（用户裁定不做）；嵌套 ≥2 层子代理 E2E（mock 不产生孙会话）；真实模型长会话性能；Remote（gcp-workstation）未部署。
 
 ## 运行视图 M2（补丁 0019 追加，2026-10-03；在分支 `claude/nostalgic-gates-ef74ca`，未合入 main，未推送；已部署 gcp-workstation）
