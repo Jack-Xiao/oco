@@ -42,6 +42,12 @@ RuntimeViewModel：`freshness`（observedAt、最后事件时间〔inferred，�
 - 子会话展开状态按会话 id 记录；同一子会话被多个 task 行引用时，只在最后一行显示展开按钮。
 桥策略已放行 `/permission/*/reply`、`/question/*/(reply|reject)`，子会话向上最多 8 级放行（`apps/extension/src/bridge-policy.ts`）。
 
+实施偏差（M3，2026-10-03/04）：用户看过两版实装后两次改版，以 [M3 计划](../plans/2026-10-03-runtime-dashboard-m3.md)“改版”“改版 2”两节为准：
+- 机制图从“默认折叠”改为运行视图主体（agent 树，固定 4 条通道），加角色配色、图例和底部状态栏；第 2 段“不采纳终端等宽风格”改为全等宽 + 自带 Tokyo Night 风格配色（`--rt-*` 只在根节点定义）。
+- 回复按钮从焦点区/工具节点移到固定左栏“需你处理”；子代理从原地展开改为“进入”+ 面包屑；卡片文字单行省略，全文在详情面板。
+- 思考区固定高度、框内滚动，不再折叠；日志最新在上；回放入口为常驻时间轴。
+- `mechanismOf` 槽位取“最后一个有工具行的请求”（`slotsFrom`），新增 `lanesOf`、`rosterOf`；模型增加 `RuntimeRequest.agent/model/cost`。
+
 ## 4 项核查结论（Grok 只读，model/provider unknown；完整依据 docs/evidence/runtime-viz-open-items.md；我核对过其中 delta 被丢弃一条与源码一致，其余按报告）
 1 权限/提问能关联到具体 tool，但 `tool?` 是可选字段（`{messageID, callID}`，对应 ToolPart.callID，无 part id；doom loop 不带）。→ `attention` 项的 toolRef 可选；没有 toolRef 的权限显示为会话级待处理，不挂在工具行上。
 2 一条 assistant 消息可以有多个 step-finish（每次事件新建 part，retry 不删旧 part；一次用户 prompt 的循环会新建多条 assistant）。→ “请求”以 assistant 消息为单位，step-finish 不是请求边界；usage 按消息汇总，不按 step-finish 数请求。未查明：成功流是否永远只有一个 step-finish。
