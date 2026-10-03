@@ -51,7 +51,7 @@
 ## 6. 运行视图 M2 / M3（补丁 0019 之后，需先审阅再写计划）
 
 - [完成 2026-10-03，未推送] M2 见 [验收](evidence/runtime-m2-verification.md)。已部署 gcp-workstation（分支未合入 main，未推送）。待做：Remote 窗口 Reload 后实测（NOT RUN）。待用户决定：是否推送，M3 是否启动。遗留覆盖缺口：组件内自动同步计数按轮重置、同步失败重试、缓存驱逐后重新拉取，均无组件级测试或 E2E。
-- [进行中 2026-10-03] M3 已启动（用户要求）。用户裁定：主题只做暗色（不做亮色主题 E2E）。范围依据 spec 第 5 段 M3：默认折叠的机制图、思考流、嵌套 ≥2 层折叠、减少动画、键盘与读屏、E2E（三种宽度 + 暗色主题）。先做预检 → `docs/evidence/runtime-m3-preflight.md`（Gemini 只读），再由主线程写 M3 计划。预检已完成（`fa49abf`）。计划已写：[M3 计划](superpowers/plans/2026-10-03-runtime-dashboard-m3.md)（9 个任务，`M3_BASELINE=474534a`；Task 1 先量后改整会话重算；嵌套 ≥2 层 E2E 预记 NOT RUN；减少动画只认标准媒体查询）。执行中：Task 1 ∥ Task 2 先派；计划末尾 2 个视觉问题待用户答复，只影响 Task 4 的视觉范围。
+- [进行中 2026-10-03] M3 已启动（用户要求）。用户裁定：主题只做暗色（不做亮色主题 E2E）。范围依据 spec 第 5 段 M3：默认折叠的机制图、思考流、嵌套 ≥2 层折叠、减少动画、键盘与读屏、E2E（三种宽度 + 暗色主题）。先做预检 → `docs/evidence/runtime-m3-preflight.md`（Gemini 只读），再由主线程写 M3 计划。预检已完成（`fa49abf`）。计划已写：[M3 计划](superpowers/plans/2026-10-03-runtime-dashboard-m3.md)（9 个任务，`M3_BASELINE=474534a`；Task 1 先量后改整会话重算；嵌套 ≥2 层 E2E 预记 NOT RUN；减少动画只认标准媒体查询）。执行中：Task 1 ∥ Task 2 先派；用户裁定：机制图不加角色配色/图例，不加页脚态势摘要。
 - 向集成人单独提：真实“断连”需要宿主新增消息（改桥契约），v1 不做。
 
 ## 执行约束
