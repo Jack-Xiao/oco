@@ -25,3 +25,4 @@
 | 健康检查（m2-t5 续轮后复查） | — | agy / grok 最小请求 | — | — | agy 400 地域错误；grok `http_status: 402`（5 s） | — | 两条订阅路线均不可用 → 主线程接手 m2-t5、m2-t4-fix |
 | m2-t5-main | vendor `session-runtime-events.test.ts` | 主线程 | Claude Opus 5.5 | — | 已返回（events 11/0；session 137/0；tsgo 0；4 处模型变异均使对应新用例失败：回看 attentionKnown、MessageAbortedError、子会话 busy、retry 状态） | vendor d47fabe | 两路均不可用 |
 | m2-t7 | `tests/e2e/c5-runtime.mjs`、`docs/evidence/runtime-m2-e2e.md` | 主线程 | Claude Opus 5.5 | — | 已返回：c5-runtime en 16/16、zh 16/16，c4-trajectory 17/17 | docs/evidence/runtime-m2-e2e.md | 两路均不可用（Grok 402、Gemini 地域错误） |
+| m2-t8 | `patches/opencode/0019-oco-runtime-view.patch` | 主线程 | Claude Opus 5.5 | — | 已返回：`git diff deb241e 36e6fe9 -- packages/app`，15 文件 +4120/−5，`diff --check` 干净；干净 `51ef4be` 上 0001→0019 依序 check+apply 19/19；`packages/app/src` 与 `test-browser` 与开发树 `diff -r` 一致；重放树 session 单测 138/0 | 同左 | 计划指定主线程 |
