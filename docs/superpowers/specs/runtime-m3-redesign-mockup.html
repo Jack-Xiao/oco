@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>运行视图改版评审稿</title>
+<!-- 演示数据，非真实运行。颜色变量仅为示意：实现时角色色用 session-runtime.tsx 的 COLOR（--syntax-*），其余用应用主题 token。用户 2026-10-03 批准此方向。 -->
+<style>
+:root{--surface-1:#1e1f22;--surface-2:#26282c;--border:#3a3c40;--border-strong:#4a4c50;--border-stronger:#6a6c70;--border-warning:#BA7517;--text-primary:#e6e6e6;--text-secondary:#b0b0b0;--text-muted:#808080;--text-warning:#EF9F27;--bg-warning:#412402;--font-mono:ui-monospace,Menlo,monospace;--font-sans:system-ui,sans-serif}
+body{background:#18191b;margin:16px;font-family:var(--font-sans)}
+.m{font-family:var(--font-mono);font-size:12px;line-height:1.55;color:var(--text-primary)}
+.fr{background:var(--surface-1);border:0.5px solid var(--border-strong);border-radius:12px;padding:12px 14px;max-width:680px}
+.bx{border:1px dashed var(--border-stronger);border-radius:4px;padding:7px 9px;background:var(--surface-2);min-width:0;overflow-wrap:anywhere}
+.t{color:var(--text-secondary)}.mu{color:var(--text-muted)}
+.A{border-color:#1D9E75}.S{border-color:#7F77DD}.W{border-color:var(--border-warning);border-style:solid}
+.ka{color:#1D9E75}.ks{color:#7F77DD}.kw{color:var(--text-warning)}
+.chip{display:inline-block;padding:0 5px;border-radius:3px;border:0.5px solid var(--border)}
+.on{background:#1D9E75;color:#04342C;border-color:#1D9E75}
+.b{font-family:var(--font-mono);font-size:11px;padding:1px 6px;border-radius:3px;background:transparent;color:var(--text-primary);border:0.5px solid var(--border-strong)}
+.cap{font-size:12px;color:var(--text-muted);margin:14px 0 6px}
+.hl{background:var(--bg-warning)}
+</style></head><body>
+<div class="cap">宽屏 · 实时 · 第 3 轮，两个子代理在跑，bash 等你批准</div>
+<div class="m fr">
+<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;border-bottom:0.5px solid var(--border-strong);padding-bottom:6px">
+<span><b style="font-weight:500">运行</b> <span class="t">· 修复会话列表空状态</span></span>
+<span><span class="ka">◐ 工作中</span> · <span class="kw">! 待你处理 1</span> · <span class="mu">最后事件 2 秒前</span> <button class="b">停止</button></span></div>
+<div class="t" style="margin:6px 0 10px"><span class="ka">■</span> 主 agent <span class="ks">■</span> 子代理 <span class="mu">■</span> 工具 <span class="kw">■</span> 需你处理 <span class="mu">· ··● 正在流动</span></div>
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 300px minmax(0,1fr);gap:10px;align-items:start">
+<div></div>
+<div class="bx A"><div class="ka">build · 主 agent</div><div>claude-opus-4 <span class="mu">· 第 3 次请求</span></div>
+<div style="margin:4px 0"><span class="chip">准备</span> <span class="chip">模型</span> <span class="chip on">工具</span> <span class="chip">回填</span></div>
+<div class="t">输入 41.2k · 输出 未结算 · 上下文 41k/200k</div></div>
+<div class="bx" style="font-size:11px"><div class="t">思考 · 显示中</div><div class="mu">…先确认路由再改空状态，两个方向并行查…</div></div>
+</div>
+<svg viewBox="0 0 680 56" width="100%" height="56" aria-hidden="true">
+<path d="M340 0 V22 H115 V56" fill="none" stroke="#BA7517"/>
+<path id="e1" d="M340 0 V56" fill="none" stroke="#7F77DD" stroke-dasharray="3 3"/>
+<path id="e2" d="M340 0 V22 H565 V56" fill="none" stroke="#7F77DD" stroke-dasharray="3 3"/>
+<text x="352" y="16" style="font-family:var(--font-mono);font-size:11px;fill:#808080">派发 3 · 并行</text>
+<circle r="3" fill="#7F77DD"><animateMotion dur="1.4s" repeatCount="indefinite"><mpath href="#e1"/></animateMotion></circle>
+<circle r="3" fill="#7F77DD"><animateMotion dur="1.4s" begin="0.6s" repeatCount="indefinite"><mpath href="#e2"/></animateMotion></circle>
+</svg>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
+<div class="bx W"><div>bash <span class="mu">· 工具</span></div><div class="t">npm test -- session</div><div class="kw">! 等你批准</div>
+<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><button class="b">允许一次</button><button class="b">总是</button><button class="b">拒绝</button></div></div>
+<div class="bx S"><div class="ks">explore · 子代理</div><div class="t">查找 session 路由</div><div>◐ 运行中 · read ×4</div><div class="mu">└ 当前：read session.tsx</div><button class="b" style="margin-top:4px">展开 ▸</button></div>
+<div class="bx S"><div class="ks">general · 子代理</div><div class="t">核对 i18n 键</div><div>◐ 运行中 · grep</div><div class="mu">└ 内含子代理 1 个</div><button class="b" style="margin-top:4px">展开 ▸</button></div>
+</div>
+<svg viewBox="0 0 680 44" width="100%" height="44" aria-hidden="true">
+<path d="M115 0 V22 H565 V0 M340 0 V44" fill="none" stroke="#6a6c70" stroke-dasharray="3 3"/>
+<text x="352" y="38" style="font-family:var(--font-mono);font-size:11px;fill:#808080">汇回 · 静止（还在执行）</text></svg>
+<div style="display:flex;justify-content:center"><div class="bx" style="width:300px;text-align:center"><div>结果回填 → build</div><div class="mu">已完成 0 / 3</div></div></div>
+<div class="bx" style="margin-top:12px;border-style:solid">
+<div class="t">会话日志 <span class="mu">· 动画的文字版，减少动画时靠它</span></div>
+<div><span class="mu">23:48:44</span> <span class="ka">build  </span> 请求 #3 开始</div>
+<div><span class="mu">23:48:45</span> <span class="ks">explore</span> 派发：查找 session 路由</div>
+<div><span class="mu">23:48:45</span> <span class="ks">general</span> 派发：核对 i18n 键</div>
+<div class="hl"><span class="mu">23:48:47</span> <span class="kw">bash   </span> 等你批准：npm test -- session</div></div>
+<div class="t" style="margin-top:8px;border-top:0.5px solid var(--border-strong);padding-top:6px">build · claude-opus-4 &nbsp; 子代理 [2/2 运行] &nbsp; 工具 [1 等待] &nbsp; 请求 3 &nbsp; 用量 41.2k 入</div>
+</div>
+<div class="cap">420 px · 同一时刻，展开 general 的嵌套子代理</div>
+<div class="m fr" style="max-width:420px">
+<div style="border-bottom:0.5px solid var(--border-strong);padding-bottom:6px"><span class="ka">◐ 工作中</span> · <span class="kw">! 1</span> · <span class="mu">2 秒前</span> <button class="b">停止</button></div>
+<div class="bx A" style="margin-top:8px"><div class="ka">build · claude-opus-4</div><div><span class="chip">准备</span> <span class="chip">模型</span> <span class="chip on">工具</span> <span class="chip">回填</span></div></div>
+<div style="border-left:1px dashed var(--border-stronger);margin-left:12px;padding:6px 0 0 12px;display:flex;flex-direction:column;gap:6px">
+<div class="bx W">bash · npm test -- session<div class="kw">! 等你批准</div><div style="display:flex;gap:4px"><button class="b">允许一次</button><button class="b">拒绝</button></div></div>
+<div class="bx S"><span class="ks">explore</span> · 查找 session 路由<div>◐ read ×4 <button class="b">展开 ▸</button></div></div>
+<div class="bx S"><span class="ks">general</span> · 核对 i18n 键<div>◐ grep <button class="b">收起 ▾</button></div>
+<div style="border-left:1px dashed #7F77DD;margin:6px 0 0 6px;padding-left:10px"><div class="bx S"><span class="ks">explore</span> · 列出 zh 文案<div>✓ 完成</div></div></div></div>
+</div>
+<div class="mu" style="margin-top:6px">└ 结果回填 → build · 0 / 3</div>
+</div>
+<div class="cap">回看 · 暂停跟随时：同一张图，连线静止高亮，无按钮，生命周期写“未知”</div>
+<div class="m fr" style="padding:8px 14px"><span class="t">⏸ 回看 第 5/12 步 · 23:48:45</span> <button class="b">返回实时</button> <span class="mu">· 权限等待历史不记录</span></div>
+</body></html>

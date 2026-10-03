@@ -242,3 +242,55 @@ T1 ∥ T2（文件互斥）→ T3 → T4 → T5 → T6（同一 `session-runtime
 2. 不加页脚态势摘要（“最后事件 xx 前”已在顶栏）。
 
 据此，裁定 11 中“待用户确认”的两项均不做。
+
+## 改版：运行视图改为“agent 树”主体（2026-10-03，用户评审草图后批准）
+
+用户看过本地安装的 Task 1–6 版本后认为“没有可视化、感受不到 agent 运转”，给出参考图（终端风格 agent tree：主 agent 扇出到并行 worker，再汇回，底部会话日志与状态行）。主线程按真实可得数据画了评审稿 [runtime-m3-redesign-mockup.html](../specs/runtime-m3-redesign-mockup.html)（宽屏实时、420 px 嵌套展开、回看三态，演示数据），用户批准“就按这个来”。
+
+**本节推翻的既有决定**（以本节为准）：
+- spec 第 5 段“机制图默认折叠” → 机制图是运行视图主体，始终展开，去掉折叠按钮。
+- 裁定 11 与“用户裁定（2026-10-03）”第 1、2 条 → 加角色配色 + 一行图例；加底部运行概况一行。
+- spec 第 2 段“不采纳终端等宽风格硬套” → 树、日志、概况用等宽字体与虚线框；颜色仍只用主题变量（现有 `COLOR` 的 `--syntax-*`），不写死色值。
+
+**仍然不变**：不显示无数据的值（参考图的概率条、fork 计数、ASTRA 栏不做；价格仅在消息带 `cost` 时显示）；不显示“断连”；推断标 inferred；回看不可操作；三语；减少动画；420 px 换行不裁剪；不加快捷键；Task 1、2、3、5、6 的数据与交互保留。
+
+### 版面（自上而下）
+
+1. 顶栏（保留）：状态、待处理数、最后事件、停止、回看控件。
+2. 焦点句一行（保留，`data-oco-runtime-focus` 与 aria-live 镜像不变）。没有 toolRef 的待处理项在此带按钮。
+3. 图例一行：主 agent / 子代理 / 工具 / 需你处理 / “··● 正在流动”。
+4. agent 树：
+   - 主 agent 节点：agent 名（消息 `mode`）+ 模型（`providerID/modelID`）+ 第 N 次请求 + 四段阶段条（准备/模型/工具/回填，当前段高亮）+ 用量（输入、输出或“未结算”、上下文 used/limit 或“未知”）。思考区（Task 3）作为主节点旁注（宽屏在右侧，窄屏在节点下方）。
+   - 派发连线：主节点 → 槽位行；标注“派发 N · 并行”。活跃边（`slot.dispatch`）上有向下流动的点；需你处理的边为实线 + 需你处理色、无点。
+   - 槽位行（沿用 `mechanismOf` 的切片与上限：工具 ≤4、子代理 ≤3、溢出“+N（k 运行中）”节点）：
+     - 工具节点：名称、入参摘要、状态（字形 + 文字）、错误文本（error 时）、最后输出行；需你处理时边框为需你处理色，**批准/拒绝按钮在节点内**。节点头是 Task 6 的行头按钮（展开详情）。
+     - 子代理节点：agent、任务描述、生命周期、当前工具（子会话最后一个运行中工具名 + 同名次数，如 “read ×4”）、内含子代理数；“展开 ▸”在原地向下长出子树（Task 5 的递归面板，改为同一节点样式）。task 状态与子会话生命周期两段文字仍分开。
+   - 汇回连线：槽位行 → “结果回填 → <agent>”节点，显示“已完成 x / y”。`stage==="fill"` 时向上流动，否则静止并标“静止”。
+5. 其他需要注意：不在当前切片内、但 `error` / `interrupted` / `awaiting` 的工具，用紧凑行列在树下方（复用现有工具行组件，保证错误/等待不消失）。
+6. 会话日志（原事件日志改样式）：`时间 角色 事件`，角色名着角色色，需你处理的行高亮；保留 `data-oco-runtime-event`。
+7. 底部概况一行：`<agent> · <模型>  子代理 [运行/总]  工具 [运行/等待]  请求 N  用量`。
+
+窄屏（运行视图容器宽度 < 560 px）：树改为竖排，左侧虚线竖轨表示层级，槽位逐个向下排，嵌套再缩进；用 CSS 容器查询或宽度信号实现，不按窗口宽度。回看：同一张图，无流动点、无任何按钮，子代理生命周期“未知”。
+
+### E2E 契约调整
+
+- M1/M2 与 Task 3/5/6 的全部数据属性保留语义，挂到新节点上：工具节点带 `data-oco-runtime-tool=<id>`，行头按钮 `data-oco-runtime-tool-toggle`，展开区 `data-oco-runtime-tool-detail`；子代理展开按钮 `data-oco-runtime-child-toggle`；待处理项 `data-oco-runtime-attention` 及回复按钮。**每个待处理项的按钮在 DOM 中只出现一次**（有 toolRef 的在工具节点里，否则在焦点句处）。
+- 机制图：`data-oco-runtime-mechanism` 固定为 `expanded`，删除 `data-oco-runtime-mechanism-toggle`；`node` / `edge` / `flow` / `overflow` 属性不变。新增 `data-oco-runtime-legend`、`data-oco-runtime-summary`（底部概况）、`data-oco-runtime-fill`（回填节点，文本含 x / y）。
+
+### 新任务（替换原 Task 4 视图；Task 7 推迟到其后）
+
+**Task 4b：模型与投影增量（Gemini）**
+- Files：`session-runtime-model.ts`、`.test.ts`、`session-runtime-mechanism.ts`、`.test.ts`。只加不改名。
+- `RuntimeRequest.agent?: string`（消息 `mode`）、`RuntimeRequest.model?: { providerID: string; modelID: string }`、`RuntimeRequest.cost?: number`（仅 >0 时），evidence 为 event。
+- `mechanismOf(model, childOf?)`：`childOf(sessionID) => RuntimeModel | undefined`。槽位追加 `input`（工具入参摘要）、`error?`、`lastOutput?`、`description?`（子代理）、`activity?: { name: string; count: number }`（子模型最后请求中最后一个 pending/running 工具名，及该请求内同名工具数；子模型未加载则缺省）、`nested: number`（子模型中 task 行数，未加载为 0）；`Mechanism` 追加 `fill: { done: number; total: number }`（最后请求槽位中终态数/总数）与 `main: { agent?: string; model?: string; request: number }`。
+- 测试：每个新字段至少一例，含子模型未加载、子模型无运行中工具、cost 为 0 不出现。
+
+**Task 4c：agent 树视图重写（Gemini）**
+- Files：`session-runtime-mechanism-view.tsx`、`session-runtime.tsx`、`session-runtime-child.tsx`、`session-runtime-i18n.ts`。按上方“版面”与评审稿实现；`childOf` 用现有 `childMessagesOf`/`assembleChild`（仅已加载子会话）。
+- 去掉原活跃工具列表与“最近结果”列表（其内容进入节点与“其他需要注意”），保留其数据属性在新节点上。
+- 连线用 CSS（边框/伪元素）或 SVG 画，流动点只在活跃边，`motion-reduce` 关掉；不测量 DOM 坐标。
+- 验收：src 单测、test:browser、typecheck、diff --check 全过；`button button` 为 0（自查）；本地构建后由主线程在 420 / 560 / 宽屏各截一张图自查（主线程只看这三张）。
+
+**Task 7（改）**：在 4c 之后重新执行，断言按“E2E 契约调整”改写（删除 mechanism 折叠/展开断言，改为 legend、summary、fill 文本与节点内回复按钮）。上一轮停在半途的改动保存在 `.superpowers/sdd/2026-10-03-runtime-dashboard-m3/t7-wip-stopped.patch`（两个 spike 未出结论），可参考，不直接套用。
+
+顺序：4b → 4c → 7 → 8 → 9。
