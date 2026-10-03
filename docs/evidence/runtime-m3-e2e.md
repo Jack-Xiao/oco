@@ -136,3 +136,11 @@ Task 8：0019 重新生成（vendor HEAD `4385e3f`，23 个文件，+8691/−5�
 D-01 修复范围说明：`reuseLanes` 按整张卡片内容比较，内容不变的卡片在流式更新中保持节点与焦点（`focus-stable` 覆盖，含对照）；**卡片自身内容在变**（如工具正在输出）时该卡片仍会重建，焦点会丢，未覆盖，记入 NEXT。
 
 最终结果（vendor HEAD `ebb9c65`）：session 单测 218/218，test:browser 48/48，vendor 类型 0 错误；根 `verify:brief` typecheck PASS、unit 190/190；E2E en 33/33（`runs/20261003-175736-c5-runtime-f41e`）、zh 33/33（`runs/20261003-175842-c5-runtime-bc13`）、c4 17/17（`runs/20261003-175947-c4-trajectory-ac34`）；0019 重新生成（23 个文件，+8784/−5，`diff --check` 干净），干净 `51ef4be` 重放 19/19，`src`/`test-browser` 一致，重放树单测 218/218。
+
+## 补完遗留三项（2026-10-04，vendor `6164506`）
+
+- **卡片内容变化时保持节点**（原 D-01 未覆盖部分）：通道卡片改为 `<Index>` + 访问器渲染，卡片自身内容变化（工具完成、输出流）时只更新字段、不重建节点。新增 E2E `focus-on-change`（运行中聚焦 bash 卡片头 → 工具完成、卡片文字变化 → 焦点仍在同一节点）。**对照**：用上一版（`ebb9c65`，`<For>`）构建同一测试 FAIL（`changeFocusKept:false`，`runs/20261003-181223-c5-runtime-0765`），新版 PASS。
+- **D-11**：窄于 560 时派发/汇回连线收成左侧竖轨（隐藏 4 列横线，主干与下落线靠左 14 px），每条通道的边属性与流动点保留。
+- **D-12**：子会话同步失败可被观察（`createChildSync` 只增 `failedVersion`，browser 测试补断言）；进入的子代理加载失败时显示“这个子代理加载失败”与“重试”（`data-oco-runtime-child-retry`），不再永远“加载中”。
+
+结果（vendor HEAD `6164506`）：session 单测 218/218，test:browser 48/48，vendor 类型 0 错误；根 `verify:brief` typecheck PASS、unit 190/190；E2E en 34/34（`runs/20261003-180918-c5-runtime-e08e`）、zh 34/34（`runs/20261003-181022-c5-runtime-2744`）、c4 17/17（`runs/20261003-181127-c4-trajectory-92c3`）；`look-runtime` 1600/1100 宽不滚动且状态栏可见，480 堆叠诊断 0；0019 重新生成（23 个文件，+8846/−5），干净重放 19/19，重放树单测 218/218。终审 12 条全部处理完毕。

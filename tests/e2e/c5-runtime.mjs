@@ -40,6 +40,7 @@ const REQUIRED = [
   "parallel-subagents",
   "geometry-stable",
   "focus-stable",
+  "focus-on-change",
   "reasoning",
   "motion-on",
   "reduced-motion",
@@ -970,7 +971,24 @@ try {
   const wWideRail = await railOf()
   // Screenshot width-wide.png into run artifact directory
   await page.screenshot({ path: run.artifact("width-wide.png") })
+  // focus-on-change: focus the running bash card's header, let the tool finish (its own state and text change),
+  // the card must keep the same focused node. Rebuilding a card whose content changed would drop focus.
+  const changeTarget = fA.locator('[data-oco-runtime-lane-kind="tool"] [data-oco-runtime-tool-toggle]').first()
+  await changeTarget.focus().catch(() => {})
+  const changeID = await changeTarget.getAttribute("data-oco-runtime-tool-toggle").catch(() => null)
+  await fA.evaluate(() => (window.__ocoChangeFocused = document.activeElement))
+  const stateBefore = await fA.evaluate((id) => document.querySelector(`[data-oco-runtime-tool="${id}"]`)?.innerText ?? "", changeID)
   await waitIdle(A)
+  await sleep(500)
+  const stateAfter = await fA.evaluate((id) => document.querySelector(`[data-oco-runtime-tool="${id}"]`)?.innerText ?? "", changeID)
+  const changeFocusKept = await fA.evaluate(
+    () => !!window.__ocoChangeFocused && window.__ocoChangeFocused === document.activeElement && window.__ocoChangeFocused.isConnected,
+  )
+  run.record("focus-on-change", changeID && stateBefore !== stateAfter && changeFocusKept ? "PASS" : "FAIL", {
+    changeID,
+    contentChanged: stateBefore !== stateAfter,
+    changeFocusKept,
+  })
   run.record(
     "width-wide",
     wWideStopVis && wWideFocusVis && wWideOverflow.noOverflow && railMatchesWidth(wWideRail) && wWideRail.layout === "wide" ? "PASS" : "FAIL",

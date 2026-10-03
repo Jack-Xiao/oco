@@ -1006,13 +1006,13 @@ index 0000000..f39ed15
 +}
 diff --git a/packages/app/src/components/session/session-runtime-child-sync.ts b/packages/app/src/components/session/session-runtime-child-sync.ts
 new file mode 100644
-index 0000000..3768196
+index 0000000..c60257c
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-child-sync.ts
-@@ -0,0 +1,109 @@
+@@ -0,0 +1,114 @@
 +// oco (patches/opencode/0019): reactive wiring for whole-tree child auto-sync and pinning.
 +import type { Accessor } from "solid-js"
-+import { createEffect, createMemo, onCleanup, untrack } from "solid-js"
++import { createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js"
 +import { pinDiff, treeNodes, treePinTargets, treeSyncTargets } from "./session-runtime-actions"
 +import type { RuntimeModel, RuntimeTool } from "./session-runtime-model"
 +
@@ -1031,18 +1031,22 @@ index 0000000..3768196
 +  requestSync: (sessionID: string) => void
 +  synced: ReadonlySet<string>
 +  failed: ReadonlySet<string>
++  /** Bumps whenever `failed` changes, so views can show a failed child and offer a retry. */
++  failedVersion: Accessor<number>
 +  pinned: Accessor<string[]>
 +}
 +
 +export function createChildSync(deps: ChildSyncDeps): ChildSync {
 +  const synced = new Set<string>()
 +  const failed = new Set<string>()
++  const [failedVersion, setFailedVersion] = createSignal(0)
 +
 +  const requestSync = (id: string) => {
 +    synced.add(id)
-+    failed.delete(id)
++    if (failed.delete(id)) setFailedVersion((n) => n + 1)
 +    void Promise.resolve(deps.sync(id)).catch(() => {
 +      failed.add(id)
++      setFailedVersion((n) => n + 1)
 +    })
 +  }
 +
@@ -1116,6 +1120,7 @@ index 0000000..3768196
 +    requestSync,
 +    synced,
 +    failed,
++    failedVersion,
 +    pinned,
 +  }
 +}
@@ -1886,10 +1891,10 @@ index 0000000..fa82f1a
 +})
 diff --git a/packages/app/src/components/session/session-runtime-i18n.ts b/packages/app/src/components/session/session-runtime-i18n.ts
 new file mode 100644
-index 0000000..5d0aecf
+index 0000000..9fcbcc2
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-i18n.ts
-@@ -0,0 +1,585 @@
+@@ -0,0 +1,591 @@
 +// oco (patches/opencode/0019): copy for the runtime view. Same arrangement as session-trajectory-i18n.ts
 +// (patch 0013): upstream's locale-parity test would require every locale, and oco maintains en / zh / zht.
 +import type { useLanguage } from "@/context/language"
@@ -1904,6 +1909,8 @@ index 0000000..5d0aecf
 +  "state.unknown": "Unknown",
 +  "evidence.inferred": "inferred",
 +  "stage.label": "Request cycle",
++  "child.sync_failed": "Could not load this subagent",
++  "child.retry": "Try again",
 +  "tool.detail.input": "Input",
 +  "tool.detail.output": "Output",
 +  "mechanism.dispatch.none": "No dispatch yet",
@@ -2095,6 +2102,8 @@ index 0000000..5d0aecf
 +  "state.unknown": "未知",
 +  "evidence.inferred": "推断",
 +  "stage.label": "请求周期",
++  "child.sync_failed": "这个子代理加载失败",
++  "child.retry": "重试",
 +  "tool.detail.input": "输入",
 +  "tool.detail.output": "输出",
 +  "mechanism.dispatch.none": "尚未派发",
@@ -2282,6 +2291,8 @@ index 0000000..5d0aecf
 +  "state.unknown": "未知",
 +  "evidence.inferred": "推斷",
 +  "stage.label": "請求週期",
++  "child.sync_failed": "這個子代理載入失敗",
++  "child.retry": "重試",
 +  "tool.detail.input": "輸入",
 +  "tool.detail.output": "輸出",
 +  "mechanism.dispatch.none": "尚未派發",
@@ -2532,13 +2543,13 @@ index 0000000..53db1fa
 +}
 diff --git a/packages/app/src/components/session/session-runtime-mechanism-view.tsx b/packages/app/src/components/session/session-runtime-mechanism-view.tsx
 new file mode 100644
-index 0000000..2bee656
+index 0000000..fc55f6b
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-mechanism-view.tsx
-@@ -0,0 +1,810 @@
+@@ -0,0 +1,852 @@
 +// oco (patches/opencode/0019): fixed-frame agent tree mechanism view (Task 4d).
 +// Contract and rules: docs/superpowers/plans/2026-10-03-runtime-dashboard-m3.md (改版 2: 固定框架).
-+import { createEffect, createMemo, createSignal, For, Index, onCleanup, Show, type Accessor, type JSX } from "solid-js"
++import { createEffect, createMemo, createSignal, For, Index, Match, onCleanup, Show, Switch, type Accessor, type JSX } from "solid-js"
 +import type { ChildLifecycle, RuntimeAttention, RuntimeModel, RuntimeTool, Stage } from "./session-runtime-model"
 +import type { RuntimeText } from "./session-runtime-i18n"
 +import { lanesOf, mechanismOf, reuseLanes, slotGlyph, type Lane, type Mechanism, type MechanismSlot } from "./session-runtime-mechanism"
@@ -2584,6 +2595,9 @@ index 0000000..2bee656
 +  openDetailId?: Accessor<string | undefined>
 +  onToggleDetail?: (id: string | undefined) => void
 +  otherAttentionTools?: Accessor<RuntimeTool[]>
++  /** Whether loading an entered child session failed, and a way to try again. */
++  childFailed?: (sessionID: string) => boolean
++  retryChild?: (sessionID: string) => void
 +  /** Reasoning of the root (no id) or of an entered child session. */
 +  reasoningFor?: (sessionID?: string) => RuntimeReasoning[]
 +}
@@ -2648,6 +2662,8 @@ index 0000000..2bee656
 +  // Unchanged lanes keep their object, so the card list does not rebuild (and drop keyboard focus) on
 +  // updates that do not touch them, such as streamed reasoning.
 +  const lanes = createMemo<Lane[]>((prev) => reuseLanes(prev, lanesOf(mechanism())), [])
++  // x of the wires: centred bus when lanes sit side by side, a left rail when they stack.
++  const railLeft = () => (props.isNarrow560?.() ? "14px" : "50%")
 +
 +  // Find lifecycle & agent of current entered session in parent
 +  // The task row that started an entered session lives in the level above it (root or an entered child).
@@ -2809,7 +2825,23 @@ index 0000000..2bee656
 +            class="rounded-lg p-8 flex items-center justify-center text-12-regular flex-1 font-mono"
 +            style={{ background: "var(--rt-panel)", border: "1px solid var(--rt-line)", color: "var(--rt-weak)" }}
 +          >
-+            {t("child.loading")}
++            <Show
++              when={currentSessionID() && props.childFailed?.(currentSessionID()!)}
++              fallback={t("child.loading")}
++            >
++              <div class="flex flex-col items-center gap-3">
++                <span style={{ color: "var(--rt-err)" }}>{t("child.sync_failed")}</span>
++                <button
++                  type="button"
++                  data-oco-runtime-child-retry
++                  class={`h-[30px] px-4 rounded border bg-transparent cursor-pointer font-mono text-12-regular ${FOCUS}`}
++                  style={{ "border-color": "var(--rt-line-strong)", color: "var(--rt-text)" }}
++                  onClick={() => props.retryChild?.(currentSessionID()!)}
++                >
++                  {t("child.retry")}
++                </button>
++              </div>
++            </Show>
 +          </div>
 +        }
 +      >
@@ -2928,8 +2960,11 @@ index 0000000..2bee656
 +
 +            {/* Row 2: Dispatch Wire (44px) */}
 +            <div class="wire relative h-[24px]">
-+              <div class="stem absolute left-1/2 top-0 h-1/2 border-l border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
-+              <div class="bus absolute left-[12.5%] right-[12.5%] top-1/2 border-t border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
++              {/* Narrow (one lane per row): the wire collapses into a rail on the left edge instead of a 4-column bus. */}
++              <div class="stem absolute top-0 h-1/2 border-l border-dashed" style={{ left: railLeft(), "border-color": "var(--rt-line-strong)" }}></div>
++              <Show when={!props.isNarrow560?.()}>
++                <div class="bus absolute left-[12.5%] right-[12.5%] top-1/2 border-t border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
++              </Show>
 +              {/* Index (not For): lanesOf returns new objects on every update; keying by position keeps the
 +                  drop nodes, so the flow animation does not restart on each streamed delta. */}
 +              <Index each={lanes()}>
@@ -2944,7 +2979,7 @@ index 0000000..2bee656
 +                    <div
 +                      class="drop absolute top-1/2 h-1/2 border-l border-dashed"
 +                      style={{
-+                        left: `${12.5 + i * 25}%`,
++                        left: props.isNarrow560?.() ? railLeft() : `${12.5 + i * 25}%`,
 +                        "border-color": isAwaiting()
 +                          ? "var(--rt-attn)"
 +                          : isActive()
@@ -2991,116 +3026,130 @@ index 0000000..2bee656
 +                    : "repeat(4, minmax(0, 1fr))",
 +              }}
 +            >
-+              <For each={lanes()}>
++              {/* Index keyed by position: a card keeps its DOM node while its fields update, so focus and the open
++                  state survive even when that card's own content changes (e.g. a tool streaming output). */}
++              <Index each={lanes()}>
 +                {(lane, index) => {
-+                  if (lane.kind === "empty") {
-+                    return (
++                  const overflow = () => {
++                    const l = lane()
++                    return l.kind === "overflow" ? l : undefined
++                  }
++                  const slotOrNone = () => {
++                    const l = lane()
++                    return l.kind === "child" || l.kind === "tool" ? l.slot : undefined
++                  }
++                  // A card's own computations may run once more while its Match is switching to empty/overflow; fall
++                  // back to the last slot instead of reading undefined.
++                  let lastSlot: MechanismSlot | undefined
++                  const slot = () => {
++                    const current = slotOrNone()
++                    if (current) lastSlot = current
++                    return (current ?? lastSlot)!
++                  }
++                  const isDone = () => slot().state === "completed" || (slot().kind === "child" && slot().lifecycle === "done")
++                  const isAwaiting = () => slot().awaiting
++                  const isError = () => slot().state === "error" || (slot().kind === "child" && slot().lifecycle === "error")
++                  const glyph = () => slotGlyph(slot())
++
++                  const statusText = () => {
++                    if (slot().kind === "child") return t(`tool.state.${slot().state}`)
++                    if (slot().interrupted) return t("tool.interrupted")
++                    return t(`tool.state.${slot().state}`)
++                  }
++
++                  const descOrInput = () => slot().description || slot().input
++                  const line3Text = () => {
++                    if (isAwaiting()) return t("attention.wait_in_panel")
++                    if (slot().error) return slot().error
++                    // Subagent: lifecycle (separate from the task state in the header) plus what it is doing now.
++                    if (slot().kind === "child") {
++                      const life = t(`child.lifecycle.${slot().lifecycle ?? "unknown"}` as any)
++                      const activity = slot().activity
++                      return activity ? `${life} · ${activity.name} ×${activity.count}` : life
++                    }
++                    if (slot().lastOutput) return slot().lastOutput
++                    return "—"
++                  }
++
++                  const childSessionID = () => {
++                    if (slot().kind !== "child") return undefined
++                    const tRow = activeModel().tools.find((t) => t.id === slot().toolID)
++                    return tRow?.child?.sessionID
++                  }
++
++                  const isCurrentDetail = () => openDetailId() === slot().toolID
++
++                  return (
++                    <Switch>
++                      <Match when={lane().kind === "empty"}>
 +                      <div
-+                        data-oco-runtime-lane={index()}
++                        data-oco-runtime-lane={index}
 +                        data-oco-runtime-lane-kind="empty"
 +                        class="rounded-md border border-dashed flex items-center justify-center p-4 text-12-regular min-h-0 min-w-0"
 +                        style={{ "border-color": "var(--rt-line)", color: "var(--rt-faint)", background: "transparent" , "min-height": props.isStack?.() ? "116px" : undefined }}
 +                      >
 +                        {t("lane.empty")}
 +                      </div>
-+                    )
-+                  }
-+
-+                  if (lane.kind === "overflow") {
-+                    return (
++                      </Match>
++                      <Match when={overflow()}>
 +                      <div
-+                        data-oco-runtime-lane={index()}
++                        data-oco-runtime-lane={index}
 +                        data-oco-runtime-lane-kind="overflow"
-+                        data-oco-runtime-overflow={lane.of}
++                        data-oco-runtime-overflow={overflow()?.of}
 +                        class="rounded-md border border-dashed flex items-center justify-center p-4 text-12-regular min-h-0 min-w-0 font-semibold"
 +                        style={{ "border-color": "var(--rt-line-strong)", color: "var(--rt-weak)", background: "var(--rt-inset)" , "min-height": props.isStack?.() ? "116px" : undefined }}
 +                      >
-+                        +{lane.total} ({lane.running} {t("tool.state.running")})
++                        +{overflow()?.total} ({overflow()?.running} {t("tool.state.running")})
 +                      </div>
-+                    )
-+                  }
-+
-+                  const slot = lane.slot
-+                  const isDone = slot.state === "completed" || (slot.kind === "child" && slot.lifecycle === "done")
-+                  const isAwaiting = slot.awaiting
-+                  const isError = slot.state === "error" || (slot.kind === "child" && slot.lifecycle === "error")
-+                  const glyph = slotGlyph(slot)
-+
-+                  const statusText = () => {
-+                    if (slot.kind === "child") return t(`tool.state.${slot.state}`)
-+                    if (slot.interrupted) return t("tool.interrupted")
-+                    return t(`tool.state.${slot.state}`)
-+                  }
-+
-+                  const descOrInput = slot.description || slot.input
-+                  const line3Text = () => {
-+                    if (isAwaiting) return t("attention.wait_in_panel")
-+                    if (slot.error) return slot.error
-+                    // Subagent: lifecycle (separate from the task state in the header) plus what it is doing now.
-+                    if (slot.kind === "child") {
-+                      const life = t(`child.lifecycle.${slot.lifecycle ?? "unknown"}` as any)
-+                      return slot.activity ? `${life} · ${slot.activity.name} ×${slot.activity.count}` : life
-+                    }
-+                    if (slot.lastOutput) return slot.lastOutput
-+                    return "—"
-+                  }
-+
-+                  const childSessionID = () => {
-+                    if (slot.kind !== "child") return undefined
-+                    const tRow = activeModel().tools.find((t) => t.id === slot.toolID)
-+                    return tRow?.child?.sessionID
-+                  }
-+
-+                  const isCurrentDetail = () => openDetailId() === slot.toolID
-+
-+                  return (
++                      </Match>
++                      <Match when={slotOrNone()}>
 +                    <div
-+                      data-oco-runtime-lane={index()}
-+                      data-oco-runtime-lane-kind={lane.kind}
-+                      data-oco-runtime-tool={slot.toolID}
-+                      data-oco-runtime-node={slot.toolID}
-+                      data-oco-runtime-node-kind={slot.kind}
-+                      node-kind={slot.kind}
++                      data-oco-runtime-lane={index}
++                      data-oco-runtime-lane-kind={lane().kind}
++                      data-oco-runtime-tool={slot().toolID}
++                      data-oco-runtime-node={slot().toolID}
++                      data-oco-runtime-node-kind={slot().kind}
++                      node-kind={slot().kind}
 +                      class="rounded-md py-3 px-3.5 flex flex-col gap-1.5 min-h-0 min-w-0 overflow-hidden text-12-regular"
 +                      style={{
 +                        "min-height": props.isStack?.() ? "116px" : undefined,
-+                        background: isAwaiting
++                        background: isAwaiting()
 +                          ? "color-mix(in srgb, var(--rt-attn) 8%, var(--rt-inset))"
 +                          : "var(--rt-inset)",
-+                        border: isAwaiting
++                        border: isAwaiting()
 +                          ? "1px solid var(--rt-attn)"
-+                          : slot.kind === "child"
++                          : slot().kind === "child"
 +                            ? "1px solid var(--rt-sub)"
 +                            : "1px solid var(--rt-tool)",
-+                        opacity: isDone ? "0.62" : "1",
++                        opacity: isDone() ? "0.62" : "1",
 +                      }}
 +                    >
 +                      {/* Line 1: Header button (toggle detail panel) */}
 +                      <button
 +                        type="button"
-+                        data-oco-runtime-tool-toggle={slot.toolID}
++                        data-oco-runtime-tool-toggle={slot().toolID}
 +                        aria-expanded={isCurrentDetail()}
 +                        class={`w-full flex items-center justify-between gap-2 text-left bg-transparent border-0 p-0 rounded cursor-pointer font-mono min-w-0 ${FOCUS}`}
-+                        onClick={() => toggleDetail(slot.toolID)}
++                        onClick={() => toggleDetail(slot().toolID)}
 +                        onKeyDown={(e) => {
 +                          if (e.key === "Enter" || e.key === " ") {
 +                            e.preventDefault()
-+                            toggleDetail(slot.toolID)
++                            toggleDetail(slot().toolID)
 +                          }
 +                        }}
 +                      >
 +                        <span
 +                          class="ell text-13-bold font-bold flex items-center gap-1.5 min-w-0"
 +                          style={{
-+                            color: isAwaiting
++                            color: isAwaiting()
 +                              ? "var(--rt-attn)"
-+                              : slot.kind === "child"
++                              : slot().kind === "child"
 +                                ? "var(--rt-sub)"
 +                                : "var(--rt-tool)",
 +                          }}
 +                        >
-+                          <span aria-hidden="true">{glyph}</span>
-+                          <span class="ell">{slot.label}</span>
++                          <span aria-hidden="true">{glyph()}</span>
++                          <span class="ell">{slot().label}</span>
 +                        </span>
 +                        <span class="text-12-regular shrink-0" style={{ color: "var(--rt-weak)" }}>
 +                          {statusText()}
@@ -3108,17 +3157,17 @@ index 0000000..2bee656
 +                      </button>
 +
 +                      {/* Line 2: Description or input */}
-+                      <div class="ell text-12-regular" style={{ color: "var(--rt-text)" }} title={descOrInput}>
-+                        {descOrInput}
++                      <div class="ell text-12-regular" style={{ color: "var(--rt-text)" }} title={descOrInput()}>
++                        {descOrInput()}
 +                      </div>
 +
 +                      {/* Line 3: Activity or waiting or error */}
 +                      <div
 +                        class="ell text-12-regular"
 +                        style={{
-+                          color: isAwaiting
++                          color: isAwaiting()
 +                            ? "var(--rt-attn)"
-+                            : isError
++                            : isError()
 +                              ? "var(--rt-err)"
 +                              : "var(--rt-weak)",
 +                        }}
@@ -3129,13 +3178,13 @@ index 0000000..2bee656
 +
 +                      {/* Line 4: Action (enter subagent or details) */}
 +                      <Show
-+                        when={slot.kind === "child" && childSessionID()}
++                        when={slot().kind === "child" && childSessionID()}
 +                        fallback={
 +                          <div class="mt-auto text-right text-12-regular">
 +                            <span
 +                              class="cursor-pointer hover:underline"
 +                              style={{ color: "var(--rt-tool)" }}
-+                              onClick={() => toggleDetail(slot.toolID)}
++                              onClick={() => toggleDetail(slot().toolID)}
 +                            >
 +                              {t("tool.details_link")}
 +                            </span>
@@ -3161,9 +3210,11 @@ index 0000000..2bee656
 +                        )}
 +                      </Show>
 +                    </div>
++                      </Match>
++                    </Switch>
 +                  )
 +                }}
-+              </For>
++              </Index>
 +            </div>
 +
 +            {/* Row 4: Return Wire (44px) */}
@@ -3179,7 +3230,7 @@ index 0000000..2bee656
 +                    <div
 +                      class="drop absolute top-0 h-1/2 border-l border-dashed"
 +                      style={{
-+                        left: `${12.5 + i * 25}%`,
++                        left: props.isNarrow560?.() ? railLeft() : `${12.5 + i * 25}%`,
 +                        "border-color": isActive()
 +                          ? slot()?.kind === "child"
 +                            ? "var(--rt-sub)"
@@ -3203,8 +3254,10 @@ index 0000000..2bee656
 +                  )
 +                }}
 +              </Index>
-+              <div class="bus absolute left-[12.5%] right-[12.5%] top-1/2 border-t border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
-+              <div class="stem absolute left-1/2 top-1/2 h-1/2 border-l border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
++              <Show when={!props.isNarrow560?.()}>
++                <div class="bus absolute left-[12.5%] right-[12.5%] top-1/2 border-t border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
++              </Show>
++              <div class="stem absolute top-1/2 h-1/2 border-l border-dashed" style={{ left: railLeft(), "border-color": "var(--rt-line-strong)" }}></div>
 +            </div>
 +
 +            {/* Row 5: Fill Node */}
@@ -7369,10 +7422,10 @@ index 0000000..f6906fc
 +}
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
 new file mode 100644
-index 0000000..2c41963
+index 0000000..0a36cd0
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -0,0 +1,1119 @@
+@@ -0,0 +1,1124 @@
 +// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view.
 +// Fixed-frame Tokyo Night layout (改版 2: 固定框架 / Task 4d).
 +import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, untrack } from "solid-js"
@@ -7781,6 +7834,9 @@ index 0000000..2c41963
 +      childSync.requestSync(id)
 +    }
 +  }
++
++  const childFailed = (id: string) => (childSync.failedVersion(), childSync.failed.has(id))
++  const retryChild = (id: string) => childSync.requestSync(id)
 +
 +  // Navigation stack for entering subagents
 +  const [enteredStack, setEnteredStack] = createSignal<string[]>([])
@@ -8401,6 +8457,8 @@ index 0000000..2c41963
 +              onView={props.onView}
 +              enteredStack={enteredStack}
 +              onEnterChild={onEnterChild}
++              childFailed={childFailed}
++              retryChild={retryChild}
 +              onNavigateCrumb={onNavigateCrumb}
 +              openDetailId={openDetailId}
 +              onToggleDetail={onToggleDetail}
@@ -8621,10 +8679,10 @@ index 0de8b86..9a21a8f 100644
                {(_id) => (
 diff --git a/packages/app/test-browser/session-runtime-child-sync.test.ts b/packages/app/test-browser/session-runtime-child-sync.test.ts
 new file mode 100644
-index 0000000..fa6849a
+index 0000000..6bcb8c2
 --- /dev/null
 +++ b/packages/app/test-browser/session-runtime-child-sync.test.ts
-@@ -0,0 +1,264 @@
+@@ -0,0 +1,268 @@
 +import { describe, expect, test } from "bun:test"
 +import { createRoot, createSignal } from "solid-js"
 +import { createChildSync } from "@/components/session/session-runtime-child-sync"
@@ -8779,7 +8837,7 @@ index 0000000..fa6849a
 +      const [tools, setTools] = createSignal<RuntimeTool[]>([tool("t1", 0, "child_fail", "running")])
 +      const [models, setModels] = createSignal<Record<string, RuntimeModel | undefined>>({})
 +
-+      createChildSync({
++      const sync = createChildSync({
 +        sync: fixture.sync,
 +        pin: fixture.pin,
 +        unpin: fixture.unpin,
@@ -8791,10 +8849,14 @@ index 0000000..fa6849a
 +
 +      await flush()
 +      expect(fixture.syncCalls).toEqual(["child_fail"])
++      const versionBefore = sync.failedVersion()
 +
 +      // Simulate failure of the initial sync
 +      fixture.reject("child_fail")
 +      await flush()
++      // The failure is observable, so the view can offer a retry instead of loading forever.
++      expect(sync.failed.has("child_fail")).toBe(true)
++      expect(sync.failedVersion()).toBeGreaterThan(versionBefore)
 +
 +      // Ensure no automatic retry while still collapsed
 +      expect(fixture.syncCalls).toEqual(["child_fail"])
