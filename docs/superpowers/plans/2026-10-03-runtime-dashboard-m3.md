@@ -294,3 +294,64 @@ T1 ∥ T2（文件互斥）→ T3 → T4 → T5 → T6（同一 `session-runtime
 **Task 7（改）**：在 4c 之后重新执行，断言按“E2E 契约调整”改写（删除 mechanism 折叠/展开断言，改为 legend、summary、fill 文本与节点内回复按钮）。上一轮停在半途的改动保存在 `.superpowers/sdd/2026-10-03-runtime-dashboard-m3/t7-wip-stopped.patch`（两个 spike 未出结论），可参考，不直接套用。
 
 顺序：4b → 4c → 7 → 8 → 9。
+
+## 改版 2：固定框架（2026-10-04，用户看过 agent 树实装后的反馈）
+
+**用户反馈**（看了真实界面 `oco-0.0.4-67f9729.vsix`）：很多地方不好点；思考框忽大忽小；布局不固定、总在变，不知道哪里到哪里；没看到多个子代理同时运行；找不到回放；全屏使用。要求参照其参考图（终端风格 agent tree），日志最新在上，颜色参照参考图，元素之间更舒适。
+评审稿：[runtime-m3-fixed-layout-mockup.html](../specs/runtime-m3-fixed-layout-mockup.html)（v3，`66f48e9`/`3e2dde9`）。
+
+**授权依据**：用户 `/goal 按你的想法，最大化，最美观，完成它` 与“尽你所能”。以下三项由用户交给主线程决定（不是逐条确认）：①运行视图自带配色；②长文字截成一行、点开看全文；③子代理“进入”而非原地展开。
+
+**本节推翻的既有决定**（以本节为准）：
+- “颜色只用主题变量” → 运行视图自带 Tokyo Night 风格配色，变量**只定义一处**（`[data-oco-runtime]` 根节点上的 `--rt-*`），组件只用 `var(--rt-*)`，不在别处写色值。
+- “420 px 换行不裁剪” → 卡片内文字单行省略（`text-overflow: ellipsis`），完整内容在详情面板与 `title`。
+- “子代理原地展开子树” → “进入”：树区域换成该子代理的树，顶部面包屑返回。仍走 `childOpen`/`toggleChild`，保证 Task 5 的子会话加载被触发。
+- “回复按钮在工具节点内” → 固定在左栏“需你处理”，树里只给对应节点标需你处理色。每个待处理项的每种按钮在 DOM 中仍只出现一次。
+- 思考区“完成后折叠为一行” → 固定高度框，框内滚动，流式中自动滚到底，完成后尺寸不变，不再有折叠按钮。
+- “其他需要注意”列表 → 左栏一行计数“其他异常 N”，点开在详情面板列出。
+
+### 配色（唯一来源）
+
+`--rt-bg #1a1b26 · --rt-panel #1f2335 · --rt-inset #24283b · --rt-line #2f3549 · --rt-line-strong #4a5272 · --rt-text #c0caf5 · --rt-weak #9aa3c7 · --rt-faint #8189ad · --rt-main #7dcfff（主 agent）· --rt-sub #7aa2f7（子代理）· --rt-tool #9ece6a（工具）· --rt-attn #ff9e64（需你处理）· --rt-err #f7768e · --rt-ok #73daca（回填/完成）· --rt-accent #bb9af7（思考/回放）`。全部等宽字体。节点实线框，连线虚线。无发光阴影。
+
+### 版面（容器宽 ≥ 900 px：整屏固定，根节点不滚动）
+
+- 网格行：顶栏 auto / 中部 1fr / 日志 `clamp(112px,18vh,176px)` / 状态栏 auto；间距 22 px，外边距 22×30 px。
+- **顶栏**：状态（`data-oco-runtime-state`，推断时带“（推断）”）· 需你处理计数 · 会话数（>1 时）· 停止（`data-oco-runtime-stop`）· 已请求取消（`data-oco-runtime-cancel`）· 最后事件（`data-oco-runtime-last`）· 图例（`data-oco-runtime-legend`）· 右侧常驻时间轴（容器 `data-oco-runtime-replay`）：分段按钮“● 实时”（`data-oco-runtime-replay-live`）/“⏮ 回放”（`data-oco-runtime-replay-pause`）+ 步骤滑块 + “n / total”；回放时显示“只读回放 · 时间”与“暂停后新增 N”。
+- **左栏（290 px）**：
+  1. “需你处理 · N”（`data-oco-runtime-attention-panel`）：每项 `data-oco-runtime-attention` + `-kind` + `-pending`；权限三按钮一行（`data-oco-runtime-reply=once|always|reject`）；提问为“去对话回答”（`data-oco-runtime-question`）；回放时显示 `data-oco-runtime-replay-note` 文案、无按钮；下方一行“其他异常 N”（`data-oco-runtime-other`，N=0 不显示），点开在详情面板列出。
+  2. “子代理 · N”（`data-oco-runtime-roster`）：本会话全部子代理（按子会话去重），行 `data-oco-runtime-roster-item=<sessionID>`：字形 · agent · 生命周期文字 · 当前活动（如 read ×4）；点行 = 进入该子代理。框内滚动。
+- **树区域**（`data-oco-runtime-mechanism=expanded`，行高固定、垂直居中，**内容变化不改变任何框的位置和尺寸**）：
+  1. 主行两列：主节点（`data-oco-runtime-node=main`，kind main）：agent 名 / “模型 · 第 N 次请求 · 本轮已运行” / 焦点句（`data-oco-runtime-focus`，含重试倒计时 `data-oco-runtime-retry`、错误、已取消，单行省略）/ 四段阶段条（`data-oco-runtime-stage`）。思考框（`data-oco-runtime-think`，内含 `data-oco-runtime-reasoning=<partID>` + `-reasoning-state`）：固定高度、框内滚动、流式自动到底，紫色虚线框。
+  2. 派发线：主干 + 横线 + 4 条下落线；每条有槽位的下落线 `data-oco-runtime-edge=<toolID>` `-edge-dir=dispatch` `-edge-active`；活跃时带流动点 `data-oco-runtime-flow`（减少动画关掉，回放不显示）。线上标签“派发 N”，或“上一次派发 · 第 N 次请求”（`data-oco-runtime-slots-from`）。
+  3. **固定 4 条通道**（`data-oco-runtime-lane=0..3` + `-lane-kind=child|tool|overflow|empty`；窄于 560 时 `data-oco-runtime-rail=vertical`，否则 `grid`）。通道由纯函数 `lanesOf(mechanism)` 给出：子代理在前、工具在后，至多 4 个；超出时第 4 条为溢出“+N（k 运行中）”（`data-oco-runtime-overflow`）；不足补空槽“空闲”。卡片（`data-oco-runtime-tool=<id>` + `data-oco-runtime-node=<id>` + `-node-kind`）三行单行省略：①字形 + 名称 + 状态文字（子代理为“task 状态 · 生命周期”两段文字）②任务描述或入参 ③当前活动 / 最后输出 / 错误；底部右侧“进入 ›”（子代理，`data-oco-runtime-child-toggle=<sessionID>`，`aria-expanded` 表示已进入）。卡片头是按钮（`data-oco-runtime-tool-toggle=<id>`，`aria-expanded`），Enter 打开、Space 关闭**详情面板**。需你处理的卡片橙色实线框，文字“等你批准 · 在左侧处理”，**无按钮**。
+  4. 汇回线（`-edge-dir=return`）与回填节点（`data-oco-runtime-fill`，“回填 → <agent>  x / y”）。
+  5. **详情面板**（`data-oco-runtime-tool-detail=<id>`）：叠在树区域右侧（绝对定位，宽 ~45%，高与树区域相同，有关闭按钮），内容：完整入参、耗时、状态、错误、输出（框内滚动）。打开/关闭不改变其他任何元素的位置和尺寸。“其他异常”也在此面板列出。
+  6. **进入子代理**：树区域上方出现面包屑（`data-oco-runtime-crumb`，按钮“主 agent › explore › …”），树区域换成子代理自己的树（同一组件递归，容器 `data-oco-runtime-child=<sessionID>` + `-child-lifecycle` + `-child-depth`）；子会话未加载时显示“加载中”。会话 ID 栈管理层级；回放中可进入（导航不是操作）。
+- **会话日志**（`data-oco-runtime-events`，行 `data-oco-runtime-event`）：最新在上，固定高度框内滚动；列：时间 · 角色（角色色）· 事件；回放时游标所在行高亮。
+- **状态栏**（`data-oco-runtime-summary`）：`<agent> · <模型>  子代理 x/y 运行  工具 k 运行 / m 等待  请求 N  用量 输入/输出（data-oco-runtime-usage）  上下文 used/limit  花费（有值时）`。
+- `aria-live`（`data-oco-runtime-live`，sr-only）保持只含状态 + 焦点句。
+- **窄屏**：容器宽 < 900 → 单列堆叠（顶栏换行、需你处理、树、子代理名册、日志、状态栏），根节点允许纵向滚动，`data-oco-runtime-layout=stack`（否则 `wide`）；通道 2 列；< 560 → 1 列、`rail=vertical`。
+
+### 新纯函数（`session-runtime-mechanism.ts`，只加不改名）
+
+- `lanesOf(m: Mechanism): Lane[]`（长度恒为 4）：`{ kind: "child" | "tool"; slot: MechanismSlot } | { kind: "overflow"; total: number; running: number } | { kind: "empty" }`。
+- `rosterOf(model: RuntimeModel, childOf?): RosterItem[]`：每个子会话一行（`lastChildToolIds` 去重，按首次出现顺序），`{ toolID, sessionID?, agent, description?, lifecycle, state, request, activity? }`。
+- 单测：少于 4 补空槽、子代理优先、超过 4 时溢出计数含运行中数、roster 去重与顺序、activity 未加载缺省。
+
+### E2E 契约调整（Task 7c，按此改 `c5-runtime.mjs`）
+
+- `reply-in-node` → `reply-in-panel`：回复按钮在 `[data-oco-runtime-attention-panel]` 内，每种按钮全 DOM 唯一；树中对应卡片带需你处理标记且无按钮。
+- 回放切换改用 `[data-oco-runtime-replay-pause]` / `[data-oco-runtime-replay-live]`。
+- `reasoning`：streaming → done；思考框流式中与完成后 `getBoundingClientRect` 相等；无折叠按钮。
+- `subagent`：点“进入”后出现 `[data-oco-runtime-child=<id>]` 与面包屑；等生命周期 done；经面包屑返回后，父树卡片文本含 task 状态与生命周期两段文字。
+- `keyboard`：Tab 到卡片头按钮、焦点样式可见；Enter 打开详情面板（含耗时）、Space 关闭；打开前后 4 条通道的矩形不变。
+- 新增 `geometry-stable`：同一宽度下，运行中、结束后、回放三个时刻 4 条通道与思考框的矩形完全相等。
+- 新增 `parallel-subagents`：mock 一条消息派 3 个 task（子代理放慢），运行中至少 3 条通道 `lane-kind=child` 且 ≥2 条 dispatch 边 active；左栏名册 ≥3 行；截图。
+- 宽度加一档 `width-1600`；`width-*` 断言 `data-oco-runtime-layout` 与 `rail` 与容器实测宽度一致、无横向溢出、焦点句与停止可见；≥900 时根节点无纵向滚动。
+
+### 新任务
+
+- **Task 4d（Gemini）**：纯函数 + 固定框架视图重写。Files：`session-runtime-mechanism.ts`、`.test.ts`、`session-runtime-mechanism-view.tsx`、`session-runtime.tsx`、`session-runtime-child.tsx`、`session-runtime-i18n.ts`（必要时 `test-browser/` 新测试）。每个子目标在 vendor 内 WIP 提交：①纯函数+测试 ②配色变量+框架骨架 ③通道+左栏 ④进入子代理+面包屑+详情面板 ⑤日志/时间轴/窄屏。验收：src 单测、test:browser、typecheck、`diff --check` 全过；`button button` 为 0；全文件 grep 不到 `--rt-*` 定义之外的十六进制色值。
+- **Task 7c**：mock 并行子代理触发（附单测）+ 按上表改 c5；en/zh 各一次 + c4 回归。
+- 主线程：真实产品在 1600 宽并行、结束、回放各截图，对照评审稿 v3；然后 Task 8（0019 重放）、Task 9（评审与文档）、打 VSIX。
