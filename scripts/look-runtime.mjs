@@ -8,6 +8,7 @@ import { messages, waitIdle } from "../tests/e2e/server.mjs"
 
 const OUT = process.env.LOOK_OUT ?? path.resolve(".oco-look")
 const WIDTHS = (process.env.LOOK_WIDTHS ?? "1600,1100,700").split(",").map(Number)
+const HEIGHT = Number(process.env.LOOK_HEIGHT ?? 0) // window height in px; 0 keeps the default (short) window
 fs.mkdirSync(OUT, { recursive: true })
 const { app, page } = await launch({ profile: "look-runtime", settings: { "workbench.colorTheme": "Default Dark Modern" } })
 let A
@@ -44,7 +45,14 @@ const diagnose = (f) =>
       log: q("[data-oco-runtime-events]"),
       summary: q("[data-oco-runtime-summary]"),
     }
-    const out = { layout: root?.getAttribute("data-oco-runtime-layout"), root: R(root) && [Math.round(R(root).width), Math.round(R(root).height)], issues: [] }
+    const frame = q("[data-oco-runtime-frame]")
+    const out = {
+      layout: root?.getAttribute("data-oco-runtime-layout"),
+      root: R(root) && [Math.round(R(root).width), Math.round(R(root).height)],
+      frameScrolls: frame ? frame.scrollHeight > frame.clientHeight + 1 : null,
+      summaryVisible: frame && parts.summary ? R(parts.summary).bottom <= R(frame).bottom + 1 : null,
+      issues: [],
+    }
     const names = Object.keys(parts).filter((k) => parts[k])
     for (let i = 0; i < names.length; i++)
       for (let j = i + 1; j < names.length; j++) {
@@ -75,6 +83,11 @@ try {
   await f.locator('[data-oco-view="runtime"]').click()
   await f.locator("[data-oco-runtime]").waitFor({ state: "visible", timeout: 10000 })
   const report = {}
+  if (HEIGHT)
+    await app.evaluate(({ BrowserWindow }, h) => {
+      const win = BrowserWindow.getAllWindows()[0]
+      win.setSize(win.getSize()[0], h)
+    }, HEIGHT)
   for (const w of WIDTHS) {
     await fitGroups(app, page, w)
     await send(f, "Use the task tool 3 times in parallel: find callers of loadOmoConfig; check plugin cache path; read plugin docs")

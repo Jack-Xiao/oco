@@ -51,7 +51,7 @@
 ## 6. 运行视图 M2 / M3（补丁 0019 之后，需先审阅再写计划）
 
 - [完成 2026-10-03，未推送] M2 见 [验收](evidence/runtime-m2-verification.md)。已部署 gcp-workstation（分支未合入 main，未推送）。待做：Remote 窗口 Reload 后实测（NOT RUN）。待用户决定：是否推送，M3 是否启动。遗留覆盖缺口：组件内自动同步计数按轮重置、同步失败重试、缓存驱逐后重新拉取，均无组件级测试或 E2E。
-- [完成 2026-10-04，未推送] M3：运行视图固定框架（两次用户改版后定稿），见 [STATUS](STATUS.md) 与 [E2E](evidence/runtime-m3-e2e.md)。待用户决定：是否推送 / 合入 main、是否部署 gcp-workstation。遗留：嵌套 ≥2 层 E2E（需 mock 产生孙会话）、真实模型长会话性能、Remote 实测均 NOT RUN；终审 12 条已修 10 条；待做（建议级）：D-11 窄于 560 时连线改竖轨（需同时保留每条通道的边属性）、D-12 子会话同步失败时给出错误与重试（见 `docs/evidence/runtime-m3-review.md`）。
+- [完成 2026-10-04，未推送] M3：运行视图固定框架（两次用户改版后定稿），见 [STATUS](STATUS.md) 与 [E2E](evidence/runtime-m3-e2e.md)。待用户决定：是否推送 / 合入 main、是否部署 gcp-workstation。遗留：嵌套 ≥2 层 E2E（需 mock 产生孙会话）、真实模型长会话性能、Remote 实测均 NOT RUN；终审 12 条已修 10 条；待做（建议级）：D-11 窄于 560 时连线改竖轨（需同时保留每条通道的边属性）、D-12 子会话同步失败时给出错误与重试（见 `docs/evidence/runtime-m3-review.md`）；正在输出的工具卡片在每次输出时仍会重建（焦点会丢），需按字段细粒度更新。
 - 向集成人单独提：真实“断连”需要宿主新增消息（改桥契约），v1 不做。
 
 ## 执行约束

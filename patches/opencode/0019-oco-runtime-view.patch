@@ -2532,7 +2532,7 @@ index 0000000..53db1fa
 +}
 diff --git a/packages/app/src/components/session/session-runtime-mechanism-view.tsx b/packages/app/src/components/session/session-runtime-mechanism-view.tsx
 new file mode 100644
-index 0000000..e9d41b3
+index 0000000..2bee656
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-mechanism-view.tsx
 @@ -0,0 +1,810 @@
@@ -2825,12 +2825,12 @@ index 0000000..e9d41b3
 +        >
 +          <div
 +            data-oco-runtime-mechanism="expanded"
-+            class="tree rounded-lg py-4 px-5 grid min-h-0 min-w-0 flex-1 relative font-mono select-none"
++            class="tree rounded-lg py-3 px-5 grid min-h-0 min-w-0 flex-1 relative font-mono select-none"
 +            style={{
 +              background: "var(--rt-panel)",
 +              border: "1px solid var(--rt-line)",
 +              // Row minimums fit their content; the frame reserves at least their sum, so nothing spills.
-+              "grid-template-rows": props.isStack?.() ? "auto 30px auto 30px auto" : "minmax(128px, 168px) 30px minmax(116px, 176px) 30px auto",
++              "grid-template-rows": props.isStack?.() ? "auto 24px auto 24px auto" : "minmax(124px, 168px) 24px minmax(116px, 176px) 24px auto",
 +              "align-content": "center",
 +            }}
 +          >
@@ -2927,7 +2927,7 @@ index 0000000..e9d41b3
 +            </div>
 +
 +            {/* Row 2: Dispatch Wire (44px) */}
-+            <div class="wire relative h-[30px]">
++            <div class="wire relative h-[24px]">
 +              <div class="stem absolute left-1/2 top-0 h-1/2 border-l border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
 +              <div class="bus absolute left-[12.5%] right-[12.5%] top-1/2 border-t border-dashed" style={{ "border-color": "var(--rt-line-strong)" }}></div>
 +              {/* Index (not For): lanesOf returns new objects on every update; keying by position keeps the
@@ -3167,7 +3167,7 @@ index 0000000..e9d41b3
 +            </div>
 +
 +            {/* Row 4: Return Wire (44px) */}
-+            <div class="wire relative h-[30px]">
++            <div class="wire relative h-[24px]">
 +              <Index each={lanes()}>
 +                {(lane, i) => {
 +                  const slot = () => {
@@ -7369,10 +7369,10 @@ index 0000000..f6906fc
 +}
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
 new file mode 100644
-index 0000000..d8a22a3
+index 0000000..2c41963
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -0,0 +1,1109 @@
+@@ -0,0 +1,1119 @@
 +// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view.
 +// Fixed-frame Tokyo Night layout (改版 2: 固定框架 / Task 4d).
 +import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, untrack } from "solid-js"
@@ -7918,6 +7918,8 @@ index 0000000..d8a22a3
 +      data-oco-runtime-layout={isStack() ? "stack" : "wide"}
 +      class="relative flex flex-col h-full min-h-0 font-mono select-none overflow-hidden"
 +      style={{
++        // Size container: the frame below scales its spacing with cqh (this view's own height).
++        "container-type": "size",
 +        "--rt-bg": "#1a1b26",
 +        "--rt-panel": "#1f2335",
 +        "--rt-inset": "#24283b",
@@ -7962,21 +7964,25 @@ index 0000000..d8a22a3
 +
 +      {/* Fixed Layout Content */}
 +      <div
++        data-oco-runtime-frame
 +        class="oco-runtime-view flex-1 min-h-0"
 +        style={{
 +          display: isStack() ? "flex" : "grid",
 +          "flex-direction": isStack() ? "column" : undefined,
 +          // The middle row never shrinks below what the tree needs, so boxes never overlap; a short window scrolls.
-+          "grid-template-rows": isStack() ? undefined : "auto minmax(374px, 1fr) clamp(104px, 16vh, 176px) auto",
-+          gap: "16px",
-+          padding: isStack() ? "16px" : "16px 24px",
++          // Sizes follow the runtime view's own height (cqh; the composer below is not part of it): a ~600 px frame
++          // fits without scrolling, and a taller one opens up to the approved 20–24 px spacing.
++          "grid-template-rows": isStack() ? undefined : "auto minmax(352px, 1fr) clamp(88px, 13.5cqh, 176px) auto",
++          gap: "clamp(12px, 2.2cqh, 24px)",
++          padding: isStack() ? "16px" : "clamp(12px, 1.9cqh, 22px) clamp(20px, 2vw, 30px)",
 +          "overflow-y": "auto",
 +        }}
 +      >
 +        {/* Row 1: 顶栏 (Top Bar) */}
 +        <div
-+          class="top flex items-center gap-5 min-w-0 pb-4 border-b flex-wrap shrink-0 [&>*]:min-h-[34px] [&>*]:flex [&>*]:items-center"
-+          style={{ "border-color": "var(--rt-line-strong)" }}
++          class="top flex items-center gap-5 min-w-0 pb-3 border-b flex-wrap shrink-0 [&>*]:min-h-[34px] [&>*]:flex [&>*]:items-center"
++          // One line in the wide frame (secondary text truncates instead of pushing the timeline to a second row).
++          style={{ "border-color": "var(--rt-line-strong)", "flex-wrap": isStack() ? "wrap" : "nowrap" }}
 +        >
 +          {/* State */}
 +          <div class="flex items-center gap-2 font-bold tracking-wide shrink-0">
@@ -8012,7 +8018,7 @@ index 0000000..d8a22a3
 +
 +          {/* Sessions count */}
 +          <Show when={model().sessions.length > 1}>
-+            <span class="text-12-regular" style={{ color: "var(--rt-weak)" }}>
++            <span class="text-12-regular ell" style={{ color: "var(--rt-weak)", display: "block", "line-height": "34px", "flex-shrink": 1 }}>
 +              {t("header.sessions", { count: model().sessions.length })}
 +            </span>
 +          </Show>
@@ -8039,7 +8045,11 @@ index 0000000..d8a22a3
 +
 +          {/* Last event */}
 +          <Show when={model().mode === "live"}>
-+            <span data-oco-runtime-last class="text-12-regular" style={{ color: "var(--rt-weak)" }}>
++            <span
++              data-oco-runtime-last
++              class="text-12-regular ell"
++              style={{ color: "var(--rt-weak)", display: "block", "line-height": "34px", "flex-shrink": 1 }}
++            >
 +              {freshness().lastEventAt === undefined
 +                ? t("last.none")
 +                : t("last.event", { ago: ago(t, wall() - freshness().lastEventAt!) })}
@@ -8114,7 +8124,7 @@ index 0000000..d8a22a3
 +            display: isStack() ? "flex" : "grid",
 +            "flex-direction": isStack() ? "column" : undefined,
 +            "grid-template-columns": isStack() ? undefined : "minmax(0, 290px) minmax(0, 1fr)",
-+            gap: "20px",
++            gap: "clamp(16px, 2vw, 24px)",
 +          }}
 +        >
 +          {/* Left Column (Attention Panel + Roster) */}
@@ -8407,7 +8417,7 @@ index 0000000..d8a22a3
 +          style={{
 +            background: "var(--rt-panel)",
 +            border: "1px solid var(--rt-line)",
-+            height: isStack() ? "176px" : "clamp(104px, 16vh, 176px)",
++            height: isStack() ? "176px" : "clamp(88px, 13.5cqh, 176px)",
 +          }}
 +        >
 +          <h3 class="m-0 text-12-bold tracking-wider shrink-0 font-bold" style={{ color: "var(--rt-weak)" }}>

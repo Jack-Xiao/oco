@@ -815,7 +815,17 @@ try {
         rail: el?.getAttribute("data-oco-runtime-rail") ?? null,
         layout: root?.getAttribute("data-oco-runtime-layout") ?? null,
         rootWidth: root?.clientWidth ?? null,
-        rootScrolls: root ? root.scrollHeight > root.clientHeight + 1 : null,
+        // The inner frame is the element that scrolls when the window is too short (the root itself never does).
+        rootScrolls: (() => {
+          const frame = document.querySelector("[data-oco-runtime-frame]")
+          return frame ? frame.scrollHeight > frame.clientHeight + 1 : null
+        })(),
+        summaryVisible: (() => {
+          const frame = document.querySelector("[data-oco-runtime-frame]")?.getBoundingClientRect()
+          const sum = document.querySelector("[data-oco-runtime-summary]")?.getBoundingClientRect()
+          return !!frame && !!sum && sum.bottom <= frame.bottom + 1
+        })(),
+        frameHeight: document.querySelector("[data-oco-runtime-frame]")?.clientHeight ?? null,
         laneColumns: xs.size,
         mechWidth,
       }
@@ -963,7 +973,7 @@ try {
   await waitIdle(A)
   run.record(
     "width-wide",
-    wWideStopVis && wWideFocusVis && wWideOverflow.noOverflow && railMatchesWidth(wWideRail) && wWideRail.layout === "wide" && wWideRail.rootScrolls === false ? "PASS" : "FAIL",
+    wWideStopVis && wWideFocusVis && wWideOverflow.noOverflow && railMatchesWidth(wWideRail) && wWideRail.layout === "wide" ? "PASS" : "FAIL",
     { stopVisible: wWideStopVis, focusVisible: wWideFocusVis, ...wWideRail, ...wWideOverflow },
   )
 
@@ -972,6 +982,13 @@ try {
   // "wide" and does not scroll; the four lanes and the think box keep exactly the same rects while running,
   // after the turn ends and in replay. If the layout regresses to content-sized boxes, geometry-stable fails;
   // if subagents are serialised or dropped from the tree, parallel-subagents fails.
+  // Full-screen check: make the window tall (as on the user's screen), then the frame must not scroll and the status
+  // bar must be visible. Short windows are allowed to scroll (they only must not overlap; see width-* above).
+  await app.evaluate(({ BrowserWindow }) => {
+    const w = BrowserWindow.getAllWindows()[0]
+    const [width] = w.getSize()
+    w.setSize(width, 1120)
+  })
   await fitGroups(app, page, 1600)
   const geom = () =>
     fA.evaluate(() =>
@@ -1028,7 +1045,7 @@ try {
 
   run.record(
     "width-1600",
-    w1600StopVis && w1600FocusVis && w1600Overflow.noOverflow && railMatchesWidth(w1600Rail) && w1600Rail.layout === "wide" && w1600Rail.rootScrolls === false
+    w1600StopVis && w1600FocusVis && w1600Overflow.noOverflow && railMatchesWidth(w1600Rail) && w1600Rail.layout === "wide" && w1600Rail.rootScrolls === false && w1600Rail.summaryVisible
       ? "PASS"
       : "FAIL",
     { stopVisible: w1600StopVis, focusVisible: w1600FocusVis, ...w1600Rail, ...w1600Overflow },

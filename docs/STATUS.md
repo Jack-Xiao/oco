@@ -12,7 +12,7 @@
   - 会话日志最新在上；状态栏含用量、上下文、花费和图例。
   - 自带 Tokyo Night 风格配色（`--rt-*` 只在根节点定义一次），全部等宽字体。
   - 宽 ≥ 900 时整屏固定、内容变化不改变任何框的位置尺寸；窗口过矮时整体滚动而不重叠。< 900 单列堆叠（需你处理 → 树 → 名册），< 560 通道单列。
-- 检查（本轮实测，vendor HEAD `73998c9`，含终审修复波）：session 单测 218/218，类型 0 错误；E2E（mock，独立服务 4617）`c5-runtime` en 33/33、zh 33/33（新增 width-1600、parallel-subagents、geometry-stable、focus-stable、reply-in-panel 等；focus-stable 做过去掉修复的对照，FAIL），`c4-trajectory` 17/17；补丁 0001→0019 干净重放 19/19，重放树单测 218/218。终审 12 条中 10 条已修，D-11/D-12（建议级）记入 NEXT。真实界面 1600/1100/700 宽 × 运行/结束/权限/回放 8 个状态用 `scripts/look-runtime.mjs` 诊断，重叠/溢出/裁切 0。证据：[E2E](evidence/runtime-m3-e2e.md)。
+- 检查（本轮实测，vendor HEAD `ebb9c65`）：session 单测 218/218，test:browser 48/48，vendor 类型 0 错误；根 `verify:brief` typecheck PASS、unit 190/190；E2E（mock，独立服务 4617）`c5-runtime` en 33/33、zh 33/33（含 width-1600 测内层框架不滚动且状态栏可见、parallel-subagents、geometry-stable、focus-stable（有去掉修复的对照 FAIL）、reply-in-panel），`c4-trajectory` 17/17；补丁 0001→0019 干净重放 19/19，重放树单测 218/218。终审 12 条中 10 条已修，D-11/D-12（建议级）与“正在输出的工具卡片仍会重建”记入 NEXT。真实界面在本机最高窗口（框架 601 px）下 1600/1100 宽不滚动、状态栏可见。
 - 本地包：见 PROGRESS 本批最后一行（最终包名），已安装到本机 VS Code（需 Reload Window）。
 - NOT RUN / 限制：亮色主题（用户裁定不做）；嵌套 ≥2 层子代理 E2E（mock 不产生孙会话）；真实模型长会话性能；Remote（gcp-workstation）未部署。
 
