@@ -149,3 +149,35 @@ describe("mock-llm 429 retry-once", () => {
   })
 })
 
+
+describe("mock-llm parallel subagents", () => {
+  test("'Use the task tool 3 times in parallel' streams three task calls in one message", async () => {
+    const server = createMockServer()
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()))
+    const addr = server.address()
+    const port = typeof addr === "object" && addr ? addr.port : 0
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/v1/chat/completions`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          model: "mock",
+          stream: true,
+          tools: [{ type: "function", function: { name: "task" } }],
+          messages: [{ role: "user", content: "Use the task tool 3 times in parallel: find callers; check cache; read docs" }],
+        }),
+      })
+      const calls = (await res.text())
+        .split("\n")
+        .filter((l) => l.startsWith("data: {"))
+        .flatMap((l) => JSON.parse(l.slice(6)).choices?.[0]?.delta?.tool_calls ?? [])
+      expect(calls.map((c: { index: number }) => c.index)).toEqual([0, 1, 2])
+      const args = calls.map((c: { function: { arguments: string } }) => JSON.parse(c.function.arguments))
+      expect(args.map((a: { description: string }) => a.description)).toEqual(["find callers", "check cache", "read docs"])
+      expect(args.map((a: { subagent_type: string }) => a.subagent_type)).toEqual(["explore", "general", "explore"])
+      expect(args.every((a: { prompt: string }) => a.prompt === "Write 30 numbered sentences.")).toBe(true)
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()))
+    }
+  })
+})

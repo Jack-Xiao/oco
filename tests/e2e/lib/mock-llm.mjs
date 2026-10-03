@@ -43,6 +43,18 @@ export function plan(body) {
   let m
   if (tools.has("bash") && (m = /use the bash tool to run(?: exactly)?(?: this command)?:\s*(.+?)(?:\s\.(?:\s|$)| and tell|$)/im.exec(prompt)))
     return { tool: "bash", args: { command: m[1], description: "Run the requested command" } }
+  // "Use the task tool 3 times in parallel: a; b; c" starts several subagents from one assistant message.
+  // Each child streams 30 numbered sentences (~4.5 s) so the runtime view shows them running side by side.
+  if (tools.has("task") && (m = /use the task tool (\d+) times in parallel:\s*(.+)$/im.exec(prompt))) {
+    const agents = ["explore", "general"]
+    const descriptions = m[2].split(";").map((d) => d.trim()).filter(Boolean).slice(0, Number(m[1]))
+    return {
+      tools: descriptions.map((description, i) => ({
+        tool: "task",
+        args: { subagent_type: agents[i % agents.length], description, prompt: "Write 30 numbered sentences." },
+      })),
+    }
+  }
   // "Use the task tool with the explore agent: <description>" starts a subagent (child session).
   if (tools.has("task") && (m = /use the task tool with the (\S+) agent:\s*(.+)$/im.exec(prompt)))
     return { tool: "task", args: { subagent_type: m[1], description: m[2].trim(), prompt: "Reply with exactly this line and nothing else: subagent-ok" } }
@@ -125,9 +137,12 @@ async function complete(req, res, body) {
   res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache", connection: "keep-alive" })
   await sleep(FIRST_MS)
   chunk(res, id, { role: "assistant", content: "" })
-  if (step.tool) {
-    const call = { index: 0, id: "call_" + Math.random().toString(36).slice(2), type: "function", function: { name: step.tool, arguments: JSON.stringify(step.args) } }
-    chunk(res, id, { tool_calls: [call] })
+  if (step.tool || step.tools) {
+    const calls = step.tools ?? [{ tool: step.tool, args: step.args }]
+    for (const [index, call] of calls.entries())
+      chunk(res, id, {
+        tool_calls: [{ index, id: "call_" + Math.random().toString(36).slice(2), type: "function", function: { name: call.tool, arguments: JSON.stringify(call.args) } }],
+      })
     chunk(res, id, {}, "tool_calls")
   } else {
     // Long answers start with a reasoning block, as the real test model does. OpenCode stores a part's
