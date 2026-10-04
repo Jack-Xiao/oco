@@ -7,6 +7,8 @@
 - Grok：`grok-bridge.mjs check --json` → ready，grok 1.0.34，已登录 grok.com（models-probe 验证）。
 - Gemini：gemini-worker 最小请求 → 4 s 返回 OK，自报 Gemini 3.8 Flash (High)；工具头 model 记 unknown，job `gem-mut6eqfj-o6d55`。
 
+- 2026-10-04 第二批前重查：Gemini OK（job `gem-mut7jr96-nsx2r`，自报 Gemini 3.8 Flash）；Grok 未重查（同日 402，额度未恢复前不用）。
+
 ## 任务
 
 | task_id | 内容 | 唯一写入范围 | requested_route | actual_provider/model | agent_id/run_id | 状态 | 结果 | 备注 |

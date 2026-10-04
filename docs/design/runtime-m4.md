@@ -80,6 +80,60 @@
 - 先查清楚：后台任务能否用 `task_id` 对上子会话 ID（看 oh-my-opencode 的 `background_task` / `background_output` 数据格式）。只读调查，委派 Grok。若对不上，「泊位 / 取回」只能按时间近似判断，这时要回头和用户确认。
 - 现在 `background_output` 这类调用会被当作普通工具，并原样显示 JSON 输入；改完后要把它们归到对应子代理名下。
 
+## 第二批实施计划（交接用，2026-10-04 写）
+
+第一批已提交：oco `eb7b06a`、vendor `d69e4a2`；vsix `oco-0.0.4-eb7b06a.vsix` 已装到本机 VS Code。gcp-workstation 部署失败（IAM 隧道不可用），用户在本机测试第一批。
+
+### 已定的实现取舍
+
+- **保留第 1 行**：主代理节点（阶段条：准备 / 模型 / 工具 / 回填）和思考框保持不变。
+- **替换第 2–5 行**：派发线、通道卡片、回传线和「回填」框，换成回环航道 SVG。代码放在新文件 `session-runtime-loop-view.tsx`，在 `session-runtime-mechanism-view.tsx` 里挂载。
+- **主代理自己的工具**（bash / read 等）不进航道：
+  - 核心内圈显示当前工具名和数量（如 `bash ×2`），正在运行的工具在内圈显示为小方点。
+  - 工具出错或等待授权仍然进左栏「需要关注」。审批和提问按钮本来就在左栏（`session-runtime.tsx` 的 `data-oco-runtime-reply` / `-question`），航道不承担任何操作按钮。
+- **点探针**：在航道下方显示交接详情，「打开子会话 ›」沿用现有的 `onEnterChild` 嵌套导航。进入子会话后，它自己的子代理也用航道显示。
+- **配色**：只改运行视图根节点上的 `--rt-*` 变量值（`session-runtime.tsx` 根 style），换成上文的终端 HUD 色值，其余组件自动跟随。
+- **左栏**：删除子代理列表框 `data-oco-runtime-roster`；`rosterOf` 如果没有其他引用，连同其单测一起删除。
+
+### 模型改动（`session-runtime-model.ts`）
+
+依据 [映射调查](../evidence/runtime-m4-bg-task-mapping.md)：
+
+- `RuntimeChild` 增加 `backgroundTaskId?: string`，来自 `state.metadata.backgroundTaskId`；子会话 ID 优先取 `metadata.sessionId`，缺失时从输出文本的 `session_id:` 行提取。
+- 后台判断改为 `backgroundTaskId` 存在，或 `input.run_in_background === true`；保留旧的 `input.background` 兼容。
+- `background_output`：其 `input.task_id` 对应到上面的 `backgroundTaskId`；该 part 完成时，记录 `retrieved: { request, at }`。这类工具不再作为普通工具出现在航道里。
+- 重试：同一个 `backgroundTaskId` 出现新的 `sessionId` 时，用最新的会话；不另算一个子代理。
+
+### 新纯函数模块（可单测）
+
+`session-runtime-loop.ts`，从 `RuntimeModel`（加上子会话模型）算出：
+
+- 探针列表，字段：`stage: queued | running | docked | absorbed`、`flag: error | ask`、派发请求序号、取回请求序号、是否同步、当前动作。
+- 范围限定为当前这一轮（从最后一条用户消息起），更早的计入「+N 更早的」。
+- 槽位布局：待执行 4 个、作业区 12 个、泊位 5 个，装不下的合成「+N」；异常任务若落进「+N」，只和最后一个正常探针对调。示意页里的 `layout` / `ord` 可以直接移植。
+- 核心状态：派发中 / 汇总中 / 等待，以及已吸收数量。
+
+阶段判定规则：
+
+- 待执行：子会话尚未开始。
+- 执行中：lifecycle 为 running、retrying 或 waiting-user（waiting-user 加 `ask` 标记）。
+- 泊位：后台任务已完成但未取回。
+- 已吸收：同步任务完成，或后台任务已被取回。
+- 出错：加 `error` 标记，留在出错时所在的阶段。
+
+### E2E 要改的断言（`tests/e2e/c5-runtime.mjs`）
+
+依赖通道 / 名册的检查：`mechanism`、`subagent`、`parallel-subagents`、`geometry-stable`、`focus-stable`、`focus-on-change`、`keyboard`（工具卡片 toggle）、`width-420/560/wide/1600`（rail / laneColumns）、`motion-on`、`reduced-motion`、`legend`。
+
+- 改为对航道断言：探针数量和阶段（`data-oco-runtime-probe`、`data-oco-runtime-probe-stage`）、牵引光束、已吸收计数、槽位稳定、减少动态效果时没有动画。
+- mock 模型（`tests/e2e/lib/mock-llm.mjs`）需要能产生「后台派发 + `background_output` 取回」的会话；现在只有同步 `task`。
+
+### 委派
+
+- 2026-10-04 重查：Gemini 可用（4 s，自报 Gemini 3.8 Flash）；Grok 仍是 402 额度耗尽。
+- 可委派给 Gemini 的部分：`session-runtime-loop.ts` 的单测、mock 后台派发、E2E 断言改写和运行。
+- 主线程负责：模型改动、航道视图、配色和补丁 0019 的重新生成。
+
 ## 交付约定
 
 - 在分支 `claude/nostalgic-gates-ef74ca` 上开发，不合入 main。
