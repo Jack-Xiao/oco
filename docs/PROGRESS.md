@@ -451,3 +451,10 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 最终包：`oco-0.0.4-da3825f.vsix`（vendor `ebb9c65`），已安装到本机 VS Code，需 Reload Window。
 - 补完（同日）：卡片改为按位置原地更新（内容变化时焦点保留，`focus-on-change` 有对照）、窄屏连线竖轨（D-11）、子代理加载失败可重试（D-12）；vendor `6164506`，E2E en/zh 34/34、c4 17/17，干净重放 19/19。最终包见下一行。
 - 最终包：`oco-0.0.4-a66baa8.vsix`（vendor `6164506`），已安装到本机 VS Code，需 Reload Window。
+
+## 2026-10-04 运行视图 M4 第一批（补丁 0019 追加）
+
+- 设计：用户评审了多版示意图，第二批定为回环航道 + 终端 HUD 配色，放弃阶段看板。设计记录 `docs/design/runtime-m4.md`，示意 `docs/design/runtime-m4-loop-mockup.html`。
+- 交付：回放播放控制、日志精简与浮层、思考框字号与全文浮层；E2E 新增 `playback`、`log-overlay`、`think-expand`。
+- 委派：Grok 402 额度耗尽；Gemini（Antigravity）资格检查两次 EOF。映射调查、单测、E2E 由主线程接手，记录在 `docs/evidence/delegation-runtime-m4.md`。
+- 结果：session 单测 226/0，E2E en/zh 37/37，c4 17/17，干净重放 19/19。未提交，未部署。

@@ -52,6 +52,7 @@
 
 - [完成 2026-10-03，未推送] M2 见 [验收](evidence/runtime-m2-verification.md)。已部署 gcp-workstation（分支未合入 main，未推送）。待做：Remote 窗口 Reload 后实测（NOT RUN）。待用户决定：是否推送，M3 是否启动。遗留覆盖缺口：组件内自动同步计数按轮重置、同步失败重试、缓存驱逐后重新拉取，均无组件级测试或 E2E。
 - [完成 2026-10-04，未推送] M3：运行视图固定框架（两次用户改版后定稿），见 [STATUS](STATUS.md) 与 [E2E](evidence/runtime-m3-e2e.md)。待用户决定：是否推送 / 合入 main、是否部署 gcp-workstation。遗留：嵌套 ≥2 层 E2E（需 mock 产生孙会话）、真实模型长会话性能、Remote 实测均 NOT RUN；终审 12 条已全部处理（见 `docs/evidence/runtime-m3-review.md`、`runtime-m3-e2e.md`）。
+- [第一批完成 2026-10-04，未提交] M4 第一批：回放播放控制、日志精简与展开浮层、思考框字号，见 [验收](evidence/runtime-m4-batch1.md)。待做 第二批：回环航道替换运行树子代理卡片、去掉左栏子代理列表、配色改为终端 HUD；`task_id` ↔ 子会话映射已查清，见 [调查](evidence/runtime-m4-bg-task-mapping.md)。设计见 [runtime-m4](design/runtime-m4.md)。
 - 向集成人单独提：真实“断连”需要宿主新增消息（改桥契约），v1 不做。
 
 ## 执行约束

@@ -1891,10 +1891,10 @@ index 0000000..fa82f1a
 +})
 diff --git a/packages/app/src/components/session/session-runtime-i18n.ts b/packages/app/src/components/session/session-runtime-i18n.ts
 new file mode 100644
-index 0000000..9fcbcc2
+index 0000000..8d2b687
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-i18n.ts
-@@ -0,0 +1,591 @@
+@@ -0,0 +1,636 @@
 +// oco (patches/opencode/0019): copy for the runtime view. Same arrangement as session-trajectory-i18n.ts
 +// (patch 0013): upstream's locale-parity test would require every locale, and oco maintains en / zh / zht.
 +import type { useLanguage } from "@/context/language"
@@ -2079,13 +2079,28 @@ index 0000000..9fcbcc2
 +  "tool.details_link": "Details ›",
 +  "replay.readonly_badge": "Read-only replay · {{time}}",
 +  "replay.seg_live": "● Live",
-+  "replay.seg_replay": "⏮ Replay",
++  "replay.seg_replay": "Replay",
 +  "detail.title": "Details",
 +  "detail.close": "Close",
 +  "crumb.main": "Main agent",
 +  "child.loading": "Loading…",
 +  "summary.context": "Context {{used}} / {{limit}}",
 +  "summary.cost": "Cost ${{cost}}",
++  "replay.first": "First step",
++  "replay.prev": "Previous step (←)",
++  "replay.play": "Play from here (Space)",
++  "replay.stop_play": "Pause playback (Space)",
++  "replay.next": "Next step (→)",
++  "replay.speed": "Playback speed",
++  "log.open": "Open the full session log",
++  "log.tag": "Log · {{count}}",
++  "log.jump": "Jump to this step",
++  "log.close": "✕ Close (Esc)",
++  "log.filter.all": "All",
++  "log.filter.error": "Errors",
++  "log.filter.subagent": "Subagents",
++  "think.expand": "Expand",
++  "think.close": "✕ Close (Esc)",
 +} as const
 +
 +type Key = keyof typeof en
@@ -2272,13 +2287,28 @@ index 0000000..9fcbcc2
 +  "tool.details_link": "详情 ›",
 +  "replay.readonly_badge": "只读回放 · {{time}}",
 +  "replay.seg_live": "● 实时",
-+  "replay.seg_replay": "⏮ 回放",
++  "replay.seg_replay": "回放",
 +  "detail.title": "详情",
 +  "detail.close": "关闭",
 +  "crumb.main": "主 agent",
 +  "child.loading": "加载中",
 +  "summary.context": "上下文 {{used}} / {{limit}}",
 +  "summary.cost": "花费 ${{cost}}",
++  "replay.first": "回到第一步",
++  "replay.prev": "上一步（←）",
++  "replay.play": "从这里播放（空格）",
++  "replay.stop_play": "暂停播放（空格）",
++  "replay.next": "下一步（→）",
++  "replay.speed": "播放速度",
++  "log.open": "打开完整会话日志",
++  "log.tag": "日志 · {{count}}",
++  "log.jump": "跳到这一步",
++  "log.close": "✕ 关闭（Esc）",
++  "log.filter.all": "全部",
++  "log.filter.error": "出错",
++  "log.filter.subagent": "子代理",
++  "think.expand": "展开",
++  "think.close": "✕ 关闭（Esc）",
 +}
 +
 +const zht: Record<Key, string> = {
@@ -2461,13 +2491,28 @@ index 0000000..9fcbcc2
 +  "tool.details_link": "詳情 ›",
 +  "replay.readonly_badge": "唯讀回放 · {{time}}",
 +  "replay.seg_live": "● 即時",
-+  "replay.seg_replay": "⏮ 回放",
++  "replay.seg_replay": "回放",
 +  "detail.title": "詳情",
 +  "detail.close": "關閉",
 +  "crumb.main": "主 agent",
 +  "child.loading": "載入中",
 +  "summary.context": "上下文 {{used}} / {{limit}}",
 +  "summary.cost": "花費 ${{cost}}",
++  "replay.first": "回到第一步",
++  "replay.prev": "上一步（←）",
++  "replay.play": "從這裡播放（空白鍵）",
++  "replay.stop_play": "暫停播放（空白鍵）",
++  "replay.next": "下一步（→）",
++  "replay.speed": "播放速度",
++  "log.open": "開啟完整會話日誌",
++  "log.tag": "日誌 · {{count}}",
++  "log.jump": "跳到這一步",
++  "log.close": "✕ 關閉（Esc）",
++  "log.filter.all": "全部",
++  "log.filter.error": "出錯",
++  "log.filter.subagent": "子代理",
++  "think.expand": "展開",
++  "think.close": "✕ 關閉（Esc）",
 +}
 +
 +const dicts: Partial<Record<string, Record<Key, string>>> = { zh, zht }
@@ -2543,10 +2588,10 @@ index 0000000..53db1fa
 +}
 diff --git a/packages/app/src/components/session/session-runtime-mechanism-view.tsx b/packages/app/src/components/session/session-runtime-mechanism-view.tsx
 new file mode 100644
-index 0000000..fc55f6b
+index 0000000..d90f0d9
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-mechanism-view.tsx
-@@ -0,0 +1,852 @@
+@@ -0,0 +1,909 @@
 +// oco (patches/opencode/0019): fixed-frame agent tree mechanism view (Task 4d).
 +// Contract and rules: docs/superpowers/plans/2026-10-03-runtime-dashboard-m3.md (改版 2: 固定框架).
 +import { createEffect, createMemo, createSignal, For, Index, Match, onCleanup, Show, Switch, type Accessor, type JSX } from "solid-js"
@@ -2731,6 +2776,8 @@ index 0000000..fc55f6b
 +    return undefined
 +  })
 +
++  // Full reasoning overlay (M4): covers the tree box, not the grid, so lanes keep their geometry.
++  const [thinkOpen, setThinkOpen] = createSignal(false)
 +  let thinkBodyRef: HTMLDivElement | undefined
 +  createEffect(() => {
 +    const r = currentReasoning()
@@ -2866,6 +2913,46 @@ index 0000000..fc55f6b
 +              "align-content": "center",
 +            }}
 +          >
++            <Show when={thinkOpen() && currentReasoning()}>
++              {(r) => (
++                <div
++                  data-oco-runtime-think-panel
++                  role="dialog"
++                  aria-label={thinkState()}
++                  class="absolute inset-3 z-20 flex flex-col rounded-md px-4 py-3"
++                  style={{ background: "var(--rt-inset)", border: "1px dashed var(--rt-accent)" }}
++                  onKeyDown={(e) => {
++                    if (e.key === "Escape") {
++                      e.preventDefault()
++                      setThinkOpen(false)
++                    }
++                  }}
++                >
++                  <div class="flex items-center gap-2 shrink-0">
++                    <span class="text-12-bold font-bold" style={{ color: "var(--rt-accent)" }}>
++                      {thinkState()}
++                    </span>
++                    <button
++                      type="button"
++                      data-oco-runtime-think-close
++                      ref={(el) => queueMicrotask(() => el.focus())}
++                      class={`ml-auto px-2 rounded bg-transparent border-0 cursor-pointer text-12-regular font-mono ${FOCUS}`}
++                      style={{ color: "var(--rt-weak)" }}
++                      onClick={() => setThinkOpen(false)}
++                    >
++                      {t("think.close")}
++                    </button>
++                  </div>
++                  <div
++                    class="overflow-y-auto min-h-0 flex-1 mt-2 text-12-regular leading-relaxed whitespace-pre-wrap break-words"
++                    style={{ color: "var(--rt-text)" }}
++                  >
++                    {r().text}
++                  </div>
++                </div>
++              )}
++            </Show>
++
 +            {/* Row 1: Top Row (Main Node + Think Box) */}
 +            <div
 +              class="grid gap-6 min-h-0"
@@ -2923,7 +3010,7 @@ index 0000000..fc55f6b
 +              {/* Think Box */}
 +              <div
 +                data-oco-runtime-think
-+                class="rounded-md py-3 px-4 grid gap-1.5 min-w-0 min-h-0 overflow-hidden"
++                class="rounded-md py-2.5 px-4 grid gap-1 min-w-0 min-h-0 overflow-hidden"
 +                style={{
 +                  // Stacked layout has content-sized rows, so the think box carries its own fixed height.
 +                  height: props.isStack?.() ? "148px" : undefined,
@@ -2932,12 +3019,27 @@ index 0000000..fc55f6b
 +                  "grid-template-rows": "auto minmax(0, 1fr)",
 +                }}
 +              >
-+                <div class="text-12-bold tracking-wide shrink-0 font-bold" style={{ color: "var(--rt-accent)" }}>
-+                  {thinkState()}
++                <div class="flex items-center gap-2 shrink-0 min-w-0">
++                  <span class="text-11-regular tracking-wide font-bold ell" style={{ color: "var(--rt-accent)" }}>
++                    {thinkState()}
++                  </span>
++                  <Show when={currentReasoning()?.text}>
++                    <button
++                      type="button"
++                      data-oco-runtime-think-expand
++                      class={`ml-auto shrink-0 px-1 rounded bg-transparent border-0 cursor-pointer text-11-regular font-mono ${FOCUS}`}
++                      style={{ color: "var(--rt-faint)" }}
++                      aria-expanded={thinkOpen()}
++                      onClick={() => setThinkOpen(true)}
++                    >
++                      {t("think.expand")} ⤢
++                    </button>
++                  </Show>
 +                </div>
++                {/* M4: 11 px with a tighter line height fits about six lines where 12 px fitted four. */}
 +                <div
 +                  ref={thinkBodyRef}
-+                  class="overflow-y-auto min-h-0 text-12-regular leading-relaxed"
++                  class="overflow-y-auto min-h-0 text-11-regular leading-[1.4]"
 +                  style={{ color: "var(--rt-weak)" }}
 +                >
 +                  <Show
@@ -7180,6 +7282,132 @@ index 0000000..03f37bd
 +    expect(finalP95).toBeGreaterThan(0)
 +  })
 +})
+diff --git a/packages/app/src/components/session/session-runtime-playback.test.ts b/packages/app/src/components/session/session-runtime-playback.test.ts
+new file mode 100644
+index 0000000..a594049
+--- /dev/null
++++ b/packages/app/src/components/session/session-runtime-playback.test.ts
+@@ -0,0 +1,57 @@
++// oco (patches/opencode/0019): replay playback rules (M4 batch 1).
++import { describe, expect, test } from "bun:test"
++import { nextSpeed, playbackKey, playFrom, playNext, stepBy, stepInterval } from "./session-runtime-playback"
++
++describe("playback pace", () => {
++  test("fixed step interval with a floor", () => {
++    expect(stepInterval(1)).toBe(600)
++    expect(stepInterval(2)).toBe(300)
++    expect(stepInterval(4)).toBe(300)
++  })
++  test("speed cycles 1 → 2 → 4 → 1", () => {
++    expect(nextSpeed(1)).toBe(2)
++    expect(nextSpeed(2)).toBe(4)
++    expect(nextSpeed(4)).toBe(1)
++  })
++})
++
++describe("playback position", () => {
++  test("play starts from the first step when live or parked on the newest step", () => {
++    expect(playFrom(-1, 10)).toBe(0)
++    expect(playFrom(9, 10)).toBe(0)
++    expect(playFrom(4, 10)).toBe(4)
++    expect(playFrom(-1, 0)).toBeUndefined()
++  })
++  test("playback stops at the end", () => {
++    expect(playNext(3, 10)).toBe(4)
++    expect(playNext(9, 10)).toBeUndefined()
++  })
++  test("single steps clamp to the timeline; a step back from live lands before the newest step", () => {
++    expect(stepBy(-1, 10, -1)).toBe(8)
++    expect(stepBy(-1, 10, 1)).toBe(9)
++    expect(stepBy(9, 10, 1)).toBe(9)
++    expect(stepBy(0, 10, -1)).toBe(0)
++    expect(stepBy(-1, 0, 1)).toBeUndefined()
++  })
++})
++
++describe("playback keys", () => {
++  const div = { tagName: "DIV" }
++  test("space, left and right drive playback", () => {
++    expect(playbackKey({ key: " ", target: div })).toBe("toggle")
++    expect(playbackKey({ key: "ArrowLeft", target: div })).toBe("back")
++    expect(playbackKey({ key: "ArrowRight", target: div })).toBe("forward")
++    expect(playbackKey({ key: "Enter", target: div })).toBeUndefined()
++  })
++  test("modifiers and editable targets keep their own keys", () => {
++    expect(playbackKey({ key: " ", ctrlKey: true, target: div })).toBeUndefined()
++    expect(playbackKey({ key: "ArrowLeft", metaKey: true, target: div })).toBeUndefined()
++    expect(playbackKey({ key: "ArrowRight", altKey: true, target: div })).toBeUndefined()
++    for (const tagName of ["TEXTAREA", "SELECT", "INPUT"]) expect(playbackKey({ key: " ", target: { tagName } })).toBeUndefined()
++    expect(playbackKey({ key: " ", target: { tagName: "DIV", isContentEditable: true } })).toBeUndefined()
++  })
++  test("a focused button keeps space but not the arrows", () => {
++    expect(playbackKey({ key: " ", target: { tagName: "BUTTON" } })).toBeUndefined()
++    expect(playbackKey({ key: "ArrowLeft", target: { tagName: "BUTTON" } })).toBe("back")
++  })
++})
+diff --git a/packages/app/src/components/session/session-runtime-playback.ts b/packages/app/src/components/session/session-runtime-playback.ts
+new file mode 100644
+index 0000000..95daa7b
+--- /dev/null
++++ b/packages/app/src/components/session/session-runtime-playback.ts
+@@ -0,0 +1,57 @@
++// oco (patches/opencode/0019): replay playback rules for the runtime view (M4 batch 1). Pure so they unit-test
++// without a DOM; session-runtime.tsx owns the timer and the cursor signal.
++
++export const PLAYBACK_SPEEDS = [1, 2, 4] as const
++export type PlaybackSpeed = (typeof PLAYBACK_SPEEDS)[number]
++
++/** Base time per step. Steps advance at a fixed pace, not real time: gaps between steps can be minutes. */
++export const STEP_MS = 600
++/** Floor per tick: every step reassembles the root and each child model. */
++export const MIN_STEP_MS = 300
++
++export const stepInterval = (speed: PlaybackSpeed) => Math.max(MIN_STEP_MS, Math.round(STEP_MS / speed))
++
++export const nextSpeed = (speed: PlaybackSpeed): PlaybackSpeed =>
++  PLAYBACK_SPEEDS[(PLAYBACK_SPEEDS.indexOf(speed) + 1) % PLAYBACK_SPEEDS.length]
++
++/**
++ * Index playback starts from. Live (index -1) or parked on the last step restarts at the first step, so pressing
++ * play after "回放" (which parks on the newest step) actually plays something. Undefined when there is nothing to play.
++ */
++export function playFrom(index: number, total: number): number | undefined {
++  if (total <= 0) return undefined
++  if (index < 0 || index >= total - 1) return 0
++  return index
++}
++
++/** Next index during playback, or undefined at the end (playback stops and stays in replay). */
++export function playNext(index: number, total: number): number | undefined {
++  return index + 1 < total ? index + 1 : undefined
++}
++
++/** Single-step target, clamped to the timeline. From live (-1) a step back lands one before the newest step. */
++export function stepBy(index: number, total: number, delta: number): number | undefined {
++  if (total <= 0) return undefined
++  const from = index < 0 ? total - 1 : index
++  return Math.min(total - 1, Math.max(0, from + delta))
++}
++
++/** Space / ← / → drive playback unless the key belongs to an editable control or carries a modifier. */
++export function playbackKey(e: {
++  key: string
++  altKey?: boolean
++  ctrlKey?: boolean
++  metaKey?: boolean
++  target?: { tagName?: string; isContentEditable?: boolean; type?: string } | null
++}): "toggle" | "back" | "forward" | undefined {
++  if (e.altKey || e.ctrlKey || e.metaKey) return undefined
++  const tag = e.target?.tagName?.toUpperCase()
++  if (e.target?.isContentEditable || tag === "TEXTAREA" || tag === "SELECT") return undefined
++  // The timeline slider keeps its native arrow handling; other inputs keep everything.
++  if (tag === "INPUT") return undefined
++  if (tag === "BUTTON" && e.key === " ") return undefined
++  if (e.key === " ") return "toggle"
++  if (e.key === "ArrowLeft") return "back"
++  if (e.key === "ArrowRight") return "forward"
++  return undefined
++}
 diff --git a/packages/app/src/components/session/session-runtime-reasoning.test.ts b/packages/app/src/components/session/session-runtime-reasoning.test.ts
 new file mode 100644
 index 0000000..c9dd5d0
@@ -7422,10 +7650,10 @@ index 0000000..f6906fc
 +}
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
 new file mode 100644
-index 0000000..0a36cd0
+index 0000000..8d27845
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -0,0 +1,1124 @@
+@@ -0,0 +1,1345 @@
 +// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view.
 +// Fixed-frame Tokyo Night layout (改版 2: 固定框架 / Task 4d).
 +import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, untrack } from "solid-js"
@@ -7457,6 +7685,15 @@ index 0000000..0a36cd0
 +  type Stage,
 +} from "./session-runtime-model"
 +import { keyed } from "./session-runtime-keyed"
++import {
++  nextSpeed,
++  playbackKey,
++  playFrom,
++  playNext,
++  stepBy,
++  stepInterval,
++  type PlaybackSpeed,
++} from "./session-runtime-playback"
 +import {
 +  actionsVisible,
 +  cancelLabel,
@@ -7667,15 +7904,96 @@ index 0000000..0a36cd0
 +    })
 +  })
 +
++  // Playback (M4): a fixed-pace timer walks the cursor through the steps; dragging the slider mid-play continues
++  // from the new position because each tick reads the current step.
++  const [playing, setPlaying] = createSignal(false)
++  const [speed, setSpeed] = createSignal<PlaybackSpeed>(1)
++  let playTimer: ReturnType<typeof setInterval> | undefined
++  const stopPlay = () => {
++    if (playTimer !== undefined) clearInterval(playTimer)
++    playTimer = undefined
++    setPlaying(false)
++  }
++  onCleanup(stopPlay)
++
 +  const pause = () => {
++    stopPlay()
 +    setPausedAt(steps().length)
 +    setCursor(steps()[steps().length - 1] ?? Date.now())
 +  }
 +  const goLive = () => {
++    stopPlay()
 +    setCursor(undefined)
 +    setPausedAt(undefined)
 +  }
 +  const seek = (index: number) => setCursor(steps()[Math.min(Math.max(index, 0), steps().length - 1)])
++  // Leaving live keeps the "n new since you paused" count anchored to where the user left.
++  const enterReplayAt = (index: number) => {
++    if (cursor() === undefined) setPausedAt(steps().length)
++    seek(index)
++  }
++  const startTimer = () => {
++    if (playTimer !== undefined) clearInterval(playTimer)
++    playTimer = setInterval(() => {
++      const next = playNext(stepIndex(), steps().length)
++      if (next === undefined) return stopPlay()
++      seek(next)
++    }, stepInterval(speed()))
++    setPlaying(true)
++  }
++  const play = () => {
++    const from = playFrom(stepIndex(), steps().length)
++    if (from === undefined) return
++    enterReplayAt(from)
++    startTimer()
++  }
++  const togglePlay = () => (playing() ? stopPlay() : play())
++  const stepTo = (delta: number) => {
++    stopPlay()
++    const to = stepBy(stepIndex(), steps().length, delta)
++    if (to !== undefined) enterReplayAt(to)
++  }
++  const cycleSpeed = () => {
++    setSpeed(nextSpeed(speed()))
++    if (playing()) startTimer()
++  }
++  // Fixed buttons (not a <For> over a fresh array) so play/pause keeps keyboard focus across toggles.
++  const playbackButton = (id: string, glyph: () => string, label: () => string, run: () => void) => (
++    <button
++      type="button"
++      {...{ [`data-oco-runtime-replay-${id}`]: "" }}
++      class={`inline-flex items-center justify-center h-7 min-w-7 px-1.5 rounded border bg-transparent cursor-pointer text-12-regular font-mono disabled:opacity-40 disabled:cursor-default ${FOCUS}`}
++      style={{
++        "border-color": "var(--rt-line-strong)",
++        color: id === "play" && playing() ? "var(--rt-text)" : "var(--rt-weak)",
++      }}
++      title={label()}
++      aria-label={label()}
++      disabled={steps().length === 0}
++      onClick={run}
++    >
++      {glyph()}
++    </button>
++  )
++  const onPlaybackKey = (e: KeyboardEvent) => {
++    if (e.defaultPrevented) return
++    if (e.key === "Escape" && logOpen()) {
++      e.preventDefault()
++      closeLog()
++      return
++    }
++    const action = playbackKey({
++      key: e.key,
++      altKey: e.altKey,
++      ctrlKey: e.ctrlKey,
++      metaKey: e.metaKey,
++      target: e.target as HTMLElement | null,
++    })
++    if (!action) return
++    e.preventDefault()
++    if (action === "toggle") togglePlay()
++    else stepTo(action === "back" ? -1 : 1)
++  }
 +
 +  const isSubagent = (x: RuntimeTool) => x.child !== undefined
 +  const recentEvents = createMemo(() => model().events.slice(-60))
@@ -7945,15 +8263,18 @@ index 0000000..0a36cd0
 +            : "var(--rt-attn)"
 +
 +    return (
-+      <div
++      <button
++        type="button"
 +        data-oco-runtime-event={ev.kind}
-+        class="grid grid-cols-[80px_130px_minmax(0,1fr)] gap-4 px-2.5 py-0.5 rounded text-12-regular font-mono min-w-0"
++        class={`grid grid-cols-[100px_130px_minmax(0,1fr)] gap-4 px-2.5 py-0.5 rounded text-12-regular font-mono min-w-0 w-full text-left leading-[1.5] border-0 bg-transparent cursor-pointer hover:bg-[var(--rt-inset)] ${FOCUS}`}
 +        classList={{
 +          "bg-[color-mix(in_srgb,var(--rt-accent)_20%,var(--rt-inset))]": isCurrent(),
 +          "bg-[color-mix(in_srgb,var(--rt-err)_10%,transparent)]": isErrorOrAttention && !isCurrent(),
 +        }}
++        title={t("log.jump")}
++        onClick={() => seekToEvent(ev.at)}
 +      >
-+        <span class="shrink-0" style={{ color: "var(--rt-faint)" }}>
++        <span class="shrink-0 whitespace-nowrap" style={{ color: "var(--rt-faint)" }}>
 +          {new Date(ev.at).toLocaleTimeString(copy.intl())}
 +        </span>
 +        <span class="shrink-0 font-semibold ell" style={{ color: roleCol }}>
@@ -7962,8 +8283,37 @@ index 0000000..0a36cd0
 +        <span class="ell min-w-0" style={{ color: isErrorOrAttention ? "var(--rt-err)" : "var(--rt-text)" }}>
 +          {eventText(t, ev)}
 +        </span>
-+      </div>
++      </button>
 +    )
++  }
++
++  // Full log overlay (M4): a drawer over the lower part of the view, outside the grid so nothing reflows.
++  const [logOpen, setLogOpen] = createSignal(false)
++  const [logFilter, setLogFilter] = createSignal<"all" | "error" | "subagent">("all")
++  let logTagRef: HTMLButtonElement | undefined
++  let logPanelRef: HTMLDivElement | undefined
++  createEffect(() => {
++    if (logOpen()) queueMicrotask(() => logPanelRef?.focus())
++  })
++  const closeLog = () => {
++    setLogOpen(false)
++    logTagRef?.focus()
++  }
++  const logEvents = createMemo(() => {
++    const f = logFilter()
++    const all = model().events
++    const shown =
++      f === "all"
++        ? all
++        : all.filter((e) =>
++            f === "error" ? e.kind === "tool.error" || e.kind === "request.error" : e.role === "subagent",
++          )
++    return [...shown].reverse()
++  })
++  const seekToEvent = (at: number) => {
++    stopPlay()
++    const i = steps().indexOf(at)
++    if (i >= 0) enterReplayAt(i)
 +  }
 +
 +  return (
@@ -7972,7 +8322,10 @@ index 0000000..0a36cd0
 +      data-oco-runtime
 +      data-oco-runtime-mode={model().mode}
 +      data-oco-runtime-layout={isStack() ? "stack" : "wide"}
-+      class="relative flex flex-col h-full min-h-0 font-mono select-none overflow-hidden"
++      // Focusable by click (not by Tab) so Space / ← / → reach playback; the composer below is outside this element.
++      tabIndex={-1}
++      onKeyDown={onPlaybackKey}
++      class="relative flex flex-col h-full min-h-0 font-mono select-none overflow-hidden outline-none"
 +      style={{
 +        // Size container: the frame below scales its spacing with cqh (this view's own height).
 +        "container-type": "size",
@@ -8063,7 +8416,7 @@ index 0000000..0a36cd0
 +
 +          {/* Attention Chip */}
 +          <span
-+            class="px-3 py-0.5 rounded-full text-12-regular border"
++            class="px-3 py-0.5 rounded-full text-12-regular border whitespace-nowrap"
 +            style={{
 +              "border-color": attention().length ? "var(--rt-attn)" : "var(--rt-line-strong)",
 +              color: attention().length ? "var(--rt-attn)" : "var(--rt-weak)",
@@ -8113,23 +8466,12 @@ index 0000000..0a36cd0
 +          </Show>
 +
 +          {/* Right Permanent Timeline */}
-+          <div data-oco-runtime-replay class="ml-auto flex flex-wrap items-center justify-end gap-3.5 min-w-0 [&>*]:shrink-0">
-+            <Show when={model().mode === "replay"}>
-+              <span
-+                class="px-3 py-0.5 rounded text-12-regular whitespace-nowrap"
-+                style={{
-+                  background: "color-mix(in srgb, var(--rt-accent) 15%, var(--rt-panel))",
-+                  color: "var(--rt-accent)",
-+                }}
-+              >
-+                {t("replay.readonly_badge", { time: new Date(cursor() ?? Date.now()).toLocaleTimeString(copy.intl()) })}
-+              </span>
-+            </Show>
++          <div data-oco-runtime-replay class="ml-auto flex flex-nowrap items-center justify-end gap-2.5 min-w-0 shrink-0 [&>*]:shrink-0">
 +            <div class="flex border rounded overflow-hidden" style={{ "border-color": "var(--rt-line-strong)" }}>
 +              <button
 +                type="button"
 +                data-oco-runtime-replay-live
-+                class="bg-transparent border-0 px-4 py-1.5 cursor-pointer text-12-regular font-mono"
++                class="bg-transparent border-0 px-3 py-1.5 cursor-pointer text-12-regular font-mono whitespace-nowrap"
 +                style={{
 +                  background: model().mode === "live" ? "color-mix(in srgb, var(--rt-sub) 30%, var(--rt-inset))" : "transparent",
 +                  color: model().mode === "live" ? "var(--rt-text)" : "var(--rt-weak)",
@@ -8141,7 +8483,7 @@ index 0000000..0a36cd0
 +              <button
 +                type="button"
 +                data-oco-runtime-replay-pause
-+                class="bg-transparent border-0 px-4 py-1.5 cursor-pointer text-12-regular font-mono"
++                class="bg-transparent border-0 px-3 py-1.5 cursor-pointer text-12-regular font-mono whitespace-nowrap"
 +                style={{
 +                  background: model().mode === "replay" ? "color-mix(in srgb, var(--rt-sub) 30%, var(--rt-inset))" : "transparent",
 +                  color: model().mode === "replay" ? "var(--rt-text)" : "var(--rt-weak)",
@@ -8151,19 +8493,56 @@ index 0000000..0a36cd0
 +                {t("replay.seg_replay")}
 +              </button>
 +            </div>
++            <div data-oco-runtime-playback class="flex items-center gap-1">
++              {playbackButton("first", () => "⏮", () => t("replay.first"), () => (stopPlay(), enterReplayAt(0)))}
++              {playbackButton("prev", () => "◀", () => t("replay.prev"), () => stepTo(-1))}
++              {playbackButton(
++                "play",
++                () => (playing() ? "⏸" : "▶"),
++                () => (playing() ? t("replay.stop_play") : t("replay.play")),
++                togglePlay,
++              )}
++              {playbackButton("next", () => "▶|", () => t("replay.next"), () => stepTo(1))}
++            </div>
 +            <input
 +              type="range"
 +              min={0}
 +              max={Math.max(0, steps().length - 1)}
 +              value={cursor() === undefined ? Math.max(0, steps().length - 1) : Math.max(0, stepIndex())}
-+              class="w-36"
++              class="w-24"
 +              style={{ "accent-color": "var(--rt-sub)" }}
-+              onInput={(e) => seek(Number(e.currentTarget.value))}
++              onInput={(e) => enterReplayAt(Number(e.currentTarget.value))}
 +              aria-label={t("replay.step", { n: shownStep(), total: steps().length })}
 +            />
-+            <span class="text-12-regular whitespace-nowrap" style={{ color: "var(--rt-weak)" }}>
++            {/* M4: the replay time sits in the counter (the separate badge pushed the top bar onto two lines). */}
++            <span
++              class="text-12-regular whitespace-nowrap"
++              style={{ color: "var(--rt-weak)" }}
++              title={
++                model().mode === "replay"
++                  ? t("replay.readonly_badge", { time: new Date(cursor() ?? Date.now()).toLocaleTimeString(copy.intl()) })
++                  : undefined
++              }
++            >
 +              {shownStep()} / {steps().length}
++              <Show when={model().mode === "replay"}>
++                <span data-oco-runtime-replay-time style={{ color: "var(--rt-accent)" }}>
++                  {" · "}
++                  {new Date(cursor() ?? Date.now()).toLocaleTimeString(copy.intl())}
++                </span>
++              </Show>
 +            </span>
++            <button
++              type="button"
++              data-oco-runtime-replay-speed
++              class={`inline-flex items-center justify-center h-7 px-2 rounded border bg-transparent cursor-pointer text-12-regular font-mono ${FOCUS}`}
++              style={{ "border-color": "var(--rt-line-strong)", color: "var(--rt-weak)" }}
++              title={t("replay.speed")}
++              aria-label={t("replay.speed")}
++              onClick={cycleSpeed}
++            >
++              {speed()}×
++            </button>
 +            <Show when={newSince() > 0}>
 +              <span class="text-12-regular whitespace-nowrap" style={{ color: "var(--rt-weak)" }}>
 +                {t("replay.new", { count: newSince() })}
@@ -8471,17 +8850,27 @@ index 0000000..0a36cd0
 +        {/* Row 3: 会话日志 (Session Log) */}
 +        <div
 +          data-oco-runtime-events
-+          class="box rounded-lg p-4 flex flex-col gap-2.5 overflow-hidden shrink-0"
++          class="box rounded-lg px-3 py-2 flex flex-col overflow-hidden shrink-0 relative"
 +          style={{
 +            background: "var(--rt-panel)",
 +            border: "1px solid var(--rt-line)",
 +            height: isStack() ? "176px" : "clamp(88px, 13.5cqh, 176px)",
 +          }}
 +        >
-+          <h3 class="m-0 text-12-bold tracking-wider shrink-0 font-bold" style={{ color: "var(--rt-weak)" }}>
-+            {t("runtime.log_title")}
-+          </h3>
-+          <div class="overflow-y-auto flex flex-col gap-1 text-12-regular leading-relaxed min-h-0 flex-1">
++          {/* The title is a corner tag (not a row) so an 88 px box still shows about three events. */}
++          <button
++            type="button"
++            ref={logTagRef}
++            data-oco-runtime-log-open
++            class={`absolute right-2 top-1.5 z-[1] px-1.5 rounded bg-transparent border-0 cursor-pointer text-11-regular font-mono ${FOCUS}`}
++            style={{ color: "var(--rt-faint)", background: "var(--rt-panel)" }}
++            aria-label={t("log.open")}
++            title={t("log.open")}
++            onClick={() => setLogOpen(true)}
++          >
++            {t("log.tag", { count: model().events.length })} ⤢
++          </button>
++          <div class="overflow-y-auto flex flex-col text-12-regular min-h-0 flex-1 pr-24">
 +            <Show
 +              when={model().events.length > 0}
 +              fallback={<div class="text-12-regular" style={{ color: "var(--rt-weak)" }}>{t("events.none")}</div>}
@@ -8542,6 +8931,66 @@ index 0000000..0a36cd0
 +
 +        </div>
 +      </div>
++
++      <Show when={logOpen()}>
++        <div
++          ref={logPanelRef}
++          data-oco-runtime-log-panel
++          role="dialog"
++          aria-label={t("runtime.log_title")}
++          tabIndex={-1}
++          class="absolute left-4 right-4 bottom-3 z-20 flex flex-col rounded-lg px-4 py-3 outline-none"
++          style={{
++            top: "32%",
++            background: "var(--rt-panel)",
++            border: "1px solid var(--rt-line-strong)",
++          }}
++        >
++          <div class="flex items-center gap-2 shrink-0">
++            <h3 class="m-0 text-12-bold tracking-wider font-bold" style={{ color: "var(--rt-weak)" }}>
++              {t("runtime.log_title")} · {logEvents().length}
++            </h3>
++            <For each={["all", "error", "subagent"] as const}>
++              {(f) => (
++                <button
++                  type="button"
++                  data-oco-runtime-log-filter={f}
++                  aria-pressed={logFilter() === f}
++                  class={`px-2.5 py-0.5 rounded border cursor-pointer text-11-regular font-mono ${FOCUS}`}
++                  style={{
++                    "border-color": "var(--rt-line-strong)",
++                    background:
++                      logFilter() === f ? "color-mix(in srgb, var(--rt-sub) 25%, var(--rt-inset))" : "transparent",
++                    color: logFilter() === f ? "var(--rt-text)" : "var(--rt-weak)",
++                  }}
++                  onClick={() => setLogFilter(f)}
++                >
++                  {t(`log.filter.${f}`)}
++                </button>
++              )}
++            </For>
++            <button
++              type="button"
++              data-oco-runtime-log-close
++              class={`ml-auto px-2 rounded bg-transparent border-0 cursor-pointer text-12-regular font-mono ${FOCUS}`}
++              style={{ color: "var(--rt-weak)" }}
++              onClick={closeLog}
++            >
++              {t("log.close")}
++            </button>
++          </div>
++          <div class="overflow-y-auto flex flex-col min-h-0 flex-1 mt-2">
++            <Show
++              when={logEvents().length > 0}
++              fallback={<div class="text-12-regular" style={{ color: "var(--rt-weak)" }}>{t("events.none")}</div>}
++            >
++              <For each={logEvents()}>
++                {(ev) => eventRow(() => ev, () => cursor() !== undefined && ev.at === cursor())}
++              </For>
++            </Show>
++          </div>
++        </div>
++      </Show>
 +
 +      {/* Screen-reader mirror: run state + one focus sentence only */}
 +      <div class="sr-only" aria-live="polite" data-oco-runtime-live>

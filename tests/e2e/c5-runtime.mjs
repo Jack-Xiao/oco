@@ -42,6 +42,9 @@ const REQUIRED = [
   "focus-stable",
   "focus-on-change",
   "reasoning",
+  "think-expand",
+  "playback",
+  "log-overlay",
   "motion-on",
   "reduced-motion",
   "keyboard",
@@ -396,6 +399,76 @@ try {
       countUnderOrEqual,
       modeLive,
     },
+  )
+
+  // ---- M4: playback controls, compact log, full-log overlay ----
+  const modeOf = () => fA.locator("[data-oco-runtime]").getAttribute("data-oco-runtime-mode")
+  const stepOf = async () => {
+    const m = /(\d+) \/ (\d+)/.exec((await fA.locator("[data-oco-runtime-replay]").innerText().catch(() => "")) ?? "")
+    return m ? { n: Number(m[1]), total: Number(m[2]) } : { n: -1, total: -1 }
+  }
+  const pbTotal = (await stepOf()).total
+  await fA.locator("[data-oco-runtime-replay-play]").click()
+  const pbStartedReplay = await waitUntil(async () => (await modeOf()) === "replay", 3000, 50).then(() => true, () => false)
+  const pbFirst = (await stepOf()).n
+  const pbAdvanced = await waitUntil(async () => (await stepOf()).n >= Math.min(3, pbTotal), 4000, 100).then(() => true, () => false)
+  await fA.locator("[data-oco-runtime-replay-speed]").click()
+  const pbSpeed = ((await fA.locator("[data-oco-runtime-replay-speed]").innerText()) ?? "").trim()
+  // Pause if still playing (a short timeline may already have ended and stopped by itself).
+  if ((await fA.locator("[data-oco-runtime-replay-play]").getAttribute("aria-label"))?.match(/Pause|暂停|暫停/)) {
+    await fA.locator("[data-oco-runtime-replay-play]").click()
+  }
+  const pbHeldAt = (await stepOf()).n
+  await sleep(900)
+  const pbHeld = (await stepOf()).n === pbHeldAt
+  await fA.locator("[data-oco-runtime-replay-first]").click()
+  const pbAtFirst = (await stepOf()).n === 1
+  await fA.locator("[data-oco-runtime-replay-next]").click()
+  const pbNext = (await stepOf()).n === 2
+  await fA.locator("[data-oco-runtime-summary]").click()
+  await page.keyboard.press("ArrowLeft")
+  const pbKeyBack = await waitUntil(async () => (await stepOf()).n === 1, 2000, 50).then(() => true, () => false)
+  await fA.locator("[data-oco-runtime-replay-live]").click()
+  const pbBackLive = await waitUntil(async () => (await modeOf()) === "live", 3000, 50).then(() => true, () => false)
+  // Speed back to 1× for later checks.
+  while (((await fA.locator("[data-oco-runtime-replay-speed]").innerText()) ?? "").trim() !== "1×") {
+    await fA.locator("[data-oco-runtime-replay-speed]").click()
+  }
+  run.record(
+    "playback",
+    pbTotal >= 3 && pbStartedReplay && pbFirst <= 2 && pbAdvanced && pbSpeed === "2×" && pbHeld && pbAtFirst && pbNext && pbKeyBack && pbBackLive
+      ? "PASS"
+      : "FAIL",
+    { pbTotal, pbStartedReplay, pbFirst, pbAdvanced, pbSpeed, pbHeld, pbHeldAt, pbAtFirst, pbNext, pbKeyBack, pbBackLive },
+  )
+
+  const inlineRows = await count(fA, "[data-oco-runtime-events] [data-oco-runtime-event]")
+  const inlineVisibleRows = await fA.evaluate(() => {
+    const box = document.querySelector("[data-oco-runtime-events]")?.getBoundingClientRect()
+    if (!box) return 0
+    return [...document.querySelectorAll("[data-oco-runtime-events] [data-oco-runtime-event]")].filter((r) => {
+      const b = r.getBoundingClientRect()
+      return b.top >= box.top - 1 && b.bottom <= box.bottom + 1
+    }).length
+  })
+  await fA.locator("[data-oco-runtime-log-open]").click()
+  const ovVisible = await fA.locator("[data-oco-runtime-log-panel]").waitFor({ state: "visible", timeout: 3000 }).then(() => true, () => false)
+  const ovRows = await count(fA, "[data-oco-runtime-log-panel] [data-oco-runtime-event]")
+  await fA.locator('[data-oco-runtime-log-filter="error"]').click()
+  const ovErrPressed = (await fA.locator('[data-oco-runtime-log-filter="error"]').getAttribute("aria-pressed")) === "true"
+  const ovErrRows = await count(fA, "[data-oco-runtime-log-panel] [data-oco-runtime-event]")
+  await fA.locator('[data-oco-runtime-log-filter="all"]').click()
+  await page.keyboard.press("Escape")
+  const ovClosed = await fA.locator("[data-oco-runtime-log-panel]").waitFor({ state: "detached", timeout: 3000 }).then(() => true, () => false)
+  const rowCount = await count(fA, "[data-oco-runtime-events] [data-oco-runtime-event]")
+  await fA.locator("[data-oco-runtime-events] [data-oco-runtime-event]").nth(Math.min(1, rowCount - 1)).click()
+  const rowJumped = await waitUntil(async () => (await modeOf()) === "replay", 3000, 50).then(() => true, () => false)
+  await fA.locator("[data-oco-runtime-replay-live]").click()
+  await waitUntil(async () => (await modeOf()) === "live", 3000, 50).catch(() => {})
+  run.record(
+    "log-overlay",
+    inlineVisibleRows >= 2 && ovVisible && ovRows >= inlineRows && ovErrPressed && ovErrRows <= ovRows && ovClosed && rowJumped ? "PASS" : "FAIL",
+    { inlineRows, inlineVisibleRows, ovVisible, ovRows, ovErrPressed, ovErrRows, ovClosed, rowJumped },
   )
 
   // 7. back-to-chat
@@ -759,11 +832,25 @@ try {
   const reasonEl = fA.locator("[data-oco-runtime-reasoning-state]")
   const reasonStateFinal = await reasonEl.getAttribute("data-oco-runtime-reasoning-state")
   const thinkAfterDone = await thinkRect()
-  const thinkButtons = await count(fA, "[data-oco-runtime-think] button")
+  // M4: the only control in the think box is "Expand" (checked separately as think-expand).
+  const thinkButtons = await count(fA, "[data-oco-runtime-think] button:not([data-oco-runtime-think-expand])")
   const thinkStable = thinkWhileStreaming !== null && thinkWhileStreaming === thinkAfterDone
 
   const reasonPass = sawReasonStreaming && sawReasonDone && reasonStateFinal === "done" && thinkStable && thinkButtons === 0
 
+  const expandBtn = fA.locator("[data-oco-runtime-think-expand]")
+  const expandShown = await expandBtn.isVisible().catch(() => false)
+  if (expandShown) await expandBtn.click()
+  const thinkPanelOpen = await fA.locator("[data-oco-runtime-think-panel]").waitFor({ state: "visible", timeout: 3000 }).then(() => true, () => false)
+  const thinkPanelText = ((await fA.locator("[data-oco-runtime-think-panel]").innerText().catch(() => "")) ?? "").length
+  await page.keyboard.press("Escape")
+  const thinkPanelClosed = await fA.locator("[data-oco-runtime-think-panel]").waitFor({ state: "detached", timeout: 3000 }).then(() => true, () => false)
+  const thinkAfterExpand = await thinkRect()
+  run.record(
+    "think-expand",
+    expandShown && thinkPanelOpen && thinkPanelText > 0 && thinkPanelClosed && thinkAfterExpand === thinkAfterDone ? "PASS" : "FAIL",
+    { expandShown, thinkPanelOpen, thinkPanelText, thinkPanelClosed, thinkAfterExpand, thinkAfterDone },
+  )
   run.record(
     "reasoning",
     reasonPass ? "PASS" : "FAIL",

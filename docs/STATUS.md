@@ -2,6 +2,13 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 运行视图 M4 第一批（补丁 0019 追加，2026-10-04；在分支 `claude/nostalgic-gates-ef74ca`，未提交，未部署）
+
+- 回放播放控制（⏮ ◀ ▶/⏸ ▶|、1×/2×/4×、空格 / ← →）、会话日志精简 + 全文浮层（筛选、点行跳转）、思考框 11 px + 全文浮层。顶栏在 1100 px 下保持一行。
+- 验证：vendor 类型 0 错误；session 单测 226/0；test:browser 48/0；根 typecheck PASS、unit 190/0；E2E（mock）c5-runtime en 37/37、zh 37/37，c4-trajectory 17/17；0019 重新生成（25 个文件，+9283/−5），干净重放 19/19、重放树单测 226/0。详见 [验收](evidence/runtime-m4-batch1.md)。
+- NOT RUN：真实模型、Remote、亮色主题。本机 VS Code 未更新 vsix。
+- 第二批（回环航道 + 终端 HUD 配色）未开工；后台任务映射已查清：[调查](evidence/runtime-m4-bg-task-mapping.md)。
+
 ## 运行视图 M3（补丁 0019 追加，2026-10-04；在分支 `claude/nostalgic-gates-ef74ca`，未合入 main，未推送，未部署 Remote）
 
 - 运行视图改为**固定框架**（用户两轮反馈后定稿；评审稿 [v3](superpowers/specs/runtime-m3-fixed-layout-mockup.html)）：
