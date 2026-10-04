@@ -458,3 +458,21 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 交付：回放播放控制、日志精简与浮层、思考框字号与全文浮层；E2E 新增 `playback`、`log-overlay`、`think-expand`。
 - 委派：Grok 402 额度耗尽；Gemini（Antigravity）资格检查两次 EOF。映射调查、单测、E2E 由主线程接手，记录在 `docs/evidence/delegation-runtime-m4.md`。
 - 结果：session 单测 226/0，E2E en/zh 37/37，c4 17/17，干净重放 19/19。未提交，未部署。
+
+## 2026-10-04 运行视图 M4 第二批（补丁 0019 追加）
+
+- 交付：回环航道（`session-runtime-loop.ts` 纯函数 + `session-runtime-loop-view.tsx`，实际像素布局）、模型后台映射（category 回退、`backgroundTaskId`、取回判定、通知解析、本轮起点）、HUD 配色、左栏去名册、状态栏着色与窄宽度隐藏；E2E 夹具 `tests/e2e/lib/bg-task-plugin.mjs` + mock 后台提示词；c5-runtime 改为航道断言。
+- 用户中途改版：航道作为主视觉、主代理框两行、对齐示意页。另一会话「运行视图 M4 优化」在同一 worktree 按用户反馈继续改了航道（第 N 轮、沿航道移动、取回判定补充），双方用消息协调了文件归属。
+- 委派：Gemini 单测 49 条（发现 2 个缺陷已修）；Gemini 夹具任务产物可用但工具返回 ERROR；Gemini E2E 任务约 2 h 后转 Grok，Grok 402，E2E 由主线程接手。记录在 `docs/evidence/delegation-runtime-m4.md`。
+- E2E 中修复两处视图缺陷：探针无法键盘聚焦（SVG `tabindex`）、子会话提前结束时生命周期停在 unknown（补一次拉取）。
+- 结果：session 单测 270/0，E2E en/zh 37/37，干净重放 19/19，vsix 已装本机。未提交，未部署。
+
+
+### 2026-10-04 运行视图 M4 第三批（用户实测反馈）
+
+- 早轮失败子代理不再留在航道；航道动画回放中按状态运行、空闲慢呼吸；左栏改为会话概况（需你处理 / 本轮目标 / 任务清单 / 本会话）。
+- 委派：Grok 402、Gemini 两次失败（ERROR、loadCodeAssist EOF），实现与 E2E 由主线程接手，记录见 evidence/runtime-m4-batch3.md。
+- 结果：session 单测 276/0，E2E en/zh 37/37，干净重放 19/19，vsix 已装本机。未提交，未部署。
+- 追加：左栏「本会话」移入状态栏（时长 / 上下文 / 花费 / 用量），航道动画不再在任务间停顿或变速。单测 276/0，E2E en/zh 37/37，重放 19/19，vsix 已装本机；gcp-workstation 已删除，Remote 未部署。
+- 第三轮反馈：去掉运行页的「需你处理」和停止按钮，拒绝/忽略不再记为失败，状态词与重复信息整理，图例文字恢复。单测 263/0，E2E en/zh 37/37，重放 19/19，vsix 已装本机；E2E 改写委派 Gemini（最终返回 ERROR，改写已落盘），主线程做最终验收。
+- 第四轮：交接卡片默认显示最新子代理 / 最近工具调用；去掉「当时」「（推断）」。单测 266/0，E2E en/zh 37/37，vsix 已装本机。

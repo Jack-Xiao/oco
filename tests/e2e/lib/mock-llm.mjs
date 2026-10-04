@@ -37,12 +37,23 @@ export function plan(body) {
       return { lines: [answer] }
     }
     if (/bash tool/i.test(prompt)) return { lines: [out.split("\n").filter(Boolean).at(-1) ?? out] }
+    if (/without retrieving/i.test(prompt)) return { lines: ["OK"] }
+    if (/in the background with/i.test(prompt)) {
+      const bgId = /background_task_id:\s*(\S+)/i.exec(out)?.[1]
+      if (bgId && tools.has("background_output")) {
+        return { tool: "background_output", args: { task_id: bgId } }
+      }
+    }
     return { lines: ["OK"] }
   }
 
   let m
   if (tools.has("bash") && (m = /use the bash tool to run(?: exactly)?(?: this command)?:\s*(.+?)(?:\s\.(?:\s|$)| and tell|$)/im.exec(prompt)))
     return { tool: "bash", args: { command: m[1], description: "Run the requested command" } }
+  if (tools.has("task") && (m = /use the task tool in the background without retrieving with the (\S+) agent:\s*(.+)$/im.exec(prompt)))
+    return { tool: "task", args: { subagent_type: m[1], description: m[2].trim(), prompt: "Reply with exactly this line and nothing else: subagent-ok", run_in_background: true } }
+  if (tools.has("task") && (m = /use the task tool in the background with the (\S+) agent:\s*(.+)$/im.exec(prompt)))
+    return { tool: "task", args: { subagent_type: m[1], description: m[2].trim(), prompt: "Reply with exactly this line and nothing else: subagent-ok", run_in_background: true } }
   // "Use the task tool 3 times in parallel: a; b; c" starts several subagents from one assistant message.
   // Each child streams 30 numbered sentences (~4.5 s) so the runtime view shows them running side by side.
   if (tools.has("task") && (m = /use the task tool (\d+) times in parallel:\s*(.+)$/im.exec(prompt))) {
@@ -76,6 +87,12 @@ export function plan(body) {
     }
   if (tools.has("write") && (m = /Use the write tool to create the file (\S+) containing the single line (\S+?)\./i.exec(prompt)))
     return { tool: "write", args: { filePath: abs(m[1]), content: m[2] + "\n" } }
+  // "Use the todowrite tool to plan: a; b; c" → the first item done, the second in progress, the rest pending.
+  if (tools.has("todowrite") && (m = /Use the todowrite tool to plan: (.+)$/im.exec(prompt))) {
+    const items = m[1].split(";").map((s) => s.trim()).filter(Boolean)
+    const status = (i) => (i === 0 ? "completed" : i === 1 ? "in_progress" : "pending")
+    return { tool: "todowrite", args: { todos: items.map((content, i) => ({ id: String(i + 1), content, status: status(i), priority: "medium" })) } }
+  }
   if (tools.has("read") && (m = /Use the read tool on (\S+) with offset (\d+) and limit (\d+)/i.exec(prompt)))
     return { tool: "read", args: { filePath: abs(m[1]), offset: Number(m[2]), limit: Number(m[3]) } }
   if ((m = /Reply with exactly this line and nothing else:\s*(.+)$/im.exec(prompt))) {

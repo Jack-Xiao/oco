@@ -14,7 +14,7 @@ mkdir -p "$T/xdg/config/opencode"
 MODEL_MODE="${OCO_E2E_MODEL:-real}"
 if [ "$MODEL_MODE" = "mock" ]; then
   # OCO_MOCK_LLM_PORT (default 4518) lets a second isolated server run beside another one.
-  sed "s#127.0.0.1:4518/#127.0.0.1:${OCO_MOCK_LLM_PORT:-4518}/#" "$ROOT/scripts/test-server.mock.opencode.json" > "$T/xdg/config/opencode/opencode.json"
+  sed -e "s#127.0.0.1:4518/#127.0.0.1:${OCO_MOCK_LLM_PORT:-4518}/#" -e "s#__OCO_ROOT__#$ROOT#" "$ROOT/scripts/test-server.mock.opencode.json" > "$T/xdg/config/opencode/opencode.json"
 else
   cp "$ROOT/scripts/test-server.opencode.json" "$T/xdg/config/opencode/opencode.json"
 fi

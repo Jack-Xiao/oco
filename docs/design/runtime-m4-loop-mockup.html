@@ -127,7 +127,7 @@ svg{display:block;width:100%;height:100%}
   <span><b class="mn" style="font-weight:600">Sisyphus</b> · deepseek-flash</span>
   <span id="sum1"></span><span id="sum2"></span><span>输入/输出 182k / 9.4k</span>
   <span style="margin-left:auto;display:flex;gap:16px">
-    <span><span class="sb">◯</span> 执行</span><span><span class="at">◯</span> 待取回 / 等授权</span><span><span class="er">◯</span> 失败</span><span><span class="ok">●</span> 已吸收</span><span>··● 流向</span>
+    <span><span class="sb">◯</span> 执行</span><span><span class="at">◯</span> 待取回 / 等授权</span><span><span class="er">◯</span> 失败</span><span><span class="ok">●</span> 已取回</span><span>··● 流向</span>
   </span>
 </div>
 
@@ -221,7 +221,7 @@ else move(g,to.xy,0)}
 else if(anim&&!was){requestAnimationFrame(()=>requestAnimationFrame(()=>move(g,to.xy,to.show)))}
 else move(g,to.xy,to.show)}
 $('clusters').innerHTML='';CL.forEach(c=>{const g=el('g',{transform:`translate(${c.xy[0]},${c.xy[1]})`},$('clusters'));el('circle',{r:13,fill:'#24283b',stroke:'#4a5272','stroke-dasharray':'2 2'},g);const t=el('text',{'text-anchor':'middle',y:4,fill:'#c0caf5','font-size':11},g);t.textContent='+'+c.n});
-const abs=Object.keys(S.st).filter(k=>S.st[k].c===3);$('absN').textContent='已吸收 '+abs.length;$('ticks').innerHTML='';
+const abs=Object.keys(S.st).filter(k=>S.st[k].c===3);$('absN').textContent='已取回 '+abs.length;$('ticks').innerHTML='';
 abs.forEach((id,i)=>{const a=(-90+i*22)*Math.PI/180;const d=el('circle',{cx:96+64*Math.cos(a),cy:170+64*Math.sin(a),r:3.4,fill:'#9ece6a',style:'cursor:pointer'},$('ticks'));const tt=el('title',{},d);tt.textContent=T[id][0]+' · 已取回';d.onclick=()=>pick(id)});
 const cnt=c=>Object.values(S.st).filter(s=>s.c===c).length;
 $('qN').textContent=cnt(0)||'';$('zoneN').textContent=cnt(1)||'';$('dN').textContent=cnt(2)||'';
@@ -244,7 +244,7 @@ function bindRows(root){root.querySelectorAll('.lr').forEach(r=>r.onclick=()=>{s
 function pick(id,flash){sel=id;Object.keys(nodes).forEach(k=>style(k,SN[cur].st[k]));if(flash&&nodes[id]){const f=el('circle',{class:'flash',r:14,fill:'none',stroke:col(SN[cur].st[id]),'stroke-width':2},nodes[id]);setTimeout(()=>f.remove(),1900)}detail()}
 function detail(){if(!sel){return}const t=T[sel],s=SN[cur].st[sel];
 if(!s){$('det').innerHTML=`<span>${t[0]}</span> <span class="wk">· ${t[1]}</span>　<span class="ft">此时尚未派发（回放到第 ${cur+1} 步）</span>`;return}
-const st=['待执行','执行中','已完成 · 停靠泊位待取回','已取回 · 吸收进主代理'][s.c]+(s.f==='err'?' · 失败':s.f==='ask'?' · 等待授权':'');
+const st=['待执行','执行中','已完成 · 停靠泊位待取回','已取回 · 主代理已读入结果'][s.c]+(s.f==='err'?' · 失败':s.f==='ask'?' · 等待授权':'');
 const ret=s.c>=2||s.f==='err'?t[3]:'尚未返回';
 $('det').innerHTML=`<div><span>${t[0]}</span> <span class="wk">· ${t[1]} · ${st}</span> <span class="ft" style="float:right;cursor:pointer">打开子会话 ›　展开全文 ⤢</span></div><div class="ell"><span class="pp">↓ 交给它</span>　${t[2]}　　<span class="ok">↑ 返回</span>　${ret}</div>`}
 function ovRender(){const S=SN[cur];const L=S.L.filter(x=>ovF==='all'||(ovF==='err'?(x.tx.startsWith('✕')||x.tx.startsWith('!')):x.who!=='Sisyphus'));$('ovN').textContent=L.length;$('ovL').innerHTML=L.map((x,i)=>row(x,x.i===cur&&!live)).join('');bindRows($('ovL'))}
