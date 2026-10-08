@@ -16,9 +16,13 @@ ACTUAL="$(git -C "$V" rev-parse HEAD)"
 if [ -n "$(git -C "$V" status --porcelain -- packages)" ]; then
   echo "vendor/opencode has local changes; resetting to pinned SHA before applying patches"
   git -C "$V" checkout --quiet -- packages
+  # Files that patches create are untracked; drop them too or the replay fails with "already exists".
+  git -C "$V" clean -fdq -- packages
 fi
 for p in "$ROOT"/patches/opencode/*.patch; do
-  git -C "$V" apply --check "$p" && git -C "$V" apply "$p" && echo "applied $(basename "$p")"
+  git -C "$V" apply --check "$p" || { echo "patch does not apply: $(basename "$p")" >&2; exit 1; }
+  git -C "$V" apply "$p"
+  echo "applied $(basename "$p")"
 done
 (cd "$V" && bun install --frozen-lockfile)
 (cd "$ROOT" && bun install --frozen-lockfile)

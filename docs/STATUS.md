@@ -2,6 +2,11 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 会话标题行恢复上下文用量（补丁 0019，已提交到 main，2026-10-08；`oco-0.0.4-24fb5da.vsix` 已装本机 VS Code，需 Reload Window）
+
+- 嵌入模式会话标题行（对话、轨迹两个视图）显示上下文圆环和百分比；≥75% 黄、≥90% 红；模型无上限时显示「—」。替代补丁 0017 隐藏圆环的做法。`scripts/setup.sh` 修复重放：清掉补丁新建的未跟踪文件，补丁失败即退出。
+- 检查：补丁 0001–0019 在固定 SHA 上重放两次通过；`tsgo -b` PASS；build PASS；E2E（mock）`c4-trajectory` 17/17。NOT RUN：配色阈值与「—」、窄面板、真实模型、Remote。详情 [c5-context-usage](evidence/c5-context-usage.md)。
+
 ## 会话侧栏改为 webview（[Jack-Xiao/oco#3](https://github.com/Jack-Xiao/oco/pull/3)，2026-10-08 合并为 `9b32950`；已装本机 VS Code）
 
 - 侧栏 oco 只有一个 webview 视图 "Sessions"（id 仍为 `oco.sessions`），外观接近 Claude Code：时间右对齐、圆角选中、30px 行高。搜索改为标题栏按钮触发；Connection 视图删除。决定见 [ADR-008](adr/008-webview-sessions-list.md)，过程与委派见 [spike 记录](evidence/sessions-webview-spike-2026-10-08.md)。

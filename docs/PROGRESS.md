@@ -415,3 +415,10 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 
 - 用户确认 spike 效果后：webview 接管 `oco.sessions`，原生 TreeView、实验开关、viewsWelcome 和 Connection 视图删除；搜索改为标题栏按钮触发；状态文字抽成纯函数 `listMessage()`。决定见 [ADR-008](adr/008-webview-sessions-list.md)。
 - E2E 适配：Grok 改写 `p1b-sidebar`（只改代码），主线程运行并修正 2 处；Gemini 两次健康检查超时。结果见 [spike 记录](evidence/sessions-webview-spike-2026-10-08.md)。
+
+## 2026-10-08 会话标题行恢复上下文用量（补丁 0019）
+
+- 起因：用户反馈插件没有常驻的上下文占比提示，容易超限；补丁 0017 曾在嵌入模式隐藏圆环。
+- 补丁 0019：`SessionContextUsage` 新增 `label` 模式（圆环 + 百分比、阈值配色、无上限显示「—」），挂到 `SessionHeaderEmbeddedActions`。`c4-trajectory` 断言改为要求圆环与标签存在。
+- `scripts/setup.sh`：重放时 `git clean` 补丁新建的文件，补丁失败即退出（之前 0007、0012–0014 在重跑时被静默跳过）。
+- 委派：Gemini 健康检查 10 秒超时；Grok 健康检查通过，但沙箱启动不了 VS Code，主线程运行 E2E 17/17。见 [c5-context-usage](evidence/c5-context-usage.md)。

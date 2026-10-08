@@ -149,7 +149,8 @@ try {
   // 1. Open the trajectory from the header toggle.
   const toTrajectory = fA.locator('[data-oco-view="trajectory"]')
   await toTrajectory.waitFor({ state: "visible", timeout: 30000 })
-  // Patch 0017: no titlebar row; the review-panel toggle sits beside the 对话/轨迹 toggle, and the context ring is gone.
+  // Patch 0017: no titlebar row; the review-panel toggle sits beside the 对话/轨迹 toggle.
+  // Patch 0019: the context ring is back in that row with a visible percentage ("—" when the model has no limit).
   const headerRow = (f) =>
     f.evaluate(() => {
       const row = document.querySelector('[data-oco-view="trajectory"]')?.closest(".shrink-0.flex")?.parentElement
@@ -157,17 +158,21 @@ try {
       return {
         titlebarHidden: !bar || bar.getBoundingClientRect().height === 0,
         reviewInRow: !!row?.querySelector('[aria-controls="review-panel"]'),
-        ringInRow: !!row?.querySelector('[data-component^="progress-circle"]'),
+        ringInRow: !!row?.querySelector('[data-oco-context-usage] [data-component^="progress-circle"]'),
+        usageLabel: row?.querySelector("[data-oco-context-usage]")?.textContent?.trim() ?? null,
       }
     })
   const chatHeader = await headerRow(fA)
-  run.record("header-actions-chat", chatHeader.titlebarHidden && chatHeader.reviewInRow && !chatHeader.ringInRow ? "PASS" : "FAIL", chatHeader)
+  run.record("header-actions-chat", chatHeader.titlebarHidden && chatHeader.reviewInRow && chatHeader.ringInRow && /^(\d+%|—)$/.test(chatHeader.usageLabel ?? "") ? "PASS" : "FAIL", chatHeader)
   await toTrajectory.click()
   const opened = await fA.locator("[data-oco-trajectory]").waitFor({ state: "visible", timeout: 10000 }).then(() => true, () => false)
   const composerVisible = await fA.locator('[data-component="prompt-input"]').isVisible()
   await runShot(page, run, "1-trajectory")
-  const trajHeader = await fA.evaluate(() => !!document.querySelector('[data-oco-trajectory] [aria-controls="review-panel"]'))
-  run.record("header-actions-trajectory", trajHeader ? "PASS" : "FAIL", { reviewInHeader: trajHeader })
+  const trajHeader = await fA.evaluate(() => ({
+    reviewInHeader: !!document.querySelector('[data-oco-trajectory] [aria-controls="review-panel"]'),
+    usageInHeader: !!document.querySelector("[data-oco-trajectory] [data-oco-context-usage]"),
+  }))
+  run.record("header-actions-trajectory", trajHeader.reviewInHeader && trajHeader.usageInHeader ? "PASS" : "FAIL", trajHeader)
   run.record("toggle-open", opened && composerVisible && (await count(fA, '[data-component="user-message"]')) === 0 ? "PASS" : "FAIL", { opened, composerVisible })
 
   const copy = {
