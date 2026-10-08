@@ -2,11 +2,40 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 运行视图 M5：环形循环 + 环心卡片 + 三个坞（2026-10-08；进行中，实现停在第 1 波，按用户要求中止）
+
+- 设计已定：用户否决纯文字版，改用动画对比稿 [runtime-m5-animated-mockup](superpowers/specs/runtime-m5-animated-mockup.html)（用第 1–4 轮真实数据，可播放；模板 [runtime-m5-mockup.src.html](superpowers/specs/runtime-m5-mockup.src.html)，关键帧 [runtime-m5-keyframes.json](superpowers/specs/runtime-m5-keyframes.json)）。
+  - 用户决定：没有子代理的轮次收起子代理区；问题原文放环心卡片，选项放「你」区；计划做成环心卡片的「计划」类型，计数旁加小标，没有计划时不显示；等待或空闲超过 10 秒在进度条上折叠；英文直接显示；卡片居中；收起后连线不悬空；子代理可点开看详情，在视图内进入子会话。
+  - 主线程裁定 D18：已忽略、已拒绝不用红色，沿用 M4 第三轮反馈。
+- 计划：[2026-10-08-runtime-m5-ring](superpowers/plans/2026-10-08-runtime-m5-ring.md)，15 个任务、5 个波次，文件归属互斥；委派与验收记录见 [runtime-m5 证据](evidence/runtime-m5.md)。
+- 实现进度（Claude Workflow `wf_9af8ca23-fa8`，已停止）：
+  - 已完成（各任务自报验收通过）：
+    - Task 1：i18n 键与格式化；
+    - Task 2：契约 `session-runtime-ring-types.ts`、样稿源入库、test-browser JSX 预载、性能基线；
+    - Task 3：模型小改与子会话同步；
+    - Task 4：真实数据夹具与样稿判定结果；
+    - Task 6：子代理纯函数，第 1 波审查查出违反 D18，已修；
+    - Task 7：时间轴折叠与播放。
+  - 波次审查：第 0 波审查通过；第 1 波前半的复审没跑完，NOT RUN。
+  - 未开始：Task 5 环纯模块、8 几何、9 环视图、10 子代理视图、11 关键帧测试、12 集成并删除 M4 视图、13 E2E 重写、14 look-local、15 补丁 / 构建 / 安装。
+- 代码位置：
+  - M5 半成品在 vendor 开发树（相对 `deb241e` 44 个文件），整份导出为 [`patches/wip/runtime-m5-wip.patch`](../patches/wip/runtime-m5-wip.patch)。它包含 0019 的内容，`setup.sh` 不会应用它。
+  - `patches/opencode/0019` 仍是 10-07 已验证的 D1–D4 版。
+  - 本机 VS Code 装的仍是 `oco-0.0.4-98dda03`（M4 + D1–D4）。
+- 检查：全量 typecheck、单测、构建、E2E 均 NOT RUN（M5 未集成）。主线程对 Task 4 夹具的脱敏抽查还没做；只扫了半成品补丁，没有本机路径。
+
+## 运行视图：本机查看 + 真实数据修正（2026-10-07；同分支，2026-10-08 随 M5 进度一起本地提交）
+
+- gcp-workstation 已不存在，改为本机查看：`bash scripts/package-vsix.sh && bash scripts/install-local.sh`（新增，安装后核对哈希）→ Reload Window → 打开一个文件夹并选择信任（managed 模式需要文件夹且不在受限模式下启动；没开文件夹时侧栏提示 Open Folder，用户确认保持此行为）。本机此前“不能用”只因窗口没开文件夹。`scripts/look-local.mjs`（新增）在隔离 VS Code 中对本机真实会话做只读回放截图。
+- 真实会话（`~/Ai-Project`，8 个子会话）暴露并修正 4 处 mock 测不到的问题：回放中交接卡耗时用墙钟（显示 `3738m`，现随游标并有小时档）；状态栏 Context 不随回放变化；思考框第二行被截半、出现滚动条（现两整行 + 省略号；流式时跟最新两行——仅代码审查，未实测）；左栏标题与「Read-only in replay」按词折成两列。
+- 验证：session 单测 270/0，vendor 类型 0 错误；0019 重新生成 31 个文件，干净重放 19/19；根 typecheck PASS、unit 190/0；`oco-0.0.4-98dda03.vsix` 已装本机（哈希一致）；真实数据回放复测 4 项均修正。E2E（mock）c5-runtime en 37/37、zh 37/37（`runs/20261007-034656-c5-runtime-a187`、`runs/20261007-034907-c5-runtime-5cc1`）。见 [本批证据](evidence/runtime-local-2026-10-07.md)。
+- 另：停掉两个 10-01 遗留、各占约 99% CPU 的 `test-server.sh` 进程（4517/4527，用户同意）。NOT RUN：真实模型新对话（只做了回放，流式思考跟随未实测）、Remote（无主机）、亮色主题。
+
 ## 运行视图 M4 第三批（用户反馈修正，2026-10-04；同分支，未提交，未部署）
 
 - 早轮失败子代理不再留在航道（修复切回「运行」后出现「阻塞 13」）；航道动画回放中也按状态运行，空闲慢呼吸；左栏改为会话概况：需你处理（有才显示）/ 本轮目标 / 任务清单 / 本会话统计。
 - 验证：类型 0 错误；session 单测 276/0；look-runtime 动画与概况通过；0019 重新生成 31 文件、干净重放 19/19；E2E（mock）c5-runtime en 37/37、zh 37/37；vsix 已装本机。详见 [验收](evidence/runtime-m4-batch3.md)。
-- 追加（第二轮反馈）：左栏去掉「本会话」，状态栏改为 时长 / 上下文 / 花费 / 用量，子代理段只在有任务时出现，去掉请求数与工具数；航道动画匀速，步与步之间不再停顿，空闲 2 s 后原地暂停并慢呼吸。类型 0 错误、单测 276/0、E2E en/zh 37/37（用量前缀改动后未重跑）、0019 重放 19/19；vsix 已装本机。gcp-workstation 已不存在，Remote 部署 BLOCKED。
+- 追加（第二轮反馈）：左栏去掉「本会话」，状态栏改为 时长 / 上下文 / 花费 / 用量，子代理段只在有任务时出现，去掉请求数与工具数；航道动画匀速，步与步之间不再停顿，空闲 2 s 后原地暂停并慢呼吸。类型 0 错误、单测 276/0、E2E en/zh 37/37（用量前缀改动后未重跑；2026-10-07 已在其上重跑 37/37）、0019 重放 19/19；vsix 已装本机。gcp-workstation 已不存在，Remote 部署 BLOCKED。
 - 第三轮反馈：删「需你处理」面板与运行页停止按钮（改用输入区原生 dock / 停止）；拒绝授权、忽略提问不再算失败；状态词改为 运行中 / 等你回应 / 待命 等，回放写「当时…」，去「（推断）」与「N 个会话」；build 不再三处重复；图例文字恢复；「执行计划」单行。单测 263/0，E2E en/zh 37/37（最终构建），重放 19/19，vsix 已装本机。
 - 第四轮：交接卡片未选中时显示最新子代理，没有子代理时显示主代理最近一次工具调用；去掉「当时」与「最后事件（推断）」。单测 266/0，E2E en/zh 37/37（文案改动前），重放 19/19，vsix 已装本机。
 - 文案：子代理最后一步「已吸收」改为「已取回」（英文 Absorbed → Collected），与「待取回」成对。已提交 97251ac；单测 266/0，干净重放 19/19（与 vendor 一致），E2E（mock）c5-runtime en 37/37、zh 37/37（runs/20261004-153652-c5-runtime-b6d0、20261004-153855-c5-runtime-3bbe），vsix `oco-0.0.4-97251ac` 已装本机。未部署；NOT RUN：真实模型、Remote。

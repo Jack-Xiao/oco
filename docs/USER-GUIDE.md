@@ -5,7 +5,7 @@ oco 是 OpenCode 的 VS Code 客户端：会话列表、对话界面都来自 Op
 ## 安装
 
 1. 打包：`bash scripts/setup.sh`（首次或上游缺失时），然后 `bash scripts/package-vsix.sh`，得到 `oco-<版本>-<提交>.vsix`。
-2. 本机：命令面板 “Extensions: Install from VSIX...” 选这个文件。
+2. 本机：`bash scripts/install-local.sh`（找不到 `code` 命令时用 VS Code 自带的命令行，安装后核对哈希），或命令面板 “Extensions: Install from VSIX...” 选这个文件；之后执行 “Developer: Reload Window”。managed 模式需要先打开一个文件夹，否则侧栏提示 Open Folder。
 3. Remote-SSH：扩展要装在远端。首次在 Remote 窗口的终端里 `code --install-extension /tmp/<文件>.vsix --force`；之后同版本更新用 `bash scripts/deploy-remote.sh <ssh 主机>`，再在 Remote 窗口执行 “Developer: Reload Window”。细节见 [remote-install](remote-install.md)。
 
 支持范围：macOS 桌面 VS Code（本机或 Remote-SSH 到 Linux），OpenCode v1（已验证 1.18.33）。Windows、VS Code Web 未验证。

@@ -53,6 +53,16 @@
 - [完成 2026-10-03，未推送] M2 见 [验收](evidence/runtime-m2-verification.md)。已部署 gcp-workstation（分支未合入 main，未推送）。待做：Remote 窗口 Reload 后实测（NOT RUN）。待用户决定：是否推送，M3 是否启动。遗留覆盖缺口：组件内自动同步计数按轮重置、同步失败重试、缓存驱逐后重新拉取，均无组件级测试或 E2E。
 - [完成 2026-10-04，未推送] M3：运行视图固定框架（两次用户改版后定稿），见 [STATUS](STATUS.md) 与 [E2E](evidence/runtime-m3-e2e.md)。待用户决定：是否推送 / 合入 main、是否部署 gcp-workstation。遗留：嵌套 ≥2 层 E2E（需 mock 产生孙会话）、真实模型长会话性能、Remote 实测均 NOT RUN；终审 12 条已全部处理（见 `docs/evidence/runtime-m3-review.md`、`runtime-m3-e2e.md`）。
 - [第二批完成 2026-10-04，未提交] M4：第一批（回放播放、日志、思考框）+ 第二批（回环航道、HUD 配色、左栏去名册），见 [第二批验收](evidence/runtime-m4-batch2.md)、[第一批验收](evidence/runtime-m4-batch1.md)。vsix 已装本机；gcp-workstation 未部署。待用户决定：本地提交 / 推送 / 合入 main / 部署。遗留：真实模型（含真实后台通知）、Remote、亮色主题、嵌套 ≥2 层均 NOT RUN；矮航道下作业区标签隐藏；轨迹页「子智能体」标签改用同一子代理蓝（小补丁，未做）。
+- [2026-10-07，2026-10-08 已本地提交] 本机查看替代 gcp-workstation：`install-local.sh` + `look-local.mjs`，真实数据修正 4 处（见 [证据](evidence/runtime-local-2026-10-07.md)）。待用户：在本机 VS Code Reload 后打开文件夹实看并给反馈；是否提交 / 合入 main。遗留：真实模型新对话下的实时动画（只做了回放）、矮航道作业区标签隐藏、轨迹页「子智能体」标签配色。
+- [2026-10-08，进行中，已中止] M5 环形运行视图：按 [计划](superpowers/plans/2026-10-08-runtime-m5-ring.md) 实现，Task 1/2/3/4/6/7 已完成，进度见 [STATUS](STATUS.md) 与 [证据](evidence/runtime-m5.md)。下一步按顺序：
+  1. 确认 vendor 开发树里的半成品还在（`git -C vendor/opencode status`）。如果开发树被 `setup.sh` 重置，先应用 0001–0018，再应用 `patches/wip/runtime-m5-wip.patch`，不要再叠加 0019。
+  2. 补跑第 1 波前半的复审（Task 3/4/6/7），并做 Task 4 夹具的脱敏抽查（`git diff --stat` 加随机 5 条消息）。
+  3. Task 5、8 → 第 2 波 Task 9/10/11/13（只写）/14 → Task 12 集成 → `bun run build` 加 E2E（c5-runtime en/zh、c4-trajectory）→ Task 15：0019 重新生成并干净重放 19/19、`verify:brief`、打包、`install-local`、`look-local` 跑 14 个关键帧，最后更新文档。
+     - 原工作流脚本可作模板：`~/.claude/projects/-Users-xiaojiang-Ai-Project-oco--claude-worktrees-nostalgic-gates-ef74ca/3b0488f0-4c94-4af3-8b69-b347253b3064/workflows/scripts/runtime-m5-implement-wf_9af8ca23-fa8.js`。去掉已完成的波次再跑。
+     - 新会话不能续跑原 run。
+  4. 收尾时一并处理：在 STATUS 记下 `snapshotAt` 的 token / 花费泄漏（M5 不再读它）；和另一分支未跟踪的 `0019-oco-embedded-context-usage.patch` 的补丁编号冲突，合并前再定。
+  5. 待用户决定：是否推送、是否合入 main（本分支只做本地提交）。
+- [2026-10-07，已被动画版取代] 「此刻」改版对比稿：[runtime-m5-now-mockup](superpowers/specs/runtime-m5-now-mockup.html)（真实会话 21:08 / 21:10 三个时刻；单文件，内嵌现状截图）。要点：顶部一句「此刻 + 起因」（规则拼句，不调模型）、本轮无子代理时航道收成一行并让位「本轮经过」、只放本轮相关、一套编号两种时长。用户定稿后再写计划实现；只改布局与叙述，不动航道动画与回放控件。
 - 向集成人单独提：真实“断连”需要宿主新增消息（改桥契约），v1 不做。
 
 ## 执行约束

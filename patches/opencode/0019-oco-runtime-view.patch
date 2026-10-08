@@ -1759,7 +1759,7 @@ index 0000000..fa82f1a
 +})
 diff --git a/packages/app/src/components/session/session-runtime-i18n.ts b/packages/app/src/components/session/session-runtime-i18n.ts
 new file mode 100644
-index 0000000..99f6c9f
+index 0000000..b7439c0
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-i18n.ts
 @@ -0,0 +1,744 @@
@@ -2564,10 +2564,10 @@ index 0000000..53db1fa
 +}
 diff --git a/packages/app/src/components/session/session-runtime-loop-view.tsx b/packages/app/src/components/session/session-runtime-loop-view.tsx
 new file mode 100644
-index 0000000..6459a91
+index 0000000..6118b2c
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-loop-view.tsx
-@@ -0,0 +1,964 @@
+@@ -0,0 +1,960 @@
 +// oco (patches/opencode/0019): loop lane — subagents as probes travelling dispatch → work → dock → core (M4 batch 2).
 +// Contract and rules: docs/design/runtime-m4.md (sections 4–8); geometry follows docs/design/runtime-m4-loop-mockup.html.
 +import {
@@ -2583,7 +2583,7 @@ index 0000000..6459a91
 +  type Accessor,
 +} from "solid-js"
 +import type { RuntimeText } from "./session-runtime-i18n"
-+import { LOOP_CAPACITY, layoutLoop, type Loop, type LoopZone, type Probe } from "./session-runtime-loop"
++import { LOOP_CAPACITY, formatElapsed, layoutLoop, type Loop, type LoopZone, type Probe } from "./session-runtime-loop"
 +import type { RuntimeTool } from "./session-runtime-model"
 +import { FOCUS } from "./session-runtime-actions"
 +
@@ -2807,10 +2807,6 @@ index 0000000..6459a91
 +
 +// Quiet time before the lane and core stop moving (bridges the gap between one step and the next).
 +const IDLE_MS = 2000
-+const duration = (ms: number) => {
-+  const s = Math.max(0, Math.round(ms / 1000))
-+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`
-+}
 +
 +export type RuntimeLoopProps = {
 +  loop: Accessor<Loop>
@@ -3391,7 +3387,7 @@ index 0000000..6459a91
 +                      · {toolStateText(x())}
 +                    </span>
 +                    <span class="ml-auto shrink-0" style={{ color: "var(--rt-faint)" }}>
-+                      {x().start !== undefined ? duration((x().end ?? props.now()) - x().start!) : ""}
++                      {x().start !== undefined ? formatElapsed(x().start!, x().end, props.now()) : ""}
 +                    </span>
 +                  </div>
 +                  <div class="flex items-center gap-4 min-w-0 text-12-regular">
@@ -3473,7 +3469,7 @@ index 0000000..6459a91
 +                <span class="shrink-0" style={{ color: "var(--rt-faint)" }}>
 +                  {[
 +                    p().childTools !== undefined ? t("handoff.tools", { n: p().childTools! }) : "",
-+                    p().start !== undefined ? duration((p().end ?? props.now()) - p().start!) : "",
++                    p().start !== undefined ? formatElapsed(p().start!, p().end, props.now()) : "",
 +                  ]
 +                    .filter(Boolean)
 +                    .join(" · ")}
@@ -3534,16 +3530,20 @@ index 0000000..6459a91
 +}
 diff --git a/packages/app/src/components/session/session-runtime-loop.test.ts b/packages/app/src/components/session/session-runtime-loop.test.ts
 new file mode 100644
-index 0000000..a93d963
+index 0000000..fe53194
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-loop.test.ts
-@@ -0,0 +1,956 @@
+@@ -0,0 +1,1019 @@
 +// oco (patches/opencode/0019): unit tests for loop lane pure projection (M4 batch 2).
 +import { describe, expect, test } from "bun:test"
 +import {
++  elapsedClock,
++  formatDuration,
++  formatElapsed,
 +  layoutLoop,
 +  LOOP_CAPACITY,
 +  loopOf,
++  messagesForContext,
 +  orderZone,
 +  probeStageOf,
 +  type LoopCore,
@@ -3553,6 +3553,8 @@ index 0000000..a93d963
 +} from "./session-runtime-loop"
 +import type { RuntimeModel, RuntimeRequest, RuntimeTool } from "./session-runtime-model"
 +import { loopGeometry, routeOf, tripOf } from "./session-runtime-loop-view"
++import type { Message } from "@opencode-ai/sdk/v2/client"
++import { getSessionContext } from "./session-context-metrics"
 +
 +function createMockModel(overrides: Partial<RuntimeModel> = {}): RuntimeModel {
 +  return {
@@ -4494,12 +4496,69 @@ index 0000000..a93d963
 +    expect(loopOf(createMockModel({ tools: [] })).lastTool).toBeUndefined()
 +  })
 +})
++
++describe("handoff duration and replay context (D1 D2)", () => {
++  const start = 1_000_000
++  const cursor = start + 90_000
++  const wall = start + 62 * 3_600_000 + 18 * 60_000 + 40_000
++
++  test("replay clock is the cursor; live clock is the wall", () => {
++    expect(elapsedClock("replay", cursor, wall)).toBe(cursor)
++    expect(elapsedClock("live", cursor, wall)).toBe(wall)
++    expect(elapsedClock("replay", undefined, wall)).toBe(wall)
++  })
++
++  test("an open handoff in replay measures to the cursor, not the wall", () => {
++    expect(formatElapsed(start, undefined, elapsedClock("replay", cursor, wall))).toBe("1m 30s")
++    expect(formatElapsed(start, undefined, elapsedClock("live", cursor, wall))).toBe("62h 18m")
++    expect(formatElapsed(start, start + 5_000, wall)).toBe("5s")
++  })
++
++  test("formatDuration adds an hour tier and does not roll into days", () => {
++    expect(formatDuration(0)).toBe("0s")
++    expect(formatDuration(59_000)).toBe("59s")
++    expect(formatDuration(61_000)).toBe("1m 1s")
++    expect(formatDuration(59 * 60_000 + 59_000)).toBe("59m 59s")
++    expect(formatDuration(60 * 60_000)).toBe("1h 0m")
++    expect(formatDuration(62 * 3_600_000 + 18 * 60_000 + 40_000)).toBe("62h 18m")
++    expect(formatDuration(26 * 3_600_000 + 5 * 60_000)).toBe("26h 5m")
++    expect(formatDuration(-5_000)).toBe("0s")
++  })
++
++  test("replay context uses the cursor snapshot; live keeps the full list", () => {
++    const assistant = (id: string, input: number) =>
++      ({
++        id,
++        role: "assistant",
++        providerID: "openai",
++        modelID: "gpt",
++        tokens: { input, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
++        time: { created: 1 },
++      }) as unknown as Message
++    const early = assistant("a1", 110)
++    const later = assistant("a2", 66_000)
++    const all = [early, later]
++    const snapshot = [early]
++    const providers = [{ id: "openai", models: { gpt: { limit: { context: 1_000_000 } } } }]
++
++    expect(messagesForContext("replay", all, snapshot)).toBe(snapshot)
++    expect(messagesForContext("live", all, snapshot)).toBe(all)
++    expect(messagesForContext("replay", all, undefined)).toEqual([])
++
++    const replay = getSessionContext(messagesForContext("replay", all, snapshot), providers)
++    const live = getSessionContext(messagesForContext("live", all, snapshot), providers)
++    expect(replay?.message.id).toBe("a1")
++    expect(replay?.total).toBe(110)
++    expect(live?.message.id).toBe("a2")
++    expect(live?.total).toBe(66_000)
++  })
++})
 diff --git a/packages/app/src/components/session/session-runtime-loop.ts b/packages/app/src/components/session/session-runtime-loop.ts
 new file mode 100644
-index 0000000..9d6f9b9
+index 0000000..6089cfd
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-loop.ts
-@@ -0,0 +1,249 @@
+@@ -0,0 +1,273 @@
 +// oco (patches/opencode/0019): pure projection from RuntimeModel to the loop lane (M4 batch 2).
 +// Contract and rules: docs/design/runtime-m4.md (sections 4–8, 「第二批实施计划」).
 +import type { RuntimeModel, RuntimeTool } from "./session-runtime-model"
@@ -4749,12 +4808,36 @@ index 0000000..9d6f9b9
 +    ...(lastTool ? { lastTool } : {}),
 +  }
 +}
++
++/** Under 60s: `Ns`. Under 60m: `Nm Ss`. At or over 60m: `Nh Nm`, including past 24h (`62h 18m`). */
++export function formatDuration(ms: number): string {
++  const s = Math.max(0, Math.round(ms / 1000))
++  if (s < 60) return `${s}s`
++  const minutes = Math.floor(s / 60)
++  if (minutes < 60) return `${minutes}m ${s % 60}s`
++  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`
++}
++
++/** Elapsed label for one handoff row. An open row (no `end`) runs until `now`. */
++export function formatElapsed(start: number, end: number | undefined, now: number): string {
++  return formatDuration((end ?? now) - start)
++}
++
++/** Replay durations follow the cursor. Live follows the wall clock. A missing cursor falls back to the wall. */
++export function elapsedClock(mode: "live" | "replay", cursor: number | undefined, wall: number): number {
++  return mode === "replay" ? (cursor ?? wall) : wall
++}
++
++/** Status-bar context messages: the cursor snapshot while replaying, otherwise the full list. */
++export function messagesForContext<T>(mode: "live" | "replay", all: T[], snapshot: T[] | undefined): T[] {
++  return mode === "replay" ? (snapshot ?? []) : all
++}
 diff --git a/packages/app/src/components/session/session-runtime-mechanism-view.tsx b/packages/app/src/components/session/session-runtime-mechanism-view.tsx
 new file mode 100644
-index 0000000..0b07d28
+index 0000000..c4fafbf
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-mechanism-view.tsx
-@@ -0,0 +1,611 @@
+@@ -0,0 +1,632 @@
 +// oco (patches/opencode/0019): fixed-frame agent tree mechanism view (Task 4d).
 +// Contract and rules: docs/superpowers/plans/2026-10-03-runtime-dashboard-m3.md (改版 2: 固定框架).
 +import { createEffect, createMemo, createSignal, For, Show, type Accessor, type JSX } from "solid-js"
@@ -4966,10 +5049,12 @@ index 0000000..0b07d28
 +
 +  // Full reasoning overlay (M4): covers the tree box, not the grid, so lanes keep their geometry.
 +  const [thinkOpen, setThinkOpen] = createSignal(false)
++  // While streaming, the 32px window follows the newest lines. overflow:hidden still accepts scrollTop.
 +  let thinkBodyRef: HTMLDivElement | undefined
 +  createEffect(() => {
 +    const r = currentReasoning()
 +    if (r?.streaming && thinkBodyRef) {
++      void r.text
 +      thinkBodyRef.scrollTop = thinkBodyRef.scrollHeight
 +    }
 +  })
@@ -5182,16 +5267,18 @@ index 0000000..0b07d28
 +              {/* Think Box */}
 +              <div
 +                data-oco-runtime-think
-+                class="rounded-sm py-1.5 px-3 grid gap-0.5 min-w-0 min-h-0 overflow-hidden"
++                class="rounded-sm flex flex-col min-w-0 overflow-hidden"
 +                style={{
 +                  // Same two-line height as the main node, in every layout; the full text opens over the lane.
 +                  height: "64px",
++                  "box-sizing": "border-box",
++                  padding: "6px 12px",
++                  gap: "2px",
 +                  background: "var(--rt-inset)",
 +                  border: "1px dashed var(--rt-accent)",
-+                  "grid-template-rows": "auto minmax(0, 1fr)",
 +                }}
 +              >
-+                <div class="flex items-center gap-2 shrink-0 min-w-0">
++                <div class="flex items-center gap-2 shrink-0 min-w-0 overflow-hidden" style={{ height: "16px", "line-height": "16px" }}>
 +                  <span class="text-11-regular tracking-wide font-bold ell" style={{ color: "var(--rt-accent)" }}>
 +                    {thinkState()}
 +                  </span>
@@ -5208,24 +5295,41 @@ index 0000000..0b07d28
 +                    </button>
 +                  </Show>
 +                </div>
-+                {/* M4: 11 px with a tighter line height fits about six lines where 12 px fitted four. */}
++                {/* Two whole lines. Streaming shows the last two (scrolled, no clamp); settled text clamps with an ellipsis. */}
 +                <div
 +                  ref={thinkBodyRef}
-+                  class="overflow-y-auto min-h-0 text-11-regular leading-[1.4]"
-+                  style={{ color: "var(--rt-weak)" }}
++                  class="shrink-0 overflow-hidden text-11-regular break-words"
++                  style={
++                    currentReasoning()?.streaming
++                      ? {
++                          height: "32px",
++                          color: "var(--rt-weak)",
++                          "line-height": "16px",
++                          overflow: "hidden",
++                          "white-space": "pre-wrap",
++                        }
++                      : {
++                          height: "32px",
++                          color: "var(--rt-weak)",
++                          "line-height": "16px",
++                          display: "-webkit-box",
++                          "-webkit-box-orient": "vertical",
++                          "-webkit-line-clamp": "2",
++                          "white-space": "pre-wrap",
++                        }
++                  }
 +                >
 +                  <Show
 +                    when={currentReasoning()}
-+                    fallback={<p class="m-0 italic" style={{ color: "var(--rt-faint)" }}>{t("think.none")}</p>}
++                    fallback={<span class="italic" style={{ color: "var(--rt-faint)" }}>{t("think.none")}</span>}
 +                  >
 +                    {(r) => (
-+                      <div
++                      <span
 +                        data-oco-runtime-reasoning={r().partID}
 +                        data-oco-runtime-reasoning-state={r().streaming ? "streaming" : "done"}
-+                        class="whitespace-pre-wrap break-words"
 +                      >
 +                        {r().text || (r().streaming ? t("reasoning.replay.running") : "")}
-+                      </div>
++                      </span>
 +                    )}
 +                  </Show>
 +                </div>
@@ -10112,10 +10216,10 @@ index 0000000..f6906fc
 +}
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
 new file mode 100644
-index 0000000..1339d55
+index 0000000..12e49b5
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -0,0 +1,1195 @@
+@@ -0,0 +1,1197 @@
 +// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view.
 +// Fixed-frame Tokyo Night layout (改版 2: 固定框架 / Task 4d).
 +import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, untrack } from "solid-js"
@@ -10160,7 +10264,7 @@ index 0000000..1339d55
 +import { createChildSync } from "./session-runtime-child-sync"
 +import { reasoningAt, reasoningOf, type RuntimeReasoning } from "./session-runtime-reasoning"
 +import { RuntimeMechanism } from "./session-runtime-mechanism-view"
-+import { loopOf } from "./session-runtime-loop"
++import { elapsedClock, loopOf, messagesForContext } from "./session-runtime-loop"
 +import { goalOf, todoCounts, todosOf } from "./session-runtime-overview"
 +
 +const emptyMessages: Message[] = []
@@ -10555,7 +10659,9 @@ index 0000000..1339d55
 +  }
 +
 +  const summaryContext = () => {
-+    const c = getSessionContext(messages(), [...providers.all().values()])
++    const c = getSessionContext(messagesForContext(model().mode, messages(), view()?.messages), [
++      ...providers.all().values(),
++    ])
 +    if (!c || c.limit === undefined) return ""
 +    return t("summary.context", {
 +      used: count(c.total ?? 0, copy.intl()),
@@ -11008,14 +11114,14 @@ index 0000000..1339d55
 +              style={{ background: "var(--rt-panel)", border: "1px solid var(--rt-line)", order: 3, "flex-shrink": 0 }}
 +            >
 +              <h3
-+                class="m-0 text-12-bold tracking-wider font-bold flex items-center justify-between gap-2"
++                class="m-0 min-w-0 text-12-bold tracking-wider font-bold flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5"
 +                style={{ color: "var(--rt-weak)" }}
 +              >
-+                <span>{t("overview.goal")}</span>
++                <span class="whitespace-nowrap shrink-0">{t("overview.goal")}</span>
 +                <Show when={model().mode === "replay"}>
 +                  <span
 +                    data-oco-runtime-replay-note
-+                    class="text-11-regular font-normal"
++                    class="text-11-regular font-normal whitespace-nowrap shrink-0"
 +                    style={{ color: "var(--rt-faint)" }}
 +                  >
 +                    {t("attention.readonly")}
@@ -11113,7 +11219,7 @@ index 0000000..1339d55
 +              toggleChild={toggleChild}
 +              assembleChild={assembleChild}
 +              onOpenSession={props.onOpenSession}
-+              now={wall}
++              now={() => elapsedClock(model().mode, cursor(), wall())}
 +              onView={props.onView}
 +              enteredStack={enteredStack}
 +              onEnterChild={onEnterChild}
