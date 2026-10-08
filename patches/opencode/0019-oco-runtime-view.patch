@@ -17914,15 +17914,15 @@ index 0000000..3008106
 +}
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
 new file mode 100644
-index 0000000..d26c3eb
+index 0000000..09a59ce
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -0,0 +1,1164 @@
+@@ -0,0 +1,1214 @@
 +// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view.
 +// M5 (2026-10-08): top bar / stage (ring) / caption line / status bar. The ring index is rebuilt at most every
 +// RING.REBUILD_MS from a dirty-session set (D11); the frame at the visual t is recomputed per animation frame into a
 +// reconciled store, so the views only touch the DOM that changed.
-+import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show, untrack } from "solid-js"
++import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show, untrack } from "solid-js"
 +import type { Accessor, JSX } from "solid-js"
 +import { createStore, reconcile, unwrap } from "solid-js/store"
 +import type { Message, Part } from "@opencode-ai/sdk/v2/client"
@@ -18166,6 +18166,7 @@ index 0000000..d26c3eb
 +  }
 +  let prevIndex: RingIndex | undefined
 +  let skew = 0
++  let indexed = 0 // messages of the shown session the current index was built from (history state below)
 +  const index = createMemo<RingIndex>(() => {
 +    version()
 +    const sid = shownID()
@@ -18176,6 +18177,7 @@ index 0000000..d26c3eb
 +        { sessionID: sid, messages: src.messages, parts: src.parts, steps: src.steps, child: sourceOf, dirty: reuse ? new Set(dirty) : undefined },
 +        reuse,
 +      )
++      indexed = src.messages.length
 +      dirty.clear()
 +      lastBuild = performance.now()
 +      prevIndex = next
@@ -18183,11 +18185,50 @@ index 0000000..d26c3eb
 +      return next
 +    })
 +  })
-+  // A first open (or an old session fetched over HTTP) can arrive without any SDK event.
++  // A first open (or an old session fetched over HTTP) can arrive without any SDK event. Tracks the length, not just
++  // the list: an older page (history.loadMore) is reconciled into the same store array, which leaves the list
++  // reference unchanged and fires no SDK event.
 +  createEffect(() => {
 +    const sid = shownID()
-+    void sync().data.message[sid]
++    void sync().data.message[sid]?.length
 +    markDirty(sid)
++  })
++
++  // A reopened session starts with only its newest page of messages, but the ring and the replay read the whole
++  // session. Same walk as the trajectory view (session-trajectory.tsx): page back until the history is complete.
++  // Differences: wait for the first sync (this view can mount before it lands), stop when the session changes,
++  // wait out a load that is already running (loadMore would return at once), swallow errors (best effort).
++  // Subagent sessions go through childSync below, not through this walk (their first page is the whole session
++  // unless a child has more than 20 messages).
++  // walk: "loading" while paging, "done" once the server reports no older page, "partial" when the walk gave up.
++  const [walk, setWalk] = createSignal<"loading" | "done" | "partial">("loading")
++  createEffect(
++    on(
++      () => props.sessionID,
++      async (id) => {
++        const history = sync().session.history
++        setWalk("loading")
++        try {
++          await sync().session.sync(id)
++          for (let i = 0; i < 100 && id === props.sessionID && history.more(id); i++) {
++            if (history.loading(id)) await new Promise((resolve) => setTimeout(resolve, 100))
++            else await history.loadMore(id)
++          }
++          if (id === props.sessionID) setWalk(history.more(id) ? "partial" : "done")
++        } catch {
++          // the replay shows what is loaded; the next mount tries again
++          if (id === props.sessionID) setWalk("partial")
++        }
++      },
++    ),
++  )
++  // data-oco-runtime-history: "done" only once the ring index was rebuilt from every loaded message (the rebuild is
++  // throttled, so the walk ending is not enough). Inside a subagent the walk state of the root is shown as is.
++  const historyState = createMemo(() => {
++    index()
++    const w = walk()
++    if (w !== "done" || shownID() !== props.sessionID) return w
++    return untrack(() => sync().data.message[props.sessionID]?.length ?? 0) === indexed ? "done" : "loading"
 +  })
 +
 +  // ---------- clock (D11): visual t; live = wall + skew, replay = playhead ----------
@@ -18614,6 +18655,14 @@ index 0000000..d26c3eb
 +        },
 +        facts,
 +        frame: () => untrack(computeFrame),
++        history: () =>
++          untrack(() => ({
++            state: historyState(),
++            more: sync().session.history.more(props.sessionID),
++            loading: sync().session.history.loading(props.sessionID),
++            stored: sync().data.message[props.sessionID]?.length ?? 0,
++            indexed,
++          })),
 +      },
 +    })
 +    // Step parts too (D21): eventSessionID reads properties.part.sessionID, so a step-start / step-finish update the
@@ -18676,6 +18725,7 @@ index 0000000..d26c3eb
 +    <div
 +      ref={containerRef}
 +      data-oco-runtime
++      data-oco-runtime-history={historyState()}
 +      data-oco-runtime-mode={mode()}
 +      data-oco-runtime-layout={layout()}
 +      // Focusable by click (not by Tab) so Space / ← / → reach playback; the composer below is outside this element.

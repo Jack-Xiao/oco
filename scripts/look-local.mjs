@@ -27,6 +27,10 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ORACLE_DEFAULT = path.resolve(HERE, "../vendor/opencode/packages/app/src/components/session/fixtures/runtime-m5-oracle.json")
 const T_TOL = 50 // ms: facts().t may differ from the requested instant by this much (fold rounding), not more
 const FAR_FUTURE = 8.64e15 // seek() clamps into [t0, t1]; this reads t1 back without touching any range input
+// The runtime view pages the session history in after it opens; the range floor t0 keeps dropping meanwhile.
+const HISTORY_POLL_MS = 500 // read history() / t0 this often
+const HISTORY_QUIET_MS = 2000 // without history(): t0 counts as final once it has not dropped for this long
+const HISTORY_CAP_MS = 20000 // give up waiting after this long (report.history.capped)
 
 // ---------- pure helpers (exported so they can be checked without launching anything) ----------
 export function parseNumberList(raw, fallback) {
@@ -275,6 +279,59 @@ async function main() {
     report.live = { facts: await hook("facts").catch((e) => ({ error: String(e.message ?? e).slice(0, 200) })), ...(await measure()), fit: firstFit }
     if (SHOTS) await page.screenshot({ path: path.join(OUT, "live.png") })
 
+    // Wait for the history to be fully loaded before the first real seek. A build with the history() hook says so
+    // itself (data-oco-runtime-history): "done" once every page is in and the ring index was rebuilt from all of it.
+    // Older builds: poll the range floor t0 through seek(0) + facts().t until it has not dropped for HISTORY_QUIET_MS.
+    // Either way give up after HISTORY_CAP_MS (report.history.capped).
+    const history = { waitedMs: 0, polls: 0, t0: null, stable: false, capped: false, via: "t0", hook: null }
+    {
+      const started = Date.now()
+      const signal = await f
+        .evaluate(() => typeof document.querySelector("[data-oco-runtime]")?.__ocoRuntime?.history === "function")
+        .catch(() => false)
+      if (signal) history.via = "history()"
+      let best
+      let lastDrop = started
+      for (;;) {
+        const at = Date.now()
+        if (signal) {
+          const h = await hook("history").catch(() => undefined)
+          history.polls++
+          if (h) history.hook = h
+          if (h?.state === "done" || h?.state === "partial") {
+            history.stable = h.state === "done"
+            break
+          }
+        } else {
+          await hook("seek", 0).catch(() => {})
+          const t = num((await hook("facts").catch(() => ({}))).t)
+          history.polls++
+          if (t !== undefined && (best === undefined || t < best)) {
+            best = t
+            lastDrop = at
+          }
+          if (best !== undefined && at - lastDrop >= HISTORY_QUIET_MS) {
+            history.stable = true
+            break
+          }
+        }
+        if (at - started >= HISTORY_CAP_MS) {
+          history.capped = true
+          break
+        }
+        await sleep(HISTORY_POLL_MS)
+      }
+      if (signal) {
+        await hook("seek", 0).catch(() => {})
+        await sleep(HISTORY_POLL_MS)
+        best = num((await hook("facts").catch(() => ({}))).t)
+      }
+      history.waitedMs = Date.now() - started
+      history.t0 = best ?? null
+    }
+    report.history = history
+    mark("history")
+
     // Session range, read back through the hook's own clamping (no range input is touched).
     const clampedT = async (target) => {
       await hook("seek", target)
@@ -366,6 +423,11 @@ function summarize(report, OUT) {
   const lines = []
   const live = report.points.filter((p) => !p.skipped)
   lines.push(`look-local: "${report.title}" widths ${report.widths.join(",")} settle ${report.settle}ms`)
+  if (report.history) {
+    const h = report.history
+    const k = h.hook ? ` [${h.hook.state}: stored ${h.hook.stored}, indexed ${h.hook.indexed}, more ${h.hook.more}]` : ""
+    lines.push(`history (${h.via ?? "t0"}): waited ${h.waitedMs}ms (${h.polls} polls), t0 ${h.t0 ?? "?"}, ${h.stable ? "stable" : h.capped ? "CAPPED, the history may still be loading" : "unsettled"}${k}`)
+  }
   if (report.range) lines.push(`range ${report.range.t0 ?? "?"}..${report.range.t1 ?? "?"}; points ${report.times?.length ?? 0}${report.note ? `; ${report.note}` : ""}`)
   let bad = 0
   let firstShot
