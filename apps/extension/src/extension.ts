@@ -6,12 +6,12 @@ import type { OpenSessionRequest, PanelRole, SessionBinding } from "@oco/contrac
 import { Connection, type SessionInfo } from "./connection"
 import { SessionStore } from "./session-store"
 import { SessionFeed } from "./session-feed"
-import { SessionsView, SessionItem } from "./sessions-view"
+import { SessionsView } from "./sessions-view"
+import { SessionsWebview, SESSIONS_VIEW } from "./sessions-webview"
 import { BlobStore } from "./bridge-host"
 import { KvStore } from "./host-store"
 import { PanelRegistry, VIEW_TYPE, type Entry } from "./panels"
 import { ManagedServer } from "./managed-server"
-import { ConnectionView } from "./connection-view"
 import { redactValue, VERIFIED_SERVER } from "./diagnostics"
 
 let managedServer: ManagedServer | undefined
@@ -48,9 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
       return false
     }
   })
-  const view = new SessionsView(store, context.extensionUri, context.workspaceState)
-  const connView = new ConnectionView()
-  context.subscriptions.push(connView)
+  const view = new SessionsView(store, context.workspaceState)
   const feed = new SessionFeed({
     fetch: (...a) => fetch(...a),
     endpoint: () => conn.endpoint(),
@@ -61,7 +59,6 @@ export function activate(context: vscode.ExtensionContext) {
     onChange: () => view.refresh(),
     onState: (st) => {
       view.setConnection(st)
-      connView.setConnection(st)
       panels.setConnection(st)
       if (st.state === "connected") void refreshVersionLater()
     },
@@ -81,7 +78,6 @@ export function activate(context: vscode.ExtensionContext) {
   const pushInfo = () => {
     const info = { version: serverVersion, mode: conn.mode(), managed: managedServer?.state }
     view.setServerInfo(info)
-    connView.setServerInfo(info)
   }
   managedServer = new ManagedServer({
     spawn: (cmd, args, opts) => childProcess.spawn(cmd, args, opts),
@@ -143,6 +139,14 @@ export function activate(context: vscode.ExtensionContext) {
     else void vscode.commands.executeCommand("oco.newSession")
   }
   context.subscriptions.push(view, { dispose: () => feed.stop() })
+  const searchSessions = (q: string) => {
+    view.setSearch(q)
+    // The server searches titles across the whole history; matches merge into the list.
+    if (q.trim()) void feed.search(q.trim())
+  }
+  // The sidebar list is a webview; retained while hidden so reopening the sidebar never rebuilds it.
+  const webList = new SessionsWebview(view, context.extensionUri, searchSessions)
+  context.subscriptions.push(webList, vscode.window.registerWebviewViewProvider(SESSIONS_VIEW, webList, { webviewOptions: { retainContextWhenHidden: true } }))
 
   const fail = (what: string, e: unknown) => void vscode.window.showErrorMessage(`oco: ${what} (${(e as Error).message})`)
   const requireTrust = (what: string) => {
@@ -199,10 +203,20 @@ export function activate(context: vscode.ExtensionContext) {
     return (await vscode.window.showQuickPick(items, { placeHolder, matchOnDescription: true }))?.session
   }
 
+  /** A session id, or the webview list's context-menu argument (`{ sessionId }`). */
+  const rowId = (arg: unknown): string | undefined =>
+    typeof arg === "string" ? arg
+    : arg && typeof arg === "object" && typeof (arg as { sessionId?: unknown }).sessionId === "string" ? (arg as { sessionId: string }).sessionId
+    : undefined
+  const rowItem = (arg: unknown) => {
+    const id = rowId(arg)
+    return id === undefined ? undefined : store.list().find((i) => i.id === id)
+  }
+
   context.subscriptions.push(
-    vscode.commands.registerCommand("oco.openSession", async (arg?: string | SessionItem) => {
+    vscode.commands.registerCommand("oco.openSession", async (arg?: unknown) => {
       try {
-        const sessionId = arg instanceof SessionItem ? arg.session.id : arg
+        const sessionId = rowId(arg)
         if (typeof sessionId === "string") return void (await openById(sessionId))
         const s = await pickSession("Select an OpenCode session to open")
         if (s) panels.open(bindingFor(s), s.title || s.id)
@@ -210,9 +224,9 @@ export function activate(context: vscode.ExtensionContext) {
         fail("Could not open session", e)
       }
     }),
-    vscode.commands.registerCommand("oco.openSessionInNewPanel", async (arg?: string | SessionItem) => {
+    vscode.commands.registerCommand("oco.openSessionInNewPanel", async (arg?: unknown) => {
       try {
-        const sessionId = arg instanceof SessionItem ? arg.session.id : arg
+        const sessionId = rowId(arg)
         if (typeof sessionId === "string") return void (await openById(sessionId, true))
         const s = await pickSession("Which OpenCode session should open in a new panel?")
         if (s) panels.open(bindingFor(s), s.title || s.id, vscode.ViewColumn.Active, true, true)
@@ -274,10 +288,10 @@ export function activate(context: vscode.ExtensionContext) {
         fail("Could not set password", e)
       }
     }),
-    vscode.commands.registerCommand("oco.renameSession", async (arg?: SessionItem) => {
+    vscode.commands.registerCommand("oco.renameSession", async (arg?: unknown) => {
       try {
         if (!requireTrust("rename a session")) return
-        const item = arg instanceof SessionItem ? arg.session : undefined
+        const item = rowItem(arg)
         const s = item ?? (await pickSession("Select a session to rename"))
         if (!s) return
         const current = "title" in s && s.title ? s.title : ""
@@ -289,10 +303,10 @@ export function activate(context: vscode.ExtensionContext) {
         fail("Could not rename session", e)
       }
     }),
-    vscode.commands.registerCommand("oco.archiveSession", async (arg?: SessionItem) => {
+    vscode.commands.registerCommand("oco.archiveSession", async (arg?: unknown) => {
       try {
         if (!requireTrust("archive a session")) return
-        const item = arg instanceof SessionItem ? arg.session : undefined
+        const item = rowItem(arg)
         const s = item ?? (await pickSession("Select a session to archive"))
         if (!s) return
         const updated = await conn.request<SessionInfo>("PATCH", `/session/${encodeURIComponent(s.id)}`, { time: { archived: Date.now() } }, s.directory)
@@ -302,10 +316,10 @@ export function activate(context: vscode.ExtensionContext) {
         fail("Could not archive session", e)
       }
     }),
-    vscode.commands.registerCommand("oco.deleteSession", async (arg?: SessionItem) => {
+    vscode.commands.registerCommand("oco.deleteSession", async (arg?: unknown) => {
       try {
         if (!requireTrust("delete a session")) return
-        const item = arg instanceof SessionItem ? arg.session : undefined
+        const item = rowItem(arg)
         const s = item ?? (await pickSession("Select a session to delete"))
         if (!s) return
         const title = "title" in s && s.title ? s.title : s.id
@@ -318,13 +332,7 @@ export function activate(context: vscode.ExtensionContext) {
         fail("Could not delete session", e)
       }
     }),
-    vscode.commands.registerCommand("oco.searchSessions", async () => {
-      const q = await vscode.window.showInputBox({ prompt: "Search sessions by title or ID (leave empty to clear)", value: view.search })
-      if (q === undefined) return
-      view.setSearch(q)
-      // The server searches titles across the whole history; matches merge into the list.
-      if (q.trim()) void feed.search(q.trim())
-    }),
+    vscode.commands.registerCommand("oco.searchSessions", () => webList.showSearch()),
     vscode.commands.registerCommand("oco.loadMoreSessions", () => feed.loadMore()),
     vscode.commands.registerCommand("oco.clearSearch", () => view.setSearch("")),
     vscode.commands.registerCommand("oco.reconnect", () => feed.restart()),
@@ -447,8 +455,11 @@ export function activate(context: vscode.ExtensionContext) {
         activationId,
         trusted: vscode.workspace.isTrusted,
         panels: panels.debugState(),
-        sidebar: { ...view.debugState(), feed: feed.stats, store: store.stats },
-        connectionView: connView.debugState(),
+        sidebar: (() => {
+          const web = webList.debugState()
+          // `visible` / `message` keep the names the native tree used: the view's visibility and its state text.
+          return { ...view.debugState(), visible: web.visible, message: web.notice ?? (web.view === "message" ? web.text : null), feed: feed.stats, store: store.stats, webList: web }
+        })(),
         managed: managedServer?.state ?? null,
         serverVersion: serverVersion ?? null,
       }

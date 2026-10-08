@@ -405,3 +405,13 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 根据 Claude 会话审计修改 AGENTS：可委派任务先派后做；主线程接手有具体例外；健康检查、普通运行失败换路由、轻量转发开销与任务主体分开；要求实际运行记录与 checkpoint，避免重复调查。
 - STATUS/NEXT 同步按任务段落读取与委派约束；保留本轮开始前的并发产品/文档改动。只改项目文档，未改全局配置或路由，未提交。
 - 本批 Gemini Antigravity 订阅最小请求因地域限制失败，Grok 安装/登录检查通过，Grok 复核 PASS；链接、diff 格式及 4 项并发基线保护检查 PASS。只读代理的复核补丁由主线程代存；结果与执行记录见 [本批证据](evidence/delegation-rules-20261002.md)。产品 typecheck/unit/build/E2E 与后续会话行为 NOT RUN。
+
+## 2026-10-08 会话列表 webview spike
+
+- 起因：Claude Code 2.1.293 的会话列表是 WebviewView（`retainContextWhenHidden: true`），原生 TreeView 做不到时间右对齐、圆角选中和自定义行高。
+- 新增实验设置 `oco.experimental.webviewSessions`（默认关）和视图 `oco.sessionsWeb`（"Sessions (Preview)"），与原生列表并存；数据仍由 `SessionsView.webModel()` 提供。页面由 Grok 按契约编写，宿主侧与验收由主线程完成。结果与委派记录见 [spike 记录](evidence/sessions-webview-spike-2026-10-08.md)。
+
+## 2026-10-08 会话侧栏改为 webview（分支 `feat/webview-session-list`）
+
+- 用户确认 spike 效果后：webview 接管 `oco.sessions`，原生 TreeView、实验开关、viewsWelcome 和 Connection 视图删除；搜索改为标题栏按钮触发；状态文字抽成纯函数 `listMessage()`。决定见 [ADR-008](adr/008-webview-sessions-list.md)。
+- E2E 适配：Grok 改写 `p1b-sidebar`（只改代码），主线程运行并修正 2 处；Gemini 两次健康检查超时。结果见 [spike 记录](evidence/sessions-webview-spike-2026-10-08.md)。

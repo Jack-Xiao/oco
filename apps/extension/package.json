@@ -14,7 +14,6 @@
   "activationEvents": [
     "onWebviewPanel:oco.chat",
     "onView:oco.sessions",
-    "onView:oco.connection",
     "onStartupFinished"
   ],
   "contributes": {
@@ -173,25 +172,25 @@
           "group": "navigation@0"
         }
       ],
-      "view/item/context": [
+      "webview/context": [
         {
-          "command": "oco.renameSession",
-          "when": "view == oco.sessions && viewItem == oco.session",
-          "group": "inline@1"
+          "command": "oco.openSessionInNewPanel",
+          "when": "webviewId == 'oco.sessions' && webviewSection == 'session'",
+          "group": "0_open@1"
         },
         {
           "command": "oco.renameSession",
-          "when": "view == oco.sessions && viewItem == oco.session",
+          "when": "webviewId == 'oco.sessions' && webviewSection == 'session'",
           "group": "1_edit@1"
         },
         {
           "command": "oco.archiveSession",
-          "when": "view == oco.sessions && viewItem == oco.session",
+          "when": "webviewId == 'oco.sessions' && webviewSection == 'session'",
           "group": "1_edit@2"
         },
         {
           "command": "oco.deleteSession",
-          "when": "view == oco.sessions && viewItem == oco.session",
+          "when": "webviewId == 'oco.sessions' && webviewSection == 'session'",
           "group": "1_edit@3"
         }
       ],
@@ -265,70 +264,13 @@
     "views": {
       "oco": [
         {
+          "type": "webview",
           "id": "oco.sessions",
           "name": "Sessions",
           "contextualTitle": "oco"
-        },
-        {
-          "id": "oco.connection",
-          "name": "Connection",
-          "contextualTitle": "oco",
-          "visibility": "collapsed"
         }
       ]
-    },
-    "viewsWelcome": [
-      {
-        "view": "oco.sessions",
-        "when": "oco.connState == unconfigured && oco.connIssue == folder",
-        "contents": "oco is not ready: open a workspace folder first.\n[Open Folder](command:workbench.action.files.openFolder)"
-      },
-      {
-        "view": "oco.sessions",
-        "when": "oco.connState == unconfigured && oco.connIssue != folder",
-        "contents": "The server address setting is invalid (see the reason above).\n[Open Settings](command:oco.openSettings)"
-      },
-      {
-        "view": "oco.sessions",
-        "when": "!oco.connState || oco.connState == connecting",
-        "contents": "Connecting to the OpenCode server…"
-      },
-      {
-        "view": "oco.sessions",
-        "when": "oco.connState == unauthorized",
-        "contents": "The server requires authentication, and the username or password is incorrect (this also happens when no password is set).\n[Set Password](command:oco.setServerPassword)\n[Open Settings](command:oco.openSettings)"
-      },
-      {
-        "view": "oco.sessions",
-        "when": "oco.connState == error",
-        "contents": "Cannot connect to the OpenCode server (offline or wrong address). Retrying with backoff.\n[Reconnect Now](command:oco.reconnect)\n[Open Settings](command:oco.openSettings)"
-      },
-      {
-        "view": "oco.sessions",
-        "when": "oco.connState == reconnecting",
-        "contents": "Connection lost. Reconnecting…\n[Reconnect Now](command:oco.reconnect)\n[Open Settings](command:oco.openSettings)"
-      },
-      {
-        "view": "oco.sessions",
-        "when": "oco.connState == connected && !oco.sessionsEmpty",
-        "contents": "Loading sessions…"
-      },
-      {
-        "view": "oco.sessions",
-        "when": "oco.connState == connected && oco.sessionsEmpty && !oco.searchActive && isWorkspaceTrusted",
-        "contents": "This workspace has no OpenCode sessions yet.\n[New Session](command:oco.newSession)"
-      },
-      {
-        "view": "oco.sessions",
-        "when": "oco.connState == connected && oco.sessionsEmpty && !oco.searchActive && !isWorkspaceTrusted",
-        "contents": "This workspace has no sessions yet. Restricted Mode cannot create a session."
-      },
-      {
-        "view": "oco.sessions",
-        "when": "oco.connState == connected && oco.sessionsEmpty && oco.searchActive",
-        "contents": "No matching sessions.\n[Clear Search](command:oco.clearSearch)"
-      }
-    ]
+    }
   },
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.js --alias:@oco/contracts=../../packages/contracts/src/bridge.ts"

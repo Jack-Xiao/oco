@@ -2,6 +2,11 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 会话侧栏改为 webview（2026-10-08；分支 `feat/webview-session-list`，PR 待合并）
+
+- 侧栏 oco 只有一个 webview 视图 "Sessions"（id 仍为 `oco.sessions`），外观接近 Claude Code：时间右对齐、圆角选中、30px 行高。搜索改为标题栏按钮触发；Connection 视图删除。决定见 [ADR-008](adr/008-webview-sessions-list.md)，过程与委派见 [spike 记录](evidence/sessions-webview-spike-2026-10-08.md)。
+- 检查：typecheck PASS；build PASS；unit 185/185；E2E（mock）`p1b-sidebar` 13/13、`c3-fork` 4/4、`p1b-reconnect` 5/5、`t010-recover` 5/5、`t014-connection` 6/6。NOT VERIFIED：右键菜单（macOS 原生菜单）。NOT RUN：其余 E2E、Remote（gcp-workstation 已不存在）。
+
 ## 项目委派规则收紧（2026-10-02；文档）
 
 - AGENTS 已明确：调查、独立实现、测试和文档检查先实际委派；主线程接手需记录具体例外；请求路线、执行证据、fallback 和阶段结果留在一份短记录里。STATUS/NEXT 按任务段落读取，避免默认加载全文。
