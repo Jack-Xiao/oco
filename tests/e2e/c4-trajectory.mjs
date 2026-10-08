@@ -150,7 +150,7 @@ try {
   const toTrajectory = fA.locator('[data-oco-view="trajectory"]')
   await toTrajectory.waitFor({ state: "visible", timeout: 30000 })
   // Patch 0017: no titlebar row; the review-panel toggle sits beside the 对话/轨迹 toggle.
-  // Patch 0019: the context ring is back in that row with a visible percentage ("—" when the model has no limit).
+  // Patch 0019: the context ring is back in that row, tinted by level (normal / warning / danger), no number.
   const headerRow = (f) =>
     f.evaluate(() => {
       const row = document.querySelector('[data-oco-view="trajectory"]')?.closest(".shrink-0.flex")?.parentElement
@@ -159,11 +159,12 @@ try {
         titlebarHidden: !bar || bar.getBoundingClientRect().height === 0,
         reviewInRow: !!row?.querySelector('[aria-controls="review-panel"]'),
         ringInRow: !!row?.querySelector('[data-oco-context-usage] [data-component^="progress-circle"]'),
-        usageLabel: row?.querySelector("[data-oco-context-usage]")?.textContent?.trim() ?? null,
+        usageLevel: row?.querySelector("[data-oco-context-usage]")?.getAttribute("data-oco-context-usage") ?? null,
+        usageText: row?.querySelector("[data-oco-context-usage]")?.textContent?.trim() ?? null,
       }
     })
   const chatHeader = await headerRow(fA)
-  run.record("header-actions-chat", chatHeader.titlebarHidden && chatHeader.reviewInRow && chatHeader.ringInRow && /^(\d+%|—)$/.test(chatHeader.usageLabel ?? "") ? "PASS" : "FAIL", chatHeader)
+  run.record("header-actions-chat", chatHeader.titlebarHidden && chatHeader.reviewInRow && chatHeader.ringInRow && chatHeader.usageLevel === "normal" && chatHeader.usageText === "" ? "PASS" : "FAIL", chatHeader)
   await toTrajectory.click()
   const opened = await fA.locator("[data-oco-trajectory]").waitFor({ state: "visible", timeout: 10000 }).then(() => true, () => false)
   const composerVisible = await fA.locator('[data-component="prompt-input"]').isVisible()

@@ -5,8 +5,8 @@ diff --git a/packages/app/src/components/session-context-usage.tsx b/packages/ap
    variant?: "button" | "indicator"
    buttonAppearance?: "default" | "v2"
    placement?: ComponentProps<typeof TooltipV2>["placement"]
-+  /** oco: show the percentage next to the ring and tint it as the window fills (embedded hosts). */
-+  label?: boolean
++  /** oco: tint the ring as the window fills; the exact numbers stay in the tooltip (embedded hosts). */
++  tinted?: boolean
  }
  
  function ContextTooltipRow(props: { name: JSX.Element; value: JSX.Element }) {
@@ -33,20 +33,20 @@ diff --git a/packages/app/src/components/session-context-usage.tsx b/packages/ap
 -      <ContextTooltipRow name={language.t("context.usage.usage")} value={`${context()?.usage ?? 0}%`} />
 +      <ContextTooltipRow
 +        name={language.t("context.usage.usage")}
-+        value={props.label ? usageText() : `${context()?.usage ?? 0}%`}
++        value={props.tinted ? usageText() : `${context()?.usage ?? 0}%`}
 +      />
        <ContextTooltipRow
          name={language.t("context.usage.tokens")}
          value={context()?.total.toLocaleString(language.intl()) ?? "0"}
-@@ -141,6 +155,40 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
+@@ -141,6 +155,30 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
        <TooltipV2 value={tooltipValue()} placement={props.placement ?? "top"} shift={-8}>
          <Switch>
            <Match when={variant() === "indicator"}>{circle()}</Match>
-+          <Match when={props.label}>
++          <Match when={props.tinted}>
 +            <Button
 +              type="button"
 +              variant="ghost"
-+              class="h-6 gap-1 px-1"
++              class="size-6"
 +              data-oco-context-usage={level()}
 +              onClick={openContext}
 +              aria-label={language.t("context.usage.view")}
@@ -64,16 +64,6 @@ diff --git a/packages/app/src/components/session-context-usage.tsx b/packages/ap
 +              >
 +                <ProgressCircle size={16} strokeWidth={2} percentage={context()?.usage ?? 0} />
 +              </div>
-+              <span
-+                classList={{
-+                  "text-12-medium tabular-nums": true,
-+                  "text-v2-text-text-muted": level() === "normal",
-+                  "text-v2-state-fg-warning": level() === "warning",
-+                  "text-v2-state-fg-danger": level() === "danger",
-+                }}
-+              >
-+                {usageText()}
-+              </span>
 +            </Button>
 +          </Match>
            <Match when={buttonAppearance() === "v2"}>
@@ -95,10 +85,10 @@ diff --git a/packages/app/src/components/session/session-header.tsx b/packages/a
      onReviewToggle: () => view().reviewPanel.toggle(),
    }))
 -  return <SessionHeaderV2Actions state={state()} />
-+  // oco: the context ring comes back here (chat and trajectory) with a visible percentage.
++  // oco: the context ring comes back here (chat and trajectory), tinted as the window fills.
 +  return (
 +    <>
-+      <SessionContextUsage label placement="bottom" />
++      <SessionContextUsage tinted placement="bottom" />
 +      <SessionHeaderV2Actions state={state()} />
 +    </>
 +  )

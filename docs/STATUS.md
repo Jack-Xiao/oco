@@ -4,8 +4,8 @@
 
 ## 会话标题行恢复上下文用量（补丁 0019，已提交到 main，2026-10-08；`oco-0.0.4-24fb5da.vsix` 已装本机 VS Code，需 Reload Window）
 
-- 嵌入模式会话标题行（对话、轨迹两个视图）显示上下文圆环和百分比；≥75% 黄、≥90% 红；模型无上限时显示「—」。替代补丁 0017 隐藏圆环的做法。`scripts/setup.sh` 修复重放：清掉补丁新建的未跟踪文件，补丁失败即退出。
-- 检查：补丁 0001–0019 在固定 SHA 上重放两次通过；`tsgo -b` PASS；build PASS；E2E（mock）`c4-trajectory` 17/17。NOT RUN：配色阈值与「—」、窄面板、真实模型、Remote。详情 [c5-context-usage](evidence/c5-context-usage.md)。
+- 嵌入模式会话标题行（对话、轨迹两个视图）显示上下文圆环，不显示数字（用户要求省空间）；≥75% 黄、≥90% 红；数字只在悬停提示里，模型无上限时提示显示「—」。替代补丁 0017 隐藏圆环的做法。`scripts/setup.sh` 修复重放：清掉补丁新建的未跟踪文件，补丁失败即退出。
+- 检查：补丁 0001–0019 在固定 SHA 上重放两次通过；`tsgo -b` PASS；build PASS；E2E（mock）`c4-trajectory` 17/17（去掉数字后重跑）。NOT RUN：配色阈值与「—」、窄面板、真实模型、Remote。详情 [c5-context-usage](evidence/c5-context-usage.md)。
 
 ## 会话侧栏改为 webview（[Jack-Xiao/oco#3](https://github.com/Jack-Xiao/oco/pull/3)，2026-10-08 合并为 `9b32950`；已装本机 VS Code）
 

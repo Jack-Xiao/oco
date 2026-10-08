@@ -1,7 +1,7 @@
 # 补丁 0019：嵌入模式恢复上下文用量（2026-10-08）
 
 - 起因：补丁 0017 在嵌入模式隐藏了上下文用量圆环（理由：轨迹视图已有用量），会话页没有常驻的上下文占比提示，容易不知不觉超限。
-- 改动：`SessionHeaderEmbeddedActions` 前加 `SessionContextUsage label`，对话、轨迹两个视图的会话标题行都显示「圆环 + 百分比」；≥75% 用 warning 色，≥90% 用 danger 色；模型没有上下文上限时显示「—」，不显示 0%。点击仍打开审查面板的 Context 页签（上游行为）。
+- 改动：`SessionHeaderEmbeddedActions` 前加 `SessionContextUsage label`，对话、轨迹两个视图的会话标题行都显示上下文圆环（后续按用户要求去掉百分比数字，只着色）；≥75% 用 warning 色，≥90% 用 danger 色；模型没有上下文上限时显示「—」，不显示 0%。点击仍打开审查面板的 Context 页签（上游行为）。
 - 补丁：`patches/opencode/0019-oco-embedded-context-usage.patch`（2 个文件）。
 - `scripts/setup.sh` 修复：重置时同时 `git clean` 补丁新建的未跟踪文件（原来重跑时 0007、0012–0014 报 already exists 且被静默跳过）；任一补丁不能应用即退出。修复后在固定 SHA 上连续重放两次，0001–0019 全部应用。
 - 检查：`packages/app` `tsgo -b` PASS；`bun run build` PASS。
@@ -27,3 +27,9 @@
 - 执行方：本委派任务在 Grok 4.7（xAI）上执行；E2E 进程本身无 provider/model 字段，记 unknown。
 
 （以上「E2E 结果」段为 Grok 委派写入；Grok 沙箱内启动失败，有效结果是主线程运行。）
+
+## 跟进：去掉数字（2026-10-08）
+
+- 用户：不需要百分比数字，太占空间，一眼看大概即可。prop 改名 `tinted`，按钮回到 `size-6`，数字只在提示里。
+- 补丁 0001–0019 在固定 SHA 上重放，结果与 vendor 一致；`tsgo -b` PASS；build PASS；E2E（mock）`c4-trajectory` 17/17（`runs/20261008-101353-c4-trajectory-5b15`），`usageLevel: "normal"`、`usageText: ""`。
+- 委派：Gemini 复查 10 秒 `interrupted`（未确认）；Grok 沙箱已知不能启动 VS Code（本批第一次运行已证实）→ 主线程运行。

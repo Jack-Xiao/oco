@@ -422,3 +422,4 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 补丁 0019：`SessionContextUsage` 新增 `label` 模式（圆环 + 百分比、阈值配色、无上限显示「—」），挂到 `SessionHeaderEmbeddedActions`。`c4-trajectory` 断言改为要求圆环与标签存在。
 - `scripts/setup.sh`：重放时 `git clean` 补丁新建的文件，补丁失败即退出（之前 0007、0012–0014 在重跑时被静默跳过）。
 - 委派：Gemini 健康检查 10 秒超时；Grok 健康检查通过，但沙箱启动不了 VS Code，主线程运行 E2E 17/17。见 [c5-context-usage](evidence/c5-context-usage.md)。
+- 跟进：用户要求不显示百分比数字（占空间，一眼看颜色即可）。改为只显示圆环并按阈值着色，数字留在悬停提示；`c4-trajectory` 改断言为无文字、`data-oco-context-usage="normal"`，重跑 17/17（`runs/20261008-101353-c4-trajectory-5b15`）。Gemini 复查仍 10 秒超时，Grok 沙箱不能启动 VS Code，主线程运行。
