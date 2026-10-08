@@ -15,8 +15,8 @@ const FIRST_MS = Number(process.env.OCO_MOCK_FIRST_MS ?? 150)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const text = (c) => (typeof c === "string" ? c : Array.isArray(c) ? c.map((p) => p?.text ?? "").join("") : "")
 
-/** Decide the next assistant step from the conversation. Returns { tool, args } or { lines }. */
-export function plan(body) {
+/** Decide the next assistant step from the conversation. Returns { tool, args }, { tools } or { lines }. */
+function planBase(body) {
   const msgs = body.messages ?? []
   const tools = new Set((body.tools ?? []).map((t) => t.function?.name))
   const system = msgs.filter((m) => m.role === "system").map((m) => text(m.content)).join("\n")
@@ -50,6 +50,18 @@ export function plan(body) {
   let m
   if (tools.has("bash") && (m = /use the bash tool to run(?: exactly)?(?: this command)?:\s*(.+?)(?:\s\.(?:\s|$)| and tell|$)/im.exec(prompt)))
     return { tool: "bash", args: { command: m[1], description: "Run the requested command" } }
+  // "Use the bash tool 3 times in parallel to run: <cmd>" starts N identical bash calls from one assistant message
+  // (the runtime view numbers them 1/3, 2/3, 3/3). Added for the M5 same-command check.
+  if (tools.has("bash") && (m = /use the bash tool (\d+) times in parallel to run(?: exactly)?:\s*(.+?)(?:\s\.(?:\s|$)| and tell|$)/im.exec(prompt)))
+    return {
+      tools: Array.from({ length: Math.min(Number(m[1]), 8) }, () => ({
+        tool: "bash",
+        args: { command: m[2], description: "Run the requested command" },
+      })),
+    }
+  // "Use the read tool on missing file <path>" reads a file that does not exist; the tool reports an error.
+  if (tools.has("read") && (m = /use the read tool on missing file (\S+)/i.exec(prompt)))
+    return { tool: "read", args: { filePath: abs(m[1]) } }
   if (tools.has("task") && (m = /use the task tool in the background without retrieving with the (\S+) agent:\s*(.+)$/im.exec(prompt)))
     return { tool: "task", args: { subagent_type: m[1], description: m[2].trim(), prompt: "Reply with exactly this line and nothing else: subagent-ok", run_in_background: true } }
   if (tools.has("task") && (m = /use the task tool in the background with the (\S+) agent:\s*(.+)$/im.exec(prompt)))
@@ -113,6 +125,25 @@ export function plan(body) {
   return { lines: [tag ? `OK ${tag}` : "OK"] }
 }
 
+/** Prompt-level modifiers on top of planBase (they never change what planBase decides, only add to a tool-call step):
+ *  - `THINK-FIRST` as the first word: stream 6 reasoning segments (300 ms apart) before the tool calls.
+ *  - `WITH-SLOW-SIBLING` anywhere: append a slow task call (a subagent writing 60 sentences, ~9 s) to the same
+ *    assistant message, so the request stays in its "await results" stage after the other tools have finished. */
+export function plan(body) {
+  const step = planBase(body)
+  const msgs = body.messages ?? []
+  if (msgs.at(-1)?.role === "tool" || !(step.tool || step.tools)) return step
+  const prompt = text(msgs.filter((m) => m.role === "user").at(-1)?.content)
+  const tools = new Set((body.tools ?? []).map((t) => t.function?.name))
+  let out = step
+  if (/WITH-SLOW-SIBLING/.test(prompt) && tools.has("task")) {
+    const calls = step.tools ?? [{ tool: step.tool, args: step.args }]
+    out = { tools: [...calls, { tool: "task", args: { subagent_type: "explore", description: "slow sibling", prompt: "Write 60 numbered sentences." } }] }
+  }
+  if (/^\s*THINK-FIRST\b/.test(prompt)) out.thinkFirst = true
+  return out
+}
+
 function chunk(res, id, delta, finish = null) {
   const c = { id, object: "chat.completion.chunk", created: Math.floor(Date.now() / 1000), model: "mock", choices: [{ index: 0, delta, finish_reason: finish }] }
   res.write(`data: ${JSON.stringify(c)}\n\n`)
@@ -155,6 +186,13 @@ async function complete(req, res, body) {
   await sleep(FIRST_MS)
   chunk(res, id, { role: "assistant", content: "" })
   if (step.tool || step.tools) {
+    // THINK-FIRST: the model reasons for ~1.8 s (6 segments, 300 ms apart) before it calls the tools.
+    if (step.thinkFirst)
+      for (let i = 0; i < 6; i++) {
+        if (closed) return
+        chunk(res, id, { reasoning_content: `Thinking before acting, step ${i + 1}: decide which tool to call and with what arguments. ` })
+        await sleep(300)
+      }
     const calls = step.tools ?? [{ tool: step.tool, args: step.args }]
     for (const [index, call] of calls.entries())
       chunk(res, id, {

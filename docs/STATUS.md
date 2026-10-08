@@ -2,27 +2,18 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
-## 运行视图 M5：环形循环 + 环心卡片 + 三个坞（2026-10-08；进行中，实现停在第 1 波，按用户要求中止）
+## 运行视图 M5：环形循环 + 环心卡片 + 三个坞（2026-10-08；第二批完成，本分支本地提交 SHA 在下一提交补记，未推送，未合入 main）
 
-- 设计已定：用户否决纯文字版，改用动画对比稿 [runtime-m5-animated-mockup](superpowers/specs/runtime-m5-animated-mockup.html)（用第 1–4 轮真实数据，可播放；模板 [runtime-m5-mockup.src.html](superpowers/specs/runtime-m5-mockup.src.html)，关键帧 [runtime-m5-keyframes.json](superpowers/specs/runtime-m5-keyframes.json)）。
-  - 用户决定：没有子代理的轮次收起子代理区；问题原文放环心卡片，选项放「你」区；计划做成环心卡片的「计划」类型，计数旁加小标，没有计划时不显示；等待或空闲超过 10 秒在进度条上折叠；英文直接显示；卡片居中；收起后连线不悬空；子代理可点开看详情，在视图内进入子会话。
-  - 主线程裁定 D18：已忽略、已拒绝不用红色，沿用 M4 第三轮反馈。
-- 计划：[2026-10-08-runtime-m5-ring](superpowers/plans/2026-10-08-runtime-m5-ring.md)，15 个任务、5 个波次，文件归属互斥；委派与验收记录见 [runtime-m5 证据](evidence/runtime-m5.md)。
-- 实现进度（Claude Workflow `wf_9af8ca23-fa8`，已停止）：
-  - 已完成（各任务自报验收通过）：
-    - Task 1：i18n 键与格式化；
-    - Task 2：契约 `session-runtime-ring-types.ts`、样稿源入库、test-browser JSX 预载、性能基线；
-    - Task 3：模型小改与子会话同步；
-    - Task 4：真实数据夹具与样稿判定结果；
-    - Task 6：子代理纯函数，第 1 波审查查出违反 D18，已修；
-    - Task 7：时间轴折叠与播放。
-  - 波次审查：第 0 波审查通过；第 1 波前半的复审没跑完，NOT RUN。
-  - 未开始：Task 5 环纯模块、8 几何、9 环视图、10 子代理视图、11 关键帧测试、12 集成并删除 M4 视图、13 E2E 重写、14 look-local、15 补丁 / 构建 / 安装。
-- 代码位置：
-  - M5 半成品在 vendor 开发树（相对 `deb241e` 44 个文件），整份导出为 [`patches/wip/runtime-m5-wip.patch`](../patches/wip/runtime-m5-wip.patch)。它包含 0019 的内容，`setup.sh` 不会应用它。
-  - `patches/opencode/0019` 仍是 10-07 已验证的 D1–D4 版。
-  - 本机 VS Code 装的仍是 `oco-0.0.4-98dda03`（M4 + D1–D4）。
-- 检查：全量 typecheck、单测、构建、E2E 均 NOT RUN（M5 未集成）。主线程对 Task 4 夹具的脱敏抽查还没做；只扫了半成品补丁，没有本机路径。
+- 设计已定：动画对比稿 [runtime-m5-animated-mockup](superpowers/specs/runtime-m5-animated-mockup.html)（第 1–4 轮真实数据；模板 [runtime-m5-mockup.src.html](superpowers/specs/runtime-m5-mockup.src.html)，关键帧 [runtime-m5-keyframes.json](superpowers/specs/runtime-m5-keyframes.json)）。用户决定（无子代理的轮次收起子代理区、问题原文进环心卡片、计划卡片、≥10 秒等待折叠、英文直显、卡片居中、连线不悬空、子代理可点开进子会话）和 D18（已忽略/已拒绝不用红色）全部实现。计划：[2026-10-08-runtime-m5-ring](superpowers/plans/2026-10-08-runtime-m5-ring.md)；委派与验收记录：[runtime-m5 证据](evidence/runtime-m5.md)。
+- 实现：15 个任务全部完成。第一批（工作流 `wf_9af8ca23-fa8`）做了 Task 1/2/3/4/6/7；第二批（工作流 `wf_d1bdd9ad-b6b`，32 个代理，约 3 小时）复审第 1 波并完成 Task 5/8/9/10/11/12/13/14（集成门禁三个视角、两轮修复；E2E 一轮产品修复）。之后主线程三项裁定，由子代理落地：
+  - D18 契约：`RingSubAct` 增加 glyph `⊘` / border `faint`，被拒绝或忽略的行由数据层直接给出，视图不再从 `✗ + line-strong` 推断；`RingSub.uid` 固定为 `${messageID}:${callID}`，`num` 为轮内 task 调用序号。
+  - 性能：全量重建按 messageID 复用已完成请求（规模 B 根变化重建 12.0 → 2.7 ms p95），链式重建与全新构建 `toStrictEqual`。D22：性能断言改为空载 p95 的 2 倍（冷启动 A 8 / B 32 ms，带 prev 8 ms，子会话增量 4 ms，每帧 1 ms），避免并行测试负载误报；D11 的 4 ms 以记录数字为准。
+  - D21 发送时刻：应用同步层在 4 处丢弃 step-start / step-finish part，实时与重开会话原本没有 fly（模型思考）阶段，「组装请求」会一直持续到首个 token。新增 `session-runtime-step-times.ts` 旁表在丢弃点记录时间（`global-sync/event-reducer.ts`、`server-session.ts` 各加一行 import 和一行调用），环取 min(step-start, 旁表, 第一个 part 到达) 作发送时刻；性质测试覆盖旁表截断，无豁免。旁表没有清理机制（约每请求 0.5 KB），记入 NEXT。
+- 代码位置：全部在补丁 0019（55 个文件，相对 `deb241e`；含上述两个同步文件各一处最小改动，这是对计划「不改其他 vendor 文件」的记录在案偏离）。M4 的 mechanism-view / loop-view / child 视图与 mechanism 模块已删除，21 个废 i18n 键已清理。`patches/wip/runtime-m5-wip.patch` 已删除（内容全部进入 0019）。
+- 验证（2026-10-08，本机，load 5–8）：vendor `bun run typecheck` 0 错误；session 单测 418/0（23 个文件）；`bun run test:browser` 65/0（19 个文件；ring-view 7/0、ring-sub-view 8/0、JSX 冒烟 1/0）；性能：ring-perf A 全量 3.0 ms / B 全量 13.1 ms、B 根变化带 prev 2.7 ms、子会话增量 0.17 ms，每帧 p95 ≤ 0.40 ms（预算 4）；根 `bun run verify:brief` PASS（typecheck 0 错误，unit 190/0）；0019 重新生成后 `git diff --check` 无告警、无本机路径，干净重放 19/19 且重放树与开发树 `src` / `test-browser` / `package.json` 一致；`bun run build` PASS。E2E（mock）：c5-runtime en 43/43（`runs/20261008-154249-c5-runtime-eca2`）、zh 43/43（`runs/20261008-154555-c5-runtime-76b4`）、c4-trajectory 17/17（`runs/20261008-154846-c4-trajectory-b3a5`），最终构建上一次跑过，无测试侧改动；三项裁定没有专门断言，fly 与 ⊘ 出现在 think-card / perm-reject / dismiss 等检查的明细里。真实数据（`look-local`）：14/14 关键帧在会话范围内；1100 / 560 / 1600 三种宽度下结构一致 12/14、横向滚动 0/14、无陈旧帧、无错误。不一致的两帧都在第 1 轮（j01 预期 plan 卡 / asm / 第 9 次请求，实际 message 卡 / say / 无请求；j02 预期第 17 次请求，实际第 5 次，plan 4/4 一致），第 2–4 轮 12 帧全部一致。含完整 parts 的夹具在单测里 14/14 通过，所以差异来自重开会话时第 1 轮的 step / todowrite part 没有进入同步层；原因已派只读诊断，结论记入下一提交与 NEXT。本机安装：打包与安装结果在下一提交补记。
+- NOT RUN：真实模型新对话（fly / 流式思考跟随只有 mock E2E 与回放）；Remote（无主机）；亮色主题；`bun run test:bench` 的 Playwright 半边仍 BLOCKED（会占用 4096 / 3000）。
+- 已知遗留：`snapshotAt` 的 token / 花费泄漏仍在（M5 视图不读它，无界面影响）；`ring.cap.pre` 键已定义但未引用。
+- 委派：Gemini 探测返回 503 不可用；Grok 健康检查通过，但工作流内 `grok-worker` 没拿到转发启动行、未真正启动，Task 14 由 sonnet 完成；其余按用户指示由 Claude opus / sonnet 子代理按能力分配，主线程只做契约、裁定、补丁、验收与文档。
 
 ## 运行视图：本机查看 + 真实数据修正（2026-10-07；同分支，2026-10-08 随 M5 进度一起本地提交）
 
