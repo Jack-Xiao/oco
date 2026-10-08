@@ -54,7 +54,8 @@
 - [完成 2026-10-04，未推送] M3：运行视图固定框架（两次用户改版后定稿），见 [STATUS](STATUS.md) 与 [E2E](evidence/runtime-m3-e2e.md)。待用户决定：是否推送 / 合入 main、是否部署 gcp-workstation。遗留：嵌套 ≥2 层 E2E（需 mock 产生孙会话）、真实模型长会话性能、Remote 实测均 NOT RUN；终审 12 条已全部处理（见 `docs/evidence/runtime-m3-review.md`、`runtime-m3-e2e.md`）。
 - [第二批完成 2026-10-04，未提交] M4：第一批（回放播放、日志、思考框）+ 第二批（回环航道、HUD 配色、左栏去名册），见 [第二批验收](evidence/runtime-m4-batch2.md)、[第一批验收](evidence/runtime-m4-batch1.md)。vsix 已装本机；gcp-workstation 未部署。待用户决定：本地提交 / 推送 / 合入 main / 部署。遗留：真实模型（含真实后台通知）、Remote、亮色主题、嵌套 ≥2 层均 NOT RUN；矮航道下作业区标签隐藏；轨迹页「子智能体」标签改用同一子代理蓝（小补丁，未做）。
 - [2026-10-07，2026-10-08 已本地提交] 本机查看替代 gcp-workstation：`install-local.sh` + `look-local.mjs`，真实数据修正 4 处（见 [证据](evidence/runtime-local-2026-10-07.md)）。待用户：在本机 VS Code Reload 后打开文件夹实看并给反馈；是否提交 / 合入 main。遗留：真实模型新对话下的实时动画（只做了回放）、矮航道作业区标签隐藏、轨迹页「子智能体」标签配色。
-- [2026-10-08，已完成，待用户决定] M5 环形运行视图已在本分支本地提交（SHA 在下一提交补记）并装到本机（打包与安装结果在下一提交补记）。待定：是否推送、是否合入 main。合并前先处理：main 上另一分支的 `patches/opencode/0019-oco-embedded-context-usage.patch` 与本分支 `0019-oco-runtime-view.patch` 编号冲突（建议合并时把前者改为 0020，并确认两者对 session 头部的改动不重叠）；main 比本分支多 4 个提交（webview 会话列表、上下文环），合并后重跑 c5-runtime en/zh、c4-trajectory、p1b-sidebar。
+- [2026-10-08，已完成，待用户决定] M5 环形运行视图已在本分支本地提交（8292fba 代码与文档、54ab5d2 历史翻页修复、随后的文档提交）并装到本机（`oco-0.0.4-54ab5d2.vsix`，需 Reload Window）。待定：是否推送、是否合入 main。合并前先处理：main 上另一分支的 `patches/opencode/0019-oco-embedded-context-usage.patch` 与本分支 `0019-oco-runtime-view.patch` 编号冲突（建议合并时把前者改为 0020，并确认两者对 session 头部的改动不重叠）；main 比本分支多 4 个提交（webview 会话列表、上下文环），合并后重跑 c5-runtime en/zh、c4-trajectory、p1b-sidebar。
+  - [TODO，小] 子会话历史翻页：`childSync` 只同步子会话最近 20 条消息（主会话已循环 `history.loadMore`），超过 20 条的子会话在环里会被截断；本批真实会话的子会话各 3–4 条，未受影响。
   - [TODO，小] step 时间旁表 `session-runtime-step-times.ts` 没有清理：随 `dropSessionCaches` 或会话淘汰一起清掉。
   - [TODO，小] 真实模型新对话下看一次 fly / 模型思考阶段与流式文字跟随（本批只有 mock E2E 与回放）。
   - [TODO，小] `ring.cap.pre` 未引用键：用上或删除；`snapshotAt` 泄漏仍按 STATUS 记录，M5 不读它。

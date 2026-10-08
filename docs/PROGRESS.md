@@ -494,6 +494,7 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 
 - 接上一批（工作流 `wf_9af8ca23-fa8` 停在第 1 波前半）。vendor 半成品与 `patches/wip/runtime-m5-wip.patch` 字节一致，未恢复；Task 4 夹具脱敏抽查通过。
 - 工作流 `wf_d1bdd9ad-b6b`（32 个代理，约 3 小时）：复审 T3/4/6/7 通过；T5/T8；T9/10/11/13/14；T12 集成（契约 / UI / 清理三视角门禁，两轮修复）；构建与 E2E（一轮产品修复：实时数据没有 step part）。
-- 主线程裁定并由子代理落地：D18 契约（⊘ / faint）、全量重建复用与 D22 性能预算、D21 step 时间旁表（两个同步文件各一行）。
-- 结果：vendor typecheck 0；session 单测 418/0；test-browser 65/0；性能在预算内（B 根变化带 prev 2.7 ms，每帧 ≤ 0.40 ms）；verify:brief PASS；0019 重生成 55 个文件、干净重放 19/19；build PASS；E2E（mock）c5-runtime en 43/43（`runs/20261008-154249-c5-runtime-eca2`）、zh 43/43（`runs/20261008-154555-c5-runtime-76b4`）、c4-trajectory 17/17（`runs/20261008-154846-c4-trajectory-b3a5`），最终构建上一次跑过，无测试侧改动；三项裁定没有专门断言，fly 与 ⊘ 出现在 think-card / perm-reject / dismiss 等检查的明细里；look-local 14/14 关键帧在会话范围内；1100 / 560 / 1600 三种宽度下结构一致 12/14、横向滚动 0/14、无陈旧帧、无错误。不一致的两帧都在第 1 轮（j01 预期 plan 卡 / asm / 第 9 次请求，实际 message 卡 / say / 无请求；j02 预期第 17 次请求，实际第 5 次，plan 4/4 一致），第 2–4 轮 12 帧全部一致。含完整 parts 的夹具在单测里 14/14 通过，所以差异来自重开会话时第 1 轮的 step / todowrite part 没有进入同步层；原因已派只读诊断，结论记入下一提交与 NEXT；打包与安装结果在下一提交补记 已装本机。提交 SHA 在下一提交补记，未推送，未合入 main。
-- 委派：Gemini 503；Grok 健康检查通过但工作流内未真正启动，Task 14 回退 sonnet；其余 Claude opus / sonnet（用户指定按能力分配）。记录见 evidence/runtime-m5.md。
+- 主线程裁定并由子代理落地：D18 契约（⊘ / faint）、全量重建复用与 D22 性能预算、D21 step 时间旁表（两个同步文件各加一行 import 和一行调用）。
+- 结果：vendor typecheck 0；session 单测 418/0；test-browser 65/0；性能在预算内（B 根变化带 prev 2.7 ms，每帧 ≤ 0.40 ms）；verify:brief PASS；0019 重生成 55 个文件、干净重放 19/19；build PASS；E2E（mock，最终构建 54ab5d2）c5-runtime en 43/43（`runs/20261008-161513-c5-runtime-7bdc`）、zh 43/43（`runs/20261008-161824-c5-runtime-73be`）、c4-trajectory 17/17（`runs/20261008-162120-c4-trajectory-adcb`），无测试侧改动；历史翻页没有专门断言（只隐式跑到），8292fba 上的前一轮同样 43/43、43/43、17/17；look-local 修复后 14/14；`oco-0.0.4-54ab5d2.vsix` 已装本机。提交 8292fba、54ab5d2 与文档提交，未推送，未合入 main。
+- 2026-10-09 真实会话 look-local 先是 12/14：第 1 轮两帧不一致。只读诊断（opus）查明重开会话只加载最近 20 条消息、运行视图不翻页；修复（sonnet 加翻页 effect，opus 查明旧页原地合并后索引不重建并补 history 钩子）后 14/14（54ab5d2），E2E 复跑通过。
+- 委派：Gemini 503；Grok 健康检查通过但工作流内未真正启动，Task 14 回退 sonnet；文档一致性检查由 Grok 直接路线完成（6 处措辞/补记项，已改）；其余 Claude opus / sonnet（用户指定按能力分配）。记录见 evidence/runtime-m5.md。
