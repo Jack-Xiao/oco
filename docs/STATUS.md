@@ -2,10 +2,11 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
-## 会话侧栏改为 webview（2026-10-08；分支 `feat/webview-session-list`，PR 待合并）
+## 会话侧栏改为 webview（[Jack-Xiao/oco#3](https://github.com/Jack-Xiao/oco/pull/3)，2026-10-08 合并为 `9b32950`；已装本机 VS Code）
 
 - 侧栏 oco 只有一个 webview 视图 "Sessions"（id 仍为 `oco.sessions`），外观接近 Claude Code：时间右对齐、圆角选中、30px 行高。搜索改为标题栏按钮触发；Connection 视图删除。决定见 [ADR-008](adr/008-webview-sessions-list.md)，过程与委派见 [spike 记录](evidence/sessions-webview-spike-2026-10-08.md)。
 - 检查：typecheck PASS；build PASS；unit 185/185；E2E（mock）`p1b-sidebar` 13/13、`c3-fork` 4/4、`p1b-reconnect` 5/5、`t010-recover` 5/5、`t014-connection` 6/6。NOT VERIFIED：右键菜单（macOS 原生菜单）。NOT RUN：其余 E2E、Remote（gcp-workstation 已不存在）。
+- 部署：`oco-0.0.4-9b32950.vsix`（extension.js sha256 `fa68647b…`）用 VS Code 自带 CLI 覆盖安装到本机，安装目录哈希一致；需 Reload Window。旧实验设置 `oco.experimental.webviewSessions` 已不存在，可从用户设置删除。
 
 ## 项目委派规则收紧（2026-10-02；文档）
 
