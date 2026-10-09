@@ -2223,7 +2223,7 @@ index 0000000..7555eff
 +})
 diff --git a/packages/app/src/components/session/session-runtime-i18n.ts b/packages/app/src/components/session/session-runtime-i18n.ts
 new file mode 100644
-index 0000000..6cbce19
+index 0000000..4862aed
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-i18n.ts
 @@ -0,0 +1,1044 @@
@@ -2328,6 +2328,7 @@ index 0000000..6cbce19
 +  "ring.ctr.ended": "Finished",
 +  "ring.ctr.ended.total": "Finished · {{n}} requests",
 +  "ring.plan.chip": "Plan {{done}}/{{total}}",
++  "ring.plan.chip.aria": "Show the plan",
 +  "ring.model.title": "Model",
 +  "ring.model.waiting": "Waiting",
 +  "ring.model.asm": "Waiting for request {{m}}",
@@ -2407,7 +2408,6 @@ index 0000000..6cbce19
 +  "ring.card.aborted.post": "Before the stop the model was thinking: {{text}}",
 +  "ring.card.age.ago": "{{dur}} ago",
 +  "ring.card.age.waited": "Waited {{dur}}",
-+  "ring.card.expand": "Full text",
 +  "ring.card.expand.aria": "Show the full text",
 +  "ring.card.plan.writing": "Writing plan v{{v}} · {{n}} items written",
 +  "ring.card.plan.carry": "Plan v{{v}} goes back to the model with request {{m}} · {{done}}/{{total}} done",
@@ -2656,6 +2656,7 @@ index 0000000..6cbce19
 +  "ring.ctr.ended": "已结束",
 +  "ring.ctr.ended.total": "已结束 · 共 {{n}} 次请求",
 +  "ring.plan.chip": "计划 {{done}}/{{total}}",
++  "ring.plan.chip.aria": "查看计划",
 +  "ring.model.title": "模型",
 +  "ring.model.waiting": "等待",
 +  "ring.model.asm": "等第 {{m}} 次请求",
@@ -2735,7 +2736,6 @@ index 0000000..6cbce19
 +  "ring.card.aborted.post": "中止前模型在思考：{{text}}",
 +  "ring.card.age.ago": "{{dur}}前",
 +  "ring.card.age.waited": "已等 {{dur}}",
-+  "ring.card.expand": "全文",
 +  "ring.card.expand.aria": "展开全文",
 +  "ring.card.plan.writing": "正在写计划第 {{v}} 版 · 已写完 {{n}} 项",
 +  "ring.card.plan.carry": "计划第 {{v}} 版随第 {{m}} 次请求带回模型 · 完成 {{done}}/{{total}}",
@@ -2980,6 +2980,7 @@ index 0000000..6cbce19
 +  "ring.ctr.ended": "已結束",
 +  "ring.ctr.ended.total": "已結束 · 共 {{n}} 次請求",
 +  "ring.plan.chip": "計畫 {{done}}/{{total}}",
++  "ring.plan.chip.aria": "查看計畫",
 +  "ring.model.title": "模型",
 +  "ring.model.waiting": "等待",
 +  "ring.model.asm": "等第 {{m}} 次請求",
@@ -3059,7 +3060,6 @@ index 0000000..6cbce19
 +  "ring.card.aborted.post": "中止前模型在思考：{{text}}",
 +  "ring.card.age.ago": "{{dur}}前",
 +  "ring.card.age.waited": "已等 {{dur}}",
-+  "ring.card.expand": "全文",
 +  "ring.card.expand.aria": "展開全文",
 +  "ring.card.plan.writing": "正在寫計畫第 {{v}} 版 · 已寫完 {{n}} 項",
 +  "ring.card.plan.carry": "計畫第 {{v}} 版隨第 {{m}} 次請求帶回模型 · 完成 {{done}}/{{total}}",
@@ -8659,10 +8659,10 @@ index 0000000..e8db865
 +})
 diff --git a/packages/app/src/components/session/session-runtime-ring-geo.test.ts b/packages/app/src/components/session/session-runtime-ring-geo.test.ts
 new file mode 100644
-index 0000000..583bad0
+index 0000000..a35b287
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-geo.test.ts
-@@ -0,0 +1,732 @@
+@@ -0,0 +1,746 @@
 +// oco (patches/opencode/0019): unit tests for the M5 ring geometry, bus wires, packets, token and labels (Task 8).
 +// Synthetic frames and hand-built indexes only: key-frame checks on the real fixture belong to Task 11.
 +import { describe, expect, test } from "bun:test"
@@ -8707,9 +8707,9 @@ index 0000000..583bad0
 +const ZH = labelsOf("zh", "zh-CN")
 +const ZHT = labelsOf("zht", "zh-TW")
 +const EN = labelsOf("en", "en-US")
-+const geo = (W: number, H: number, k: number, L = ZH): RingGeoX => {
++const geo = (W: number, H: number, k: number, L = ZH, dk = 1): RingGeoX => {
 +  const s = stageSize(W, H)
-+  return geoOf(s.W, s.H, k, L, L.next)
++  return geoOf(s.W, s.H, k, L, L.next, dk)
 +}
 +
 +const hit = (a: Box, b: Box) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
@@ -8799,6 +8799,7 @@ index 0000000..583bad0
 +      stripWhat: ph("ring.status.running"), stripSession: ph("ring.status.running"), stripButton: false,
 +    },
 +    k: over.k ?? 0,
++    dk: 1,
 +    caption: ph("ring.status.running"),
 +    live: ph("ring.status.running"),
 +    bar: { waitMs: 0 },
@@ -8946,6 +8947,19 @@ index 0000000..583bad0
 +    for (const [name, L] of sets)
 +      for (const [w, h] of [[560, 470], [560, 720], [760, 720], [979, 1000], [980, 470], [1100, 720], [1600, 1000]] as const)
 +        for (const k of [0, 1]) clean(geo(w, h, k, L), `${name} ${w}x${h} k=${k}`)
++  })
++
++  test("1b. collapsed tools dock (dk 0 / 0.5) stays clean; wide docks shrink to the header strip, narrow ones keep their size", () => {
++    for (const [w, h] of [[560, 470], [760, 720], [980, 470], [1100, 720], [1600, 1000]] as const)
++      for (const k of [0, 1])
++        for (const dk of [0, 0.5]) {
++          const g = geo(w, h, k, ZH, dk)
++          clean(g, `${w}x${h} k=${k} dk=${dk}`)
++          const full = geo(w, h, k, ZH, 1)
++          if (g.mode === "wide") expect(g.tools.h).toBeLessThan(full.tools.h)
++          else expect(g.tools).toEqual(full.tools)
++          if (g.mode === "wide" && dk === 0) expect(g.tools.h).toBe(30)
++        }
 +  })
 +
 +  test("2. strip height at k=0, expanded at k=1, output fully determined by the inputs", () => {
@@ -9397,10 +9411,10 @@ index 0000000..583bad0
 +})
 diff --git a/packages/app/src/components/session/session-runtime-ring-geo.ts b/packages/app/src/components/session/session-runtime-ring-geo.ts
 new file mode 100644
-index 0000000..d9c6123
+index 0000000..0f78cea
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-geo.ts
-@@ -0,0 +1,836 @@
+@@ -0,0 +1,838 @@
 +// oco (patches/opencode/0019): M5 runtime ring — geometry, bus wires, packets and the token as pure functions of
 +// (stage width, height, k, t). Ported from the approved mockup (L686-832 geometry, L868-890 token, L1364-1555 wires,
 +// packets, labels). No DOM access; no copy except i18n Phrase keys (`ring.pkt.*`) and raw glyph + tool name labels.
@@ -9563,7 +9577,7 @@ index 0000000..d9c6123
 +  ringBot?: number
 +}
 +
-+function baseWide(W: number, H: number, k: number, sideHalf: number): Base {
++function baseWide(W: number, H: number, k: number, sideHalf: number, dk: number): Base {
 +  const pad = 14
 +  // lane collapsed (k=0): the right column is only the tools dock, so it narrows and the ring takes the width
 +  const youW = clamp(W * 0.19, 190, 290)
@@ -9590,7 +9604,8 @@ index 0000000..d9c6123
 +  const compact = H < 440
 +  const rowH = compact ? 22 : 32
 +  const nRows = 5
-+  const th = 24 + nRows * (rowH + 4) + 4
++  // dk = 0: the dock is only its 30 px header strip (no tools this round, or the round ended on a tool-less request)
++  const th = Math.round(lerp(30, 24 + nRows * (rowH + 4) + 4, dk))
 +  const lh = lerp(RING.STRIP_H, clamp(H - 2 * pad - th - 12, 130, 180), k)
 +  const gap = lerp(8, 12, k)
 +  const dy = clamp(cy - (th + gap + lh) / 2, pad, H - pad - (th + gap + lh))
@@ -9659,6 +9674,7 @@ index 0000000..d9c6123
 +  k: number,
 +  pillLabels: Record<PillId, string>,
 +  nextLabel: string,
++  dk = 1,
 +): RingGeoX {
 +  const pillW = (n: string) => Math.round(textW(n, PILL_FS) + 20)
 +  const pw: Record<PillId, number> = {
@@ -9667,7 +9683,7 @@ index 0000000..d9c6123
 +  }
 +  // half-width of the widest pill sitting on the horizontal axis (asm left, call right)
 +  const sideHalf = Math.max(pw.asm, pw.call) / 2
-+  const b = W >= RING.WIDE_MIN ? baseWide(W, H, k, sideHalf) : baseNarrow(W, H, k, pw)
++  const b = W >= RING.WIDE_MIN ? baseWide(W, H, k, sideHalf, dk) : baseNarrow(W, H, k, pw)
 +  const { cx, cy, R, busO, busB, mode } = b
 +  const wide = mode === "wide"
 +
@@ -10239,10 +10255,10 @@ index 0000000..d9c6123
 +}
 diff --git a/packages/app/src/components/session/session-runtime-ring-keyframes.test.ts b/packages/app/src/components/session/session-runtime-ring-keyframes.test.ts
 new file mode 100644
-index 0000000..0eb11f7
+index 0000000..8263072
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-keyframes.test.ts
-@@ -0,0 +1,292 @@
+@@ -0,0 +1,294 @@
 +// oco (patches/opencode/0019): M5 runtime ring — keyframe acceptance (Task 11). Each of the real fixture's 14 keyframes
 +// is asserted against the mockup's own verdicts (fixtures/runtime-m5-oracle.json) over frameAt(buildRingIndex(fixture), t).
 +// The mockup is the oracle except where the plan decided otherwise: D5 (any non-continue finish reason ends a round),
@@ -10345,7 +10361,9 @@ index 0000000..0eb11f7
 +      // round N, request M, plan
 +      expect(f.counter.round).toBe(o.round)
 +      expect(f.counter.m).toBe(o.m)
-+      expect(f.counter.plan).toEqual(o.plan && { done: o.plan.done, inProgress: o.plan.inProgress, total: o.plan.total })
++      expect(f.counter.plan && { done: f.counter.plan.done, inProgress: f.counter.plan.inProgress, total: f.counter.plan.total }).toEqual(
++        o.plan && { done: o.plan.done, inProgress: o.plan.inProgress, total: o.plan.total },
++      )
 +
 +      // tool rows: name, state, same-command position
 +      expect(f.tools.rows.map((r) => [r.name, r.state, r.same ?? null])).toEqual(o.own)
@@ -13367,10 +13385,10 @@ index 0000000..ac7355b
 +}
 diff --git a/packages/app/src/components/session/session-runtime-ring-types.ts b/packages/app/src/components/session/session-runtime-ring-types.ts
 new file mode 100644
-index 0000000..749c992
+index 0000000..0ef23bb
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-types.ts
-@@ -0,0 +1,242 @@
+@@ -0,0 +1,243 @@
 +// oco (patches/opencode/0019): M5 runtime ring — shared contract. Types and constants only; no logic.
 +import type { RuntimeKey } from "./session-runtime-i18n"
 +import type { Message, Part } from "@opencode-ai/sdk/v2/client"
@@ -13535,7 +13553,7 @@ index 0000000..749c992
 +export type RingCounter = {
 +  agent: string; round?: number; m?: number; ended: boolean
 +  requests: { m: number; state: "done" | "cur" | "bad" }[]
-+  plan?: { done: number; inProgress: number; total: number }
++  plan?: { done: number; inProgress: number; total: number; items: { text: string; status: RingTodo["status"] }[] }
 +}
 +export type RingModelBox = { model: string; m?: number; line: Phrase; tone: Tone; carry?: Phrase; ctx: Phrase; lit: boolean }
 +export type RingPills = Record<PillId, { lit: boolean; sub?: Phrase }>
@@ -13545,6 +13563,7 @@ index 0000000..749c992
 +  t: number; stage: RingStage; status: RingStatus; counter: RingCounter; model: RingModelBox
 +  card: RingCard; pills: RingPills; you: RingYou; tools: RingToolsDock; subs: RingSubsDock
 +  k: number; caption: Phrase; live: Phrase; bar: RingBar
++  dk: number                      // tools dock openness 0..1 (dockOpen; added after M5)
 +}
 +
 +// ---------- subagent detail ----------
@@ -13615,10 +13634,10 @@ index 0000000..749c992
 +}
 diff --git a/packages/app/src/components/session/session-runtime-ring-view.tsx b/packages/app/src/components/session/session-runtime-ring-view.tsx
 new file mode 100644
-index 0000000..f27c97b
+index 0000000..da168d8
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-view.tsx
-@@ -0,0 +1,1210 @@
+@@ -0,0 +1,1277 @@
 +// oco (patches/opencode/0019): M5 runtime ring — the stage view. Ring SVG (stations, coverage arc, token, bus wires),
 +// fixed boxes (you, model, counter, centre card, tools), the packet / label layer, the subagent dock mount and the
 +// card's full-text overlay. Reads only `frame` (facts at t) and the pure geometry of session-runtime-ring-geo.ts;
@@ -13651,7 +13670,6 @@ index 0000000..f27c97b
 +  PillId,
 +  Pt,
 +  RingCard,
-+  RingCardKind,
 +  RingFrame,
 +  RingGeo,
 +  RingIndex,
@@ -13689,7 +13707,6 @@ index 0000000..f27c97b
 +const PLAN_G: Record<string, string> = { completed: "✓", in_progress: "●", pending: "○", cancelled: "✕" }
 +const ROW_G: Record<RingToolRow["state"], string> = { pend: "…", run: "●", ok: "✓", err: "✗" }
 +// D8: the full-text button is always mounted; enabled only for these kinds when there is a body
-+const EXPANDABLE = new Set<RingCardKind>(["think", "output", "result", "failed", "return", "handoff", "ask", "permission"])
 +const LH = 19
 +const LANE_MIN_K = 0.02
 +const NO_ROW: RingToolRow = { id: "", name: "", state: "pend", arg: "" }
@@ -13862,10 +13879,11 @@ index 0000000..f27c97b
 +  const say = (p: string | Phrase | undefined) => (p === undefined ? "" : typeof p === "string" ? p : text.phrase(p))
 +  const sep = () => text.t("ring.sep")
 +  // UI state only (facts come from frame): stage size from the ResizeObserver, full-text overlay open
-+  const [ui, setUi] = createStore({ W: 1200, H: 600, panel: false })
++  const [ui, setUi] = createStore({ W: 1200, H: 600, panel: "" as "" | "card" | "plan" })
 +  let root: HTMLDivElement | undefined
 +  let scroller: HTMLDivElement | undefined
-+  let expandBtn: HTMLButtonElement | undefined
++  let expandBtn: HTMLDivElement | undefined
++  let planBtn: HTMLButtonElement | undefined
 +
 +  onMount(() => {
 +    const measure = (w: number, h: number) => {
@@ -13890,12 +13908,13 @@ index 0000000..f27c97b
 +  const ended = createMemo(() => st() === "end" || st() === "abort" || st() === "pre")
 +  // geometry depends only on (W, H, k): k is rounded to the precision of data-oco-runtime-lane-k (D14)
 +  const k3 = createMemo(() => Math.round(f().k * 1000) / 1000)
++  const dk3 = createMemo(() => Math.round(f().dk * 1000) / 1000)
 +  const names = createMemo(() => {
 +    const pills = {} as Record<PillId, string>
 +    for (const id of PILL_IDS) pills[id] = text.t(`ring.pill.${id}` as const)
 +    return { pills, next: `${pills.next} ↺` }
 +  })
-+  const geo = createMemo(() => geoOf(ui.W, ui.H, k3(), names().pills, names().next))
++  const geo = createMemo(() => geoOf(ui.W, ui.H, k3(), names().pills, names().next, dk3()))
 +  createEffect(() => props.onGeo?.(geo()))
 +  const wide = () => geo().mode === "wide"
 +
@@ -13967,13 +13986,17 @@ index 0000000..f27c97b
 +
 +  // ---------- card ----------
 +  const card = () => f().card
-+  const canExpand = createMemo(() => EXPANDABLE.has(card().kind) && !!card().body)
++  // the whole card opens the full-content overlay whenever it shows any text (running or not)
++  const canExpand = createMemo(() => {
++    const c = card()
++    return !!(c.body || c.full || c.pre || c.post || c.plan?.items.length)
++  })
 +  const body = createMemo(() => {
 +    const c = card()
 +    const p = geo().pay
-+    const metaH = c.meta.length ? (wide() ? 15 : 30) + 4 : 0
++    // the meta line lives in the overlay and the bottom caption, not in the card: its height goes to the body
 +    const postH = c.post ? LH : 0
-+    const lines = Math.max(1, Math.floor((p.h - 18 - 20 - 4 - metaH - postH) / LH))
++    const lines = Math.max(1, Math.floor((p.h - 18 - 20 - 4 - postH) / LH))
 +    const innerW = Math.max(40, p.w - 22)
 +    const plan = c.plan ? planWindow(c.plan.items, Math.max(1, Math.floor((lines * LH) / 14))) : undefined
 +    const preW = c.pre ? textW(say(c.pre), 10.5) + 16 : 0
@@ -13981,13 +14004,14 @@ index 0000000..f27c97b
 +    return { lines, plan, text: c.body ? fitText(c.body, c.bodyMode, cap, c.mono ? 12 : 12.5) : "" }
 +  })
 +  const closePanel = () => {
-+    setUi("panel", false)
-+    // D13: focus back to the opener; it is always mounted, but a disabled button cannot take focus
-+    if (expandBtn && expandBtn.isConnected && !expandBtn.disabled) expandBtn.focus()
++    const opener = ui.panel === "plan" ? planBtn : expandBtn
++    setUi("panel", "")
++    // D13: focus back to the opener; a disabled or unmounted opener cannot take focus
++    if (opener && opener.isConnected && opener.getAttribute("aria-disabled") !== "true" && !(opener as HTMLButtonElement).disabled) opener.focus()
 +    else root?.focus()
 +  }
 +  createEffect(() => {
-+    if (ui.panel && !canExpand()) closePanel()
++    if ((ui.panel === "card" && !canExpand()) || (ui.panel === "plan" && !ctr().plan)) closePanel()
 +  })
 +
 +  // ---------- counter ----------
@@ -14012,7 +14036,7 @@ index 0000000..f27c97b
 +        textW(`${round}${sep()}${second}`, 13) +
 +        (np && req ? Math.min(np, req) * 10 + (req > np ? 10 : 0) + 7 : 0) +
 +        chipW
-+      if (w <= geo().ctr.w) return { np, second, who }
++      if (w * 1.1 <= geo().ctr.w) return { np, second, who }
 +    }
 +    return { np: 0, second: short, who: false }
 +  })
@@ -14025,6 +14049,8 @@ index 0000000..f27c97b
 +
 +  // ---------- tools ----------
 +  const tools = () => f().tools
++  // collapsed (or collapsing) dock: too short for the centred empty note, so the header carries it
++  const dockStrip = () => geo().tools.h < 72
 +  const toolView = createMemo(() => {
 +    const rows = tools().rows
 +    const cap = geo().toolCap
@@ -14064,6 +14090,7 @@ index 0000000..f27c97b
 +      ref={root}
 +      data-oco-runtime-stage={st()}
 +      data-oco-runtime-lane-k={k3().toFixed(3)}
++      data-oco-runtime-tools-k={dk3().toFixed(3)}
 +      tabIndex={-1}
 +      style={{ position: "relative", height: "100%", "min-height": "0", outline: "none" }}
 +    >
@@ -14375,7 +14402,8 @@ index 0000000..f27c97b
 +            style={{
 +              ...place(geo().ctr),
 +              overflow: "hidden", "pointer-events": "none", "text-align": "center",
-+              display: wide() ? "flex" : "block", "align-items": "center", "justify-content": "center", gap: "7px", "white-space": "nowrap",
++              // safe center: a row wider than the chord overflows (and ellipsizes) on the right, never cuts the agent name
++              display: wide() ? "flex" : "block", "align-items": "center", "justify-content": "safe center", gap: "7px", "white-space": "nowrap",
 +            }}
 +          >
 +            <Show when={!wide() || ctrLine().who}>
@@ -14394,7 +14422,8 @@ index 0000000..f27c97b
 +            >
 +              <span
 +                style={{
-+                  display: wide() ? "inline" : "block", flex: "none", "font-weight": 700, "font-size": wide() ? "13px" : "15px",
++                  display: wide() ? "inline" : "block", flex: "0 1 auto", "min-width": "0", overflow: "hidden", "text-overflow": "ellipsis",
++                  "font-weight": 700, "font-size": wide() ? "13px" : "15px",
 +                  color: ctr().ended ? "var(--rt-weak)" : "var(--rt-text)",
 +                }}
 +              >
@@ -14425,37 +14454,61 @@ index 0000000..f27c97b
 +            </Show>
 +            <Show when={ctr().plan}>
 +              {(p) => (
-+                <span
++                <button
++                  ref={planBtn}
++                  type="button"
 +                  data-oco-runtime-plan={`${p().done}/${p().total}`}
++                  aria-haspopup="dialog"
++                  aria-expanded={ui.panel === "plan"}
++                  aria-label={text.t("ring.plan.chip.aria")}
++                  onClick={() => setUi("panel", "plan")}
 +                  style={{
 +                    flex: "none", display: "inline-block", "margin-top": wide() ? "0" : "4px", "font-size": "11px", "line-height": "16px",
 +                    color: p().done === p().total ? "var(--rt-ok)" : "var(--rt-weak)", border: "1px solid var(--rt-line-strong)",
 +                    "border-radius": "9px", padding: "0 7px", background: "var(--rt-panel)", "white-space": "nowrap",
++                    "font-family": "inherit", cursor: "pointer", "pointer-events": "auto",
 +                  }}
 +                >
 +                  {planChip()}
-+                </span>
++                </button>
 +              )}
 +            </Show>
 +          </div>
 +
 +          {/* ---------- centre card ---------- */}
 +          <div
++            ref={expandBtn}
 +            data-oco-runtime-card
++            data-oco-runtime-card-expand
 +            data-oco-runtime-card-kind={card().kind}
 +            data-oco-runtime-card-tone={card().tone}
++            role="button"
++            tabIndex={canExpand() ? 0 : -1}
++            aria-disabled={canExpand() ? undefined : "true"}
++            aria-haspopup="dialog"
++            aria-expanded={ui.panel === "card"}
++            aria-label={text.t("ring.card.expand.aria")}
++            onClick={() => {
++              if (canExpand()) setUi("panel", "card")
++            }}
++            onKeyDown={(e) => {
++              if (e.key !== "Enter" && e.key !== " ") return
++              e.preventDefault()
++              if (canExpand()) setUi("panel", "card")
++            }}
 +            style={{
 +              ...place(geo().pay),
 +              "--c": TONE[card().tone],
 +              overflow: "hidden", "box-sizing": "border-box", display: "flex", "flex-direction": "column", gap: "4px",
 +              padding: "8px 10px", "border-radius": "8px", border: "1px solid var(--c)", background: "var(--rt-panel-0)",
-+              color: "var(--rt-text)",
++              color: "var(--rt-text)", cursor: canExpand() ? "pointer" : "default",
 +            }}
 +          >
 +            <div style={{ display: "flex", "align-items": "center", gap: "6px", "min-width": "0", "font-size": "12px", flex: "none" }}>
 +              <span
 +                style={{
-+                  flex: "none", padding: "0 6px", "border-radius": "4px", "font-size": "11.5px", "font-weight": 700,
++                  flex: "0 1 auto", "min-width": "0", overflow: "hidden", "text-overflow": "ellipsis", "white-space": "nowrap",
++                  padding: "0 6px", "border-radius": "4px", "font-size": "11.5px", "font-weight": 700,
 +                  color: "var(--rt-ink)", background: "var(--c)",
 +                }}
 +              >
@@ -14467,25 +14520,6 @@ index 0000000..f27c97b
 +              <span style={{ "margin-left": "auto", flex: "none", color: "var(--rt-faint)", "font-family": mono, "font-size": "11px" }}>
 +                {say(card().age)}
 +              </span>
-+              <button
-+                ref={expandBtn}
-+                type="button"
-+                data-oco-runtime-card-expand
-+                disabled={!canExpand()}
-+                aria-haspopup="dialog"
-+                aria-expanded={ui.panel}
-+                aria-label={text.t("ring.card.expand.aria")}
-+                onClick={() => {
-+                  if (canExpand()) setUi("panel", true)
-+                }}
-+                style={{
-+                  flex: "none", height: "20px", padding: "0 6px", "font-size": "11px", "border-radius": "4px", cursor: canExpand() ? "pointer" : "default",
-+                  border: "1px solid var(--rt-line-strong)", background: "transparent",
-+                  color: canExpand() ? "var(--rt-text)" : "var(--rt-faint)",
-+                }}
-+              >
-+                {text.t("ring.card.expand")}
-+              </button>
 +            </div>
 +            <div
 +              data-oco-runtime-card-body
@@ -14559,15 +14593,6 @@ index 0000000..f27c97b
 +                {say(card().post)}
 +              </span>
 +            </Show>
-+            <div
-+              data-oco-runtime-card-meta
-+              style={{
-+                flex: "none", "margin-top": "auto", "font-size": "11px", "line-height": "15px", color: "var(--rt-weak)", overflow: "hidden",
-+                ...(wide() ? { "white-space": "nowrap", "text-overflow": "ellipsis" } : { display: "-webkit-box", "-webkit-box-orient": "vertical", "-webkit-line-clamp": "2" }),
-+              }}
-+            >
-+              {card().meta.map((p) => text.phrase(p)).join(sep())}
-+            </div>
 +          </div>
 +
 +          {/* ---------- tools ---------- */}
@@ -14582,14 +14607,16 @@ index 0000000..f27c97b
 +            <div style={{ display: "flex", "align-items": "baseline", gap: "6px", "font-size": "12px", height: "20px", "white-space": "nowrap", overflow: "hidden" }}>
 +              <b style={{ color: "var(--rt-tool)" }}>{text.t("ring.tools.title")}</b>
 +              <span>{tools().m !== undefined ? text.t("ring.ctr.request", { m: tools().m! }) : ""}</span>
-+              <span style={{ "margin-left": "auto", color: "var(--rt-weak)", "font-size": "11.5px" }}>
++              <span style={{ "margin-left": "auto", "min-width": "0", overflow: "hidden", "text-overflow": "ellipsis", color: "var(--rt-weak)", "font-size": "11.5px" }}>
 +                {tools().rows.length
 +                  ? text.t("ring.tools.counts", { run: tools().counts.run, ok: tools().counts.ok, err: tools().counts.err }) +
 +                    (tools().counts.pend ? sep() + text.t("ring.tools.counts.pend", { n: tools().counts.pend }) : "")
-+                  : ""}
++                  : dockStrip()
++                    ? say(tools().empty)
++                    : ""}
 +              </span>
 +            </div>
-+            <Show when={!tools().rows.length && tools().empty}>
++            <Show when={!tools().rows.length && !dockStrip() && tools().empty}>
 +              {(empty) => (
 +                <div
 +                  style={{
@@ -14772,9 +14799,9 @@ index 0000000..f27c97b
 +      {/* ---------- card full text (D8): content at or before t only; Esc / ✕ close, focus back to the button ---------- */}
 +      <Show when={ui.panel}>
 +        <div
-+          data-oco-runtime-card-panel
++          data-oco-runtime-card-panel={ui.panel}
 +          role="dialog"
-+          aria-label={text.t(`ring.card.kind.${card().kind}` as const)}
++          aria-label={ui.panel === "plan" ? text.t("ring.card.who.plan") : text.t(`ring.card.kind.${card().kind}` as const)}
 +          onKeyDown={(e) => {
 +            if (e.key !== "Escape") return
 +            e.preventDefault()
@@ -14796,12 +14823,14 @@ index 0000000..f27c97b
 +            <span
 +              style={{
 +                flex: "none", padding: "0 6px", "border-radius": "4px", "font-size": "11.5px", "font-weight": 700,
-+                color: "var(--rt-ink)", background: TONE[card().tone],
++                color: "var(--rt-ink)", background: ui.panel === "plan" ? TONE.main : TONE[card().tone],
 +              }}
 +            >
-+              {text.t(`ring.card.kind.${card().kind}` as const)}
++              {ui.panel === "plan" ? text.t("ring.card.who.plan") : text.t(`ring.card.kind.${card().kind}` as const)}
 +            </span>
-+            <span style={{ ...ell, "font-weight": 700, color: TONE[card().tone] }}>{`${say(card().from)} → ${say(card().to)}`}</span>
++            <span style={{ ...ell, "font-weight": 700, color: ui.panel === "plan" ? TONE.main : TONE[card().tone] }}>
++              {ui.panel === "plan" ? planChip() : `${say(card().from)} → ${say(card().to)}`}
++            </span>
 +            <button
 +              type="button"
 +              ref={(el) => queueMicrotask(() => el.isConnected && el.focus())}
@@ -14822,7 +14851,64 @@ index 0000000..f27c97b
 +              "overflow-wrap": "anywhere", "line-height": "1.55", "font-family": card().mono ? mono : "inherit",
 +            }}
 +          >
-+            {card().full ?? card().body}
++            <Show
++              when={ui.panel === "plan"}
++              fallback={
++                <>
++                  <Show when={card().pre}>
++                    <div style={{ color: "var(--rt-weak)", "margin-bottom": "4px" }}>{say(card().pre)}</div>
++                  </Show>
++                  {card().full ?? card().body}
++                  <Show when={card().plan?.items.length}>
++                    <ul style={{ margin: "0", padding: "0", "list-style": "none", "white-space": "normal" }}>
++                      <For each={card().plan?.items ?? []}>
++                        {(o) => (
++                          <li style={{ display: "grid", "grid-template-columns": "16px minmax(0,1fr)", "column-gap": "4px", "margin-bottom": "2px" }}>
++                            <i style={{ "font-style": "normal", "text-align": "center", color: o.status === "completed" ? "var(--rt-ok)" : o.status === "in_progress" ? "var(--rt-main)" : "var(--rt-faint)" }}>
++                              {PLAN_G[o.status] ?? "○"}
++                            </i>
++                            <span style={{ "text-decoration": o.status === "cancelled" ? "line-through" : "none" }}>{o.text}</span>
++                          </li>
++                        )}
++                      </For>
++                    </ul>
++                  </Show>
++                  <Show when={card().post}>
++                    <div style={{ color: "var(--rt-weak)", "margin-top": "4px" }}>{say(card().post)}</div>
++                  </Show>
++                  <Show when={card().meta.length}>
++                    <div data-oco-runtime-card-meta style={{ color: "var(--rt-weak)", "font-size": "11px", "margin-top": "8px", "white-space": "normal" }}>
++                      {card().meta.map((p) => text.phrase(p)).join(sep())}
++                    </div>
++                  </Show>
++                </>
++              }
++            >
++              <ul style={{ margin: "0", padding: "0", "list-style": "none", "white-space": "normal" }}>
++                <For each={ctr().plan?.items ?? []}>
++                  {(o) => (
++                    <li style={{ display: "grid", "grid-template-columns": "16px minmax(0,1fr)", "column-gap": "4px", "margin-bottom": "2px" }}>
++                      <i
++                        style={{
++                          "font-style": "normal", "text-align": "center",
++                          color: o.status === "completed" ? "var(--rt-ok)" : o.status === "in_progress" ? "var(--rt-main)" : "var(--rt-faint)",
++                        }}
++                      >
++                        {PLAN_G[o.status] ?? "○"}
++                      </i>
++                      <span
++                        style={{
++                          color: o.status === "in_progress" ? "var(--rt-main)" : o.status === "cancelled" ? "var(--rt-faint)" : "var(--rt-text)",
++                          "text-decoration": o.status === "cancelled" ? "line-through" : "none",
++                        }}
++                      >
++                        {o.text}
++                      </span>
++                    </li>
++                  )}
++                </For>
++              </ul>
++            </Show>
 +          </div>
 +        </div>
 +      </Show>
@@ -15105,10 +15191,10 @@ index 0000000..80429e8
 +}
 diff --git a/packages/app/src/components/session/session-runtime-ring.test.ts b/packages/app/src/components/session/session-runtime-ring.test.ts
 new file mode 100644
-index 0000000..0f91058
+index 0000000..7c6ffd1
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring.test.ts
-@@ -0,0 +1,762 @@
+@@ -0,0 +1,770 @@
 +// oco (patches/opencode/0019): unit tests for the M5 ring pure module (Task 5): stage, frame, no-leak property.
 +import { describe, expect, test } from "bun:test"
 +import { backgroundNoticesOf } from "./session-runtime-model"
@@ -15383,7 +15469,15 @@ index 0000000..0f91058
 +  const index = buildRingIndex(b.input())
 +  expect(frame(index, 3050).counter.plan).toBeUndefined()
 +  const f = frame(index, 3150)
-+  expect(f.counter.plan).toEqual({ done: 1, inProgress: 1, total: 4 })
++  expect(f.counter.plan).toEqual({
++    done: 1, inProgress: 1, total: 4,
++    items: [
++      { text: "a", status: "completed" },
++      { text: "b", status: "in_progress" },
++      { text: "c", status: "pending" },
++      { text: "d", status: "cancelled" },
++    ],
++  })
 +  expect(f.card.kind).toBe("plan")
 +  expect(f.card.plan!.items.map((x) => x.status)).toEqual(["completed", "in_progress", "pending", "cancelled"])
 +  expect(frame(index, 3050).card).toMatchObject({ kind: "plan", plan: { items: [] }, streaming: true })
@@ -15873,10 +15967,10 @@ index 0000000..0f91058
 +})
 diff --git a/packages/app/src/components/session/session-runtime-ring.ts b/packages/app/src/components/session/session-runtime-ring.ts
 new file mode 100644
-index 0000000..ddf9c02
+index 0000000..31adb02
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring.ts
-@@ -0,0 +1,1862 @@
+@@ -0,0 +1,1880 @@
 +// oco (patches/opencode/0019): M5 runtime ring — index, stage and frame as pure functions of t (Task 5).
 +// buildRingIndex reads the full data once; every query below (roundAt, stageAt, laneOpen, planAt, frameAt,
 +// trackInputOf) reads only facts whose time is at or before t (D1, D2), so a frame equals the frame computed from
@@ -16811,6 +16905,21 @@ index 0000000..ddf9c02
 +  return v * v * (3 - 2 * v)
 +}
 +
++/** Tools dock openness (0 = header strip only). Round-scoped so it does not flap between requests: opens over LANE_MS
++ *  from the round's first tool call, closes over LANE_MS once the latest request has finished without calling any tool
++ *  (the round's final answer). A round that never calls a tool keeps the dock closed; smoothstep. */
++export function dockOpen(index: RingIndex, t: number, reduced: boolean): number {
++  const r = roundAt(index, t)
++  if (!r) return 0
++  const ft = r.requests.flatMap((q) => q.tools).reduce((min, x) => (x.created <= t && x.created < min ? x.created : min), Infinity)
++  if (ft === Infinity) return 0
++  const q = latestRequest(r, t)
++  const closeAt = q && q.created > ft && at(q.finish?.at, t) && !q.tools.some((x) => x.created <= t) ? q.finish!.at : undefined
++  if (reduced) return closeAt === undefined ? 1 : 0
++  const v = closeAt === undefined ? Math.min(1, (t - ft) / RING.LANE_MS) : Math.max(0, 1 - (t - closeAt) / RING.LANE_MS)
++  return v * v * (3 - 2 * v)
++}
++
 +const planCount = (todos: readonly RingTodo[]) => ({
 +  done: todos.filter((o) => o.status === "completed").length,
 +  inProgress: todos.filter((o) => o.status === "in_progress").length,
@@ -17067,7 +17176,9 @@ index 0000000..ddf9c02
 +const PIPS = 10
 +function counterOf(index: RingIndex, S: RingStage, F: Facts, t: number): RingCounter {
 +  const p = planAt(index, t)
-+  const plan = p ? { done: p.done, inProgress: p.inProgress, total: p.total } : undefined
++  const plan = p
++    ? { done: p.done, inProgress: p.inProgress, total: p.total, items: (p.tool.todos ?? []).map((o) => ({ text: o.text, status: o.status })) }
++    : undefined
 +  const r = F.r
 +  if (!r) return { agent: F.agent, ended: false, requests: [], ...(plan ? { plan } : {}) }
 +  const m = F.q?.m
@@ -17621,6 +17732,7 @@ index 0000000..ddf9c02
 +    tools: toolsOf(F, t),
 +    subs: subsOf(index, F, t, opts.live),
 +    k: laneOpen(index, t, opts.reduced),
++    dk: dockOpen(index, t, opts.reduced),
 +    caption: captionOf(stage, F, t, live),
 +    live: liveOf(stage, F),
 +    bar: barOf(index, F, t),
@@ -17914,10 +18026,10 @@ index 0000000..3008106
 +}
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
 new file mode 100644
-index 0000000..09a59ce
+index 0000000..c6a2426
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -0,0 +1,1214 @@
+@@ -0,0 +1,1217 @@
 +// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view.
 +// M5 (2026-10-08): top bar / stage (ring) / caption line / status bar. The ring index is rebuilt at most every
 +// RING.REBUILD_MS from a dirty-session set (D11); the frame at the visual t is recomputed per animation frame into a
@@ -17991,7 +18103,10 @@ index 0000000..09a59ce
 +]
 +
 +// Frame fields kept in the reconciled store; `stage` holds index objects (round / request) and lives in a signal.
-+const FRAME_KEYS = ["t", "status", "counter", "model", "card", "pills", "you", "tools", "subs", "k", "caption", "live", "bar"] as const
++const FRAME_KEYS = ["t", "status", "counter", "model", "card", "pills", "you", "tools", "subs", "k", "dk", "caption", "live", "bar"] as const
++// every RingFrame field except stage must be listed above, or the view reads undefined for it
++const FRAME_KEYS_COMPLETE: Exclude<keyof RingFrame, "stage"> extends (typeof FRAME_KEYS)[number] ? true : never = true
++void FRAME_KEYS_COMPLETE
 +type FrameRest = Omit<RingFrame, "stage">
 +
 +const sameStage = (a: RingStage, b: RingStage) =>
@@ -19219,8 +19334,31 @@ index b84d520..d065e83 100644
        if (SKIP_PARTS.has(part.type)) break
        input.setStore(
          produce((draft) => {
+diff --git a/packages/app/src/context/server-session.test.ts b/packages/app/src/context/server-session.test.ts
+index 2ebf5f8..f99c52a 100644
+--- a/packages/app/src/context/server-session.test.ts
++++ b/packages/app/src/context/server-session.test.ts
+@@ -515,6 +515,18 @@ describe("server session", () => {
+     expect(store.data.part[stale.id]).toEqual([refreshed, pending])
+   })
+ 
++  test("replaces an optimistic user message whose server copy carries a different created time", () => {
++    // oco (patches/opencode/0019): the optimistic copy has the client clock, the server copy its own; messages are keyed
++    // by created + id, so the server copy used to be inserted next to the optimistic one (two user messages, one id)
++    const client = rootMessageClient([], [])
++    const store = createServerSession(client)
++    const local = userMessage("message-1")
++    const server = { ...local, time: { created: local.time.created + 250 } }
++    store.optimistic.add({ sessionID: "child", message: local, parts: [textPart(local.id, { id: "p1", text: "go" })] })
++    store.apply({ type: "message.updated", properties: { info: server } })
++    expect(store.data.message.child).toEqual([server])
++  })
++
+   test("uses a parent received by SSE during the replacement load", async () => {
+     const pending = deferredResponse()
+     const user = userMessage("message-1")
 diff --git a/packages/app/src/context/server-session.ts b/packages/app/src/context/server-session.ts
-index c5d9868..34ed026 100644
+index c5d9868..b22f2f1 100644
 --- a/packages/app/src/context/server-session.ts
 +++ b/packages/app/src/context/server-session.ts
 @@ -21,6 +21,7 @@ import { normalizeSessionInfo } from "@/utils/session"
@@ -19239,7 +19377,20 @@ index c5d9868..34ed026 100644
        const fetched = load?.clearedMessageParts.has(item.id)
          ? []
          : item.part.filter((part) => !SKIP_PARTS.has(part.type))
-@@ -1093,6 +1095,7 @@ export function createServerSession(
+@@ -1054,8 +1056,10 @@ export function createServerSession(
+         if (result.found) setData("message", info.sessionID, result.index, reconcile(info))
+         if (!result.found)
+           setData("message", info.sessionID, (value = []) => {
+-            const next = value.slice()
+-            next.splice(result.index, 0, info)
++            // oco (patches/opencode/0019): the key is created + id, and an optimistic copy carries the client clock, so the
++            // same id can sit under another key; drop it, or the store keeps two messages with one id
++            const next = value.some((m) => m.id === info.id) ? value.filter((m) => m.id !== info.id) : value.slice()
++            next.splice(Binary.search(next, messageKey(info), messageKey).index, 0, info)
+             return next
+           })
+         return
+@@ -1093,6 +1097,7 @@ export function createServerSession(
        }
        case "message.part.updated": {
          const part = (event.properties as { part: Part }).part
@@ -19247,7 +19398,7 @@ index c5d9868..34ed026 100644
          if (SKIP_PARTS.has(part.type)) return
          const messages = data.message[part.sessionID]
          const load = messageLoads.get(part.sessionID)
-@@ -1320,6 +1323,7 @@ export function createServerSession(
+@@ -1320,6 +1325,7 @@ export function createServerSession(
      },
      optimistic: {
        add(input: { sessionID: string; message: Message; parts: Part[] }) {
@@ -20017,10 +20168,10 @@ index 0000000..72a5832
 +})
 diff --git a/packages/app/test-browser/session-runtime-ring-view.test.tsx b/packages/app/test-browser/session-runtime-ring-view.test.tsx
 new file mode 100644
-index 0000000..9916a44
+index 0000000..142d9d5
 --- /dev/null
 +++ b/packages/app/test-browser/session-runtime-ring-view.test.tsx
-@@ -0,0 +1,181 @@
+@@ -0,0 +1,217 @@
 +// oco (patches/opencode/0019): RingView mounted on the real-data fixture (Task 9): data attributes, tool-row node
 +// identity across frames, focus back to the opener after the full-text overlay closes, no forbidden attribute names.
 +import { afterEach, expect, mock, test } from "bun:test"
@@ -20098,7 +20249,10 @@ index 0000000..9916a44
 +    const card = v.host.querySelector("[data-oco-runtime-card]")!
 +    expect(card.getAttribute("data-oco-runtime-card-kind")).toBe(f.card.kind)
 +    expect(card.getAttribute("data-oco-runtime-card-tone")).toBe(f.card.tone)
-+    for (const slot of ["route", "body", "meta", "expand"]) expect(card.querySelector(`[data-oco-runtime-card-${slot}]`)).not.toBeNull()
++    for (const slot of ["route", "body"]) expect(card.querySelector(`[data-oco-runtime-card-${slot}]`)).not.toBeNull()
++    // the card itself is the full-text opener; its meta line moved to the overlay
++    expect(card.hasAttribute("data-oco-runtime-card-expand")).toBe(true)
++    expect(card.querySelector("[data-oco-runtime-card-meta]")).toBeNull()
 +
 +    const rows = [...v.host.querySelectorAll("[data-oco-runtime-tool-row]")]
 +    // k03 / k05 have own tools in flight; k08's request only sent a question, so the dock shows its empty line
@@ -20166,10 +20320,13 @@ index 0000000..9916a44
 +  expect(v.host.querySelector("[data-oco-runtime-card]")).toBe(card)
 +})
 +
-+test("k08: full text opens, Esc closes it and focus returns to the full-text button", async () => {
++test("k08: the card opens its full text, Esc closes it and focus returns to the card", async () => {
 +  const v = mount(at("k08"))
-+  const expand = v.host.querySelector("[data-oco-runtime-card-expand]") as HTMLButtonElement
-+  expect(expand.disabled).toBe(false)
++  const expand = v.host.querySelector("[data-oco-runtime-card-expand]") as HTMLElement
++  // the whole card is the opener (no separate full-text button)
++  expect(expand.hasAttribute("data-oco-runtime-card")).toBe(true)
++  expect(expand.getAttribute("aria-disabled")).toBeNull()
++  expect(expand.tabIndex).toBe(0)
 +  expand.focus()
 +  expand.click()
 +  await Promise.resolve()
@@ -20192,6 +20349,36 @@ index 0000000..9916a44
 +  close.click()
 +  expect(v.host.querySelector("[data-oco-runtime-card-panel]")).toBeNull()
 +  expect(document.activeElement).toBe(expand)
++})
++
++test("plan chip opens the plan list; a round-end card can show its full text", async () => {
++  const withPlan = fixture.keyframes.map((k) => Number(k.t)).find((t) => frameAt(index, t, { reduced: false, wide: true }).counter.plan)
++  expect(withPlan).toBeDefined()
++  const v = mount(withPlan!)
++  const chip = v.host.querySelector("[data-oco-runtime-plan]") as HTMLButtonElement
++  expect(chip.tagName).toBe("BUTTON")
++  chip.focus()
++  chip.click()
++  await Promise.resolve()
++  await Promise.resolve()
++  const panel = v.host.querySelector('[data-oco-runtime-card-panel="plan"]')!
++  expect(panel).not.toBeNull()
++  const items = v.frame().counter.plan!.items
++  expect(panel.querySelectorAll("li").length).toBe(items.length)
++  for (const o of items) expect(panel.textContent).toContain(o.text)
++  ;(document.activeElement ?? panel).dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
++  expect(v.host.querySelector("[data-oco-runtime-card-panel]")).toBeNull()
++  expect(document.activeElement).toBe(chip)
++
++  const end = fixture.keyframes.map((k) => Number(k.t)).find((t) => {
++    const c = frameAt(index, t, { reduced: false, wide: true }).card
++    return c.kind === "round-end" && !!c.body
++  })
++  expect(end).toBeDefined()
++  v.setT(end!)
++  expect(v.host.querySelector("[data-oco-runtime-card-expand]")!.getAttribute("aria-disabled")).toBeNull()
++  // the meta line is not in the card any more; it is in the overlay
++  expect(v.host.querySelector("[data-oco-runtime-card] [data-oco-runtime-card-meta]")).toBeNull()
 +})
 +
 +test("no element carries a forbidden attribute name", () => {

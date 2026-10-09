@@ -2,6 +2,13 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 运行视图 M5 用户反馈修正（2026-10-09；同分支，未提交，已装本机 `oco-0.0.4-dd67556-fb3.vsix`，需 Reload Window）
+
+- 修正：结束卡片「全文」可点开且垂直居中；工具台按轮收缩（本轮首次调工具展开，最后一次请求未调工具即收为 30 px 标题条；仅宽布局，窄布局不变；新属性 `data-oco-runtime-tools-k`）；「计划 n/m」改为按钮，浮层列出全部计划项；计数行改为 safe center，超长时右侧省略，不再裁掉 agent 名；新会话首轮显示「第 2 轮」——根因是乐观用户消息与服务端副本 `time.created` 不同、按 `created+id` 查找未命中而重复插入（`context/server-session.ts` 的 `message.updated` 插入前按 id 去重，补回归测试）。
+- 第二轮反馈：计划标签所在计数行 `pointer-events: none` 导致真实点击无效（已修，E2E 改为 Playwright 真实点击）；去掉「全文」按钮，中心卡片整块可点（有任何文本即可，运行中也可），浮层显示标签、全文、计划项、附注和 meta；卡片内不再显示 meta 行，空间留给正文。E2E（Gemini，mock）c5-runtime en 43/43、zh 43/43。
+- 实时帧字段经 `session-runtime.tsx` 的 `FRAME_KEYS` 白名单传递，新增编译期检查保证覆盖 `RingFrame` 全部字段（本轮 `dk` 漏列曾导致工具台 NaN 定位）。
+- 验证（本机）：vendor typecheck 0；session 单测 419/0；test-browser 66/0；app 全量单测 1143/1（`i18n/desktop-native.test.ts` 期望 "pa" 得 "en"，主机 ICU，0019 未触及）；look-local 真实会话 1100/1600 宽各 3 时刻，溢出 0，轮末 tools-k 0 / 30 px，轮中 1 / 208 px；E2E（Gemini 执行，mock 模型）c5-runtime en 43/43、zh 43/43（`geometry-stable` 断言已改为工具台仅在 tools-k 相同时比较），c4-trajectory 17/17。证据：`docs/evidence/runtime-m5.md` 末节、`docs/evidence/e2e-fb-2026-10-09.md`、`docs/evidence/round-two-investigation-2026-10-09.md`。
+
 ## 运行视图 M5：环形循环 + 环心卡片 + 三个坞（2026-10-08；第二批完成，本分支本地提交 8292fba、54ab5d2 及文档提交，未推送，未合入 main）
 
 - 设计已定：动画对比稿 [runtime-m5-animated-mockup](superpowers/specs/runtime-m5-animated-mockup.html)（第 1–4 轮真实数据；模板 [runtime-m5-mockup.src.html](superpowers/specs/runtime-m5-mockup.src.html)，关键帧 [runtime-m5-keyframes.json](superpowers/specs/runtime-m5-keyframes.json)）。用户决定（无子代理的轮次收起子代理区、问题原文进环心卡片、计划卡片、≥10 秒等待折叠、英文直显、卡片居中、连线不悬空、子代理可点开进子会话）和 D18（已忽略/已拒绝不用红色）全部实现。计划：[2026-10-08-runtime-m5-ring](superpowers/plans/2026-10-08-runtime-m5-ring.md)；委派与验收记录：[runtime-m5 证据](evidence/runtime-m5.md)。

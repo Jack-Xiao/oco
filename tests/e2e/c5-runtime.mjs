@@ -316,6 +316,7 @@ try {
         : []
       return {
         k: document.querySelector("[data-oco-runtime-stage]")?.getAttribute("data-oco-runtime-lane-k") ?? null,
+        dk: document.querySelector("[data-oco-runtime-stage]")?.getAttribute("data-oco-runtime-tools-k") ?? null,
         rects: ["card", "ring", "model", "you", "tools"].map((n) => rect(`[data-oco-runtime-${n}]`)),
         stageBox: rect("[data-oco-runtime-stage]"),
         rootBox: rect("[data-oco-runtime]"),
@@ -599,7 +600,17 @@ try {
   await waitReply(A)
   const planShown = await until(async () => (await attrOf("[data-oco-runtime-plan]", "data-oco-runtime-plan")) === "1/3", 10000, 100)
   const planText = await textOf("[data-oco-runtime-plan]")
-  run.record("plan-chip", idlePlanChips === 0 && planBefore === 0 && planShown && planText.includes("1/3") ? "PASS" : "FAIL", { idlePlanChips, planBefore, planShown, planText })
+  // a real pointer click (Playwright hit-tests it, so a pointer-events: none parent fails here) opens the plan list
+  const planClicked = await fA.locator("[data-oco-runtime-plan]").click({ timeout: 3000 }).then(() => true, () => false)
+  const planPanel = await fA.locator('[data-oco-runtime-card-panel="plan"]').waitFor({ state: "visible", timeout: 3000 }).then(() => true, () => false)
+  const planPanelItems = planPanel ? await fA.locator('[data-oco-runtime-card-panel="plan"] li').count() : 0
+  await page.keyboard.press("Escape")
+  const planPanelClosed = await fA.locator("[data-oco-runtime-card-panel]").waitFor({ state: "detached", timeout: 3000 }).then(() => true, () => false)
+  run.record(
+    "plan-chip",
+    idlePlanChips === 0 && planBefore === 0 && planShown && planText.includes("1/3") && planClicked && planPanel && planPanelItems === 3 && planPanelClosed ? "PASS" : "FAIL",
+    { idlePlanChips, planBefore, planShown, planText, planClicked, planPanel, planPanelItems, planPanelClosed },
+  )
 
   // 12. perm-approve & reply-in-panel: a bash ask shows the pending badge in the top bar, the You dock reads "permission"
   // (no button in it) and the centre card shows the permission; the composer dock carries the 3 buttons;
@@ -1031,7 +1042,7 @@ try {
     { thinkSamples: thinkSamples.length, thinkRects, thinkGroups: thinkGroupList, stagesSeen: [...new Set(thinkLog.map((s) => s.stage))] },
   )
 
-  // 26. think-expand: the card's "full text" button opens the overlay while the model thinks; Esc closes it and focus returns to the button.
+  // 26. think-expand: clicking the card opens the full-text overlay while the model thinks; Esc closes it and focus returns to the card.
   // THINK-FIRST makes the model reason for ~1.8 s before it calls the bash tool.
   await send(fA, `THINK-FIRST Use the bash tool to run exactly: printf '%s' ${MARK}-tf . Then reply with the output.`)
   const expandBtn = fA.locator("[data-oco-runtime-card-expand]")
@@ -1266,8 +1277,9 @@ try {
   const parProbeStages = await fA.evaluate(() => [...document.querySelectorAll("[data-oco-runtime-probe]")].map((e) => e.getAttribute("data-oco-runtime-probe-stage")))
   run.record("parallel-subagents", parSeen && parDone ? "PASS" : "FAIL", { parRunCells, parRunProbes, parDone, parProbeStagesAfter: parProbeStages })
 
-  // geometry-stable: with the same lane-k the card, ring, model box, You dock and tools dock keep their rectangles
-  // while running, when done, and in replay (seek into the middle of the parallel round).
+  // geometry-stable: with the same lane-k the card, ring, model box and You dock keep their rectangles while running,
+  // when done, and in replay (seek into the middle of the parallel round). The tools dock also depends on tools-k (it
+  // collapses to its header once the round ends on a tool-less request), so its rectangle is compared only at the same tools-k.
   const parTasks = (await tools("task")).slice(-3)
   const parFirstStart = Math.min(...parTasks.map((p) => timesOf(p).start).filter(Boolean))
   let geomReplay = null
@@ -1280,7 +1292,9 @@ try {
   // D14: rectangles are a function of (stage width, stage height, k). Pairs whose stage size or k differ (the host's todo
   // dock shrinks the frame while the session is busy) are recorded as not comparable (null) instead of compared.
   const sizeOf = (g) => (g?.stageBox ?? "").split(",").slice(2).join("x")
-  const sameRects = (a, b) => (a.k === b.k && sizeOf(a) === sizeOf(b) && sizeOf(a) !== "" ? a.rects.join("|") === b.rects.join("|") : null)
+  const rectsOf = (g, other) => (g.dk === other.dk ? g.rects : g.rects.slice(0, 4))
+  const sameRects = (a, b) =>
+    a.k === b.k && sizeOf(a) === sizeOf(b) && sizeOf(a) !== "" ? rectsOf(a, b).join("|") === rectsOf(b, a).join("|") : null
   const pairOf = (a, b) => (rectsPresent(a) && rectsPresent(b) ? sameRects(a, b) : null)
   const runRun = pairOf(geomRunning, geomRunning2)
   const runDone = pairOf(geomRunning, geomDone)

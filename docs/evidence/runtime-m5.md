@@ -128,3 +128,42 @@ Order as in the plan's 验证顺序. Raw logs in the session scratchpad `m5-logs
 10. Docs check: Grok Build (direct `grok-worker` route, job run-muzpxoaw-hn2b75, model unknown) read the four batch-2 doc sections and reported 6 items (wording of the sync-file hunks, install result and diagnosis still "next commit", one missing punctuation, Chinese sentences ending in ".", a scratchpad path outside the repo); all addressed in the docs commit except the scratchpad reference, which is kept as a pointer to session-local evidence.
 
 Extra delegations after the workflow (all Claude unless noted): a1dc54d0 opus perf reuse (accepted); a1774c94 opus read-only step-parts investigation; a8789a53 sonnet D18 data layer (accepted); a5fb9494 opus D21 side table (accepted); aacd067f opus final E2E round 1; ab461059 opus read-only round-1 diagnosis; a0fadfd6 sonnet history paging (partial: effect added, 12/14); a29c51de opus history rebuild fix (accepted, 14/14); a78c84c1 opus final E2E round 2; Grok docs check as above. Gemini: unavailable (503) for the whole batch.
+
+## Feedback batch (2026-10-09): user's first-use feedback on the installed 54ab5d2
+
+Items: (1) 全文 button sits low and is disabled on the round-end card; (2) tools dock should collapse when there are no tool calls; (3) the plan chip cannot be opened; (4) a session's first conversation shows "第 2 轮"; (5) the counter row clips its left edge ("build" → "uild") when the round has ended.
+
+Facts so far: (4) the DB holds exactly one user message for the reported session (`ses_ee1f4ac91ffeHAmjzXsNvb4OJW`) and `buildRingIndex` on the DB rows, full and incremental (message by message, parts arriving late), gives one round n=1; so the extra round comes from the live store (an extra user message that is not in the DB).
+
+### Delegation record
+
+| task_id | Write scope (exclusive) | requested_route | actual_provider/model | agent_id/run_id | Status | Result path | fallback_reason |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| fb-1/2/3/5 | patch 0019 sources (`session-runtime-ring*`, i18n, tests) | main thread | Claude Opus 5.5 | this session | Done | this file | upstream patch 0019 is main-thread work (AGENTS.md) |
+| fb-4-investigate | `docs/evidence/round-two-investigation-2026-10-09.md` | gemini-worker | unknown | a16c3387 | Running | `docs/evidence/round-two-investigation-2026-10-09.md` | — |
+
+Results so far (main thread, 2026-10-09):
+- (1) `round-end` added to `EXPANDABLE`; the expand button is `inline-flex`, `line-height: 1`, `font-family: inherit`; the card badge now shrinks (ellipsis) before the button can be pushed out.
+- (2) `dockOpen(index, t, reduced)` (session-runtime-ring.ts): round-scoped, opens over LANE_MS from the round's first tool call, closes over LANE_MS once the latest request finished without any tool; frame field `dk`, view attribute `data-oco-runtime-tools-k`; wide layout only (`baseWide` dock height lerps 30 px ↔ full); narrow layout unchanged. Collapsed header carries the empty note. Live-path bug found in look-local (NaN dock at the top-left): `session-runtime.tsx` `FRAME_KEYS` did not list `dk`; fixed, plus a compile-time check that `FRAME_KEYS` covers every `RingFrame` field.
+- (3) plan chip is a button (`aria-label` key `ring.plan.chip.aria`, en/zh/zht) opening the same overlay with every plan item; Esc/✕ return focus to the chip.
+- (5) counter row: `justify-content: safe center`, the round/state segment shrinks with ellipsis, width estimate keeps a 10 % margin.
+- Checks: `bun typecheck` 0 errors; unit `src/components/session` 419 pass / 0 fail; `test:browser` 66 pass / 0 fail (new test: plan chip opens the list, round-end expand enabled); geo test 1b (collapsed dock clean, wide 30 px, narrow unchanged). look-local on the real session (widths 1100/1600, 3 instants each; new `rects` field in report.json): round end tools-k 0.000 / dock 30 px high; mid-round tools-k 1.000 / 208 px; overflow 0; screenshots `.oco-look-fb4/` (local only, real session text).
+- Patch 0019 regenerated (`git diff deb241e -- packages/app` after `add -N`), `diff --check` clean. Installed `oco-0.0.4-dd67556-fb1.vsix` locally (needs Reload Window).
+- c5-runtime E2E en/zh: NOT RUN yet (to be delegated after item 4).
+- (4) Gemini report (`docs/evidence/round-two-investigation-2026-10-09.md`, Gemini 3.8 Flash per its report) verified by the main thread: `messageKey` = `time.created + id` (`utils/session-message.ts`), the optimistic user copy carries the client clock, so `message.updated` for the server copy misses the binary search and is spliced in next to it → two user messages with one id in `data.message` → `buildFull` counts two rounds. Fix in `context/server-session.ts` (`message.updated`, not-found branch only): drop any entry with the same id before inserting. Regression test in `server-session.test.ts` (failed before, passes after). Full app unit suite with the package flags: 1143 pass / 1 fail (`i18n/desktop-native.test.ts` "pa" vs "en", host ICU, file not touched by 0019). Installed `oco-0.0.4-dd67556-fb2.vsix`.
+
+| task_id | Write scope (exclusive) | requested_route | actual_provider/model | agent_id/run_id | Status | Result path | fallback_reason |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| fb-4-investigate | `docs/evidence/round-two-investigation-2026-10-09.md` | gemini-worker | Google / Gemini 3.8 Flash (High) (self-reported) | a16c3387 / gem-mv08ps52-cuar9 | Returned, accepted after main-thread check | that file | — |
+| fb-e2e | `docs/evidence/e2e-fb-2026-10-09.md`, `.oco-e2e-fb-*` logs | gemini-worker | Google / unknown model (oco-mock model under test) | aba845ae / gem-mv099tlq-5z13y | Returned: c5 en 42/1, zh 42/1 (geometry-stable, outdated dock assumption), c4 17/0 | `docs/evidence/e2e-fb-2026-10-09.md` | — |
+- E2E (Gemini, mock model): c5-runtime en 42 PASS / 1 FAIL, zh 42 PASS / 1 FAIL, c4-trajectory 17/0 (`docs/evidence/e2e-fb-2026-10-09.md`). The failure is `geometry-stable`: it compared the tools dock between the done frame (dock collapsed, 30 px) and a mid-round replay frame (dock open, 208 px). Main thread updated the test: `geomOf` records tools-k; the tools dock rectangle is compared only at equal tools-k, the other four always. Recomputed on the recorded rects of both runs: runRun true, doneReplay true (PASS); rerun delegated below.
+
+| task_id | Write scope (exclusive) | requested_route | actual_provider/model | agent_id/run_id | Status | Result path | fallback_reason |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| fb-e2e-2 | `docs/evidence/e2e-fb-2026-10-09.md` (append), `.oco-e2e-fb-*` logs | gemini-worker | Google / Gemini 3.8 Flash (High) (self-reported) | ac48911f / gem-mv09t2xz-aa16h | Returned, accepted: c5 en 43/43, zh 43/43 (results.json checked by main thread) | same file | — |
+
+Feedback round 2 (2026-10-09): (a) the plan chip still could not be clicked: the counter row it sits in has `pointer-events: none`, and the browser test used `el.click()`, which skips hit-testing. Fix: `pointer-events: auto` on the chip; c5 `plan-chip` now does a real Playwright click and requires the plan overlay with 3 items. (b) The 全文 button is removed; the whole card is the opener (`role="button"`, `tabIndex` 0, Enter/Space, `aria-disabled` when the card has no text), enabled whenever the card shows any text (body/full/pre/post/plan), so running cards open too. The overlay shows pre, full text, plan items, post and the meta line. (c) The meta line is no longer in the card (its height goes to the body); it is in the overlay and the bottom caption. i18n `ring.card.expand` removed (268 ring keys). Checks: typecheck 0; session unit 419/0; test-browser 66/0; look-local 1600 px on the real session: the waiting card shows the full route, no button, no meta line. Installed `oco-0.0.4-dd67556-fb3.vsix`.
+
+| task_id | Write scope (exclusive) | requested_route | actual_provider/model | agent_id/run_id | Status | Result path | fallback_reason |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| fb-e2e-3 | `docs/evidence/e2e-fb-2026-10-09.md` (append), `.oco-e2e-fb-*` logs | gemini-worker | unknown / Gemini 3.8 Flash (High) (self-reported) | a5819f40 / gem-mv0bcauq-hka3a | Returned, accepted: c5 en 43/43, zh 43/43; plan-chip real click opens 3 items (results.json checked by main thread) | same file | — |

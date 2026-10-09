@@ -394,6 +394,22 @@ async function main() {
           rec.root = { scrollWidth: m.rootScroll, clientWidth: m.rootClient, ok: m.rootScroll !== null && m.rootScroll <= m.rootClient }
           rec.frame = { scrollWidth: m.frameScroll, clientWidth: m.frameClient }
           rec.facts = facts
+          // stage-relative boxes of the main blocks (layout debugging; no text content)
+          rec.rects = await f.evaluate(() => {
+            const stage = document.querySelector("[data-oco-runtime-stage]")
+            if (!stage) return null
+            const o = stage.getBoundingClientRect()
+            const box = (el) => {
+              const r = el.getBoundingClientRect()
+              return [Math.round(r.x - o.x), Math.round(r.y - o.y), Math.round(r.width), Math.round(r.height)]
+            }
+            const out = { stage: [0, 0, Math.round(o.width), Math.round(o.height)], toolsK: stage.getAttribute("data-oco-runtime-tools-k") }
+            for (const k of ["tools", "counter", "card", "plan", "card-expand"]) {
+              const el = stage.querySelector(`[data-oco-runtime-${k}]`)
+              if (el) out[k] = box(el)
+            }
+            return out
+          }).catch((e) => ({ error: String(e.message ?? e).slice(0, 200) }))
           if (p.oracle) {
             const c = compareFrame(p.oracle, facts)
             rec.cmp = { match: c.match, diffs: c.diffs, known: c.known, kDelta: c.kDelta }

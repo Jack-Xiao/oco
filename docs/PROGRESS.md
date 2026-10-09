@@ -498,3 +498,11 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - 结果：vendor typecheck 0；session 单测 418/0；test-browser 65/0；性能在预算内（B 根变化带 prev 2.7 ms，每帧 ≤ 0.40 ms）；verify:brief PASS；0019 重生成 55 个文件、干净重放 19/19；build PASS；E2E（mock，最终构建 54ab5d2）c5-runtime en 43/43（`runs/20261008-161513-c5-runtime-7bdc`）、zh 43/43（`runs/20261008-161824-c5-runtime-73be`）、c4-trajectory 17/17（`runs/20261008-162120-c4-trajectory-adcb`），无测试侧改动；历史翻页没有专门断言（只隐式跑到），8292fba 上的前一轮同样 43/43、43/43、17/17；look-local 修复后 14/14；`oco-0.0.4-54ab5d2.vsix` 已装本机。提交 8292fba、54ab5d2 与文档提交，未推送，未合入 main。
 - 2026-10-09 真实会话 look-local 先是 12/14：第 1 轮两帧不一致。只读诊断（opus）查明重开会话只加载最近 20 条消息、运行视图不翻页；修复（sonnet 加翻页 effect，opus 查明旧页原地合并后索引不重建并补 history 钩子）后 14/14（54ab5d2），E2E 复跑通过。
 - 委派：Gemini 503；Grok 健康检查通过但工作流内未真正启动，Task 14 回退 sonnet；文档一致性检查由 Grok 直接路线完成（6 处措辞/补记项，已改）；其余 Claude opus / sonnet（用户指定按能力分配）。记录见 evidence/runtime-m5.md。
+
+### 2026-10-09 运行视图 M5 用户反馈修正（5 项）
+
+- 用户首用反馈：「全文」偏下且结束时禁用、工具台无调用时应收缩、计划标签不可点、新会话首轮显示「第 2 轮」、结束时计数行左侧裁字。全部修正，补丁 0019 重生成（`git diff deb241e -- packages/app`，`diff --check` 干净），本机安装 fb2 包。
+- 「第 2 轮」由 Gemini 只读调查定位、主线程核实：乐观消息时间戳与服务端不同导致 store 同 id 两条；修在 `message.updated` 插入路径。
+- look-local 发现单测未覆盖的实时路径缺陷（`FRAME_KEYS` 漏 `dk`），已修并加编译期检查；look-local 新增 `rects` 字段（各块相对舞台的矩形）。
+- E2E 首轮 c5 en/zh 各 42/1（`geometry-stable` 断言假设工具台固定），改测试后重跑 43/43、43/43；c4 17/17。委派记录见 `docs/evidence/runtime-m5.md`。
+- 第二轮反馈（同日）：计划标签真实点击无效（父级 pointer-events none，单测用 el.click() 未覆盖）；「全文」按钮改为卡片整块可点；卡片去掉 meta 行。session 单测 419/0、test-browser 66/0、c5 en/zh 43/43；本机安装 fb3。
