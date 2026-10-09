@@ -1,0 +1,1063 @@
+<title>oco 原理手册</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: a maintenance manual. Each section is a data module with a code row, a rule and STE-style text; the film stage is the one bold element. */
+:root{
+  --bg:#eceff2; --paper:#fafbfc; --sunk:#e3e8ed; --ink:#15202b; --muted:#4c5865; --line:#c5ced7; --grid:#dde3e9;
+  --accent:#1d5fa6; --signal:#c25200; --signal-soft:#fbe7d6;
+  --ok:#2b7a4b; --ok-soft:#dcefe3; --part:#874f00; --part-soft:#f6ead2; --prop:#525e6b; --prop-soft:#e4e8ec;
+  --warn:#b42318; --warn-soft:#fbe4e1; --note-soft:#dfe9f5;
+  --f-display:"IBM Plex Sans Condensed","Noto Sans SC","PingFang SC",system-ui,sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --max:1120px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e141a; --paper:#151d25; --sunk:#1b252f; --ink:#e3e9ef; --muted:#9aa8b5; --line:#2d3a46; --grid:#1d2832;
+  --accent:#6ea9ea; --signal:#ff9a45; --signal-soft:#3a2614;
+  --ok:#6fcf97; --ok-soft:#173326; --part:#f0b45a; --part-soft:#3a2c14; --prop:#a3afbb; --prop-soft:#25303a;
+  --warn:#ff8a7a; --warn-soft:#3b1d1a; --note-soft:#182b40; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e141a; --paper:#151d25; --sunk:#1b252f; --ink:#e3e9ef; --muted:#9aa8b5; --line:#2d3a46; --grid:#1d2832;
+  --accent:#6ea9ea; --signal:#ff9a45; --signal-soft:#3a2614;
+  --ok:#6fcf97; --ok-soft:#173326; --part:#f0b45a; --part-soft:#3a2c14; --prop:#a3afbb; --prop-soft:#25303a;
+  --warn:#ff8a7a; --warn-soft:#3b1d1a; --note-soft:#182b40; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.75;padding-inline:16px;padding-block:0 64px}
+.wrap{max-width:var(--max);margin-inline:auto}
+a{color:var(--accent);text-underline-offset:3px}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+code{background:var(--sunk);padding:2px 6px;border-radius:3px;overflow-wrap:anywhere}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+
+/* masthead */
+.mast{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end;padding-block:40px 20px;border-bottom:2px solid var(--ink)}
+.mast h1{font-size:clamp(34px,5vw,56px);font-weight:700;letter-spacing:-.5px;line-height:1.1}
+.mast p{margin:12px 0 0;max-width:60ch;color:var(--muted)}
+.eff{font-family:var(--f-mono);font-size:12px;line-height:1.7;color:var(--muted);text-align:right;white-space:nowrap}
+.eff b{color:var(--ink);font-weight:500}
+.formats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-bottom:1px solid var(--line);margin-bottom:8px}
+.formats a{display:block;padding:14px 16px;text-decoration:none;color:var(--ink);border-right:1px solid var(--line)}
+.formats a:last-child{border-right:0}
+.formats a:hover{background:var(--paper)}
+.formats .k{font-family:var(--f-mono);font-size:12px;letter-spacing:1px;color:var(--signal);text-transform:uppercase}
+.formats .t{display:block;font-family:var(--f-display);font-weight:600;font-size:17px}
+.formats .d{display:block;font-size:13px;color:var(--muted);line-height:1.5}
+
+/* data module */
+.dm{padding-block:36px 8px}
+.dmc{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--f-mono);font-size:12px;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:16px}
+.dmc b{color:var(--ink);font-weight:500}
+.dm h2{font-size:28px;font-weight:600;margin-bottom:8px}
+.dm .lead{max-width:68ch;color:var(--muted);margin:0 0 18px}
+.dm h3{font-size:19px;font-weight:600;margin:28px 0 10px}
+
+/* callouts (STE: WARNING / CAUTION / NOTE) */
+.call{display:grid;grid-template-columns:96px minmax(0,1fr);border:1px solid var(--line);background:var(--paper);margin:10px 0}
+.call .lab{font-family:var(--f-mono);font-size:12px;font-weight:500;letter-spacing:1px;padding:10px 12px;display:flex;flex-direction:column;justify-content:center;line-height:1.4}
+.call .lab small{font-size:12px;letter-spacing:0;font-family:var(--f-body)}
+.call p{margin:0;padding:10px 14px}
+.call.warn{border-color:var(--warn)} .call.warn .lab{background:var(--warn-soft);color:var(--warn)}
+.call.caution .lab{background:var(--part-soft);color:var(--part)}
+.call.note .lab{background:var(--note-soft);color:var(--accent)}
+
+/* film */
+.film{background:var(--paper);border:1px solid var(--line)}
+.stage-wrap{overflow-x:auto;border-bottom:1px solid var(--line)}
+.stage{display:block;width:100%;min-width:720px;height:auto;font-family:var(--f-body)}
+.stage text{fill:var(--ink);font-size:13px}
+.stage .t-sub{fill:var(--muted);font-size:11.5px}
+.stage .t-mono{font-family:var(--f-mono);font-size:11.5px}
+.stage .t-title{font-family:var(--f-display);font-weight:600;font-size:16px}
+.stage .t-strong{font-weight:700}
+.stage .t-sig{fill:var(--signal)}
+.stage .t-warn{fill:var(--warn)}
+.stage .t-ok{fill:var(--ok)}
+.stage .zone{fill:var(--sunk);stroke:var(--line);stroke-width:1;transition:stroke .3s,fill .3s}
+.stage .box{fill:var(--paper);stroke:var(--line);stroke-width:1.2;transition:stroke .3s,stroke-width .3s}
+.stage .box.dash{stroke-dasharray:5 4}
+.stage .wire{stroke:var(--muted);stroke-width:1.6;fill:none}
+.stage .wire.thin{stroke-width:1.2}
+.stage .wire.sig{stroke:var(--signal);stroke-width:2}
+.stage .arrowhead{fill:var(--muted)}
+.stage .arrowhead.sig{fill:var(--signal)}
+.stage .card{fill:var(--paper);stroke:var(--signal);stroke-width:1.4}
+.stage .card.flat{stroke:var(--line)}
+.stage .bracket{fill:none;stroke:var(--signal);stroke-width:1.5;stroke-dasharray:6 4}
+.stage .gridbg{fill:url(#grid)}
+.stage .ov{opacity:0;visibility:hidden;transition:opacity .45s,visibility .45s}
+.stage .pkt{fill:var(--signal)}
+.stage .pkt.bad{fill:var(--warn)}
+.stage .xmark{stroke:var(--warn);stroke-width:3;stroke-linecap:round}
+.stage .bandbox{fill:var(--paper);stroke:var(--line);stroke-width:1}
+.stage[data-scene="s01"] .ov-s01,.stage[data-scene="s02"] .ov-s02,.stage[data-scene="s03"] .ov-s03,.stage[data-scene="s04"] .ov-s04,
+.stage[data-scene="s05"] .ov-s05,.stage[data-scene="s06"] .ov-s06,.stage[data-scene="s07"] .ov-s07,.stage[data-scene="s08"] .ov-s08,
+.stage[data-scene="s09"] .ov-s09,.stage[data-scene="s10"] .ov-s10,.stage[data-scene="s11"] .ov-s11,.stage[data-scene="s12"] .ov-s12{opacity:1;visibility:visible}
+.stage[data-scene="s02"] .zone{stroke:var(--signal);stroke-width:1.6}
+.stage[data-scene="s03"] .bandbox{stroke:var(--signal);stroke-width:1.6}
+.stage[data-scene="s03"] .zone{opacity:.55}
+.stage[data-scene="s01"] .hl-s01,.stage[data-scene="s04"] .hl-s04,.stage[data-scene="s05"] .hl-s05,.stage[data-scene="s06"] .hl-s06,
+.stage[data-scene="s07"] .hl-s07,.stage[data-scene="s08"] .hl-s08,.stage[data-scene="s09"] .hl-s09,.stage[data-scene="s10"] .hl-s10,
+.stage[data-scene="s11"] .hl-s11,.stage[data-scene="s12"] .hl-s12{stroke:var(--signal);stroke-width:2.2}
+.stage .band-dim{transition:opacity .3s}
+.stage:not([data-scene="s03"]) .band-dim{opacity:.6}
+
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.btn{border:1px solid var(--line);background:var(--paper);padding:6px 12px;border-radius:4px;cursor:pointer;line-height:1.3;font-size:14px}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);min-width:92px}
+.btn[aria-pressed="true"]{border-color:var(--signal);color:var(--signal)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.voice-state{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-left:auto}
+.chapters{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:2px;padding:0 14px 0}
+.chap{appearance:none;border:0;background:transparent;padding:10px 0 8px;cursor:pointer;text-align:left;border-top:3px solid var(--line);font-family:var(--f-mono);font-size:12px;color:var(--muted);position:relative}
+.chap .fill{position:absolute;left:0;top:-3px;height:3px;background:var(--signal);width:0}
+.chap[aria-current="step"]{color:var(--ink)}
+.chap.done{border-top-color:var(--signal)}
+.chap span{display:block;font-family:var(--f-body);font-size:12px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.caption{padding:14px 18px 18px;min-height:132px}
+.mp4{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:16/9;background:var(--ink);border:1px solid var(--line)}
+.caption .scn{font-family:var(--f-mono);font-size:12px;color:var(--signal);letter-spacing:.5px}
+.caption h3{font-size:22px;margin:2px 0 8px}
+.caption p{margin:0;font-size:17px;line-height:1.85;max-width:72ch}
+.caption .s{color:var(--muted);transition:color .25s}
+.caption .s.on{color:var(--ink);background:linear-gradient(transparent 62%,var(--signal-soft) 62%)}
+.caption .s.past{color:var(--ink)}
+details.transcript{padding:0 18px 16px}
+details.transcript summary{cursor:pointer;font-size:14px;color:var(--muted)}
+details.transcript ol{margin:8px 0 0;padding-left:22px;font-size:14.5px}
+details.transcript li{margin:6px 0}
+
+/* STE */
+.ste-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.seg button{border:0;background:var(--paper);padding:6px 12px;cursor:pointer;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.rules{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px;padding:0;list-style:none}
+.rules li{font-size:13px;border:1px solid var(--line);background:var(--paper);padding:4px 12px;border-radius:99px;color:var(--muted)}
+.tasks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.task{background:var(--paper);border:1px solid var(--line);padding:14px 18px 10px;min-width:0}
+.task h3{margin:0 0 6px;font-size:16px;display:flex;gap:10px;align-items:baseline}
+.task h3 .no{font-family:var(--f-mono);font-size:12px;color:var(--signal);font-weight:500}
+.task ol{margin:0;padding-left:0;list-style:none;counter-reset:st}
+.task li{counter-increment:st;display:grid;grid-template-columns:28px minmax(0,1fr);padding:5px 0;border-top:1px dashed var(--line);font-size:15.5px}
+.task li:first-child{border-top:0}
+.task li::before{content:counter(st) ".";font-family:var(--f-mono);font-size:12px;color:var(--muted);padding-top:3px}
+.task li.w{color:var(--warn)} .task li.c{color:var(--part)}
+.task li .tag{font-family:var(--f-mono);font-size:12px;letter-spacing:.5px;margin-right:6px}
+[data-lang="en"] .zh{display:none} [data-lang="zh"] .en{display:none}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);background:var(--paper)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.6}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font-family:var(--f-display);font-weight:600;background:var(--sunk);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.term{font-weight:700;white-space:nowrap}
+td.no-use{color:var(--warn);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--warn) 55%,transparent)}
+.msgs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.msgs .table-wrap{min-width:0}
+
+/* policy simulator */
+.sim{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:0;border:1px solid var(--line);background:var(--paper)}
+.sim-in{padding:16px 18px;border-right:1px solid var(--line);display:grid;gap:12px;align-content:start}
+.sim-in label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.sim-in select,.sim-in input[type=text]{border:1px solid var(--line);background:var(--bg);padding:7px 9px;border-radius:4px;font-family:var(--f-mono);font-size:13.5px;width:100%}
+.row2{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px}
+.chk{display:flex!important;align-items:center;gap:8px;color:var(--ink)!important;font-size:14px!important}
+.ctx{font-family:var(--f-mono);font-size:12px;color:var(--muted);background:var(--sunk);padding:8px 10px;line-height:1.7}
+.sim-out{padding:16px 18px;display:grid;gap:10px;align-content:start}
+.verdict{display:flex;align-items:center;gap:12px}
+.pill{font-family:var(--f-mono);font-size:13px;font-weight:500;padding:4px 10px;border-radius:3px;letter-spacing:.5px}
+.pill.allow{background:var(--ok-soft);color:var(--ok)}
+.pill.deny{background:var(--warn-soft);color:var(--warn)}
+.verdict .why{font-size:16px;font-weight:500}
+.trace{list-style:none;margin:0;padding:0;font-size:14px}
+.trace li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:4px;padding:5px 0;border-top:1px dashed var(--line)}
+.trace li .m{font-family:var(--f-mono)}
+.trace li.pass .m{color:var(--ok)} .trace li.fail .m{color:var(--warn)} .trace li.skip{color:var(--muted)}
+.cite{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+
+/* patches */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:var(--paper);padding:4px 10px;border-radius:99px;font-size:13px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.ledger{list-style:none;margin:0;padding:0;border:1px solid var(--line);background:var(--paper)}
+.ledger li{display:grid;grid-template-columns:56px minmax(0,15rem) minmax(0,1fr);gap:12px;padding:8px 14px;border-top:1px solid var(--line);font-size:14.5px;align-items:baseline}
+.ledger li:first-child{border-top:0}
+.ledger .n{font-family:var(--f-mono);color:var(--signal);font-size:13px}
+.ledger .f{font-family:var(--f-mono);font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.ledger .g{font-size:12px;color:var(--muted);display:block}
+
+/* tests */
+.layers{display:grid;gap:8px}
+.layer{display:grid;grid-template-columns:170px minmax(0,1fr) minmax(0,15rem);gap:16px;background:var(--paper);border:1px solid var(--line);padding:12px 16px;align-items:baseline}
+.layer h3{margin:0;font-size:17px}
+.layer h3 small{display:block;font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:400}
+.layer p{margin:0;font-size:15px}
+.layer .cmd{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.layer:nth-child(1){margin-right:0}
+
+/* status */
+.stat{display:inline-block;font-family:var(--f-mono);font-size:12px;padding:3px 10px;border-radius:3px;white-space:nowrap}
+.stat.ok{background:var(--ok-soft);color:var(--ok)} .stat.part{background:var(--part-soft);color:var(--part)} .stat.prop{background:var(--prop-soft);color:var(--prop)} .stat.no{background:var(--warn-soft);color:var(--warn)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-bottom:10px}
+
+.foot{margin-top:40px;padding-top:14px;border-top:2px solid var(--ink);font-size:13.5px;color:var(--muted);display:grid;gap:6px}
+.foot code{font-size:12px}
+
+@media (max-width:860px){
+  .mast{grid-template-columns:minmax(0,1fr)}
+  .eff{text-align:left;white-space:normal}
+  .formats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .formats a:nth-child(2){border-right:0}
+  .formats a:nth-child(-n+2){border-bottom:1px solid var(--line)}
+  .tasks,.msgs{grid-template-columns:minmax(0,1fr)}
+  .sim{grid-template-columns:minmax(0,1fr)}
+  .sim-in{border-right:0;border-bottom:1px solid var(--line)}
+  .layer{grid-template-columns:minmax(0,1fr);gap:4px}
+  .ledger li{grid-template-columns:48px minmax(0,1fr)}
+  .ledger .f{grid-column:2}
+  .chapters{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .chap span{display:none}
+  .call{grid-template-columns:minmax(0,1fr)}
+  .voice-state{margin-left:0;width:100%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* record mode (#record): 1920x1080 frame for MP4 capture */
+html.rec,html.rec body{width:1920px;height:1080px;overflow:hidden}
+html.rec body{padding:0;margin:0;background:var(--paper)}
+html.rec .wrap{max-width:none}
+html.rec .mast,html.rec .formats,html.rec .dm:not(#film),html.rec .foot,html.rec #film>.dmc,html.rec #film>h2,html.rec #film>.lead,
+html.rec .controls,html.rec .chapters,html.rec .transcript,html.rec .caption h3{display:none}
+html.rec .dm{padding:0}
+html.rec .film{border:0;width:1920px;height:1080px;position:relative;background:var(--paper)}
+html.rec .stage-wrap{border:0;overflow:hidden;width:1600px;margin:0 auto}
+html.rec .stage{min-width:0}
+html.rec .stage *{transition:none!important}
+html.rec .caption{position:absolute;left:0;right:0;top:900px;height:180px;padding:18px 160px 0;border-top:1px solid var(--line);min-height:0}
+html.rec .caption .scn{font-size:20px}
+html.rec .caption p{font-size:38px;line-height:1.5;max-width:none;margin-top:10px}
+html.rec .caption .s{display:none}
+html.rec .caption .s.on{display:inline;background:none;color:var(--ink)}
+html.rec .recbar{position:absolute;left:0;bottom:0;height:6px;background:var(--signal);width:0}
+
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <div>
+    <h1>oco 原理手册</h1>
+    <p>本手册说明 oco 的组成、请求的路径和状态的位置。每句只说一件事。先看影片，再查图和表。</p>
+  </div>
+  <div class="eff" aria-label="适用范围">
+    适用 <b>oco 0.0.4</b> · publisher oco-local-test<br>
+    上游 <b>OpenCode v1.18.33</b> @51ef4be<br>
+    VS Code ^1.95 · Bun 1.3.10 · esbuild 0.25.10<br>
+    修订 <b>2026-10-03</b> · 依据读代码，未运行测试
+  </div>
+</header>
+
+<nav class="formats" aria-label="四种讲解形式">
+  <a href="#film"><span class="k">01 · 影片</span><span class="t">讲解影片</span><span class="d">12 个场景：交互播放，或看 MP4。</span></a>
+  <a href="#ste"><span class="k">02 · 受控语言</span><span class="t">STE 速读卡</span><span class="d">短句、主动语态、一词一义。</span></a>
+  <a href="#policy"><span class="k">03 · 交互</span><span class="t">策略模拟器</span><span class="d">输入一个请求，看桥是否放行。</span></a>
+  <a href="#status"><span class="k">04 · 清单</span><span class="t">实现状态</span><span class="d">已实现、部分实现、仅拟议。</span></a>
+</nav>
+
+<!-- ============ FILM ============ -->
+<section class="dm" id="film">
+  <div class="dmc"><b>DMC-OCO-A-01-00</b><span>讲解影片</span><span>场景 12</span><span>旁白：中文</span></div>
+  <h2>一条消息走过 oco 的路径</h2>
+  <p class="lead">按“播放”开始。没有声音时，字幕按时间推进。点击下方编号可跳到任一场景。键盘：空格播放或暂停，←→ 切换场景。</p>
+
+  <div class="film">
+    <div class="stage-wrap">
+<svg class="stage" id="stage" data-scene="s01" viewBox="0 0 960 540" role="img" aria-label="oco 的三层结构：左侧 Webview，中间扩展宿主，右侧 OpenCode 服务；一条请求线从网页经桥、策略到服务。">
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="var(--grid)" stroke-width="1"/></pattern>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0 0L10 5L0 10z"/></marker>
+    <marker id="ahs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead sig" d="M0 0L10 5L0 10z"/></marker>
+  </defs>
+  <rect class="gridbg" x="0" y="0" width="960" height="540"/>
+
+  <!-- build band -->
+  <g class="band-dim">
+    <text x="20" y="24" class="t-sub t-mono">构建 · setup.sh → build-webview.sh → esbuild → package-vsix.sh</text>
+    <g>
+      <rect class="bandbox" x="20" y="34" width="140" height="44" rx="4"/><text x="90" y="53" text-anchor="middle" class="t-strong">上游 v1.18.33</text><text x="90" y="70" text-anchor="middle" class="t-sub t-mono">@51ef4be</text>
+      <rect class="bandbox" x="177" y="34" width="140" height="44" rx="4"/><text x="247" y="53" text-anchor="middle" class="t-strong">+ 18 个补丁</text><text x="247" y="70" text-anchor="middle" class="t-sub t-mono">patches/opencode</text>
+      <rect class="bandbox" x="334" y="34" width="140" height="44" rx="4"/><text x="404" y="53" text-anchor="middle" class="t-strong">Vite 打包前端</text><text x="404" y="70" text-anchor="middle" class="t-sub t-mono">build-webview.sh</text>
+      <rect class="bandbox" x="491" y="34" width="140" height="44" rx="4"/><text x="561" y="53" text-anchor="middle" class="t-strong">media/chat</text><text x="561" y="70" text-anchor="middle" class="t-sub t-mono">gzip app-*.js</text>
+      <rect class="bandbox" x="648" y="34" width="140" height="44" rx="4"/><text x="718" y="53" text-anchor="middle" class="t-strong">esbuild 宿主</text><text x="718" y="70" text-anchor="middle" class="t-sub t-mono">dist/extension.js</text>
+      <rect class="bandbox" x="805" y="34" width="140" height="44" rx="4"/><text x="875" y="53" text-anchor="middle" class="t-strong">.vsix 安装包</text><text x="875" y="70" text-anchor="middle" class="t-sub t-mono">package-vsix.sh</text>
+      <path class="wire thin" d="M160 56H175" marker-end="url(#ah)"/><path class="wire thin" d="M317 56H332" marker-end="url(#ah)"/><path class="wire thin" d="M474 56H489" marker-end="url(#ah)"/><path class="wire thin" d="M631 56H646" marker-end="url(#ah)"/><path class="wire thin" d="M788 56H803" marker-end="url(#ah)"/>
+    </g>
+  </g>
+
+  <!-- zones -->
+  <rect class="zone" x="20" y="98" width="280" height="420" rx="8"/>
+  <rect class="zone" x="340" y="98" width="280" height="420" rx="8"/>
+  <rect class="zone" x="660" y="98" width="280" height="420" rx="8"/>
+  <text x="36" y="124" class="t-title">Webview</text><text x="36" y="142" class="t-sub">VS Code 窗口内 · 显示界面</text>
+  <text x="356" y="124" class="t-title">扩展宿主 Extension Host</text><text x="356" y="142" class="t-sub">apps/extension · 持有连接和密码</text>
+  <text x="676" y="124" class="t-title">OpenCode 服务</text><text x="676" y="142" class="t-sub">opencode serve · 会话的事实来源</text>
+
+  <!-- webview boxes -->
+  <rect class="box hl-s01 hl-s11" x="36" y="156" width="248" height="76" rx="4"/>
+  <text x="50" y="179" class="t-strong">官方 OpenCode 网页前端</text>
+  <text x="50" y="199" class="t-sub">Solid 应用 · 打过 18 个补丁</text>
+  <text x="50" y="219" class="t-sub t-mono">apps/chat-webview</text>
+  <rect class="box hl-s04 hl-s07" x="36" y="252" width="248" height="46" rx="4"/>
+  <text x="50" y="272" class="t-strong">bridge.ts</text>
+  <text x="50" y="289" class="t-sub t-mono">fetch → http://oco.bridge</text>
+  <rect class="box" x="36" y="316" width="248" height="40" rx="4"/>
+  <text x="50" y="341" class="t-sub">localStorage 垫片 → 宿主存储</text>
+  <rect class="box hl-s08" x="36" y="368" width="248" height="40" rx="4"/>
+  <text x="50" y="393" class="t-sub">WebSocket 已禁用（无终端）</text>
+
+  <!-- host boxes -->
+  <rect class="box hl-s05 hl-s09" x="356" y="156" width="248" height="76" rx="4"/>
+  <text x="370" y="179" class="t-strong">连接 · Basic 认证</text>
+  <text x="370" y="199" class="t-sub">connectionId · SecretStorage</text>
+  <text x="370" y="219" class="t-sub t-mono">connection.ts · endpoint.ts</text>
+  <rect class="box hl-s04 hl-s06 hl-s07" x="356" y="252" width="112" height="46" rx="4"/>
+  <text x="412" y="272" text-anchor="middle" class="t-strong">BridgeCore</text>
+  <text x="412" y="289" text-anchor="middle" class="t-sub t-mono">bridge-core.ts</text>
+  <rect class="box hl-s05 hl-s08" x="492" y="252" width="112" height="46" rx="4"/>
+  <text x="548" y="272" text-anchor="middle" class="t-strong">策略</text>
+  <text x="548" y="289" text-anchor="middle" class="t-sub t-mono">bridge-policy.ts</text>
+  <rect class="box" x="356" y="316" width="248" height="40" rx="4"/>
+  <text x="370" y="341" class="t-sub">侧栏 Sessions · 宿主订阅一条 /event</text>
+  <rect class="box" x="356" y="368" width="248" height="40" rx="4"/>
+  <text x="370" y="393" class="t-sub">面板注册 · main / pinned</text>
+  <rect class="box dash hl-s09" x="356" y="420" width="248" height="40" rx="4"/>
+  <text x="370" y="445" class="t-sub">managed 子进程（可选）</text>
+
+  <!-- server boxes -->
+  <rect class="box hl-s11" x="676" y="156" width="248" height="76" rx="4"/>
+  <text x="690" y="179" class="t-strong">会话 · 消息 · 运行状态</text>
+  <text x="690" y="199" class="t-sub">工具调用 · 权限请求</text>
+  <text x="690" y="219" class="t-sub">事实只存在这里</text>
+  <rect class="box hl-s05 hl-s06" x="676" y="252" width="248" height="46" rx="4"/>
+  <text x="690" y="272" class="t-strong">HTTP API</text>
+  <text x="690" y="289" class="t-sub t-mono">SSE text/event-stream</text>
+  <rect class="box" x="676" y="316" width="248" height="40" rx="4"/>
+  <text x="690" y="341" class="t-sub">模型 · Provider · Agent 配置</text>
+
+  <!-- main wire -->
+  <path class="wire" d="M284 275H356"/><path class="wire" d="M468 275H492"/><path class="wire" d="M604 275H676"/>
+  <text x="320" y="244" text-anchor="middle" class="t-sub t-mono">postMessage</text>
+  <text x="640" y="244" text-anchor="middle" class="t-sub t-mono">HTTP</text>
+
+  <g id="packets"></g>
+
+  <!-- s01 -->
+  <g class="ov ov-s01">
+    <path class="wire sig" d="M30 478v10H610v-10"/>
+    <text x="320" y="506" text-anchor="middle" class="t-sig t-strong">oco 的代码：apps/extension + apps/chat-webview</text>
+    <path class="wire thin" d="M670 478v10H930v-10"/>
+    <text x="800" y="506" text-anchor="middle" class="t-strong">OpenCode：不属于 oco</text>
+  </g>
+  <!-- s02 -->
+  <g class="ov ov-s02">
+    <text x="160" y="470" text-anchor="middle" class="t-sig t-strong">① 显示</text>
+    <text x="480" y="492" text-anchor="middle" class="t-sig t-strong">② 连接 · 转发 · 检查</text>
+    <text x="800" y="470" text-anchor="middle" class="t-sig t-strong">③ 执行 · 保存</text>
+  </g>
+  <!-- s03 -->
+  <g class="ov ov-s03">
+    <path class="wire sig" d="M561 78C561 124 160 112 160 154" marker-end="url(#ahs)"/>
+    <path class="wire sig" d="M718 78C718 124 480 112 480 154" marker-end="url(#ahs)"/>
+    <rect class="card" x="190" y="96" width="132" height="24" rx="3"/><text x="256" y="113" text-anchor="middle" class="t-sub">打包进扩展资源</text>
+    <rect class="card" x="600" y="102" width="118" height="24" rx="3"/><text x="659" y="119" text-anchor="middle" class="t-sub">宿主代码</text>
+    <rect class="card" x="676" y="370" width="248" height="58" rx="4"/>
+    <text x="690" y="393" class="t-sub">服务不打包进扩展。</text>
+    <text x="690" y="413" class="t-sub">它是单独的 opencode 进程。</text>
+  </g>
+  <!-- s04 -->
+  <g class="ov ov-s04">
+    <rect class="card" x="28" y="310" width="264" height="132" rx="4"/>
+    <text x="42" y="332" class="t-mono t-sig t-strong">fetch.request</text>
+    <text x="42" y="352" class="t-mono">{ v: 2, gen: 3,</text>
+    <text x="42" y="370" class="t-mono">  id: "r17", method: "POST",</text>
+    <text x="42" y="388" class="t-mono">  url: "http://oco.bridge/…",</text>
+    <text x="42" y="406" class="t-mono">  headers: [ … ], body }</text>
+    <text x="42" y="430" class="t-sub">示例值。面板和会话身份不在消息里。</text>
+  </g>
+  <!-- s05 -->
+  <g class="ov ov-s05">
+    <rect class="card" x="28" y="310" width="264" height="62" rx="4"/>
+    <text x="42" y="334" class="t-strong">网页没有密码。</text>
+    <text x="42" y="356" class="t-sub">它只认识 oco.bridge。</text>
+    <rect class="card" x="348" y="310" width="264" height="116" rx="4"/>
+    <text x="362" y="333" class="t-strong t-sig">宿主加认证头</text>
+    <text x="362" y="354" class="t-sub t-mono">Authorization: Basic …</text>
+    <text x="362" y="375" class="t-sub">删除网页带来的 authorization、</text>
+    <text x="362" y="393" class="t-sub">cookie、host、origin。</text>
+    <text x="362" y="413" class="t-sub t-mono">x-opencode-directory = 绑定目录</text>
+  </g>
+  <!-- s06 -->
+  <g class="ov ov-s06">
+    <rect class="card" x="28" y="310" width="264" height="92" rx="4"/>
+    <text x="42" y="333" class="t-mono t-sig t-strong">fetch.head</text>
+    <text x="42" y="353" class="t-mono">fetch.chunk × N</text>
+    <text x="42" y="373" class="t-mono">fetch.end</text>
+    <text x="42" y="392" class="t-sub">大响应可 gzip（远程时用）</text>
+    <rect class="card" x="668" y="310" width="264" height="62" rx="4"/>
+    <text x="682" y="334" class="t-strong">事件流边读边转发</text>
+    <text x="682" y="356" class="t-sub">不等整条回答结束。</text>
+  </g>
+  <!-- s07 -->
+  <g class="ov ov-s07">
+    <rect class="card" x="28" y="310" width="264" height="110" rx="4"/>
+    <text x="42" y="333" class="t-mono t-warn t-strong">fetch.abort { id: "r17" }</text>
+    <text x="42" y="356" class="t-sub">面板重载 → 新的 hello</text>
+    <text x="42" y="378" class="t-mono t-strong">gen 3 → 4</text>
+    <text x="42" y="400" class="t-sub">gen 3 的迟到回复被丢弃。</text>
+    <rect class="card" x="348" y="310" width="264" height="62" rx="4"/>
+    <text x="362" y="334" class="t-strong">AbortController.abort()</text>
+    <text x="362" y="356" class="t-sub">按 (gen, id) 找到请求</text>
+    <path class="xmark" d="M632 263l16 24M648 263l-16 24"/>
+  </g>
+  <!-- s08 -->
+  <g class="ov ov-s08">
+    <rect class="card" x="348" y="310" width="264" height="160" rx="4"/>
+    <text x="362" y="333" class="t-ok">✓ 读：directory 必须是绑定目录</text>
+    <text x="362" y="355" class="t-ok">✓ 写：绑定会话及其子会话</text>
+    <text x="362" y="377" class="t-ok">✓ 无会话的写：仅 POST /session、/log</text>
+    <text x="362" y="403" class="t-warn">✕ /pty · /tui/ · dispose · upgrade</text>
+    <text x="362" y="425" class="t-warn">✕ 路径含 .. 或 //</text>
+    <text x="362" y="447" class="t-warn">✕ 不受信任工作区的写</text>
+    <path class="xmark" d="M266 380l12 18M278 380l-12 18"/>
+  </g>
+  <!-- s09 -->
+  <g class="ov ov-s09">
+    <rect class="card" x="348" y="306" width="264" height="104" rx="4"/>
+    <text x="362" y="328" class="t-strong t-sig">managed：oco 启动</text>
+    <text x="362" y="348" class="t-sub t-mono">opencode serve</text>
+    <text x="362" y="366" class="t-sub t-mono">  --hostname 127.0.0.1 --port 0</text>
+    <text x="362" y="386" class="t-sub">每窗口一个 · 密码只在内存</text>
+    <text x="362" y="403" class="t-sub">意外退出后不自动重启</text>
+    <rect class="card" x="668" y="370" width="264" height="104" rx="4"/>
+    <text x="682" y="392" class="t-strong t-sig">attached：用户启动</text>
+    <text x="682" y="412" class="t-sub">地址来自设置 oco.serverUrl</text>
+    <text x="682" y="432" class="t-sub">oco 只连接，从不停止它</text>
+    <text x="682" y="452" class="t-sub">密码存 SecretStorage</text>
+    <text x="682" y="468" class="t-sub t-mono">connectionId = c + sha256(…)</text>
+  </g>
+  <!-- s10 -->
+  <g class="ov ov-s10">
+    <path d="M320 92V530" stroke="var(--signal)" stroke-width="2.5" stroke-dasharray="8 6"/>
+    <text x="304" y="532" text-anchor="end" class="t-sig t-strong">你的电脑</text>
+    <text x="336" y="532" class="t-sig t-strong">远端主机（Remote-SSH）</text>
+    <rect class="card" x="28" y="420" width="264" height="58" rx="4"/>
+    <text x="42" y="443" class="t-sub">界面在本机。</text>
+    <text x="42" y="463" class="t-sub">资源经 asWebviewUri 加载。</text>
+    <rect class="card" x="348" y="420" width="264" height="58" rx="4"/>
+    <text x="362" y="443" class="t-sub t-mono">extensionKind: ["workspace"]</text>
+    <text x="362" y="463" class="t-strong t-warn">127.0.0.1 = 远端主机</text>
+  </g>
+  <!-- s11 -->
+  <g class="ov ov-s11">
+    <rect class="card" x="28" y="310" width="264" height="100" rx="4"/>
+    <text x="42" y="332" class="t-strong t-sig">Webview setState</text>
+    <text x="42" y="352" class="t-sub">只存 binding + role</text>
+    <text x="42" y="372" class="t-sub">不存密码，不存消息</text>
+    <text x="42" y="394" class="t-sub t-mono">app.tsx</text>
+    <rect class="card" x="348" y="310" width="264" height="164" rx="4"/>
+    <text x="362" y="332" class="t-strong t-sig">宿主存储</text>
+    <text x="362" y="354" class="t-sub">SecretStorage：attached 密码</text>
+    <text x="362" y="376" class="t-sub">内存：managed 密码</text>
+    <text x="362" y="398" class="t-sub">workspaceState：草稿队列 · 未读</text>
+    <text x="362" y="420" class="t-sub">globalState：oco.kv.v2</text>
+    <text x="362" y="442" class="t-sub">globalStorage/blobs：附件 ≤ 20 MB</text>
+    <text x="362" y="464" class="t-sub">设置（machine）：服务地址</text>
+    <rect class="card" x="668" y="370" width="264" height="62" rx="4"/>
+    <text x="682" y="394" class="t-strong t-sig">服务</text>
+    <text x="682" y="416" class="t-sub">会话 · 消息 · 运行 · 工具 · 权限</text>
+  </g>
+  <!-- s12 -->
+  <g class="ov ov-s12">
+    <rect class="bracket" x="10" y="90" width="940" height="444" rx="10"/>
+    <text x="940" y="108" text-anchor="end" class="t-sig t-strong">e2e：Playwright 驱动真实 VS Code</text>
+    <rect class="bracket" x="346" y="242" width="588" height="66" rx="6"/>
+    <text x="924" y="326" text-anchor="end" class="t-sig t-strong">integration：隔离的真实服务</text>
+    <rect class="bracket" x="350" y="148" width="260" height="88" rx="6"/>
+    <text x="480" y="488" text-anchor="middle" class="t-sig t-strong">unit：宿主里的纯函数</text>
+    <path class="wire sig" d="M480 474V240" marker-end="url(#ahs)"/>
+  </g>
+</svg>
+    </div>
+    <div class="controls">
+      <button class="btn" id="prev" type="button" aria-label="上一场景">◀ 上一场</button>
+      <button class="btn primary" id="play" type="button">▶ 播放</button>
+      <button class="btn" id="next" type="button" aria-label="下一场景">下一场 ▶</button>
+      <button class="btn" id="voice" type="button" aria-pressed="false" disabled>旁白：检查中</button>
+      <span class="voice-state" id="voiceState" aria-live="polite"></span>
+    </div>
+    <div class="chapters" id="chapters" role="list"></div>
+    <div class="caption" aria-live="polite">
+      <div class="scn" id="scn">场景 01 / 12</div>
+      <h3 id="capTitle">oco 是什么</h3>
+      <p id="capText"></p>
+    </div>
+    <details class="transcript"><summary>全部旁白文字</summary><ol id="transcript"></ol></details>
+  </div>
+  <h3>视频版</h3>
+  <p class="lead">同一组场景录成的 MP4。1920×1080，约 3 分 20 秒，Gemini 语音旁白。</p>
+  <video class="mp4" controls preload="metadata" playsinline src="video/oco-explainer.mp4" aria-label="oco 讲解视频，12 个场景"></video>
+</section>
+
+<!-- ============ STE ============ -->
+<section class="dm" id="ste" data-lang="zh">
+  <div class="dmc"><b>DMC-OCO-A-02-00</b><span>受控语言速读卡</span><span>参照 ASD-STE100 写法</span></div>
+  <div class="ste-head">
+    <h2>用受控语言说清 oco</h2>
+    <div class="seg" role="group" aria-label="语言">
+      <button type="button" data-lang="zh" aria-pressed="true">中文</button>
+      <button type="button" data-lang="en" aria-pressed="false">English (STE)</button>
+    </div>
+  </div>
+  <p class="lead zh">ASD-STE100 是航空维修文档的受控语言。本卡采用它的几条规则。中文版是“接近 STE”的写法，不是规范认证。</p>
+  <p class="lead en">ASD-STE100 is a controlled language for aerospace maintenance texts. This card uses its main rules. The English text is close to STE. It is not a certified STE text.</p>
+  <ul class="rules">
+    <li class="zh">一句一事</li><li class="zh">主动语态</li><li class="zh">一词一义</li><li class="zh">中文每句 ≤ 20 字</li><li class="zh">先写条件，再写动作</li><li class="zh">警告与注意分开写</li>
+    <li class="en">One topic per sentence</li><li class="en">Active voice</li><li class="en">One word, one meaning</li><li class="en">Procedural sentences ≤ 20 words</li><li class="en">Condition first, then action</li><li class="en">WARNING and CAUTION are separate</li>
+  </ul>
+
+  <div class="tasks">
+    <div class="task">
+      <h3><span class="no">TASK 1</span><span class="zh">认识三层</span><span class="en">Identify the three layers</span></h3>
+      <ol>
+        <li><span><span class="zh">oco 是 OpenCode 的 VS Code 客户端。</span><span class="en">oco is a VS Code client for OpenCode.</span></span></li>
+        <li><span><span class="zh">oco 不执行任务。服务执行任务。</span><span class="en">oco does not do the tasks. The server does the tasks.</span></span></li>
+        <li><span><span class="zh">Webview 显示对话界面。</span><span class="en">The webview shows the chat interface.</span></span></li>
+        <li><span><span class="zh">扩展宿主持有连接和密码。</span><span class="en">The extension host keeps the connection and the password.</span></span></li>
+        <li><span><span class="zh">服务保存会话的事实。</span><span class="en">The server keeps the session data.</span></span></li>
+      </ol>
+    </div>
+    <div class="task">
+      <h3><span class="no">TASK 2</span><span class="zh">发送一个请求</span><span class="en">Send a request</span></h3>
+      <ol>
+        <li><span><span class="zh">网页把请求发到 oco.bridge。</span><span class="en">The web page sends the request to oco.bridge.</span></span></li>
+        <li><span><span class="zh">桥把请求变成一条消息。</span><span class="en">The bridge changes the request into a message.</span></span></li>
+        <li><span><span class="zh">宿主用策略检查这条消息。</span><span class="en">The host examines the message with the policy.</span></span></li>
+        <li><span><span class="zh">策略通过后，宿主加上认证。</span><span class="en">If the policy accepts the message, the host adds the authentication.</span></span></li>
+        <li><span><span class="zh">宿主把事件流逐块发回网页。</span><span class="en">The host sends the event stream back to the page, one part at a time.</span></span></li>
+      </ol>
+    </div>
+    <div class="task">
+      <h3><span class="no">TASK 3</span><span class="zh">停止与重新加载</span><span class="en">Stop and load again</span></h3>
+      <ol>
+        <li><span><span class="zh">要停止请求，网页发送 fetch.abort。</span><span class="en">To stop a request, the page sends fetch.abort.</span></span></li>
+        <li><span><span class="zh">宿主按请求号中止请求。</span><span class="en">The host stops the request that has this id.</span></span></li>
+        <li><span><span class="zh">面板重载时，宿主分配新的 gen。</span><span class="en">When the panel loads again, the host gives a new gen.</span></span></li>
+        <li><span><span class="zh">宿主丢弃旧 gen 的回复。</span><span class="en">The host discards each reply for an old gen.</span></span></li>
+      </ol>
+    </div>
+    <div class="task">
+      <h3><span class="no">TASK 4</span><span class="zh">遵守边界</span><span class="en">Obey the limits</span></h3>
+      <ol>
+        <li class="w"><span><span class="zh"><span class="tag">警告</span>远程时，127.0.0.1 是远端主机。</span><span class="en"><span class="tag">WARNING</span>In a remote window, 127.0.0.1 is the remote host. It is not your computer.</span></span></li>
+        <li class="c"><span><span class="zh"><span class="tag">注意</span>oco 不停止 attached 服务。</span><span class="en"><span class="tag">CAUTION</span>oco does not stop an attached server. Do not expect it to.</span></span></li>
+        <li><span><span class="zh">WebSocket 已禁用。终端不可用。</span><span class="en">WebSocket is disabled. The terminal is not available.</span></span></li>
+        <li><span><span class="zh">网页不能读任意文件或执行命令。</span><span class="en">The page cannot read a file or run a command directly.</span></span></li>
+      </ol>
+    </div>
+  </div>
+
+  <h3><span class="zh">术语表：一词一义</span><span class="en">Glossary: one word, one meaning</span></h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th><span class="zh">术语</span><span class="en">Term</span></th><th><span class="zh">定义</span><span class="en">Definition</span></th><th><span class="zh">不要用</span><span class="en">Do not use</span></th><th><span class="zh">出处</span><span class="en">Source</span></th></tr></thead>
+      <tbody>
+        <tr><td class="term">Webview</td><td><span class="zh">VS Code 里显示网页的面板。</span><span class="en">The VS Code panel that shows a web page.</span></td><td class="no-use">iframe · 网页版</td><td class="cite">panels.ts</td></tr>
+        <tr><td class="term"><span class="zh">扩展宿主</span><span class="en">extension host</span></td><td><span class="zh">运行 oco 扩展代码的进程。</span><span class="en">The process that runs the oco extension code.</span></td><td class="no-use">后端 · 服务端</td><td class="cite">apps/extension</td></tr>
+        <tr><td class="term"><span class="zh">服务</span><span class="en">server</span></td><td><span class="zh">执行任务、保存会话的 OpenCode 进程。</span><span class="en">The OpenCode process that does tasks and keeps sessions.</span></td><td class="no-use">引擎 · oco 后端</td><td class="cite">opencode serve</td></tr>
+        <tr><td class="term"><span class="zh">桥</span><span class="en">bridge</span></td><td><span class="zh">Webview 与宿主之间的消息通道。</span><span class="en">The message path between the webview and the host.</span></td><td class="no-use">代理 · 隧道</td><td class="cite">contracts/bridge.ts</td></tr>
+        <tr><td class="term">oco.bridge</td><td><span class="zh">网页请求用的虚拟地址。宿主替换它。</span><span class="en">The virtual address for page requests. The host replaces it.</span></td><td class="no-use">服务器地址</td><td class="cite">bridge.ts:177</td></tr>
+        <tr><td class="term">gen</td><td><span class="zh">一份 Webview 文档的代号。</span><span class="en">The number of one webview document.</span></td><td class="no-use">epoch · generation · 版本</td><td class="cite">bridge.ts:35</td></tr>
+        <tr><td class="term">id</td><td><span class="zh">一个请求的编号。</span><span class="en">The number of one request.</span></td><td class="no-use">requestId</td><td class="cite">bridge.ts:57</td></tr>
+        <tr><td class="term">connectionId</td><td><span class="zh">连接的哈希身份，重启后不变。</span><span class="en">The hash identity of a connection. It stays the same after a restart.</span></td><td class="no-use">端口 · URL</td><td class="cite">endpoint.ts:26</td></tr>
+        <tr><td class="term"><span class="zh">绑定</span><span class="en">binding</span></td><td><span class="zh">connectionId + 目录 + sessionId。</span><span class="en">connectionId + directory + sessionId.</span></td><td class="no-use">会话 URL</td><td class="cite">bridge.ts:16</td></tr>
+        <tr><td class="term">attached</td><td><span class="zh">用户已在运行的服务。</span><span class="en">A server that the user started.</span></td><td class="no-use">外部服务器</td><td class="cite">connection.ts:8</td></tr>
+        <tr><td class="term">managed</td><td><span class="zh">oco 启动的服务子进程。</span><span class="en">A server child process that oco started.</span></td><td class="no-use">内置服务器</td><td class="cite">managed-server.ts</td></tr>
+        <tr><td class="term">main / pinned</td><td><span class="zh">main 跟随侧栏切换；pinned 固定一个会话。</span><span class="en">main follows the sidebar. pinned shows one session only.</span></td><td class="no-use">标签页</td><td class="cite">panels.ts:31</td></tr>
+        <tr><td class="term"><span class="zh">补丁</span><span class="en">patch</span></td><td><span class="zh">对上游源码的一项可重放修改。</span><span class="en">One change to the upstream source that you can apply again.</span></td><td class="no-use">hack · DOM 补丁</td><td class="cite">patches/opencode</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3><span class="zh">桥上的消息类型</span><span class="en">Message types on the bridge</span></h3>
+  <div class="msgs">
+    <div class="table-wrap"><table>
+      <thead><tr><th>Webview → <span class="zh">宿主</span><span class="en">host</span></th><th><span class="zh">作用</span><span class="en">Function</span></th></tr></thead>
+      <tbody>
+        <tr><td class="mono">hello</td><td><span class="zh">新文档报到，领取 gen。</span><span class="en">A new document starts. It gets a gen.</span></td></tr>
+        <tr><td class="mono">fetch.request</td><td><span class="zh">发出一个 HTTP 请求。</span><span class="en">Sends one HTTP request.</span></td></tr>
+        <tr><td class="mono">fetch.abort</td><td><span class="zh">停止一个请求。</span><span class="en">Stops one request.</span></td></tr>
+        <tr><td class="mono">store.op</td><td><span class="zh">读写宿主存储。</span><span class="en">Reads or writes host storage.</span></td></tr>
+        <tr><td class="mono">blob.op</td><td><span class="zh">存取附件字节。</span><span class="en">Puts or gets attachment bytes.</span></td></tr>
+        <tr><td class="mono">ui · draft.ack · ready</td><td><span class="zh">界面动作、草稿确认、就绪。</span><span class="en">UI action, draft receipt, ready.</span></td></tr>
+      </tbody></table></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span class="zh">宿主</span><span class="en">Host</span> → Webview</th><th><span class="zh">作用</span><span class="en">Function</span></th></tr></thead>
+      <tbody>
+        <tr><td class="mono">welcome</td><td><span class="zh">回复 hello，给出 gen。</span><span class="en">Replies to hello. Gives the gen.</span></td></tr>
+        <tr><td class="mono">fetch.head · chunk · end</td><td><span class="zh">响应头、数据块、结束。</span><span class="en">Response head, data part, end.</span></td></tr>
+        <tr><td class="mono">fetch.error</td><td><span class="zh">策略拒绝、网络失败或已中止。</span><span class="en">Policy refusal, network failure, or abort.</span></td></tr>
+        <tr><td class="mono">store.result</td><td><span class="zh">存储操作的结果。</span><span class="en">The result of a storage operation.</span></td></tr>
+        <tr><td class="mono">draft.insert</td><td><span class="zh">把选中的代码加入草稿。不发送。</span><span class="en">Adds selected code to the draft. Does not send it.</span></td></tr>
+        <tr><td class="mono">connection · navigate</td><td><span class="zh">连接状态；切换到另一个会话。</span><span class="en">Connection state. Go to another session.</span></td></tr>
+      </tbody></table></div>
+  </div>
+  <p class="cite">协议版本 v = 2 · 消息有运行时校验 parseWebviewMessage · packages/contracts/src/bridge.ts</p>
+</section>
+
+<!-- ============ POLICY ============ -->
+<section class="dm" id="policy">
+  <div class="dmc"><b>DMC-OCO-A-03-00</b><span>策略模拟器</span><span>规则摘自 apps/extension/src/bridge-policy.ts</span></div>
+  <h2>这个请求能通过桥吗</h2>
+  <p class="lead">选一个示例，或自己改方法和路径。模拟器按真实策略的顺序检查。它是简化模型。结论以源码为准。</p>
+  <div class="sim">
+    <div class="sim-in">
+      <label for="preset">示例
+        <select id="preset"></select>
+      </label>
+      <div class="row2">
+        <label for="method">方法
+          <select id="method"><option>GET</option><option>HEAD</option><option>OPTIONS</option><option>POST</option><option>PATCH</option><option>DELETE</option></select>
+        </label>
+        <label for="path">路径与参数
+          <input type="text" id="path" spellcheck="false" autocomplete="off">
+        </label>
+      </div>
+      <label class="chk" for="trusted"><input type="checkbox" id="trusted" checked> 工作区受信任</label>
+      <div class="ctx">面板绑定：会话 S1 · 目录 /work/app<br>S1-sub 是 S1 的子会话 · S9 是别的会话<br>权限请求 P1 属于 S1 · P9 属于 S9</div>
+    </div>
+    <div class="sim-out" aria-live="polite">
+      <div class="verdict"><span class="pill" id="vPill">—</span><span class="why" id="vWhy"></span></div>
+      <ol class="trace" id="vTrace"></ol>
+      <div class="cite" id="vCite"></div>
+    </div>
+  </div>
+  <div class="call note"><div class="lab">注 NOTE<small>说明</small></div><p>策略通过后，宿主删除网页带来的 authorization、cookie、host、origin 头。然后宿主加上自己的认证和 x-opencode-directory。</p></div>
+</section>
+
+<!-- ============ PATCHES ============ -->
+<section class="dm" id="patches">
+  <div class="dmc"><b>DMC-OCO-A-04-00</b><span>补丁账本</span><span>18 个 · 基线 v1.18.33 @51ef4be</span></div>
+  <h2>18 个补丁改了官方界面的哪里</h2>
+  <p class="lead">oco 复用官方网页前端。补丁让它适合嵌在编辑器里。setup.sh 先核对上游提交号，再按编号应用补丁。升级时先换提交号，再重放补丁。</p>
+  <div class="chips" id="pChips" role="group" aria-label="按主题筛选"></div>
+  <ul class="ledger" id="ledger"></ul>
+</section>
+
+<!-- ============ TESTS ============ -->
+<section class="dm" id="tests">
+  <div class="dmc"><b>DMC-OCO-A-05-00</b><span>测试分层</span><span>本页未运行测试</span></div>
+  <h2>每一层用自己的证据</h2>
+  <p class="lead">构建通过，不等于界面通过。下层测试不能替代上层测试。</p>
+  <div class="layers">
+    <div class="layer"><h3>unit<small>tests/unit</small></h3><p>测试纯函数：桥协议、策略、地址解析、存储、侧栏分组、打开文件策略。不启动 VS Code。</p><span class="cmd">bun test tests/unit</span></div>
+    <div class="layer"><h3>integration<small>tests/integration</small></h3><p>连接隔离的真实服务：认证、建会话、SSE 增量、真实中止。Diff 用上游工具生成真实快照。</p><span class="cmd">scripts/test-server.sh · api-probe.mjs</span></div>
+    <div class="layer"><h3>e2e<small>tests/e2e</small></h3><p>Playwright 驱动真实 VS Code（Electron）。覆盖聊天、侧栏、窄面板、重连、恢复、managed、多根、轨迹等。模型可用 mock。状态放在 .oco-test/，不碰用户的 OpenCode。</p><span class="cmd">node tests/e2e/run.mjs</span></div>
+    <div class="layer"><h3>verify:brief<small>scripts/brief.mjs</small></h3><p>只跑 typecheck 和 unit。加 --build 才构建。它不跑 E2E，不连真实模型。</p><span class="cmd">bun run verify:brief</span></div>
+  </div>
+  <div class="call caution"><div class="lab">注意 CAUTION<small>小心</small></div><p>旧的 E2E 结果不是本轮通过。每次声明通过，都要写版本、命令和结果。</p></div>
+</section>
+
+<!-- ============ STATUS ============ -->
+<section class="dm" id="status">
+  <div class="dmc"><b>DMC-OCO-A-06-00</b><span>实现状态</span><span>依据：源码 + docs/evidence/explainer-facts-2026-10-03.md</span></div>
+  <h2>哪些已经做了，哪些还只在文档里</h2>
+  <p class="lead">ARCHITECTURE.md 写了目标结构。很多目录还不存在。下表按代码现状分级。</p>
+  <div class="legend"><span><span class="stat ok">已实现</span> 代码里有</span><span><span class="stat part">部分</span> 有，但有限制</span><span><span class="stat prop">仅拟议</span> 只在文档里</span><span><span class="stat no">不支持</span> 有意不做</span></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>能力</th><th>状态</th><th>现状</th><th>位置</th></tr></thead>
+    <tbody>
+      <tr><td>官方前端嵌入 Webview</td><td><span class="stat ok">已实现</span></td><td>Vite 打包进 media/chat。不是 iframe 打开远程网站。</td><td class="cite">build-webview.sh</td></tr>
+      <tr><td>HTTP / SSE 桥、取消、gen</td><td><span class="stat ok">已实现</span></td><td>事件流边读边转发。旧 gen 回复丢弃。</td><td class="cite">bridge-core.ts</td></tr>
+      <tr><td>桥策略</td><td><span class="stat ok">已实现</span></td><td>限制目录、会话、危险路径和不受信任写。</td><td class="cite">bridge-policy.ts</td></tr>
+      <tr><td>WebSocket / 终端</td><td><span class="stat no">不支持</span></td><td>构造 WebSocket 即抛错。v0.1 不做终端。</td><td class="cite">panels.ts:383</td></tr>
+      <tr><td>attached 连接</td><td><span class="stat ok">已实现</span></td><td>只连接，不启动，不停止，不改配置。</td><td class="cite">connection.ts</td></tr>
+      <tr><td>managed 服务</td><td><span class="stat ok">已实现</span></td><td>每窗口一个子进程。退出后需命令重启。</td><td class="cite">managed-server.ts</td></tr>
+      <tr><td>单主面板 main / pinned</td><td><span class="stat ok">已实现</span></td><td>隐藏时保留文档。宿主发 navigate 切会话。</td><td class="cite">panels.ts · ADR-007</td></tr>
+      <tr><td>侧栏 Sessions + Connection</td><td><span class="stat ok">已实现</span></td><td>Agents 视图已删除。</td><td class="cite">sessions-view.ts</td></tr>
+      <tr><td>选区加入草稿</td><td><span class="stat ok">已实现</span></td><td>追加到输入框，不自动发送。</td><td class="cite">补丁 0001 · panels.ts</td></tr>
+      <tr><td>打开文件</td><td><span class="stat part">部分</span></td><td>只在本机回环服务、且路径在工作区内时打开。</td><td class="cite">open-file-policy.ts</td></tr>
+      <tr><td>Diff</td><td><span class="stat part">部分</span></td><td>在官方时间线里显示。没有 VS Code Diff 编辑器。</td><td class="cite">补丁 0006 · 0007</td></tr>
+      <tr><td>恢复视图</td><td><span class="stat ok">已实现</span></td><td>错误时显示固定文案和固定操作，不显示地址和凭据。</td><td class="cite">recovery.tsx · 补丁 0008</td></tr>
+      <tr><td>多面板共享事件订阅</td><td><span class="stat prop">仅拟议</span></td><td>每个聊天面板仍自己订阅。侧栏有一条宿主订阅。</td><td class="cite">session-feed.ts</td></tr>
+      <tr><td>有界队列、游标续传、“发送结果未知”</td><td><span class="stat prop">仅拟议</span></td><td>只在 ARCHITECTURE 第 6 节。</td><td class="cite">ARCHITECTURE.md:111</td></tr>
+      <tr><td>Agent 管理页、management-webview、opencode-adapter</td><td><span class="stat prop">仅拟议</span></td><td>目录不存在。</td><td class="cite">ARCHITECTURE.md:29</td></tr>
+      <tr><td>asExternalUri 端口转发</td><td><span class="stat prop">未使用</span></td><td>网页不直连服务，所以不需要。</td><td class="cite">ARCHITECTURE.md:144</td></tr>
+      <tr><td>Remote-SSH</td><td><span class="stat part">部分</span></td><td>已部署到 gcp-workstation。正式验收仍为 BLOCKED。</td><td class="cite">STATUS.md · remote-install.md</td></tr>
+    </tbody>
+  </table></div>
+  <div class="call warn"><div class="lab">警告 WARNING<small>危险</small></div><p>不要把 ARCHITECTURE.md 第 1–2 节的目录图当作现状。现状以本表和源码为准。</p></div>
+</section>
+
+<footer class="foot">
+  <span>来源：本仓库源码；事实清单 <code>docs/evidence/explainer-facts-2026-10-03.md</code>（只读调查，未构建，未运行测试）。</span>
+  <span>长篇图解版：<code>docs/technical-guide.html</code>。本页的协议字段以 <code>packages/contracts/src/bridge.ts</code> 为准。</span>
+  <span>旁白音频：<code>docs/explainer/tts.mjs</code> 生成。</span>
+</footer>
+</div>
+
+<script>
+/* ===== scenes: kept in sync with narration.json (extract with the BEGIN/END markers) ===== */
+const SCENES = /*SCENES-BEGIN*/[
+  {"id":"s01","title":"oco 是什么","text":"这是 oco。oco 是 OpenCode 的 VS Code 客户端。oco 不执行任务。OpenCode 服务执行任务。oco 把服务的对话界面放进编辑器，并管理连接。"},
+  {"id":"s02","title":"三层结构","text":"oco 有三层。第一层是 Webview，它显示对话界面。第二层是扩展宿主，它持有网络连接和密码。第三层是 OpenCode 服务，它保存会话、模型、工具和权限。会话的事实只在服务里。"},
+  {"id":"s03","title":"界面从哪里来","text":"界面不是重新写的。构建脚本拉取上游 OpenCode v1.18.33，并核对提交号。然后应用 18 个补丁。Vite 把官方网页前端打包进扩展。esbuild 打包扩展宿主。最后生成 vsix 安装包。","say":"界面不是重新写的。构建脚本拉取上游 OpenCode 一点一八点三三版，并核对提交号。然后应用十八个补丁。Vite 把官方网页前端打包进扩展。esbuild 打包扩展宿主。最后生成 vsix 安装包。"},
+  {"id":"s04","title":"请求变成消息","text":"现在发送一条消息。网页前端调用 fetch，地址是虚拟地址 oco.bridge。桥把请求变成一条消息，发给扩展宿主。每条消息有三个公共字段：协议版本 v，文档代号 gen，消息类型 type。请求还带一个请求号 id。"},
+  {"id":"s05","title":"宿主检查并加认证","text":"扩展宿主先用策略检查请求。策略通过后，宿主删除网页带来的认证头，再加上自己的认证，然后请求真实服务。网页前端从不持有密码。"},
+  {"id":"s06","title":"事件流逐块返回","text":"服务用事件流回答。宿主每收到一块数据，就立即转发一块。界面因此逐字显示回答，不等整条回答结束。"},
+  {"id":"s07","title":"停止与文档代号","text":"用户按停止时，网页发送 fetch.abort，带同一个请求号。宿主中止这个请求。面板重新加载时，宿主分配新的文档代号。旧代号的迟到回复被丢弃。"},
+  {"id":"s08","title":"策略的边界","text":"策略设定边界。读请求只能读绑定目录。写请求只能写绑定会话，或它的子会话。终端路径被拒绝。WebSocket 被禁用。不受信任的工作区不能写。"},
+  {"id":"s09","title":"两种连接","text":"连接有两种。attached 连接用户已有的服务。oco 只连接，从不停止它。managed 由 oco 启动。每个窗口一个子进程，只监听 127.0.0.1 的随机端口。它的密码只在内存里。"},
+  {"id":"s10","title":"远程时位置会变","text":"远程开发时，位置会变。Webview 仍在你的电脑上。扩展宿主运行在远端主机。所以 127.0.0.1 指的是远端主机，不是你的电脑。"},
+  {"id":"s11","title":"状态放在哪里","text":"状态分开存放。会话消息在服务里。attached 密码在 SecretStorage。面板只记住绑定和角色。待插入的草稿在工作区状态里。官方界面的本地存储转到宿主存储。"},
+  {"id":"s12","title":"每层要有证据","text":"最后是证据。单元测试检查纯函数。集成测试连接隔离的真实服务。端到端测试用 Playwright 驱动真实的 VS Code。构建通过，不等于界面通过。每一层要有自己的证据。"}
+]/*SCENES-END*/;
+
+(function(){
+  const stage = document.getElementById('stage');
+  const chapEl = document.getElementById('chapters');
+  const capTitle = document.getElementById('capTitle');
+  const capText = document.getElementById('capText');
+  const scn = document.getElementById('scn');
+  const playBtn = document.getElementById('play');
+  const voiceBtn = document.getElementById('voice');
+  const voiceState = document.getElementById('voiceState');
+  const packetsG = document.getElementById('packets');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const NS = 'http://www.w3.org/2000/svg';
+  const pad = n => String(n).padStart(2,'0');
+
+  let idx = 0, playing = false, voiceOn = false, manifest = null;
+  let t0 = 0, elapsedBefore = 0, timer = null, raf = 0, pktRaf = 0;
+  const audio = new Audio(); audio.preload = 'auto';
+
+  const splitSentences = t => t.match(/[^。！？]+[。！？]?/g) || [t];
+  const charLen = s => s.replace(/\s/g,'').length;
+  const sentenceData = SCENES.map(s => { const parts = splitSentences(s.text); const lens = parts.map(charLen); const total = lens.reduce((a,b)=>a+b,0); return {parts,lens,total}; });
+  const fallbackDur = i => Math.max(6, sentenceData[i].total * 0.23 + 1.2);
+  const durOf = i => (voiceOn && manifest && manifest[SCENES[i].id]) ? manifest[SCENES[i].id].seconds : fallbackDur(i);
+
+  // chapters + transcript
+  SCENES.forEach((s,i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chap'; b.setAttribute('role','listitem');
+    b.innerHTML = '<i class="fill"></i>' + pad(i+1) + '<span></span>';
+    b.querySelector('span').textContent = s.title;
+    b.setAttribute('aria-label', '场景 ' + (i+1) + '：' + s.title);
+    b.addEventListener('click', () => go(i, playing));
+    chapEl.appendChild(b);
+    const li = document.createElement('li'); li.innerHTML = '<b></b> '; li.querySelector('b').textContent = s.title; li.append(s.text);
+    document.getElementById('transcript').appendChild(li);
+  });
+  const chaps = [...chapEl.children];
+
+  function renderCaption(i){
+    const s = SCENES[i];
+    scn.textContent = '场景 ' + pad(i+1) + ' / ' + pad(SCENES.length);
+    capTitle.textContent = s.title;
+    capText.innerHTML = '';
+    sentenceData[i].parts.forEach(p => { const sp = document.createElement('span'); sp.className = 's'; sp.textContent = p; capText.appendChild(sp); });
+  }
+  function highlight(frac){
+    const d = sentenceData[idx]; let acc = 0; const spans = capText.children;
+    for (let k=0;k<spans.length;k++){
+      const start = acc/d.total; acc += d.lens[k]; const end = acc/d.total;
+      spans[k].className = 's' + (frac >= end ? ' past' : (frac >= start ? ' on' : ''));
+    }
+  }
+  function setProgress(frac){
+    chaps.forEach((c,k) => {
+      c.classList.toggle('done', k < idx);
+      c.querySelector('.fill').style.width = k === idx ? (Math.min(1,frac)*100)+'%' : '0';
+      if (k === idx) c.setAttribute('aria-current','step'); else c.removeAttribute('aria-current');
+    });
+  }
+
+  /* packets: each motion = {from,to,delay,dur,bad,loop} along y=275 */
+  const MOTIONS = {
+    s01:[{from:284,to:676,delay:0,dur:2.4,loop:4.5},{from:676,to:284,delay:2.4,dur:2.4,loop:4.5}],
+    s02:[{from:284,to:676,delay:0,dur:3,loop:6},{from:676,to:284,delay:3,dur:3,loop:6}],
+    s04:[{from:284,to:356,delay:0,dur:1.2,loop:2.6}],
+    s05:[{from:468,to:676,delay:0,dur:1.6,loop:3}],
+    s06:[0,0.5,1,1.5,2].map(d=>({from:676,to:284,delay:d,dur:2.2,loop:2.6})),
+    s07:[{from:284,to:356,delay:0,dur:1,loop:2.4,bad:true}],
+    s08:[{from:284,to:500,delay:0,dur:1.6,loop:2.8,bad:true}],
+  };
+  function clearPackets(){ cancelAnimationFrame(pktRaf); packetsG.innerHTML=''; }
+  function makeDots(id){
+    clearPackets();
+    const ms = MOTIONS[id] || [];
+    return ms.map(m => { const c = document.createElementNS(NS,'circle'); c.setAttribute('r','6.5'); c.setAttribute('cy','275'); c.setAttribute('class','pkt'+(m.bad?' bad':'')); c.setAttribute('cx', reduce ? m.to : m.from); packetsG.appendChild(c); return c; });
+  }
+  function placePackets(ms, dots, t){
+    ms.forEach((m,k) => {
+      const local = ((t - m.delay) % m.loop + m.loop) % m.loop;
+      const active = t >= m.delay && local <= m.dur;
+      const p = active ? local/m.dur : 0;
+      const e = p<.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+      dots[k].setAttribute('cx', m.from + (m.to-m.from)*e);
+      dots[k].style.opacity = active ? 1 : 0;
+    });
+  }
+  function runPackets(id){
+    const dots = makeDots(id); const ms = MOTIONS[id];
+    if (!ms || reduce) return;
+    const start = performance.now();
+    const tick = now => { placePackets(ms, dots, (now-start)/1000); pktRaf = requestAnimationFrame(tick); };
+    pktRaf = requestAnimationFrame(tick);
+  }
+
+  function stopClock(){ clearTimeout(timer); cancelAnimationFrame(raf); }
+  function loop(){
+    const dur = durOf(idx);
+    let el;
+    if (voiceOn && manifest && !audio.paused) el = audio.currentTime;
+    else el = elapsedBefore + (playing ? (performance.now()-t0)/1000 : 0);
+    const frac = Math.min(1, el/dur);
+    highlight(frac); setProgress(frac);
+    if (playing) raf = requestAnimationFrame(loop);
+  }
+  function onSceneEnd(){
+    if (idx < SCENES.length-1){ timer = setTimeout(() => go(idx+1, true), 700); }
+    else { pause(); highlight(1); setProgress(1); chaps[idx].classList.add('done'); }
+  }
+  function startClock(){
+    stopClock();
+    t0 = performance.now();
+    if (voiceOn && manifest){
+      audio.play().catch(() => { voiceOn = false; syncVoiceBtn('浏览器阻止了播放'); startClock(); });
+    } else {
+      const remain = Math.max(0, durOf(idx) - elapsedBefore);
+      timer = setTimeout(onSceneEnd, remain*1000);
+    }
+    raf = requestAnimationFrame(loop);
+  }
+  function go(i, autoplay){
+    stopClock(); audio.pause();
+    idx = Math.max(0, Math.min(SCENES.length-1, i));
+    stage.setAttribute('data-scene', SCENES[idx].id);
+    renderCaption(idx); elapsedBefore = 0; highlight(0); setProgress(0);
+    runPackets(SCENES[idx].id);
+    if (voiceOn && manifest){ audio.src = 'audio/' + SCENES[idx].id + '.mp3'; audio.currentTime = 0; }
+    playing = !!autoplay;
+    playBtn.textContent = playing ? '❚❚ 暂停' : '▶ 播放';
+    if (playing) startClock();
+  }
+  function play(){
+    if (idx === SCENES.length-1 && chaps[idx].classList.contains('done')) { go(0, true); return; }
+    playing = true; playBtn.textContent = '❚❚ 暂停';
+    if (voiceOn && manifest && !audio.src.includes(SCENES[idx].id)) audio.src = 'audio/' + SCENES[idx].id + '.mp3';
+    startClock();
+  }
+  function pause(){
+    if (playing && !(voiceOn && manifest)) elapsedBefore += (performance.now()-t0)/1000;
+    playing = false; stopClock(); audio.pause(); playBtn.textContent = '▶ 播放';
+  }
+  audio.addEventListener('ended', () => { if (playing) onSceneEnd(); });
+  audio.addEventListener('error', () => { if (voiceOn){ voiceOn = false; syncVoiceBtn('音频加载失败，改用字幕计时'); if (playing) startClock(); } });
+
+  function syncVoiceBtn(msg){
+    voiceBtn.setAttribute('aria-pressed', String(voiceOn));
+    voiceBtn.textContent = voiceOn ? '旁白：开' : '旁白：关';
+    if (msg !== undefined) voiceState.textContent = msg;
+  }
+  voiceBtn.addEventListener('click', () => {
+    const wasPlaying = playing; pause();
+    voiceOn = !voiceOn; syncVoiceBtn();
+    elapsedBefore = 0;
+    if (voiceOn) audio.src = 'audio/' + SCENES[idx].id + '.mp3';
+    if (wasPlaying) play(); else { highlight(0); setProgress(0); }
+  });
+
+  playBtn.addEventListener('click', () => playing ? pause() : play());
+  document.getElementById('prev').addEventListener('click', () => go(idx-1, playing));
+  document.getElementById('next').addEventListener('click', () => go(idx+1, playing));
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input,select,textarea')) return;
+    const film = document.getElementById('film').getBoundingClientRect();
+    if (film.bottom < 0 || film.top > window.innerHeight) return;
+    if (e.key === ' ' ){ e.preventDefault(); playing ? pause() : play(); }
+    else if (e.key === 'ArrowRight') go(idx+1, playing);
+    else if (e.key === 'ArrowLeft') go(idx-1, playing);
+  });
+
+  fetch('audio/manifest.json').then(r => r.ok ? r.json() : Promise.reject()).then(m => {
+    if (!SCENES.every(s => m[s.id])) throw 0;
+    manifest = m; voiceBtn.disabled = false;
+    const engines = new Set(Object.values(m).map(v => v.engine));
+    const name = engines.has('gemini') ? 'Gemini 语音' : '本机语音';
+    syncVoiceBtn('音频：' + name + ' · 共 ' + Math.round(Object.values(m).reduce((a,v)=>a+v.seconds,0)) + ' 秒');
+  }).catch(() => { voiceBtn.disabled = true; voiceBtn.textContent = '旁白：无音频'; voiceState.textContent = '字幕按时间推进'; });
+
+  go(0, false);
+
+  // #record: deterministic frame rendering for scripts/… MP4 capture (docs/explainer/record.mjs)
+  if (location.hash === '#record') {
+    document.documentElement.classList.add('rec');
+    stopClock(); clearPackets();
+    const bar = document.createElement('div'); bar.className = 'recbar'; document.querySelector('.film').appendChild(bar);
+    let recId = null, recDots = [];
+    window.__ocoRender = (i, t, dur, overall) => {
+      const id = SCENES[i].id;
+      if (recId !== id) {
+        recId = id; idx = i; stage.setAttribute('data-scene', id); renderCaption(i);
+        scn.textContent = '场景 ' + pad(i+1) + ' / ' + pad(SCENES.length) + ' · ' + SCENES[i].title;
+        recDots = makeDots(id);
+      }
+      highlight(Math.min(0.999, t/dur));
+      if (!capText.querySelector('.s.on')) capText.lastElementChild.className = 's on';
+      placePackets(MOTIONS[id] || [], recDots, t);
+      bar.style.width = (overall*100) + '%';
+      return true;
+    };
+  }
+})();
+
+/* ===== STE language toggle ===== */
+(function(){
+  const sec = document.getElementById('ste');
+  const btns = sec.querySelectorAll('.seg button');
+  let saved = null; try { saved = localStorage.getItem('oco-ste-lang'); } catch(e){}
+  const set = l => { sec.setAttribute('data-lang', l); btns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lang===l))); try { localStorage.setItem('oco-ste-lang', l); } catch(e){} };
+  btns.forEach(b => b.addEventListener('click', () => set(b.dataset.lang)));
+  if (saved === 'en' || saved === 'zh') set(saved);
+})();
+
+/* ===== policy simulator (simplified model of bridge-policy.ts) ===== */
+(function(){
+  const BOUND_DIR = '/work/app';
+  const PARENT = { 'S1': null, 'S1-sub': 'S1', 'S1-sub-sub': 'S1-sub', 'S9': null };
+  const OWNER = { 'P1':'S1', 'P9':'S9', 'Q1':'S1', 'Q9':'S9' };
+  const PRESETS = [
+    ['读当前会话的消息','GET','/session/S1/message',true],
+    ['读另一个目录','GET','/session?directory=/home/other',true],
+    ['用 workspace 参数覆盖','GET','/file?workspace=other',true],
+    ['向当前会话发消息','POST','/session/S1/prompt_async',true],
+    ['向子会话发消息','POST','/session/S1-sub/prompt_async',true],
+    ['向别的会话发消息','POST','/session/S9/prompt_async',true],
+    ['新建会话','POST','/session',true],
+    ['回复本会话的权限请求','POST','/permission/P1/reply',true],
+    ['回复别的会话的权限请求','POST','/permission/P9/reply',true],
+    ['打开终端','GET','/pty',true],
+    ['路径穿越','GET','/file/../../etc/passwd',true],
+    ['不受信任工作区里发消息','POST','/session/S1/prompt_async',false],
+    ['停止上游服务','POST','/instance/dispose',true],
+  ];
+  const $ = id => document.getElementById(id);
+  const preset = $('preset'), method = $('method'), path = $('path'), trusted = $('trusted');
+  PRESETS.forEach((p,i) => { const o = document.createElement('option'); o.value = i; o.textContent = p[0]; preset.appendChild(o); });
+  const custom = document.createElement('option'); custom.value = 'custom'; custom.textContent = '（自定义）'; preset.appendChild(custom);
+
+  function allowedSession(id){
+    let cur = id;
+    for (let depth = 0; depth <= 8 && cur; depth++){ if (cur === 'S1') return depth; cur = PARENT[cur]; }
+    return -1;
+  }
+  function evaluate(m, raw, trust){
+    const steps = []; const [p, qs=''] = raw.split('?'); const q = new URLSearchParams(qs);
+    const out = (ok, why, cite) => ({ok, why, cite, steps});
+    if (!p.startsWith('/')) { steps.push(['fail','路径必须以 / 开头']); return out(false,'拒绝：路径格式不对','bridge.ts:177'); }
+    if (p.includes('..') || p.includes('//')) { steps.push(['fail','路径含 .. 或 //']); return out(false,'拒绝：路径穿越','bridge-policy.ts:26'); }
+    steps.push(['pass','路径不含 .. 或 //']);
+    if (/^\/(api\/)?pty(\/|$)/.test(p) || p.startsWith('/tui/') || /^\/global\/(upgrade|dispose)(\/|$)/.test(p) || /^\/instance\/dispose(\/|$)/.test(p)) {
+      steps.push(['fail','路径在禁用表里：/pty、/tui/、upgrade、dispose']); return out(false,'拒绝：此路径在面板里不可用','bridge-policy.ts:81-84');
+    }
+    steps.push(['pass','路径不在禁用表里']);
+    if (['GET','HEAD','OPTIONS'].includes(m)) {
+      if (q.has('workspace')) { steps.push(['fail','读请求带 workspace 覆盖']); return out(false,'拒绝 403：不接受 workspace 覆盖','bridge-policy.ts:86-99'); }
+      if (q.has('directory') && q.get('directory') !== BOUND_DIR) { steps.push(['fail','directory = ' + q.get('directory') + '，不是绑定目录']); return out(false,'拒绝 403：只能读绑定目录','bridge-policy.ts:86-99'); }
+      steps.push(['pass','读请求，目录符合绑定']);
+      steps.push(['pass','宿主把目录头改写为 ' + BOUND_DIR]);
+      return out(true,'放行：读请求，转发到服务','bridge-policy.ts:86-99');
+    }
+    steps.push(['skip','这是写请求，继续检查']);
+    if (!trust) { steps.push(['fail','工作区不受信任']); return out(false,'拒绝 403：不受信任工作区不能写','bridge-policy.ts:100'); }
+    steps.push(['pass','工作区受信任']);
+    if (m === 'POST' && /^\/(api\/)?session\/?$/.test(p)) { steps.push(['pass','无会话写的白名单：POST /session']); return out(true,'放行：新建会话','bridge-policy.ts:29-31'); }
+    if (m === 'POST' && p === '/log') { steps.push(['pass','无会话写的白名单：POST /log']); return out(true,'放行：写日志','bridge-policy.ts:29-31'); }
+    let mm = p.match(/^\/(permission|question)\/([^/]+)\/(reply|reject)$/);
+    if (mm && m === 'POST') {
+      const owner = OWNER[mm[2]];
+      if (!owner) { steps.push(['fail','查不到 ' + mm[2] + ' 属于哪个会话']); return out(false,'拒绝 403：请求归属未知','bridge-policy.ts:108-116'); }
+      const d = allowedSession(owner);
+      if (d < 0) { steps.push(['fail', mm[2] + ' 属于 ' + owner + '，不是本面板的会话']); return out(false,'拒绝 403：不能回复别的会话','bridge-policy.ts:108-116'); }
+      steps.push(['pass', mm[2] + ' 属于 ' + owner + '，在本面板范围内']); return out(true,'放行：回复本会话的请求','bridge-policy.ts:108-116');
+    }
+    mm = p.match(/^\/(?:api\/)?session\/([^/]+)/);
+    if (mm) {
+      const sid = mm[1]; const d = allowedSession(sid);
+      if (d === 0) { steps.push(['pass','目标是绑定会话 S1']); return out(true,'放行：写入绑定会话','bridge-policy.ts:103-107'); }
+      if (d > 0) { steps.push(['pass', sid + ' 向上 ' + d + ' 层到达 S1（上限 8 层）']); return out(true,'放行：写入绑定会话的子会话','bridge-policy.ts:63-78'); }
+      steps.push(['fail', sid + ' 不是 S1，也不是它的子会话']); return out(false,'拒绝 403：operation not available in this panel','bridge-policy.ts:118');
+    }
+    steps.push(['fail','不匹配任何允许的写操作']);
+    return out(false,'拒绝 403：operation not available in this panel','bridge-policy.ts:118');
+  }
+  function render(){
+    const r = evaluate(method.value, path.value.trim(), trusted.checked);
+    const pill = $('vPill'); pill.className = 'pill ' + (r.ok ? 'allow' : 'deny'); pill.textContent = r.ok ? 'ALLOW' : 'DENY';
+    $('vWhy').textContent = r.why;
+    const tr = $('vTrace'); tr.innerHTML = '';
+    r.steps.forEach(([k,t]) => { const li = document.createElement('li'); li.className = k; li.innerHTML = '<span class="m">' + (k==='pass'?'✓':k==='fail'?'✕':'·') + '</span><span></span>'; li.lastChild.textContent = t; tr.appendChild(li); });
+    $('vCite').textContent = '规则位置：apps/extension/src/' + r.cite;
+  }
+  function load(i){ const p = PRESETS[i]; method.value = p[1]; path.value = p[2]; trusted.checked = p[3]; render(); }
+  preset.addEventListener('change', () => { if (preset.value !== 'custom') load(+preset.value); });
+  [method, path, trusted].forEach(el => el.addEventListener('input', () => { preset.value = 'custom'; render(); }));
+  method.addEventListener('change', () => { preset.value = 'custom'; render(); });
+  load(3);
+  preset.value = '3';
+})();
+
+/* ===== patch ledger ===== */
+(function(){
+  const P = [
+    ['0001','oco-draft-insert','草稿与发送','宿主把选中文本追加进输入框，不发送。'],
+    ['0002','oco-embedded-single-session','单会话嵌入','嵌入单会话模式，收起原有导航和多标签。'],
+    ['0003','oco-narrow-dock-wrap','窄面板','窄宽度下正确换行。'],
+    ['0004','oco-embedded-submit-waits-for-model','草稿与发送','模型信息就绪前，协调提交时机。'],
+    ['0005','oco-open-file-in-host','文件与 Diff','打开文件交给宿主处理。'],
+    ['0006','oco-open-file-diff-summary-markdown','文件与 Diff','Diff 摘要和 Markdown 里的路径也交给宿主。'],
+    ['0007','oco-turn-diff-scope-unavailable','文件与 Diff','单轮 Diff 范围；缺少前像时明确显示不可用。'],
+    ['0008','oco-embedded-recovery-view','失败与设置','错误、不可达、会话缺失时转到 oco 恢复页。'],
+    ['0009','oco-embedded-settings-no-pty-shells','失败与设置','嵌入设置里去掉 PTY 和 shell 入口。'],
+    ['0010','oco-embedded-visibility-defaults','失败与设置','嵌入模式的可见性默认值。'],
+    ['0011','oco-message-fork-buttons','Fork 与轨迹','消息上的 fork 按钮。'],
+    ['0012','oco-trajectory-view','Fork 与轨迹','对话和轨迹两种视图。'],
+    ['0013','oco-trajectory-i18n-tools-compact','Fork 与轨迹','轨迹文案、工具页签、折叠步骤。'],
+    ['0014','oco-trajectory-toggle-state-subagent','Fork 与轨迹','轨迹切换的选中态和子智能体行。'],
+    ['0015','oco-embedded-keep-workspace-on-switch','单会话嵌入','切换会话时保持工作区，不整页重载。'],
+    ['0016','oco-embedded-session-links-not-urls','单会话嵌入','子会话链接交给宿主，不开系统浏览器。'],
+    ['0017','oco-embedded-header-actions-inline','单会话嵌入','去掉整行标题栏，操作并入会话标题行。'],
+    ['0018','oco-embedded-hide-session-more-menu','单会话嵌入','嵌入模式去掉会话的“更多”菜单。'],
+  ];
+  const groups = ['全部', ...new Set(P.map(p => p[2]))];
+  const chips = document.getElementById('pChips'), ul = document.getElementById('ledger');
+  function show(g){
+    [...chips.children].forEach(c => c.setAttribute('aria-pressed', String(c.dataset.g === g)));
+    ul.innerHTML = '';
+    P.filter(p => g === '全部' || p[2] === g).forEach(p => {
+      const li = document.createElement('li');
+      li.innerHTML = '<span class="n"></span><span><span class="t"></span><span class="g"></span></span><span class="f"></span>';
+      li.querySelector('.n').textContent = p[0]; li.querySelector('.t').textContent = p[3]; li.querySelector('.g').textContent = p[2]; li.querySelector('.f').textContent = p[0] + '-' + p[1] + '.patch';
+      ul.appendChild(li);
+    });
+  }
+  groups.forEach(g => { const b = document.createElement('button'); b.type='button'; b.className='chip'; b.dataset.g=g; const n = g==='全部'?P.length:P.filter(p=>p[2]===g).length; b.textContent = g + ' ' + n; b.addEventListener('click', () => show(g)); chips.appendChild(b); });
+  show('全部');
+})();
+</script>

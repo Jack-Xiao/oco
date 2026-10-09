@@ -114,6 +114,11 @@
 - 检查：typecheck PASS；build PASS；unit 185/185；E2E（mock）`p1b-sidebar` 13/13、`c3-fork` 4/4、`p1b-reconnect` 5/5、`t010-recover` 5/5、`t014-connection` 6/6。NOT VERIFIED：右键菜单（macOS 原生菜单）。NOT RUN：其余 E2E、Remote（gcp-workstation 已不存在）。
 - 部署：`oco-0.0.4-9b32950.vsix`（extension.js sha256 `fa68647b…`）用 VS Code 自带 CLI 覆盖安装到本机，安装目录哈希一致；需 Reload Window。旧实验设置 `oco.experimental.webviewSessions` 已不存在，可从用户设置删除。
 
+## 仪表盘 v4 独立设计评估（2026-10-02；未实施）
+
+- 已抽查独立演示的 420/560px 窗格、权限等待、实时模拟和子代理下钻；完成 Grok 只读数据核查与[设计建议](design/dashboard-v4-review-for-claude.md)。建议采用单一阅读焦点、全局分支摘要和明确数据来源；用户尚未确认全部建议。
+- 只新增设计/证据，未修改 Claude 原型或产品代码。产品 typecheck/unit/build/E2E NOT RUN。用户授权向原会话发送建议；桌面锁屏且远程网页要求重新登录，尚未送达，见[本批证据](evidence/dashboard-v4-review-2026-10-02.md)。
+
 ## 项目委派规则收紧（2026-10-02；文档）
 
 - AGENTS 已明确：调查、独立实现、测试和文档检查先实际委派；主线程接手需记录具体例外；请求路线、执行证据、fallback 和阶段结果留在一份短记录里。STATUS/NEXT 按任务段落读取，避免默认加载全文。
@@ -152,7 +157,7 @@
 ## 侧栏会话列表改版（提交 `8d215c3`，2026-10-01；已部署 gcp-workstation）
 
 - 分组只按时间：昨天 0 点以后（本地日历）的会话直接列出；更早的进折叠的「More」（显示数量）。运行中、等待权限/回答、未读的会话不论多旧都留在上面；上面为空时 More 自动展开；搜索结果平铺。
-- 状态只用图标：出错 `error`；等待权限/回答黄色实心点；运行中灰色呼吸点（自定义 SVG，透明度 1↔0.3、1.6 s，`workbench.reduceMotion` 为 on 时改静态点）；未读蓝点（运行结束时不是活动面板，打开后清除，按工作区记在 workspaceState）；空闲用 `blank` 占位保持对齐。行尾只留短时间（now / 7m / 3h / yesterday / 3d / Sep 28），状态文字移到悬停提示和读屏标签，去掉「Open」。
+- 状态只用图标：出错 `error`；等待权限/回答黄色实心点；运行中灰色呼吸点（自定义 SVG，透明度 1↔0.3、1.6 s，`workbench.reduceMotion` 为 on 时改静态点）；未读蓝点（运行结束时不是活动面板，打开后清除，按工作区记在 workspaceState）；空闲用 `blank` 占位保持对齐。行尾只留短时间（now / 7m / 3h / 1d / 3d / Sep 28；昨天显示为 1d（2026-10-09 改）），状态文字移到悬停提示和读屏标签，去掉「Open」。
 - 加载：首屏 100 个根会话，「Load more…」每次再拉 100（服务端无游标，按更大 limit 重拉）；切换服务器/目录回到 100。搜索同时请求服务端 `search=`（标题，全部历史），结果并入列表；老版本服务端忽略该参数时退回本地过滤。去掉「只加载最近 200 个」提示。
 - 检查：typecheck PASS；unit 185/185（新增 `session-groups`、feed/store 的 loadMore/search/mergeRoots）；build PASS；E2E（mock）`p1b-sidebar` 13/13 PASS（[结果](evidence/runs/20261001-155122-p1b-sidebar-20fc/results.json)），新增 sidebar-status-icons：真实 VS Code 中运行行图标为该 SVG，相隔 800 ms 的两张截图不同（动画在播）；Load more 点击后 100→200。
 - 部署：`oco-0.0.4-8d215c3.vsix`（extension.js sha256 `670999f5…`）已用 `scripts/deploy-remote.sh` 安装到 gcp-workstation，远端哈希一致。`scripts/remote-look.mjs` 新开 Remote 窗口截图：昨天的 7 个会话平铺，More 10（2d/3d），时间与分组正确；当时无运行中会话，呼吸点未在 Remote 上目测。用户自己的 Remote 窗口需 Reload Window。
@@ -396,6 +401,7 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 | 系统剪贴板图片 | NOT RUN |
 | Windows | NOT RUN |
 | Remote-SSH、团队实际服务 | BLOCKED |
+| 企业服务版本 OpenCode 1.18.13（本地隔离，mock） | 19 套件无版本相关失败；p1a-identity 在 1.18.33/1.18.13 同样失败（环境回归，待查）；真实模型与企业实际服务 NOT RUN。见 [证据](evidence/server-1.18.13-compat-2026-10-06.md) |
 
 ## 维护规则
 

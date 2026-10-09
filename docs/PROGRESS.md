@@ -406,6 +406,23 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - STATUS/NEXT 同步按任务段落读取与委派约束；保留本轮开始前的并发产品/文档改动。只改项目文档，未改全局配置或路由，未提交。
 - 本批 Gemini Antigravity 订阅最小请求因地域限制失败，Grok 安装/登录检查通过，Grok 复核 PASS；链接、diff 格式及 4 项并发基线保护检查 PASS。只读代理的复核补丁由主线程代存；结果与执行记录见 [本批证据](evidence/delegation-rules-20261002.md)。产品 typecheck/unit/build/E2E 与后续会话行为 NOT RUN。
 
+## 2026-10-02 仪表盘 v4 独立评估
+
+- 观察现有演示、委派 Grok 数据能力核查，保存设计建议和四状态交互示意；没有改产品或 Claude 工作树。证据见 [dashboard-v4-review](evidence/dashboard-v4-review-2026-10-02.md)。
+- 关键边界：请求级 usage 不能直接拆成输入块 token；历史 delta 不完整；后台 task 工具完成不等于子代理结束。真实产品检查均 NOT RUN。
+- 已定位目标 Claude fork 会话；发送因桌面锁屏/网页设备重新登录受阻，文件已保存，消息尚未送达。
+
+## 2026-10-03 原理讲解页（四种形式）
+
+- 委派 Grok 只读核对现状，写入 [explainer-facts](evidence/explainer-facts-2026-10-03.md)；主线程抽查桥信封、managed 启动参数、WebSocket 禁用三处一致。委派记录见 [delegation-explainer](evidence/delegation-explainer-2026-10-03.md)。
+- 新增 `docs/explainer/`（未提交）：讲解页（12 场景影片 + STE 速读卡 + 策略模拟器 + 补丁账本 + 实现状态表）、`narration.json`、`tts.mjs`；旁白暂用 macOS say，Gemini TTS 待密钥。已发布为私有 Artifact。产品代码未改，测试 NOT RUN。
+- 事实清单发现 `technical-guide.html` 的协议字段名（`requestId`/`generation`，实为 `id`/`gen`）和“会话列表未提交”提示已过时，未修改。
+
+## 2026-10-06 企业服务 1.18.13 兼容评估
+
+- 企业使用 OpenCode 1.18.13（非 1.18.33）。源码比对（Grok）：对外 API 差异很小；中风险两项——provider `connected` 在旧服务不含“有凭据未列出”的提供商（模型被静默隐藏）、远端 workspace 代理不剥离 `directory`。
+- E2E（mock，隔离 1.18.13 @4537）：Grok 沙箱无法启动 VS Code，无效；Gemini 跑 18 套件 17 PASS；p1a-identity 经主线程同环境 A/B 证实两版本同样失败，属环境回归，非版本问题。真实模型、managed 模式、企业实际服务 NOT RUN。证据与委派记录见 [server-1.18.13-compat](evidence/server-1.18.13-compat-2026-10-06.md)。
+
 ## 2026-10-08 会话列表 webview spike
 
 - 起因：Claude Code 2.1.293 的会话列表是 WebviewView（`retainContextWhenHidden: true`），原生 TreeView 做不到时间右对齐、圆角选中和自定义行高。
