@@ -525,3 +525,4 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - E2E 首轮 c5 en/zh 各 42/1（`geometry-stable` 断言假设工具台固定），改测试后重跑 43/43、43/43；c4 17/17。委派记录见 `docs/evidence/runtime-m5.md`。
 - 第二轮反馈（同日）：计划标签真实点击无效（父级 pointer-events none，单测用 el.click() 未覆盖）；「全文」按钮改为卡片整块可点；卡片去掉 meta 行。session 单测 419/0、test-browser 66/0、c5 en/zh 43/43；本机安装 fb3。
 - 第三轮反馈（同日）：模型思考时中心卡片不可点（可点条件只看正文，思考阶段正文为空）→ 流式中或有 meta 即可点开，浮层显示“生成中”提示与 meta；删除与模型框/站牌/结束卡片重复的底部“Now”字幕行（`caption` 整条链路与 20 个 `ring.cap.*` 键）、卡片右上角时长（`RingCard.age`）、状态栏“已空闲”（`ring.bar.idle`）；回放“上一步”图标改为 `|◀`。typecheck 0、session 419/0、test-browser 67/0；E2E（Gemini）c5 en 43/43、zh 43/43；0020 重新生成、干净重放；本机已装。
+- D2 修订（同日，用户决定）：回放中进行中的思考/输出按时间占比显示最终全文的前缀并标注“按时间估算”，无泄漏测试列明豁免字段；typecheck 0、session 420/0、test-browser 67/0；0020 重新生成、干净重放；本机已装；E2E NOT RUN。
