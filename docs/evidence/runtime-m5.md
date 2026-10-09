@@ -24,7 +24,7 @@ Route: the user enabled ultracode and asked for execution, so Tasks 1–14 are i
 | m5-t12 | `session-runtime.tsx`; deletes `session-runtime-mechanism-view.tsx`, `session-runtime-loop-view.tsx`, `session-runtime-child.tsx`; loop-view part of `session-runtime-loop.test.ts`; `session-runtime-mechanism.ts` and its test once unreferenced | Claude Workflow (integrate) | unknown | part of wf_9af8ca23-fa8 | Planned | This file | Route specified by user |
 | m5-t13 | `tests/e2e/c5-runtime.mjs`, `tests/e2e/lib/mock-llm.mjs` (main thread reads results.json only) | Claude Workflow (wave 2 write, wave 4 run) | unknown | part of wf_9af8ca23-fa8 | Planned | This file | Route specified by user |
 | m5-t14 | `scripts/look-local.mjs` | Claude Workflow (wave 2) | unknown | part of wf_9af8ca23-fa8 | Planned | This file | Route specified by user |
-| m5-t15 | `patches/opencode/0019-oco-runtime-view.patch`, `docs/STATUS.md`, `docs/PROGRESS.md`, `docs/NEXT.md`, this file | Main thread | Claude / inherited | unknown | Planned | This file | Main-thread task in the plan (patch, replay, build, install) |
+| m5-t15 | `patches/opencode/0020-oco-runtime-view.patch`, `docs/STATUS.md`, `docs/PROGRESS.md`, `docs/NEXT.md`, this file | Main thread | Claude / inherited | unknown | Planned | This file | Main-thread task in the plan (patch, replay, build, install) |
 
 ## Task 2: contract, mockup source, test-browser JSX preload, perf baseline (2026-10-08)
 

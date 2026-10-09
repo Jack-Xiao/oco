@@ -164,7 +164,7 @@ RuntimeInput 增加:
 
 ### Task 8：补丁与重放（主线程）
 
-- `git -C vendor/opencode diff <M1 基线 deb241e> -- packages/app > patches/opencode/0019-oco-runtime-view.patch`（0019 追加 M2，仍是一个补丁）。
+- `git -C vendor/opencode diff <M1 基线 deb241e> -- packages/app > patches/opencode/0020-oco-runtime-view.patch`（0019 追加 M2，仍是一个补丁）。
 - 干净 `51ef4be` 上依序 `git apply --check` + apply 0001→0019；`diff -r` 与开发树 `packages/app/src` 一致；重放树中 session 单测全过。
 
 ### Task 9：整分支评审、验收与文档（主线程）

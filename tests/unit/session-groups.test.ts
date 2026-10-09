@@ -3,6 +3,7 @@ import type { SessionActivity, SessionListItem } from "@oco/contracts"
 import {
   UnreadTracker,
   compactTime,
+  listMessage,
   splitSessions,
   startOfDay,
   startOfYesterday,
@@ -211,5 +212,22 @@ describe("UnreadTracker", () => {
     expect(defaults.has("s200")).toBe(true)
     expect(defaults.ids()[0]).toBe("s1")
     expect(defaults.ids()[199]).toBe("s200")
+  })
+})
+
+describe("list state messages", () => {
+  const base = { summary: { state: "connected" } as any, connected: true, hasRows: false, query: "", loading: false, trusted: true }
+  test("rows hide the message", () => {
+    expect(listMessage({ ...base, hasRows: true })).toBeUndefined()
+  })
+  test("connected and empty: loading, search miss, empty workspace, restricted mode", () => {
+    expect(listMessage({ ...base, loading: true })?.text).toBe("Loading sessions…")
+    expect(listMessage({ ...base, query: "x" })?.actions).toEqual([{ label: "Clear Search", command: "oco.clearSearch" }])
+    expect(listMessage(base)?.actions.map((a) => a.command)).toEqual(["oco.newSession"])
+    expect(listMessage({ ...base, trusted: false })?.actions).toEqual([])
+  })
+  test("connecting with nothing cached shows no buttons; an error carries its cause", () => {
+    expect(listMessage({ ...base, summary: { state: "connecting" } as any, connected: false })).toEqual({ text: "Connecting to the OpenCode server…", actions: [] })
+    expect(listMessage({ ...base, summary: { state: "error", error: "ECONNREFUSED" } as any, connected: false })?.text).toContain("ECONNREFUSED")
   })
 })

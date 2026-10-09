@@ -1,6 +1,6 @@
 # ADR-006：P1b-1 会话侧栏、连接状态、事件路由与窄布局
 
-状态：已采纳（P1b-1）。日期：2026-09-30。依据：[P1b 执行指示](../P1B-NEXT-STEPS.md)、[上游调查](../evidence/p1b-upstream-survey.md)、[P1b-1 验收记录](../evidence/p1b1-acceptance.md)。在 [ADR-005](005-p1a-identity-storage-connection.md) 基础上扩展，不改变其桥接与存储决定。
+状态：已采纳（P1b-1）；§4 的原生 TreeView 已由 [ADR-008](008-webview-sessions-list.md) 改为 WebviewView。日期：2026-09-30。依据：[P1b 执行指示](../P1B-NEXT-STEPS.md)、[上游调查](../evidence/p1b-upstream-survey.md)、[P1b-1 验收记录](../evidence/p1b1-acceptance.md)。在 [ADR-005](005-p1a-identity-storage-connection.md) 基础上扩展，不改变其桥接与存储决定。
 
 ## 1. 先固定的小接口
 

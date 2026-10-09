@@ -53,7 +53,7 @@
 7. `realUser`（`session-runtime-model.ts` 359-364）和 `backgroundIdOf`（313-322）目前没有导出。`backgroundNoticesOf(messages, parts)` 已导出，是纯函数，可以对 created ≤ t 的消息前缀调用。
 8. `onOpenSession` 从 `pages/session.tsx` 一路传到 `RuntimeMechanism`，但 M4 从未调用。M4 里“打开子会话”实际是视图内进入（`onEnterChild` + 面包屑）。
 9. `packages/app/AGENTS.md` 有三条要求：改 session/timeline 代码前先记生产基准；优先用 `createStore`，不要堆多个 `createSignal`；不硬编码可见英文，用完整短语键。
-10. 本 worktree 的 `patches/opencode/` 只有一个 0019（`0019-oco-runtime-view.patch`），重放目标是 19/19。
+10. 本 worktree 的 `patches/opencode/` 只有一个 0019（`0020-oco-runtime-view.patch`），重放目标是 19/19。
 11. `bun test` 在 `packages/app` 里没有 Solid JSX 编译：`bunfig.toml` 只预载 `happydom.ts`，tsconfig 是 `jsx: preserve` + `jsxImportSource: solid-js`，挂载 Solid `.tsx` 组件会退回 React 经典 JSX，报 `React is not defined`（评审复现）。只为纯函数导入 `.tsx` 不受影响（`loop.test.ts` 导入 `loop-view.tsx` 即如此）。已在 scratchpad 验证替代做法：一个 `Bun.plugin` 预载，对 `.tsx` 用 `@babel/core` + `babel-preset-solid`（`generate: "dom"`，`parserOpts.plugins: ["jsx","typescript"]`）编译，再以 `loader: "ts"` 交回 Bun 去类型。两者不是 `packages/app` 的直接依赖，要用 `createRequire` 从 `vite-plugin-solid/package.json`（直接 devDependency）解析，不新增依赖。结果：Solid `.tsx` 组件挂载、点击、`<For>` 都正常（1 pass）；现有 `test-browser` 加上这个预载后仍为 48 pass / 0 fail。见 Task 2。
 12. `packages/app/tsconfig.json` 是 `composite`，`include` 为 `["src", "package.json"]`。目录 include 不收 `.json`，所以在 `src` 里 `import x from "./x.json"` 会让 `tsgo -b` 报 TS6307（评审复现）。夹具因此保持 `.json`，由适配器在运行时读取（先例：`src/theme-preload.test.ts` 用 `Bun.file(new URL(…, import.meta.url))`；`@types/node`、`@types/bun` 已在 devDependencies）。见 Task 4。
 13. OpenCode 的循环在 `finish` 不属于 `["tool-calls", "unknown"]` 时就结束（`packages/opencode/src/session/prompt.ts` 1111-1113、1294），不只是 `stop`；`length`、`content-filter`、`other`、`error` 都会结束本轮。见 D5。
@@ -1647,7 +1647,7 @@ export function RingSubView(props: RingSubViewProps): JSX.Element
 **不得：** 发送任何提示词；改用户 OpenCode 的配置、版本或进程；把截图或 facts 原文回传给主线程（只回摘要）。
 ### Task 15：补丁、构建、安装与验收（主线程；E2E 运行按 Task 13 委派）
 
-**拥有：** `patches/opencode/0019-oco-runtime-view.patch`、`docs/STATUS.md`、`docs/PROGRESS.md`、`docs/NEXT.md`、`docs/evidence/runtime-m5.md`。按下节顺序执行。
+**拥有：** `patches/opencode/0020-oco-runtime-view.patch`、`docs/STATUS.md`、`docs/PROGRESS.md`、`docs/NEXT.md`、`docs/evidence/runtime-m5.md`。按下节顺序执行。
 
 
 **不得：** 推送、合并 main、部署到其他机器；在用户授权前本地提交；改 vendor 源码（发现问题回到对应任务）。
@@ -1663,9 +1663,9 @@ export function RingSubView(props: RingSubViewProps): JSX.Element
 4. **根检查：** 在 worktree 根执行 `bun run verify:brief` → 退出码 0；明细只读 `.oco-reports/latest.md` 的摘要。
 5. **补丁 0019 重新生成与干净重放：**
    - `git -C vendor/opencode add -N packages/app/src packages/app/test-browser`（新文件 `test-browser/solid-jsx-preload.ts` 在 test-browser 里，一并收进；`package.json` 是已跟踪文件，改动自动进 diff）
-   - `git -C vendor/opencode diff deb241e -- packages/app > patches/opencode/0019-oco-runtime-view.patch`
-   - `git apply --stat patches/opencode/0019-oco-runtime-view.patch` 检查都在：`ring*.ts(x)`、`fixtures/runtime-m5-session.json`、`fixtures/runtime-m5-oracle.json`、`session-runtime-ring.fixture.ts`、`session-runtime-ring-perf.fixture.ts`、`test-browser/solid-jsx-preload.ts`、`test-browser/session-runtime-ring-*.test.tsx`、`packages/app/package.json`（只有 `test:browser` 一行变化）；已删除的 3 个视图文件不再出现。
-   - `grep -nE '/Users/|xiaojiang|@gmail' patches/opencode/0019-oco-runtime-view.patch` → 无输出；`git diff --check` 无告警。
+   - `git -C vendor/opencode diff deb241e -- packages/app > patches/opencode/0020-oco-runtime-view.patch`
+   - `git apply --stat patches/opencode/0020-oco-runtime-view.patch` 检查都在：`ring*.ts(x)`、`fixtures/runtime-m5-session.json`、`fixtures/runtime-m5-oracle.json`、`session-runtime-ring.fixture.ts`、`session-runtime-ring-perf.fixture.ts`、`test-browser/solid-jsx-preload.ts`、`test-browser/session-runtime-ring-*.test.tsx`、`packages/app/package.json`（只有 `test:browser` 一行变化）；已删除的 3 个视图文件不再出现。
+   - `grep -nE '/Users/|xiaojiang|@gmail' patches/opencode/0020-oco-runtime-view.patch` → 无输出；`git diff --check` 无告警。
    - 重放：`git -C vendor/opencode worktree add --detach <scratchpad>/m5-replay 51ef4be`，按顺序对 0001–0019 逐个执行 `git apply --check` 和 `git apply` → 19/19。然后 `diff -r` 比较重放树与开发树的 `packages/app/src`、`packages/app/test-browser` → 无差异，并 `cmp` 两边的 `packages/app/package.json` → 相同。最后 `git -C vendor/opencode worktree remove <scratchpad>/m5-replay`。
 6. **构建：** worktree 根 `bun run build` → webview 和 extension 都构建成功。E2E 测的是这个产物。
 7. **E2E**（Task 13）：c5-runtime en、zh 全部 REQUIRED PASS；c4-trajectory PASS。主线程只读 results.json。
@@ -1701,7 +1701,7 @@ export function RingSubView(props: RingSubViewProps): JSX.Element
 | `session-runtime.tsx`；删除 `session-runtime-mechanism-view.tsx`、`session-runtime-loop-view.tsx`、`session-runtime-child.tsx`；`session-runtime-loop.test.ts`（只删 loop-view 段）；无引用后的 `session-runtime-mechanism.ts` 与测试 | 12 |
 | `tests/e2e/c5-runtime.mjs`、`tests/e2e/lib/mock-llm.mjs` | 13 |
 | `scripts/look-local.mjs` | 14 |
-| `patches/opencode/0019-oco-runtime-view.patch`、`docs/STATUS.md`、`docs/PROGRESS.md`、`docs/NEXT.md`、`docs/evidence/runtime-m5.md` | 15（证据文件从 Task 2 起都由主线程写） |
+| `patches/opencode/0020-oco-runtime-view.patch`、`docs/STATUS.md`、`docs/PROGRESS.md`、`docs/NEXT.md`、`docs/evidence/runtime-m5.md` | 15（证据文件从 Task 2 起都由主线程写） |
 
 未列出的 vendor 文件本批都不改，例如 `session-runtime-loop.ts`、`session-runtime-overview.ts`、`session-runtime-reasoning.ts`、`session-runtime-actions.ts`、`session-runtime-keyed.ts`、`session-trajectory*`、`pages/session.tsx`。其中 loop、overview、reasoning 在 M5 后若已无引用，留到下一批再清理，免得本批扩大。
 

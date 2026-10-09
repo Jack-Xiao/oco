@@ -112,7 +112,7 @@
 ?? docs/evidence/runtime-viz-calibration.md
 ?? docs/evidence/runtime-viz-open-items.md
 ?? docs/superpowers/
-?? patches/opencode/0019-oco-runtime-view.patch
+?? patches/opencode/0020-oco-runtime-view.patch
 ?? tests/e2e/c5-runtime.mjs
 ```
 
@@ -164,6 +164,6 @@
 ?? docs/evidence/runtime-viz-calibration.md
 ?? docs/evidence/runtime-viz-open-items.md
 ?? docs/superpowers/
-?? patches/opencode/0019-oco-runtime-view.patch
+?? patches/opencode/0020-oco-runtime-view.patch
 ?? tests/e2e/c5-runtime.mjs
 ```

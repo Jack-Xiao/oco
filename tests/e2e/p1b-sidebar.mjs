@@ -1,19 +1,21 @@
-// P1b-1 main chain through the native Sessions sidebar (real VS Code + real server):
+// P1b-1 main chain through the Sessions sidebar webview (real VS Code + real server):
 // list -> create -> rename -> search -> draft -> send -> permission -> stop -> status -> switch/restore,
 // then a connection-switch regression and a restricted-mode (untrusted workspace) regression.
-// Tree rows, title actions and inline actions are clicked with the pointer; the host's debug state is
-// only read to check what the sidebar shows.
+// Rows are clicked inside the sessions webview; title actions are native buttons. The host's debug state is
+// only read to check what the sidebar shows. Rename goes through oco.renameSession because the webview
+// context menu is a native macOS menu Playwright cannot click.
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
+import { sessionsFrame, sessionRow, moreHead, loadMoreRow, titleAction, openSearch } from "./lib/sessions-web.mjs"
 import { launch, command, chatFrames, frameSession, sleep, runShot, hostState, clearNotifications, root } from "./vscode.mjs"
 import { api, messages, status, waitIdle, waitReply, waitMessageFinal } from "./server.mjs"
 
 const REQUIRED = [
   "sidebar-list",
-  "connection-view",
+  "single-view-header",
   "sidebar-create",
   "sidebar-rename",
   "sidebar-search",
@@ -58,7 +60,6 @@ async function frameFor(sid) {
   for (const f of await chatFrames(page)) if ((await frameSession(f).catch(() => null)) === sid) return f
   return null
 }
-const row = (title) => page.locator(`.part.sidebar .monaco-list-row[aria-label^="${title}"]`).first()
 /** Description is only a compact age ("now", "7m", "3h", "yesterday", "3d", "Sep 28"). */
 const COMPACT_TIME = /^(now|\d+m|\d+h|yesterday|\d+d|[A-Z][a-z]{2} \d{1,2}|\d{4}-\d{2}-\d{2})$/
 function startOfYesterday(now = Date.now()) {
@@ -67,25 +68,22 @@ function startOfYesterday(now = Date.now()) {
   date.setDate(date.getDate() - 1)
   return date.getTime()
 }
-const iconOf = (title) => row(title).locator(".custom-view-tree-node-item-icon")
-async function iconSnapshot(title) {
-  const icon = iconOf(title)
-  await icon.scrollIntoViewIfNeeded().catch(() => {})
-  return icon
-    .evaluate((el) => ({ className: el.className, backgroundImage: getComputedStyle(el).backgroundImage }))
+/** Status dot of a session row: class (running / waiting / …) and the running pulse animation name. */
+async function dotInfo(title) {
+  return (await sessionRow(page, title))
+    .locator(".dot")
+    .evaluate((el) => ({
+      className: el.className,
+      status: el.getAttribute("data-status") ?? "",
+      animationName: getComputedStyle(el).animationName,
+    }))
     .catch(() => null)
 }
-async function shootIcon(title, name) {
-  const p = run.artifact(name)
-  await iconOf(title).screenshot({ path: p, animations: "allow" })
-  return fs.readFileSync(p)
-}
-/** Permission-row icon, captured in the permission step and checked with the running/idle icons. */
-let permIcon = null
-const titleAction = (label) => page.locator(`.part.sidebar .title-actions [aria-label^="${label}"], .part.sidebar .actions-container [aria-label^="${label}"]`).first()
-// With Sessions and Agents in one container, VS Code shows a view's title actions only while its header is
-// hovered or focused: reveal them before using them.
-const revealSessionsActions = () => page.locator(".part.sidebar .pane-header", { hasText: "Sessions" }).first().hover().catch(() => {})
+const hasClass = (info, name) => !!info && String(info.className).split(/\s+/).includes(name)
+/** Waiting dot, captured while a permission is pending and checked with the running dot. */
+let waitingDot = null
+// The only view is merged into the container title, so its buttons show on hover of that title.
+const revealSessionsActions = () => page.locator(".part.sidebar .composite.title").first().hover().catch(() => {})
 const composer = async (f) => (await f.locator('[data-component="prompt-input"]').innerText()).trim()
 async function type(f, text, send = false) {
   const input = f.locator('[data-component="prompt-input"]')
@@ -125,7 +123,7 @@ async function sidebarItem(id) {
 /** The newest session created after `known`, once its panel has a composer. */
 async function newSessionFromPlus(known) {
   await revealSessionsActions()
-  await titleAction("New Session").click()
+  await titleAction(page, "New Session").click()
   return until(async () => {
     for (const f of await chatFrames(page)) {
       const s = await frameSession(f).catch(() => null)
@@ -142,7 +140,7 @@ async function serverRoots() {
 try {
   if (process.env.OCO_SIDEBAR_ONLY === "restricted") throw new Error("skipped: OCO_SIDEBAR_ONLY=restricted")
   await command(page, "Focus on Sessions View")
-  await until(async () => (await sidebar()).connection?.state === "connected", 30000)
+  await until(async () => ((await sidebar()).connection?.state === "connected" && (await sessionsFrame(page)) ? true : undefined), 30000)
 
   // 1. List = the loaded page of this directory's root sessions (100), newest first, split into
   //    recent (since local yesterday, or not idle / unread) and older rows under More.
@@ -166,28 +164,25 @@ try {
     let lastRows = null
     let loadedAfterClick = null
     if (more.length === 0 && sb.loadMore) {
-      // Every loaded session is recent: "Load more…" is a top-level row, no empty "More" group.
-      // Monaco lists render only visible rows and ignore scrollTop: focus the list and jump to the end.
-      const list = page.locator(".part.sidebar .monaco-list").filter({ has: page.locator(`.monaco-list-row[data-last-element="false"]`) }).filter({ hasText: sb.items[0].title }).first()
-      await list.focus().catch(() => {})
-      await page.keyboard.press("End")
-      await sleep(400)
-      lastRows = await page.locator(".part.sidebar .monaco-list-row").evaluateAll((els) => els.slice(-3).map((e) => e.getAttribute("aria-label")))
-      moreRowOk = (await page.locator('.part.sidebar .monaco-list-row[aria-label^="More"]').count()) === 0 && (await page.locator('.part.sidebar .monaco-list-row[aria-label^="Load more"]').count()) > 0
+      // Every loaded session is recent: "Load more…" is a top-level row, and there is no More header.
+      // The webview renders every row (no virtualization), including ones below the fold.
+      const frame = await sessionsFrame(page)
+      if (frame) lastRows = await frame.locator('.list[role="listbox"] [role="option"]').evaluateAll((els) => els.slice(-3).map((e) => e.getAttribute("aria-label"))).catch(() => null)
+      const load = await loadMoreRow(page)
+      moreRowOk = (await (await moreHead(page)).count()) === 0 && (await load.count()) > 0
       // Clicking it pulls the next page of 100.
       if (moreRowOk) {
-        await page.locator('.part.sidebar .monaco-list-row[aria-label^="Load more"]').first().click()
+        await load.scrollIntoViewIfNeeded().catch(() => {})
+        await load.click()
         const grown = await until(async () => ((await sidebar()).items.length > ids.length ? (await sidebar()).items.length : undefined), 15000, 300)
         loadedAfterClick = grown ?? null
         moreRowOk = !!grown && grown >= Math.min(server.length, 200)
       }
-      await page.keyboard.press("Home")
     } else if (more.length > 0) {
-      await page.locator(".part.sidebar .monaco-list-rows").evaluate((el) => { el.parentElement.scrollTop = el.parentElement.scrollHeight }).catch(() => {})
-      const moreRow = page.locator('.part.sidebar .monaco-list-row[aria-label^="More"]').first()
-      const text = (await moreRow.innerText().catch(() => "")) || ""
-      moreRowOk = (await moreRow.isVisible().catch(() => false)) && text.includes(String(more.length))
-      await page.locator(".part.sidebar .monaco-list-rows").evaluate((el) => { el.parentElement.scrollTop = 0 }).catch(() => {})
+      const head = await moreHead(page)
+      await head.scrollIntoViewIfNeeded().catch(() => {})
+      const text = (await head.innerText().catch(() => "")) || ""
+      moreRowOk = (await head.isVisible().catch(() => false)) && text.includes("More") && text.includes(String(more.length))
     }
     await runShot(page, run, "1-list")
     run.record("sidebar-list", sb.connection.state === "connected" && samePage && ids[0] === server[0] && groupsOk && splitOrder && loadMoreOk && moreRowOk ? "PASS" : "FAIL", {
@@ -206,29 +201,26 @@ try {
     })
   }
 
-  // 1b. The container keeps its "Sessions" header thanks to a second, collapsed Connection view (no Agents view).
+  // 1b. The container's only view is the Sessions webview, merged into the container title (no Connection or Agents header).
   {
-    const header = (t) => page.locator(".part.sidebar .pane-header", { hasText: t }).first()
-    const sessionsHeader = await header("Sessions").isVisible().catch(() => false)
-    const agentsHeaders = await page.locator(".part.sidebar .pane-header", { hasText: "Agents" }).count()
-    const collapsed = (await header("Connection").getAttribute("aria-expanded").catch(() => null)) === "false"
-    await header("Connection").click()
-    const stateRow = await until(async () => ((await page.locator(".part.sidebar .monaco-list-row", { hasText: "Status" }).first().innerText().catch(() => "")).includes("Connected") ? true : undefined), 10000)
-    const rows = (await state()).connectionView?.rows ?? []
-    await runShot(page, run, "1b-connection")
-    await header("Connection").click()
-    const collapsedAgain = (await header("Connection").getAttribute("aria-expanded").catch(() => null)) === "false"
-    run.record("connection-view", sessionsHeader && agentsHeaders === 0 && collapsed && !!stateRow && rows[0]?.value === "Connected" && collapsedAgain ? "PASS" : "FAIL", {
-      sessionsHeader,
+    const headerNames = await page.locator(".part.sidebar .pane-header .title").evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim())).catch(() => [])
+    const connectionHeaders = headerNames.filter((name) => name === "Connection").length
+    const agentsHeaders = headerNames.filter((name) => name === "Agents").length
+    const fromLabel = ((await page.locator(".part.sidebar .composite.title .title-label").first().innerText().catch(() => "")) || "").replace(/\s+/g, " ").trim()
+    const containerTitle = fromLabel || ((await page.locator(".part.sidebar .composite.title h2").first().innerText().catch(() => "")) || "").replace(/\s+/g, " ").trim()
+    await revealSessionsActions()
+    const newSession = await titleAction(page, "New Session").isVisible().catch(() => false)
+    await runShot(page, run, "1b-single-view")
+    run.record("single-view-header", connectionHeaders === 0 && agentsHeaders === 0 && containerTitle.includes("Sessions") && newSession ? "PASS" : "FAIL", {
+      containerTitle,
+      connectionHeaders,
       agentsHeaders,
-      collapsedByDefault: collapsed,
-      collapsedAgain,
-      stateRow: !!stateRow,
-      rows: rows.map((r) => `${r.label}=${r.value}`),
+      newSession,
+      paneHeaders: headerNames,
     })
   }
 
-  // 2. Create from the view's "+" action: a panel opens and the tree lists it first in Recent.
+  // 2. Create from the view's "+" action: a panel opens and the list shows it first in Recent.
   //    There is no "Open" marker; the row's aria-label is "title, time" while it is idle.
   let A
   {
@@ -240,24 +232,25 @@ try {
     })
     const first = (await sidebar()).items[0]?.id
     const server = await api("GET", `/session/${A}`)
-    const aria = item ? (await row(item.title).getAttribute("aria-label").catch(() => "")) ?? "" : ""
+    const aria = item ? (await (await sessionRow(page, item.title)).getAttribute("aria-label").catch(() => "")) ?? "" : ""
     const timeOk = !!item && item.group === "recent" && COMPACT_TIME.test(item.description) && !/\bOpen\b/.test(item.description)
     const ariaOk = !!item && aria.startsWith(`${item.title},`) && aria.includes(item.description) && !/\bOpen\b/.test(aria)
     run.record("sidebar-create", !!A && timeOk && ariaOk && first === A && server?.directory === dir ? "PASS" : "FAIL", { sessionId: A, listedFirst: first === A, description: item?.description, group: item?.group, activity: item?.activity, aria, serverDirectory: server?.directory === dir })
   }
 
-  // 3. Rename through the row's inline action -> server title, tree label and editor tab follow.
+  // 3. Rename through oco.renameSession -> server title, list label and editor tab follow. The webview's
+  // context menu is a native menu on macOS (out of Playwright's reach): pick the session from the command's
+  // quick pick by id (it matches the description), then the title input box opens.
   const newTitle = `oco-renamed-${rand}`
   {
-    const it = await sidebarItem(A)
-    const r = row(it.title)
-    await openInputBox(async () => {
-      await r.hover()
-      await r.locator('[aria-label^="Rename Session"]').click()
+    const box = await openInputBox(async () => {
+      await command(page, "oco: Rename Session", { input: A })
     })
-    await page.keyboard.press("Meta+a")
-    await page.keyboard.type(newTitle)
-    await page.keyboard.press("Enter")
+    if (box) {
+      await page.keyboard.press("Meta+a")
+      await page.keyboard.type(newTitle)
+      await page.keyboard.press("Enter")
+    }
     const serverTitle = await until(async () => ((await api("GET", `/session/${A}`))?.title === newTitle ? newTitle : undefined))
     const treeTitle = await until(async () => ((await sidebarItem(A))?.title === newTitle ? newTitle : undefined))
     const tabTitle = await until(async () => ((await state()).panels.find((p) => p.sessionId === A)?.title === newTitle ? newTitle : undefined))
@@ -265,23 +258,30 @@ try {
     run.record("sidebar-rename", serverTitle && treeTitle && tabTitle ? "PASS" : "FAIL", { serverTitle: !!serverTitle, treeTitle: !!treeTitle, tabTitle: !!tabTitle })
   }
 
-  // 4. Search via the title action; clear via the clear action.
+  // 4. Search via the title action (webview input, 200ms debounce); clear via the clear action.
   {
     const total = (await sidebar()).items.length
-    await openInputBox(async () => {
-      await revealSessionsActions()
-      await titleAction("Search Sessions").click()
-    })
-    await page.keyboard.type(rand)
-    await page.keyboard.press("Enter")
+    const opened = await openSearch(page)
+    const frame = opened ? await sessionsFrame(page) : null
+    if (frame) {
+      await frame.locator("input.search").fill(rand)
+      // Let the 200 ms debounce and the host round trip finish inside the page before the palette-driven
+      // state read below: its Escape would otherwise land in the still-focused search box and clear it.
+      await frame
+        .waitForFunction((q) => {
+          const rows = [...document.querySelectorAll('.row[data-kind="session"]')]
+          return rows.length > 0 && rows.every((r) => r.textContent.includes(q))
+        }, rand, { timeout: 10000 })
+        .catch(() => {})
+    }
     const filtered = await until(async () => {
       const sb = await sidebar()
       return sb.search === rand ? sb : undefined
     })
-    const rowVisible = await row(newTitle).isVisible().catch(() => false)
+    const rowVisible = await (await sessionRow(page, newTitle)).isVisible().catch(() => false)
     await runShot(page, run, "4-search")
     await revealSessionsActions()
-    await titleAction("Clear Session Search").click()
+    await titleAction(page, "Clear Session Search").click()
     const cleared = await until(async () => {
       const sb = await sidebar()
       return sb.search === "" && sb.items.length === total ? sb : undefined
@@ -289,6 +289,7 @@ try {
     const flat = !!filtered && filtered.items.every((i) => i.group === "recent") && filtered.loadMore === false
     run.record("sidebar-search", filtered?.items.length === 1 && filtered.items[0].id === A && flat && rowVisible && !!cleared ? "PASS" : "FAIL", {
       matches: filtered?.items.map((i) => i.id),
+      searchOpened: opened,
       flat,
       rowVisible,
       restoredCount: cleared?.items.length,
@@ -325,8 +326,13 @@ try {
     }
     const sbPerm = req ? await until(async () => ((await sidebarItem(A))?.activity === "permission" ? await sidebar() : undefined)) : null
     const permItem = sbPerm?.items.find((i) => i.id === A)
-    const permAria = permItem ? (await row(permItem.title).getAttribute("aria-label").catch(() => "")) ?? "" : ""
-    if (permItem) permIcon = await iconSnapshot(permItem.title)
+    const permAria = permItem ? (await (await sessionRow(page, permItem.title)).getAttribute("aria-label").catch(() => "")) ?? "" : ""
+    if (permItem) {
+      waitingDot = await until(async () => {
+        const info = await dotInfo(permItem.title)
+        return hasClass(info, "waiting") ? info : undefined
+      }, 5000)
+    }
     const permShown = !!permItem && permItem.activity === "permission" && /Waiting for permission/.test(permAria) && !/Waiting/.test(permItem.description ?? "") && COMPACT_TIME.test(permItem.description ?? "")
     await runShot(page, run, "6-permission-sidebar")
     const dock = f.locator('[data-component="dock-prompt"][data-kind="permission"]')
@@ -348,7 +354,7 @@ try {
         sidebarActivity: permItem?.activity ?? null,
         aria: permAria,
         description: permItem?.description ?? null,
-        permissionIcon: permIcon?.className ?? null,
+        waitingDot: waitingDot?.className ?? null,
         badge: sbPerm?.badge ?? null,
         statusBar: sbPerm?.statusText ?? null,
         toolStatus: tool?.state?.status ?? null,
@@ -373,29 +379,13 @@ try {
       const chars = (target?.parts ?? []).filter((p) => p.type === "text" || p.type === "reasoning").reduce((n, p) => n + (p.text?.length ?? 0), 0)
       return /stop|停止/i.test(label) && chars > 200 ? true : undefined
     }, 90000, 150)
-    // Breathing icon: the busy row's icon is the session-running SVG (CSS opacity 1.6s inside the file).
-    let runningBg = ""
-    let runningBgAfter = ""
-    let framesDiffer = false
-    let shotError = null
-    if (busy && (await sidebarItem(A))?.activity === "busy") {
-      const before = await iconSnapshot(newTitle)
-      runningBg = before?.backgroundImage ?? ""
-      try {
-        const a = await shootIcon(newTitle, "status-running-1.png")
-        await sleep(800)
-        const b = await shootIcon(newTitle, "status-running-2.png")
-        framesDiffer = !a.equals(b)
-        if (!framesDiffer) {
-          await sleep(350)
-          const c = await shootIcon(newTitle, "status-running-3.png")
-          framesDiffer = !a.equals(c) || !b.equals(c)
-        }
-        runningBgAfter = (await iconSnapshot(newTitle))?.backgroundImage ?? ""
-      } catch (err) {
-        shotError = String(err?.message ?? err).slice(0, 300)
-      }
-    }
+    // Running dot pulses (oco-pulse, 1.6s) while the row is busy. Read it before Stop.
+    const runningDot = busy && (await sidebarItem(A))?.activity === "busy"
+      ? await until(async () => {
+          const info = await dotInfo(newTitle)
+          return hasClass(info, "running") && info.animationName !== "none" ? info : undefined
+        }, 5000)
+      : null
     await runShot(page, run, "7-busy-sidebar")
     await submit.click()
     const final = target ? await waitMessageFinal(A, target.info.id, 30000) : null
@@ -406,19 +396,14 @@ try {
       sidebarIdleAfter: !!idle,
       sidebarActivity: (await sidebarItem(A))?.activity,
     })
-    const idleIcon = idle ? await iconSnapshot(newTitle) : null
-    const svg = (bg) => /session-running-(dark|light)\.svg/.test(bg ?? "")
-    const has = (info, name) => !!info && info.className.split(/\s+/).includes(name)
-    const runningOk = svg(runningBg) && svg(runningBgAfter) && framesDiffer && !shotError
-    const permOk = has(permIcon, "codicon-circle-filled")
-    const idleOk = has(idleIcon, "codicon-blank")
-    run.record("sidebar-status-icons", runningOk && permOk && idleOk ? "PASS" : "FAIL", {
-      runningBackground: runningBg.slice(0, 240),
-      runningBackgroundAfter: runningBgAfter.slice(0, 240),
-      framesDiffer,
-      shotError,
-      permissionClass: permIcon?.className ?? null,
-      idleClass: idleIcon?.className ?? null,
+    const runningOk = hasClass(runningDot, "running") && !!runningDot && runningDot.animationName !== "none"
+    const waitingOk = hasClass(waitingDot, "waiting")
+    run.record("sidebar-status-icons", runningOk && waitingOk ? "PASS" : "FAIL", {
+      runningClass: runningDot?.className ?? null,
+      runningStatus: runningDot?.status ?? null,
+      runningAnimation: runningDot?.animationName ?? null,
+      waitingClass: waitingDot?.className ?? null,
+      waitingStatus: waitingDot?.status ?? null,
     })
   }
 
@@ -433,7 +418,7 @@ try {
     const fb = await until(() => frameFor(B))
     await type(fb, `draft-B-${rand}`)
     await sleep(1500)
-    await row(newTitle).click()
+    await (await sessionRow(page, newTitle)).click()
     const fa2 = await until(async () => {
       const f = await frameFor(A)
       return f && (await f.evaluate(() => document.visibilityState === "visible").catch(() => false)) && (await composer(f).catch(() => "")).includes(`draft-A-${rand}`) ? f : undefined
@@ -442,7 +427,7 @@ try {
     const aDraft = fa2 ? await composer(fa2) : ""
     const bTitle = (await sidebarItem(B))?.title
     // B is hidden now; open it again from its row and check its own draft.
-    await row(bTitle).click()
+    await (await sessionRow(page, bTitle)).click()
     const fb2 = await until(async () => {
       const f = await frameFor(B)
       return f && (await composer(f).catch(() => "")).includes(`draft-B-${rand}`) ? f : undefined
@@ -473,7 +458,7 @@ try {
   {
     // The main panel shows B. Switch it back to A, open B in a new (pinned) panel and move that panel to a
     // new right group -> A shows in group 1 (main), B in group 2 (pinned). ADR-007.
-    await row(newTitle).click()
+    await (await sessionRow(page, newTitle)).click()
     await until(() => frameFor(A))
     await command(page, "oco: Open in New Panel", { input: B })
     await until(() => frameFor(B))
@@ -481,10 +466,10 @@ try {
     await sleep(2500)
     const before = await state()
     const bTitle = (await sidebarItem(B))?.title
-    await row(bTitle).click()
+    await (await sessionRow(page, bTitle)).click()
     await sleep(1500)
     const afterB = await state()
-    await row(newTitle).click()
+    await (await sessionRow(page, newTitle)).click()
     await sleep(1500)
     const afterA = await state()
     const visible = (s) => s.panels.filter((p) => p.visible).map((p) => p.sessionId).sort()
@@ -524,10 +509,23 @@ try {
     const watch = (async () => {
       const end = Date.now() + 15000
       while (Date.now() < end) {
-        const txt = await page.locator(".part.sidebar").innerText().catch(() => "")
-        if (/no OpenCode sessions yet/.test(txt)) emptyFlash = true
-        if (/Loading sessions/.test(txt)) loadingSeen = true
-        if ((await page.locator(".part.sidebar .monaco-list-row").count().catch(() => 0)) > 3 && !/Cannot connect/.test(txt)) break
+        const frame = await sessionsFrame(page)
+        const snap = frame
+          ? await frame
+              .evaluate(() => {
+                const shown = (el) => (el && !el.hidden ? (el.innerText ?? "") : "")
+                const list = document.querySelector('.list[role="listbox"]')
+                const listShown = !!list && !list.hidden && list.getAttribute("aria-hidden") !== "true"
+                return {
+                  text: `${shown(document.querySelector(".message"))}\n${shown(document.querySelector(".notice"))}`,
+                  rows: listShown ? list.querySelectorAll('.row[data-kind="session"]').length : 0,
+                }
+              })
+              .catch(() => ({ text: "", rows: 0 }))
+          : { text: "", rows: 0 }
+        if (/no OpenCode sessions yet/.test(snap.text)) emptyFlash = true
+        if (/Loading sessions/.test(snap.text)) loadingSeen = true
+        if (snap.rows > 3 && !/Cannot connect/.test(snap.text)) break
         await sleep(20)
       }
     })()
@@ -581,7 +579,7 @@ try {
   }, 30000)
   const trusted = (await hostState(page, stateFile)).trusted
   await revealSessionsActions()
-  const plus = titleAction("New Session")
+  const plus = titleAction(page, "New Session")
   const plusDisabled = await plus.evaluate((el) => el.classList.contains("disabled") || el.getAttribute("aria-disabled") === "true").catch(() => null)
   const framesBefore = (await chatFrames(page)).length
   await plus.click({ force: false, timeout: 3000 }).catch(() => {})

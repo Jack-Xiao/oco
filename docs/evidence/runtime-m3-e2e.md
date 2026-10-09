@@ -98,7 +98,7 @@
 
 ## Task 8：补丁与重放（主线程，2026-10-03 23:30）
 
-- `git -C vendor/opencode diff deb241e -- packages/app > patches/opencode/0019-oco-runtime-view.patch`（vendor HEAD `9bd20f1`）：23 个文件，+8356/−5；`diff --check` 干净（先修掉 `test-browser/session-runtime-child-sync.test.ts` 文件末尾多出的空行，vendor `9bd20f1`）。
+- `git -C vendor/opencode diff deb241e -- packages/app > patches/opencode/0020-oco-runtime-view.patch`（vendor HEAD `9bd20f1`）：23 个文件，+8356/−5；`diff --check` 干净（先修掉 `test-browser/session-runtime-child-sync.test.ts` 文件末尾多出的空行，vendor `9bd20f1`）。
 - 干净 `51ef4be`（独立 worktree）上依序 `git apply --check` + apply 0001→0019：PASS 19/19；`packages/app/src`、`test-browser` 与开发树 `diff -r` 一致；重放树 session 单测 205/0。重放 worktree 用后已删除。
 
 ## 改版 2：固定框架（2026-10-04）

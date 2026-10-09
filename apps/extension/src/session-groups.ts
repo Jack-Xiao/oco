@@ -1,6 +1,6 @@
-// Pure helpers for the sessions sidebar: day groups, compact times, unread dots.
+// Pure helpers for the sessions sidebar: day groups, compact times, unread dots, state messages.
 // No vscode dependency. The host passes `now` and the id of the open session.
-import type { SessionActivity, SessionListItem } from "@oco/contracts"
+import type { ConnectionSummary, SessionActivity, SessionListItem } from "@oco/contracts"
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -121,4 +121,47 @@ export class UnreadTracker {
     }
     return this.unreadSet.has(id)
   }
+}
+
+export type ListAction = { label: string; command: string }
+
+/**
+ * Text and buttons the list shows instead of rows (not connected, loading, empty, no search results);
+ * undefined when rows show. `connected` is false when not connected and nothing is cached.
+ */
+export function listMessage(o: {
+  summary: Pick<ConnectionSummary, "state" | "issue" | "error"> | undefined
+  connected: boolean
+  hasRows: boolean
+  query: string
+  loading: boolean
+  trusted: boolean
+}): { text: string; actions: ListAction[] } | undefined {
+  const s = o.summary
+  const settings = { label: "Open Settings", command: "oco.openSettings" }
+  const reconnect = { label: "Reconnect Now", command: "oco.reconnect" }
+  if (!o.connected) {
+    switch (s?.state) {
+      case "unconfigured":
+        return s.issue === "folder"
+          ? { text: "oco is not ready: open a workspace folder first.", actions: [{ label: "Open Folder", command: "workbench.action.files.openFolder" }] }
+          : { text: `The server address setting is invalid.${s.error ? ` ${s.error}` : ""}`, actions: [settings] }
+      case "unauthorized":
+        return {
+          text: "The server requires authentication, and the username or password is incorrect (this also happens when no password is set).",
+          actions: [{ label: "Set Password", command: "oco.setServerPassword" }, settings],
+        }
+      case "error":
+        return { text: `Cannot connect to the OpenCode server (offline or wrong address). Retrying with backoff.${s.error ? `\n${s.error}` : ""}`, actions: [reconnect, settings] }
+      default:
+        return { text: "Connecting to the OpenCode server…", actions: [] }
+    }
+  }
+  if (o.hasRows) return undefined
+  if (s?.state !== "connected") return { text: "Connection lost. Reconnecting…", actions: [reconnect, settings] }
+  if (o.query) return { text: "No matching sessions.", actions: [{ label: "Clear Search", command: "oco.clearSearch" }] }
+  if (o.loading) return { text: "Loading sessions…", actions: [] }
+  return o.trusted
+    ? { text: "This workspace has no OpenCode sessions yet.", actions: [{ label: "New Session", command: "oco.newSession" }] }
+    : { text: "This workspace has no sessions yet. Restricted Mode cannot create a session.", actions: [] }
 }

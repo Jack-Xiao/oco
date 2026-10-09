@@ -57,7 +57,7 @@ spec 隐含但没有任务专门覆盖的、最可能出问题的输入（每条
 
 修改：`session-trajectory.tsx`（切换器三项、`onChat`→`onView`）、`session-trajectory-i18n.ts`（`view.runtime`）、`pages/session.tsx`（runtime 分支、`onView`）。
 
-新增（仓库根）：`patches/opencode/0019-oco-runtime-view.patch`、`tests/e2e/c5-runtime.mjs`（Task 11，委派）。
+新增（仓库根）：`patches/opencode/0020-oco-runtime-view.patch`、`tests/e2e/c5-runtime.mjs`（Task 11，委派）。
 
 ---
 
@@ -2215,7 +2215,7 @@ REQUIRED 检查（每条一个 run 步骤，名称固定）：
 ### Task 12: 生成补丁 0019 并在干净上游上重放验证
 
 **Files:**
-- Create: `patches/opencode/0019-oco-runtime-view.patch`
+- Create: `patches/opencode/0020-oco-runtime-view.patch`
 
 **Interfaces:**
 - Consumes: Task 1 的基线提交；Task 2–10 在 vendor 里未提交的改动。
@@ -2232,8 +2232,8 @@ Expected: 恰好这些：`M packages/app/src/components/session/session-trajecto
 - [ ] **Step 2: 生成补丁（plain `diff --git`，与 0001–0018 同格式）**
 
 ```bash
-cd vendor/opencode && git add -N packages/app/src && git diff HEAD -- packages/app > ../../patches/opencode/0019-oco-runtime-view.patch
-cd ../.. && head -3 patches/opencode/0019-oco-runtime-view.patch && grep -c '^diff --git' patches/opencode/0019-oco-runtime-view.patch
+cd vendor/opencode && git add -N packages/app/src && git diff HEAD -- packages/app > ../../patches/opencode/0020-oco-runtime-view.patch
+cd ../.. && head -3 patches/opencode/0020-oco-runtime-view.patch && grep -c '^diff --git' patches/opencode/0020-oco-runtime-view.patch
 ```
 
 Expected: 第一行 `diff --git a/packages/app/...`；`diff --git` 计数为 9。
@@ -2267,7 +2267,7 @@ Expected: 全部通过，记录通过数字。
 - [ ] **Step 5: 提交（任务写明授权时才提交；本计划的执行者先询问用户是否授权提交）**
 
 ```bash
-git add patches/opencode/0019-oco-runtime-view.patch tests/e2e/c5-runtime.mjs tests/e2e/run.mjs
+git add patches/opencode/0020-oco-runtime-view.patch tests/e2e/c5-runtime.mjs tests/e2e/run.mjs
 git commit -m "feat: runtime view (patch 0019, M1)"
 ```
 

@@ -2,6 +2,10 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 补丁编号：运行视图补丁改为 0020（2026-10-09，合并 main 时）
+
+- main 上 2026-10-08 新增 `0019-oco-embedded-context-usage.patch`，与分支的运行视图补丁同号；合并时把运行视图补丁改名为 `0020-oco-runtime-view.patch`，两者不改同一文件。清库重放 0001–0020 全部通过（`git apply --check` 逐个应用）。历史文档中提到「补丁 0019 运行视图」的均指现在的 0020。
+
 ## 运行视图 M5 用户反馈修正（2026-10-09；同分支，未提交，已装本机 `oco-0.0.4-dd67556-fb3.vsix`，需 Reload Window）
 
 - 修正：结束卡片「全文」可点开且垂直居中；工具台按轮收缩（本轮首次调工具展开，最后一次请求未调工具即收为 30 px 标题条；仅宽布局，窄布局不变；新属性 `data-oco-runtime-tools-k`）；「计划 n/m」改为按钮，浮层列出全部计划项；计数行改为 safe center，超长时右侧省略，不再裁掉 agent 名；新会话首轮显示「第 2 轮」——根因是乐观用户消息与服务端副本 `time.created` 不同、按 `created+id` 查找未命中而重复插入（`context/server-session.ts` 的 `message.updated` 插入前按 id 去重，补回归测试）。
@@ -92,10 +96,21 @@
 ## 运行视图 M1（补丁 0019，2026-10-03；本地已提交，未推送，未部署）
 
 - 会话标题栏第三个视图“运行”（对话 | 轨迹 | 运行），只读，实时 + 按步骤回看：焦点区、阶段条、并行工具/子代理行、事件日志、用量（未知≠0、已结算标记）、最后事件 xx 前（推断）；子会话权限/提问也算“等你处理”；中断的请求/工具标“已中断（推断）”。**不显示“断连”**（嵌入页没有连接健康信号）。三语 en/zh/zht。设计与计划：[spec](superpowers/specs/2026-10-02-runtime-dashboard-design.md)、[M1 计划](superpowers/plans/2026-10-03-runtime-dashboard-m1.md)。
-- 补丁 `patches/opencode/0019-oco-runtime-view.patch`（9 个文件，+2332/−5）在干净 `51ef4be` 上与 0001–0018 依序应用 19/19；不改宿主、桥、公共契约。
+- 补丁 `patches/opencode/0020-oco-runtime-view.patch`（9 个文件，+2332/−5）在干净 `51ef4be` 上与 0001–0018 依序应用 19/19；不改宿主、桥、公共契约。
 - 检查（本轮实测）：vendor app 类型 0 错误；session 目录单测 90/90（运行视图 67）；根 `verify:brief` typecheck 0 错误、unit 185/185；webview 构建 PASS；E2E（mock，独立服务 4617）`c5-runtime` 英文 9/9、中文 9/9，回归 `c4-trajectory` 17/17。证据：[验收](evidence/runtime-m1-verification.md)、[E2E](evidence/runtime-m1-e2e.md)。
 - NOT RUN：真实模型、Remote、1000+ 消息真实性能（合成基准一次重建约 140–165 ms，其中约 116 ms 为既有 `buildTrajectory`）、子代理/审批界面/429/取消的 E2E、实时与事后重建的逐事件一致性对比。M2（审批按钮、子代理加载与下钻、取消）与 M3（机制图、思考流、嵌套折叠、键盘/读屏、多宽度/主题 E2E）未做；M3 前须先重构单一大 memo 与按对象引用重建的行。
 - 过程：Gemini（agy）实现与跑 E2E，Claude 评审；Grok 额度不足未用。委派包装代理两次因 API 额度错误被中断，但 agy 任务自行完成并经主线程核对。`tests/unit/e2e-results.test.ts` 与 `docs/TEST-SCOPE.md` 已同步到 22 个全量套件。
+
+## 会话标题行恢复上下文用量（补丁 0019，已提交到 main，2026-10-08；`oco-0.0.4-24fb5da.vsix` 已装本机 VS Code，需 Reload Window）
+
+- 嵌入模式会话标题行（对话、轨迹两个视图）显示上下文圆环，不显示数字（用户要求省空间）；≥75% 黄、≥90% 红；数字只在悬停提示里，模型无上限时提示显示「—」。替代补丁 0017 隐藏圆环的做法。`scripts/setup.sh` 修复重放：清掉补丁新建的未跟踪文件，补丁失败即退出。
+- 检查：补丁 0001–0019 在固定 SHA 上重放两次通过；`tsgo -b` PASS；build PASS；E2E（mock）`c4-trajectory` 17/17（去掉数字后重跑）。NOT RUN：配色阈值与「—」、窄面板、真实模型、Remote。详情 [c5-context-usage](evidence/c5-context-usage.md)。
+
+## 会话侧栏改为 webview（[Jack-Xiao/oco#3](https://github.com/Jack-Xiao/oco/pull/3)，2026-10-08 合并为 `9b32950`；已装本机 VS Code）
+
+- 侧栏 oco 只有一个 webview 视图 "Sessions"（id 仍为 `oco.sessions`），外观接近 Claude Code：时间右对齐、圆角选中、30px 行高。搜索改为标题栏按钮触发；Connection 视图删除。决定见 [ADR-008](adr/008-webview-sessions-list.md)，过程与委派见 [spike 记录](evidence/sessions-webview-spike-2026-10-08.md)。
+- 检查：typecheck PASS；build PASS；unit 185/185；E2E（mock）`p1b-sidebar` 13/13、`c3-fork` 4/4、`p1b-reconnect` 5/5、`t010-recover` 5/5、`t014-connection` 6/6。NOT VERIFIED：右键菜单（macOS 原生菜单）。NOT RUN：其余 E2E、Remote（gcp-workstation 已不存在）。
+- 部署：`oco-0.0.4-9b32950.vsix`（extension.js sha256 `fa68647b…`）用 VS Code 自带 CLI 覆盖安装到本机，安装目录哈希一致；需 Reload Window。旧实验设置 `oco.experimental.webviewSessions` 已不存在，可从用户设置删除。
 
 ## 项目委派规则收紧（2026-10-02；文档）
 

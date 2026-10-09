@@ -406,6 +406,24 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 - STATUS/NEXT 同步按任务段落读取与委派约束；保留本轮开始前的并发产品/文档改动。只改项目文档，未改全局配置或路由，未提交。
 - 本批 Gemini Antigravity 订阅最小请求因地域限制失败，Grok 安装/登录检查通过，Grok 复核 PASS；链接、diff 格式及 4 项并发基线保护检查 PASS。只读代理的复核补丁由主线程代存；结果与执行记录见 [本批证据](evidence/delegation-rules-20261002.md)。产品 typecheck/unit/build/E2E 与后续会话行为 NOT RUN。
 
+## 2026-10-08 会话列表 webview spike
+
+- 起因：Claude Code 2.1.293 的会话列表是 WebviewView（`retainContextWhenHidden: true`），原生 TreeView 做不到时间右对齐、圆角选中和自定义行高。
+- 新增实验设置 `oco.experimental.webviewSessions`（默认关）和视图 `oco.sessionsWeb`（"Sessions (Preview)"），与原生列表并存；数据仍由 `SessionsView.webModel()` 提供。页面由 Grok 按契约编写，宿主侧与验收由主线程完成。结果与委派记录见 [spike 记录](evidence/sessions-webview-spike-2026-10-08.md)。
+
+## 2026-10-08 会话侧栏改为 webview（分支 `feat/webview-session-list`）
+
+- 用户确认 spike 效果后：webview 接管 `oco.sessions`，原生 TreeView、实验开关、viewsWelcome 和 Connection 视图删除；搜索改为标题栏按钮触发；状态文字抽成纯函数 `listMessage()`。决定见 [ADR-008](adr/008-webview-sessions-list.md)。
+- E2E 适配：Grok 改写 `p1b-sidebar`（只改代码），主线程运行并修正 2 处；Gemini 两次健康检查超时。结果见 [spike 记录](evidence/sessions-webview-spike-2026-10-08.md)。
+
+## 2026-10-08 会话标题行恢复上下文用量（补丁 0019）
+
+- 起因：用户反馈插件没有常驻的上下文占比提示，容易超限；补丁 0017 曾在嵌入模式隐藏圆环。
+- 补丁 0019：`SessionContextUsage` 新增 `label` 模式（圆环 + 百分比、阈值配色、无上限显示「—」），挂到 `SessionHeaderEmbeddedActions`。`c4-trajectory` 断言改为要求圆环与标签存在。
+- `scripts/setup.sh`：重放时 `git clean` 补丁新建的文件，补丁失败即退出（之前 0007、0012–0014 在重跑时被静默跳过）。
+- 委派：Gemini 健康检查 10 秒超时；Grok 健康检查通过，但沙箱启动不了 VS Code，主线程运行 E2E 17/17。见 [c5-context-usage](evidence/c5-context-usage.md)。
+- 跟进：用户要求不显示百分比数字（占空间，一眼看颜色即可）。改为只显示圆环并按阈值着色，数字留在悬停提示；`c4-trajectory` 改断言为无文字、`data-oco-context-usage="normal"`，重跑 17/17（`runs/20261008-101353-c4-trajectory-5b15`）。Gemini 复查仍 10 秒超时，Grok 沙箱不能启动 VS Code，主线程运行。
+
 ## 2026-10-03 运行视图 M1（补丁 0019）
 
 - 改动：新增 `session-runtime-model/i18n/.tsx` 与三组测试，改 `session-trajectory.tsx`、`session-trajectory-i18n.ts`、`pages/session.tsx`；补丁 0019；E2E 套件 `c5-runtime`（`DEFAULT_SUITES` 22 个）；spec/计划/证据文档。

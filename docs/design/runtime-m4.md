@@ -137,6 +137,6 @@
 ## 交付约定
 
 - 在分支 `claude/nostalgic-gates-ef74ca` 上开发，不合入 main。
-- vendor 的改动合回 `patches/opencode/0019-oco-runtime-view.patch` 后，重跑干净重放。
+- vendor 的改动合回 `patches/opencode/0020-oco-runtime-view.patch` 后，重跑干净重放。
 - 新增文案中英两套都补，在 `session-runtime-i18n.ts`。
 - E2E `tests/e2e/c5-runtime.mjs`：第二批时，断言 roster / 通道的部分要按航道更新；保留「顶栏一行」「约 600 px 不出现滚动」两条断言。
