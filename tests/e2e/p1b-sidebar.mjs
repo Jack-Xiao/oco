@@ -60,8 +60,8 @@ async function frameFor(sid) {
   for (const f of await chatFrames(page)) if ((await frameSession(f).catch(() => null)) === sid) return f
   return null
 }
-/** Description is only a compact age ("now", "7m", "3h", "yesterday", "3d", "Sep 28"). */
-const COMPACT_TIME = /^(now|\d+m|\d+h|yesterday|\d+d|[A-Z][a-z]{2} \d{1,2}|\d{4}-\d{2}-\d{2})$/
+/** Description is only a compact age ("now", "7m", "3h", "1d", "3d", "Sep 28"). */
+const COMPACT_TIME = /^(now|\d+m|\d+h|\d+d|[A-Z][a-z]{2} \d{1,2}|\d{4}-\d{2}-\d{2})$/
 function startOfYesterday(now = Date.now()) {
   const date = new Date(now)
   date.setHours(0, 0, 0, 0)

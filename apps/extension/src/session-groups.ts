@@ -22,8 +22,8 @@ export function startOfYesterday(now: number): number {
 
 /**
  * Short age label. Blank when `ms` is missing. Under an hour stays minutes even across
- * midnight ("20m"); today is hours; the previous calendar day is "yesterday"; then `Nd` for
- * under a week; then "Sep 28" in the same year, or `YYYY-MM-DD` after that.
+ * midnight ("20m"); today is hours; then `Nd` by calendar day for under a week (yesterday
+ * is "1d"); then "Sep 28" in the same year, or `YYYY-MM-DD` after that.
  */
 export function compactTime(ms: number, now = Date.now()): string {
   if (!ms) return ""
@@ -31,7 +31,6 @@ export function compactTime(ms: number, now = Date.now()): string {
   if (diff < MINUTE) return "now"
   if (diff < HOUR) return `${Math.floor(diff / MINUTE)}m`
   if (ms >= startOfDay(now)) return `${Math.floor(diff / HOUR)}h`
-  if (ms >= startOfYesterday(now)) return "yesterday"
   const days = Math.round((startOfDay(now) - startOfDay(ms)) / DAY)
   if (days < 7) return `${days}d`
   const date = new Date(ms)

@@ -57,12 +57,12 @@ describe("compactTime", () => {
     expect(compactTime(at(2026, 8, 30, 0, 30), at(2026, 8, 30, 2, 0))).toBe("1h")
   })
 
-  test("20m across midnight, then yesterday, days, and calendar dates", () => {
+  test("20m across midnight, then days (yesterday is 1d), and calendar dates", () => {
     const justAfterMidnight = at(2026, 8, 30, 0, 10)
     expect(compactTime(at(2026, 8, 29, 23, 50), justAfterMidnight)).toBe("20m")
-    expect(compactTime(at(2026, 8, 29, 10, 0), NOW)).toBe("yesterday")
-    expect(compactTime(at(2026, 8, 29, 23, 50), NOW)).toBe("yesterday")
-    expect(compactTime(startOfYesterday(NOW), NOW)).toBe("yesterday")
+    expect(compactTime(at(2026, 8, 29, 10, 0), NOW)).toBe("1d")
+    expect(compactTime(at(2026, 8, 29, 23, 50), NOW)).toBe("1d")
+    expect(compactTime(startOfYesterday(NOW), NOW)).toBe("1d")
     expect(compactTime(at(2026, 8, 28, 23, 59), NOW)).toBe("2d")
     expect(compactTime(at(2026, 8, 24, 14, 0), NOW)).toBe("6d")
     // Two calendar days that include the spring-forward hour still read as 2d.
