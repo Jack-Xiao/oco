@@ -392,8 +392,8 @@ try {
       if (bodyParsed && bodyParsed.a > 0.9) bgRgb = bodyParsed
     }
     const bgLum = bgRgb ? relativeLuminance(bgRgb) : 1
-    // M5: the caption line (data-oco-runtime-focus) is the text sample.
-    const textEl = document.querySelector("[data-oco-runtime] [data-oco-runtime-focus]") || document.querySelector("[data-oco-runtime]")
+    // M5: the centre card is the text sample (the caption line was dropped 2026-10-09; data-oco-runtime-focus is now on the stage).
+    const textEl = document.querySelector("[data-oco-runtime] [data-oco-runtime-card]") || document.querySelector("[data-oco-runtime]")
     const fgParsed = parseRgb(window.getComputedStyle(textEl).color)
     const fgLum = fgParsed ? relativeLuminance(fgParsed) : 0
     return { bgLum, fgLum, bgDark: bgLum < 0.2, contrastOk: fgLum > bgLum + 0.3 }
@@ -1069,7 +1069,7 @@ try {
   // ---- widths, ring, motion ----
   // The width-420 check is retired (420 px is outside the 560-1600 spec, plan open question 2).
 
-  // 27. width-560: stacked layout, no horizontal scroll, caption visible, no forbidden attributes.
+  // 27. width-560: stacked layout, no horizontal scroll, stage visible, no forbidden attributes.
   await fitGroups(app, page, 560)
   await runBashThroughDock("perl -e 'sleep 3'")
   const w560Forbidden = await count(fA, FORBIDDEN)
