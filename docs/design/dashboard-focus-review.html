@@ -1,0 +1,100 @@
+<div id="oco-focus-review">
+  <div class="viz-controls">
+    <label class="form-label">演示状态
+      <select class="form-select" id="oco-demo-state">
+        <option value="running">并行工作</option>
+        <option value="permission">等待批准</option>
+        <option value="disconnected">连接中断</option>
+        <option value="done">本轮完成</option>
+      </select>
+    </label>
+    <span class="text-small text-muted">设计示意 · 虚构数据 · 操作仅影响演示</span>
+  </div>
+  <div class="viz-dotted-background" style="padding:16px 0">
+    <article class="oco-panel" aria-label="oco 运行仪表盘建议设计">
+      <header class="oco-header"><span>oco / 重构登录并补测试</span><span class="oco-meta">运行</span></header>
+      <div class="oco-body">
+        <div class="oco-line"><span id="oco-global-status" class="oco-status">● 运行中</span><span class="oco-meta" id="oco-global-info">主会话 · 2 个子任务活跃</span></div>
+        <section class="oco-focus" aria-live="polite">
+          <p class="oco-eyebrow" id="oco-eyebrow">当前工作</p>
+          <h3 id="oco-title">正在查找调用方，并准备测试用例</h3>
+          <p id="oco-subtitle" class="oco-meta">主流程等待 explore 返回；general 仍在运行。</p>
+          <div id="oco-actions" hidden>
+            <details class="oco-change"><summary>查看拟议修改</summary><pre>src/login.ts
++ if (!password) return invalidCredentials()</pre></details>
+            <div class="oco-line oco-action-row"><button type="button" id="oco-allow">允许本次修改</button><button type="button" id="oco-deny">拒绝</button></div>
+          </div>
+        </section>
+        <div class="oco-loop" aria-label="当前模型调用阶段"><span>准备请求</span><span aria-hidden="true">→</span><span>模型响应</span><span aria-hidden="true">→</span><strong id="oco-phase">执行工具</strong><span aria-hidden="true">→</span><span>结果回填</span></div>
+        <section class="oco-work" aria-label="当前工作分支">
+          <div class="oco-line oco-section-title"><span>任务分支</span><span class="oco-meta">保留全局状态</span></div>
+          <button type="button" class="oco-task" id="oco-explore" aria-expanded="false" aria-controls="oco-detail"><span><strong>explore</strong><span class="oco-meta">查找 login() 调用方</span></span><span id="oco-explore-state">运行中 ›</span></button>
+          <button type="button" class="oco-task" id="oco-general" aria-expanded="false" aria-controls="oco-detail"><span><strong>general</strong><span class="oco-meta">准备边界测试</span></span><span id="oco-general-state">运行中 ›</span></button>
+          <div class="oco-detail" id="oco-detail" hidden><div class="oco-line"><strong id="oco-detail-title">主会话 › explore</strong><button type="button" id="oco-close">收起详情</button></div><p id="oco-detail-body">grep · 搜索 login(；已发现 3 处匹配，工具仍在运行。</p><p class="oco-meta" id="oco-detail-foot">这是子会话内部进度；工具输出详情按需展开。</p></div>
+        </section>
+        <div class="oco-result"><span class="oco-meta">最近结果</span><span id="oco-result">✓ 已读取 login.ts · 找到登录入口</span></div>
+        <details class="oco-history"><summary>最近事件 <span class="oco-meta">3 条</span></summary><ol><li>读取登录实现</li><li>启动调用方调查与测试准备</li><li id="oco-event-last">两个子任务运行中</li></ol></details>
+        <footer class="oco-context"><div class="oco-line"><span>主会话 · 最近请求输入</span><span>9.4k / 200k <span class="oco-meta">≈ 4.7%</span></span></div><div class="oco-meter" role="meter" aria-label="最近请求输入相对模型容量" aria-valuenow="4.7" aria-valuemin="0" aria-valuemax="100"><span></span></div><details><summary>数据说明</summary><p>示意值。正式界面以服务端用量和模型容量为准；这不是下一次请求的精确大小。逐块 token 未采集时不画精确组成比例。</p></details></footer>
+      </div>
+    </article>
+  </div>
+</div>
+<style>
+#oco-focus-review .oco-panel{--oco-bg:light-dark(#ffffff,#1f1f1f);--oco-fg:light-dark(#242424,#ededed);--oco-muted:light-dark(#626262,#ababab);--oco-line:light-dark(#e6e6e6,#393939);--oco-blue:light-dark(#075faf,#71baff);--oco-warn:light-dark(#885100,#efbe72);--oco-soft:light-dark(#f5f7fa,#292b30);background:var(--oco-bg);color:var(--oco-fg);border:1px solid var(--oco-line);border-radius:8px;max-width:660px;margin:0 auto;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-wrap:anywhere}
+#oco-focus-review .oco-header{padding:11px 18px;border-bottom:1px solid var(--oco-line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+#oco-focus-review .oco-body{padding:20px}
+#oco-focus-review .oco-line{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+#oco-focus-review .oco-meta{color:var(--oco-muted);font-size:12px}
+#oco-focus-review .oco-status{font-size:12px;color:var(--oco-blue)}
+#oco-focus-review .oco-focus{padding:21px 0 17px;min-height:100px}
+#oco-focus-review .oco-eyebrow{font-size:12px;color:var(--oco-muted);margin:0 0 6px}
+#oco-focus-review h3{font:500 20px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0 0 7px}
+#oco-focus-review p{margin:8px 0}
+#oco-focus-review .oco-loop{display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--oco-muted);padding-bottom:20px}
+#oco-focus-review .oco-loop strong{font-weight:500;color:var(--oco-blue)}
+#oco-focus-review .oco-work{border-top:1px solid var(--oco-line);padding-top:15px}
+#oco-focus-review .oco-section-title{font-size:12px;margin-bottom:8px}
+#oco-focus-review .oco-panel button{font:inherit;color:var(--oco-fg);background:var(--oco-bg);border:1px solid var(--oco-line);border-radius:5px;padding:6px 10px;cursor:default}
+#oco-focus-review .oco-panel button:hover{background:var(--oco-soft)}
+#oco-focus-review .oco-panel button:focus-visible{outline:2px solid var(--oco-blue);outline-offset:3px}
+#oco-focus-review .oco-panel .oco-task{display:flex;width:100%;justify-content:space-between;text-align:left;border:0;border-radius:0;border-bottom:1px solid var(--oco-line);padding:11px 0;gap:16px}
+#oco-focus-review .oco-task>span:first-child{display:flex;flex-wrap:wrap;gap:4px 14px;min-width:0}
+#oco-focus-review .oco-task>span:last-child{white-space:nowrap;font-size:12px;color:var(--oco-muted)}
+#oco-focus-review strong{font-weight:500}
+#oco-focus-review .oco-detail{margin:10px 0;padding:14px;background:var(--oco-soft);border-radius:5px}
+#oco-focus-review .oco-detail p{font-size:13px}
+#oco-focus-review .oco-result{display:flex;gap:8px 18px;flex-wrap:wrap;padding:16px 0;font-size:13px}
+#oco-focus-review details{font-size:12px}
+#oco-focus-review summary{cursor:default;padding:5px 0}
+#oco-focus-review .oco-history{padding-bottom:13px}
+#oco-focus-review ol{padding-left:20px;color:var(--oco-muted)}
+#oco-focus-review .oco-context{border-top:1px solid var(--oco-line);padding-top:13px;font-size:12px}
+#oco-focus-review .oco-meter{height:5px;background:var(--oco-line);border-radius:4px;margin:10px 0}
+#oco-focus-review .oco-meter>span{display:block;width:4.7%;height:100%;background:var(--oco-blue);border-radius:4px}
+#oco-focus-review .oco-action-row{justify-content:flex-start;margin-top:12px}
+#oco-focus-review #oco-allow{background:var(--oco-blue);color:light-dark(#ffffff,#142334);border-color:var(--oco-blue)}
+#oco-focus-review pre{font:12px/1.6 ui-monospace,monospace;white-space:pre-wrap;background:var(--oco-soft);padding:10px}
+#oco-focus-review [hidden]{display:none!important}
+@media(max-width:450px){#oco-focus-review .oco-body{padding:16px}#oco-focus-review h3{font-size:18px}#oco-focus-review .oco-loop{gap:6px}#oco-focus-review .oco-task>span:first-child{display:grid;gap:3px}}
+</style>
+<script>
+(function(){
+ const root=document.getElementById('oco-focus-review');
+ const q=id=>root.querySelector('#'+id);
+ let focus=null;
+ const states={
+ running:{status:'● 运行中',info:'主会话 · 2 个子任务活跃',eyebrow:'当前工作',title:'正在查找调用方，并准备测试用例',sub:'主流程等待 explore 返回；general 仍在运行。',explore:'运行中 ›',general:'运行中 ›',result:'✓ 已读取 login.ts · 找到登录入口',event:'两个子任务运行中'},
+ permission:{status:'! 需要你处理',info:'主会话 · 1 项待批准',eyebrow:'待批准的操作',title:'允许修改 src/login.ts？',sub:'拟增加空密码校验。主流程等待本次批准；general 仍在运行。',explore:'已完成 ›',general:'运行中 ›',result:'✓ explore 已返回 · 找到 3 处调用',event:'请求修改 login.ts，等待用户决定'},
+ disconnected:{status:'◌ 状态未知',info:'连接已断开 · 最后同步 14:32:08',eyebrow:'运行状态暂不可确认',title:'连接中断，正在恢复连接',sub:'以下保留最后已知状态；无法确认任务是否仍在运行。',explore:'最后已知：运行中 ›',general:'最后已知：运行中 ›',result:'最后已知：已读取 login.ts',event:'连接中断；任务状态未确认'},
+ done:{status:'✓ 本轮完成',info:'主会话 · 无活跃子任务',eyebrow:'本轮结果',title:'登录校验已更新，相关测试通过',sub:'示意结果：修改 2 个文件，相关测试 8 / 8 通过。',explore:'已完成 ›',general:'已完成 ›',result:'✓ 验证结果与修改记录已收齐',event:'本轮结束；保留结果供复查'}
+ };
+ function detail(){q('oco-detail').hidden=!focus;q('oco-explore').setAttribute('aria-expanded',String(focus==='explore'));q('oco-general').setAttribute('aria-expanded',String(focus==='general'));if(!focus)return;const key=q('oco-demo-state').value;q('oco-detail-title').textContent='主会话 › '+focus;let txt=focus==='explore'?'grep · 搜索 login(；已发现 3 处匹配，工具仍在运行。':'正在整理空密码与超时场景的测试用例。';if(key==='done'||(key==='permission'&&focus==='explore'))txt=focus==='explore'?'调查完成 · 找到 3 处调用；结果已返回主会话。':'测试完成 · 8 项检查通过。';if(key==='disconnected')txt='最后已知进度：'+txt;q('oco-detail-body').textContent=txt;}
+ function render(){const s=states[q('oco-demo-state').value];for(const [id,key]of [['oco-global-status','status'],['oco-global-info','info'],['oco-eyebrow','eyebrow'],['oco-title','title'],['oco-subtitle','sub'],['oco-explore-state','explore'],['oco-general-state','general'],['oco-result','result'],['oco-event-last','event']])q(id).textContent=s[key];q('oco-actions').hidden=q('oco-demo-state').value!=='permission';q('oco-global-status').style.color=q('oco-demo-state').value==='permission'?'var(--oco-warn)':'var(--oco-blue)';root.querySelector('.oco-loop').hidden=['done','disconnected'].includes(q('oco-demo-state').value);detail();}
+ q('oco-demo-state').addEventListener('change',render);
+ ['explore','general'].forEach(name=>q('oco-'+name).addEventListener('click',()=>{focus=focus===name?null:name;detail();}));
+ q('oco-close').addEventListener('click',()=>{focus=null;detail();});
+ q('oco-allow').addEventListener('click',()=>{q('oco-actions').hidden=true;q('oco-title').textContent='已允许本次修改';q('oco-subtitle').textContent='演示反馈：接下来执行 edit，再等待结果。';q('oco-global-status').textContent='● 运行中';q('oco-global-info').textContent='主会话 · edit 执行中';q('oco-eyebrow').textContent='当前工作';q('oco-event-last').textContent='用户允许本次修改（演示）';});
+ q('oco-deny').addEventListener('click',()=>{q('oco-actions').hidden=true;q('oco-title').textContent='已拒绝本次修改';q('oco-subtitle').textContent='演示反馈：决定已返回 Agent，等待它给出下一步。';q('oco-global-status').textContent='● 等待响应';q('oco-global-info').textContent='主会话 · 本次权限请求已处理';q('oco-eyebrow').textContent='当前工作';q('oco-event-last').textContent='用户拒绝本次修改（演示）';});
+ render();
+})();
+</script>

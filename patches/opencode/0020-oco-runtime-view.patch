@@ -2111,7 +2111,7 @@ index 0000000..78e0b0b
 +})
 diff --git a/packages/app/src/components/session/session-runtime-i18n.test.ts b/packages/app/src/components/session/session-runtime-i18n.test.ts
 new file mode 100644
-index 0000000..7555eff
+index 0000000..3cfe88f
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-i18n.test.ts
 @@ -0,0 +1,106 @@
@@ -2149,7 +2149,7 @@ index 0000000..7555eff
 +  const zh = runtimeText({ locale: () => "zh", intl: () => "zh-CN" })
 +
 +  test("the three dictionaries add the same ring keys", () => {
-+    expect(ring(d.en).length).toBe(268)
++    expect(ring(d.en).length).toBe(246)
 +    expect(ring(d.zh).sort()).toEqual(ring(d.en).sort())
 +    expect(ring(d.zht).sort()).toEqual(ring(d.en).sort())
 +  })
@@ -2208,8 +2208,8 @@ index 0000000..7555eff
 +    expect(zh.usd(0)).toBe("$0.0000")
 +  })
 +  test("phrase translates nested phrases and formatter params", () => {
-+    expect(zh.phrase({ key: "ring.cap.wait", params: { phrase: { key: "ring.wait.left", params: { n: 2 } } } })).toBe("等 2 个结果回来。")
-+    expect(en.phrase({ key: "ring.cap.wait", params: { phrase: { key: "ring.wait.left", params: { n: 2 } } } })).toBe("Waiting for 2 results.")
++    expect(zh.phrase({ key: "ring.card.think.meta", params: { dur: { ms: 61_000 }, carry: { key: "ring.wait.left", params: { n: 2 } } } })).toBe("思考 1分1秒 · 这次请求等 2 个结果回来")
++    expect(en.phrase({ key: "ring.card.think.meta", params: { dur: { ms: 61_000 }, carry: { key: "ring.wait.left", params: { n: 2 } } } })).toBe("Thinking 1m 1s · this request: Waiting for 2 results")
 +    const at = new Date(2026, 9, 8, 9, 3, 7).getTime()
 +    expect(zh.phrase({ key: "ring.card.end.meta", params: { at: { at }, dur: { ms: 61_000 } } })).toBe("09:03:07 · 已空闲 1分1秒")
 +    expect(en.phrase({ key: "ring.card.end.meta", params: { at: { at }, dur: { ms: 61_000, long: true } } })).toBe("09:03:07 · idle 1 min 1 s")
@@ -2223,10 +2223,10 @@ index 0000000..7555eff
 +})
 diff --git a/packages/app/src/components/session/session-runtime-i18n.ts b/packages/app/src/components/session/session-runtime-i18n.ts
 new file mode 100644
-index 0000000..4862aed
+index 0000000..41c88c3
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-i18n.ts
-@@ -0,0 +1,1044 @@
+@@ -0,0 +1,978 @@
 +// oco (patches/opencode/0019): copy for the runtime view. Same arrangement as session-trajectory-i18n.ts
 +// (patch 0013): upstream's locale-parity test would require every locale, and oco maintains en / zh / zht.
 +import type { useLanguage } from "@/context/language"
@@ -2383,7 +2383,8 @@ index 0000000..4862aed
 +  "ring.card.think.meta": "Thinking {{dur}} · this request: {{carry}}",
 +  "ring.card.out.meta": "{{n}} chars",
 +  "ring.card.out.meta.dur": "Writing {{dur}}",
-+  "ring.card.streaming": "Streaming · replay shows the text once this part ends",
++  "ring.card.streaming": "Streaming…",
++  "ring.card.estimated": "Replay: progress estimated from elapsed time",
 +  "ring.card.call.ask": "Writing a question for you…",
 +  "ring.card.call.task": "Writing the task for the subagent…",
 +  "ring.card.call.tool": "Writing the arguments for {{tool}}…",
@@ -2406,8 +2407,6 @@ index 0000000..4862aed
 +  "ring.card.end.reason": "Finish reason {{reason}}",
 +  "ring.card.aborted.body": "Request {{m}} was stopped: {{name}} ({{message}}).",
 +  "ring.card.aborted.post": "Before the stop the model was thinking: {{text}}",
-+  "ring.card.age.ago": "{{dur}} ago",
-+  "ring.card.age.waited": "Waited {{dur}}",
 +  "ring.card.expand.aria": "Show the full text",
 +  "ring.card.plan.writing": "Writing plan v{{v}} · {{n}} items written",
 +  "ring.card.plan.carry": "Plan v{{v}} goes back to the model with request {{m}} · {{done}}/{{total}} done",
@@ -2515,29 +2514,8 @@ index 0000000..4862aed
 +  "ring.fold.idle.short": "≈{{dur}}",
 +  "ring.fold.glued": "{{fold}} · {{round}}",
 +  "ring.fold.glued.short": "{{fold}} {{round}}",
-+  "ring.cap.now": "Now",
-+  "ring.cap.pre": "{{agent}} is standing by.",
-+  "ring.cap.say": "You sent the round {{n}} message; {{agent}} received it.",
-+  "ring.cap.asm": "{{agent}} is assembling request {{m}} ({{carry}}).",
-+  "ring.cap.fly": "Request {{m}} is with the model; awaiting the first reply ({{dur}}).",
-+  "ring.cap.think": "The model is thinking ({{dur}}) · this request: {{carry}}.",
-+  "ring.cap.out": "The model is replying to you ({{n}} chars so far).",
-+  "ring.cap.out.dur": "The model is replying to you ({{dur}}).",
-+  "ring.cap.plan": "{{agent}} wrote plan v{{v}} ({{done}}/{{total}} done).",
-+  "ring.cap.plan.writing": "The model is writing the plan (todowrite v{{v}}).",
-+  "ring.cap.call": "The model is writing tool calls ({{made}} so far).",
-+  "ring.cap.call.running": "The model is writing tool calls ({{made}} so far) · running meanwhile: {{tools}} tools · {{subs}} subagents.",
-+  "ring.cap.call.ask": "The model is writing a question for you.",
-+  "ring.cap.wait": "{{phrase}}.",
-+  "ring.cap.ask": "{{agent}} stopped to wait for your answer to “{{header}}” · {{dur}} · answer in the input box below.",
-+  "ring.cap.permission": "{{agent}} is waiting for your approval of {{permission}} · answer below the input box.",
-+  "ring.cap.next": "Request {{m}} done; sending request {{next}} with {{n}} results.",
-+  "ring.cap.end": "Round {{n}} finished · {{agent}} standing by · idle {{dur}}.",
-+  "ring.cap.end.dismiss": "You dismissed the question; round {{n}} finished · {{agent}} standing by · idle {{dur}}.",
-+  "ring.cap.abort": "Round {{n}}, request {{m}} stopped ({{name}}) · {{agent}} standing by · idle {{dur}}.",
 +  "ring.bar.round": "Round {{n}} took {{dur}}",
 +  "ring.bar.round.wait": "(incl. {{dur}} waiting for you)",
-+  "ring.bar.idle": "Idle {{dur}}",
 +  "ring.bar.ctx": "Context {{tok}} (last receipt)",
 +  "ring.bar.cost": "Round cost {{cost}}",
 +  "ring.bar.cost.subs": "(incl. subagents)",
@@ -2711,7 +2689,8 @@ index 0000000..4862aed
 +  "ring.card.think.meta": "思考 {{dur}} · 这次请求{{carry}}",
 +  "ring.card.out.meta": "已 {{n}} 字",
 +  "ring.card.out.meta.dur": "输出 {{dur}}",
-+  "ring.card.streaming": "生成中 · 回看在这段结束后显示原文",
++  "ring.card.streaming": "生成中…",
++  "ring.card.estimated": "回放：按时间估算的进度",
 +  "ring.card.call.ask": "正在写一个给你的提问…",
 +  "ring.card.call.task": "正在写交给子代理的任务…",
 +  "ring.card.call.tool": "正在写 {{tool}} 调用的参数…",
@@ -2734,8 +2713,6 @@ index 0000000..4862aed
 +  "ring.card.end.reason": "结束原因 {{reason}}",
 +  "ring.card.aborted.body": "第 {{m}} 次请求被中止：{{name}}（{{message}}）。",
 +  "ring.card.aborted.post": "中止前模型在思考：{{text}}",
-+  "ring.card.age.ago": "{{dur}}前",
-+  "ring.card.age.waited": "已等 {{dur}}",
 +  "ring.card.expand.aria": "展开全文",
 +  "ring.card.plan.writing": "正在写计划第 {{v}} 版 · 已写完 {{n}} 项",
 +  "ring.card.plan.carry": "计划第 {{v}} 版随第 {{m}} 次请求带回模型 · 完成 {{done}}/{{total}}",
@@ -2843,29 +2820,8 @@ index 0000000..4862aed
 +  "ring.fold.idle.short": "≈{{dur}}",
 +  "ring.fold.glued": "{{fold}} · {{round}}",
 +  "ring.fold.glued.short": "{{fold}} {{round}}",
-+  "ring.cap.now": "此刻",
-+  "ring.cap.pre": "{{agent}} 待命。",
-+  "ring.cap.say": "你发出第 {{n}} 轮消息，{{agent}} 收到。",
-+  "ring.cap.asm": "{{agent}} 在组装第 {{m}} 次请求（{{carry}}）。",
-+  "ring.cap.fly": "第 {{m}} 次请求已发给模型，等首个回复（{{dur}}）。",
-+  "ring.cap.think": "模型在思考（{{dur}}）· 这次请求{{carry}}。",
-+  "ring.cap.out": "模型在回复你（已输出 {{n}} 字）。",
-+  "ring.cap.out.dur": "模型在回复你（{{dur}}）。",
-+  "ring.cap.plan": "{{agent}} 写下执行计划第 {{v}} 版（完成 {{done}}/{{total}}）。",
-+  "ring.cap.plan.writing": "模型在写执行计划（todowrite 第 {{v}} 版）。",
-+  "ring.cap.call": "模型在写工具调用（已写 {{made}}）。",
-+  "ring.cap.call.running": "模型在写工具调用（已写 {{made}}）· 同时在跑：工具 {{tools}} · 子代理 {{subs}}。",
-+  "ring.cap.call.ask": "模型在写一个给你的提问。",
-+  "ring.cap.wait": "{{phrase}}。",
-+  "ring.cap.ask": "{{agent}} 停下来等你回答「{{header}}」· 已等 {{dur}} · 在下方输入框回答。",
-+  "ring.cap.permission": "{{agent}} 等你授权 {{permission}} · 在下方输入框回答。",
-+  "ring.cap.next": "第 {{m}} 次请求完成，带上 {{n}} 个结果发第 {{next}} 次请求。",
-+  "ring.cap.end": "第 {{n}} 轮结束 · {{agent}} 待命 · 已空闲 {{dur}}。",
-+  "ring.cap.end.dismiss": "你忽略了提问，第 {{n}} 轮结束 · {{agent}} 待命 · 已空闲 {{dur}}。",
-+  "ring.cap.abort": "第 {{n}} 轮第 {{m}} 次请求已中止（{{name}}）· {{agent}} 待命 · 已空闲 {{dur}}。",
 +  "ring.bar.round": "第 {{n}} 轮用时 {{dur}}",
 +  "ring.bar.round.wait": "（其中等你 {{dur}}）",
-+  "ring.bar.idle": "已空闲 {{dur}}",
 +  "ring.bar.ctx": "上下文 {{tok}}（上次回执）",
 +  "ring.bar.cost": "本轮花费 {{cost}}",
 +  "ring.bar.cost.subs": "（含子代理）",
@@ -3035,7 +2991,8 @@ index 0000000..4862aed
 +  "ring.card.think.meta": "思考 {{dur}} · 這次請求{{carry}}",
 +  "ring.card.out.meta": "已 {{n}} 字",
 +  "ring.card.out.meta.dur": "輸出 {{dur}}",
-+  "ring.card.streaming": "生成中 · 回看在這段結束後顯示原文",
++  "ring.card.streaming": "生成中…",
++  "ring.card.estimated": "回放：按時間估算的進度",
 +  "ring.card.call.ask": "正在寫一個給你的提問…",
 +  "ring.card.call.task": "正在寫交給子代理的任務…",
 +  "ring.card.call.tool": "正在寫 {{tool}} 呼叫的參數…",
@@ -3058,8 +3015,6 @@ index 0000000..4862aed
 +  "ring.card.end.reason": "結束原因 {{reason}}",
 +  "ring.card.aborted.body": "第 {{m}} 次請求被中止：{{name}}（{{message}}）。",
 +  "ring.card.aborted.post": "中止前模型在思考：{{text}}",
-+  "ring.card.age.ago": "{{dur}}前",
-+  "ring.card.age.waited": "已等 {{dur}}",
 +  "ring.card.expand.aria": "展開全文",
 +  "ring.card.plan.writing": "正在寫計畫第 {{v}} 版 · 已寫完 {{n}} 項",
 +  "ring.card.plan.carry": "計畫第 {{v}} 版隨第 {{m}} 次請求帶回模型 · 完成 {{done}}/{{total}}",
@@ -3167,29 +3122,8 @@ index 0000000..4862aed
 +  "ring.fold.idle.short": "≈{{dur}}",
 +  "ring.fold.glued": "{{fold}} · {{round}}",
 +  "ring.fold.glued.short": "{{fold}} {{round}}",
-+  "ring.cap.now": "此刻",
-+  "ring.cap.pre": "{{agent}} 待命。",
-+  "ring.cap.say": "你發出第 {{n}} 輪訊息，{{agent}} 收到。",
-+  "ring.cap.asm": "{{agent}} 在組裝第 {{m}} 次請求（{{carry}}）。",
-+  "ring.cap.fly": "第 {{m}} 次請求已發給模型，等首個回覆（{{dur}}）。",
-+  "ring.cap.think": "模型在思考（{{dur}}）· 這次請求{{carry}}。",
-+  "ring.cap.out": "模型在回覆你（已輸出 {{n}} 字）。",
-+  "ring.cap.out.dur": "模型在回覆你（{{dur}}）。",
-+  "ring.cap.plan": "{{agent}} 寫下執行計畫第 {{v}} 版（完成 {{done}}/{{total}}）。",
-+  "ring.cap.plan.writing": "模型在寫執行計畫（todowrite 第 {{v}} 版）。",
-+  "ring.cap.call": "模型在寫工具呼叫（已寫 {{made}}）。",
-+  "ring.cap.call.running": "模型在寫工具呼叫（已寫 {{made}}）· 同時在跑：工具 {{tools}} · 子代理 {{subs}}。",
-+  "ring.cap.call.ask": "模型在寫一個給你的提問。",
-+  "ring.cap.wait": "{{phrase}}。",
-+  "ring.cap.ask": "{{agent}} 停下來等你回答「{{header}}」· 已等 {{dur}} · 在下方輸入框回答。",
-+  "ring.cap.permission": "{{agent}} 等你授權 {{permission}} · 在下方輸入框回答。",
-+  "ring.cap.next": "第 {{m}} 次請求完成，帶上 {{n}} 個結果發第 {{next}} 次請求。",
-+  "ring.cap.end": "第 {{n}} 輪結束 · {{agent}} 待命 · 已閒置 {{dur}}。",
-+  "ring.cap.end.dismiss": "你忽略了提問，第 {{n}} 輪結束 · {{agent}} 待命 · 已閒置 {{dur}}。",
-+  "ring.cap.abort": "第 {{n}} 輪第 {{m}} 次請求已中止（{{name}}）· {{agent}} 待命 · 已閒置 {{dur}}。",
 +  "ring.bar.round": "第 {{n}} 輪用時 {{dur}}",
 +  "ring.bar.round.wait": "（其中等你 {{dur}}）",
-+  "ring.bar.idle": "已閒置 {{dur}}",
 +  "ring.bar.ctx": "上下文 {{tok}}（上次回執）",
 +  "ring.bar.cost": "本輪花費 {{cost}}",
 +  "ring.bar.cost.subs": "（含子代理）",
@@ -8659,10 +8593,10 @@ index 0000000..e8db865
 +})
 diff --git a/packages/app/src/components/session/session-runtime-ring-geo.test.ts b/packages/app/src/components/session/session-runtime-ring-geo.test.ts
 new file mode 100644
-index 0000000..a35b287
+index 0000000..fb9e1be
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-geo.test.ts
-@@ -0,0 +1,746 @@
+@@ -0,0 +1,745 @@
 +// oco (patches/opencode/0019): unit tests for the M5 ring geometry, bus wires, packets, token and labels (Task 8).
 +// Synthetic frames and hand-built indexes only: key-frame checks on the real fixture belong to Task 11.
 +import { describe, expect, test } from "bun:test"
@@ -8757,7 +8691,7 @@ index 0000000..a35b287
 +const KS = [0, 0.5, 1]
 +
 +// ---------- synthetic frame / index builders (complete objects, no loose casts) ----------
-+const ph = (key: RingFrame["caption"]["key"]) => ({ key })
++const ph = (key: RingFrame["live"]["key"]) => ({ key })
 +function row(i: number, state: ToolRowState, same?: [number, number]) {
 +  return { id: `prt_row${i}`, name: "bash", state, arg: state === "pend" ? "" : `cmd ${i}`, same }
 +}
@@ -8800,7 +8734,6 @@ index 0000000..a35b287
 +    },
 +    k: over.k ?? 0,
 +    dk: 1,
-+    caption: ph("ring.status.running"),
 +    live: ph("ring.status.running"),
 +    bar: { waitMs: 0 },
 +  }
@@ -11719,13 +11652,13 @@ index 0000000..a5638b2
 +}
 diff --git a/packages/app/src/components/session/session-runtime-ring-sub.test.ts b/packages/app/src/components/session/session-runtime-ring-sub.test.ts
 new file mode 100644
-index 0000000..8d43c4d
+index 0000000..840c599
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-sub.test.ts
-@@ -0,0 +1,645 @@
+@@ -0,0 +1,663 @@
 +// oco (patches/opencode/0019): unit tests for the M5 subagent state / detail / list pure functions (Task 6).
 +import { describe, expect, test } from "bun:test"
-+import { childDoneAt, probeStageOfSub, subDetailAt, subListAt, subStateAt } from "./session-runtime-ring-sub"
++import { childDoneAt, probeStageOfSub, revealAt, subDetailAt, subListAt, subStateAt } from "./session-runtime-ring-sub"
 +import type { Phrase, RingChild, RingSpan, RingSub, RingTool } from "./session-runtime-ring-types"
 +
 +// ---------- synthetic builders ----------
@@ -12067,10 +12000,24 @@ index 0000000..8d43c4d
 +    expect(subDetailAt(s, 2300, { narrow: false })!.acts.more).toBe(0)
 +  })
 +
-+  test("3: text follows D2: replay hides a streaming span, live shows what arrived; ** and backticks stay", () => {
++  test("revealAt: proportional prefix, empty without an end or before start, never splits a surrogate pair", () => {
++    const span = { start: 1000, end: 2000, text: "abcdefghij" }
++    expect(revealAt(span, 999)).toBe("")
++    expect(revealAt(span, 1000)).toBe("")
++    expect(revealAt(span, 1500)).toBe("abcde")
++    expect(revealAt(span, 2000)).toBe("abcdefghij")
++    expect(revealAt(span, 9000)).toBe("abcdefghij")
++    expect(revealAt({ start: 1000, text: "abc" }, 1500)).toBe("")
++    expect(revealAt({ start: 1000, end: 1000, text: "abc" }, 1500)).toBe("")
++    // "a😀b" is 4 code units; at half the cut would land inside the emoji, so it backs off to "a"
++    expect(revealAt({ start: 0, end: 100, text: "a😀b" }, 50)).toBe("a")
++  })
++
++  test("3: text follows D2: replay shows a time-proportional prefix of a streaming span, live shows what arrived; ** and backticks stay", () => {
 +    const s = sub({ child: acts() })
 +    const textAt = (t: number, live?: boolean) => subDetailAt(s, t, { narrow: false, live })!.acts.items[2]
-+    expect(textAt(3400)).toEqual({ kind: "text", id: "x1", text: "", streaming: true })
++    // 3300..3600, 24 code units: a third of the way in shows the first 8
++    expect(textAt(3400)).toEqual({ kind: "text", id: "x1", text: "**Bold**", streaming: true })
 +    expect(textAt(3400, true)).toEqual({ kind: "text", id: "x1", text: "**Bold** and `code`\nnext", streaming: true })
 +    expect(textAt(3600)).toEqual({ kind: "text", id: "x1", text: "**Bold** and `code`\nnext", streaming: false })
 +    expect(textAt(3600, true)).toEqual({ kind: "text", id: "x1", text: "**Bold** and `code`\nnext", streaming: false })
@@ -12203,6 +12150,10 @@ index 0000000..8d43c4d
 +}
 +
 +describe("no future leak", () => {
++  // D2 (revised 2026-10-09): the replay text of a line still streaming at t is a time-proportional estimate from the
++  // final text and end, the one accepted exemption; everything else must match the truncated data exactly.
++  const scrub = (d: ReturnType<typeof subDetailAt>) =>
++    d && { ...d, acts: { ...d.acts, items: d.acts.items.map((a) => (a.kind === "text" && a.streaming ? { ...a, text: "" } : a)) } }
 +  const rich = sub({
 +    end: 12_000,
 +    failed: true,
@@ -12265,7 +12216,7 @@ index 0000000..8d43c4d
 +        expect(subStateAt(cut, t)).toEqual(subStateAt(s, t))
 +        expect(childDoneAt(cut, t)).toEqual(childDoneAt(s, t))
 +        for (const narrow of [false, true])
-+          expect(subDetailAt(cut, t, { narrow })).toEqual(subDetailAt(s, t, { narrow }))
++          expect(scrub(subDetailAt(cut, t, { narrow }))).toEqual(scrub(subDetailAt(s, t, { narrow })))
 +        expect(subListAt([cut], t, 2)).toEqual(subListAt([s], t, 2))
 +      }
 +    })
@@ -12370,10 +12321,10 @@ index 0000000..8d43c4d
 +})
 diff --git a/packages/app/src/components/session/session-runtime-ring-sub.ts b/packages/app/src/components/session/session-runtime-ring-sub.ts
 new file mode 100644
-index 0000000..c9d9635
+index 0000000..75ecb02
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-sub.ts
-@@ -0,0 +1,295 @@
+@@ -0,0 +1,309 @@
 +// oco (patches/opencode/0019): M5 runtime ring — subagent state, detail panel and list as pure functions of t.
 +// Every query reads only facts at or before t (D16, D2): a field whose time is later than t is never looked at,
 +// so the result equals the one computed from data truncated at t. No geometry, no copy (keys only).
@@ -12393,6 +12344,20 @@ index 0000000..c9d9635
 +
 +const ph = (key: RuntimeKey, params?: Record<string, PhraseParam>): Phrase => (params ? { key, params } : { key })
 +const at = (v: number | undefined, t: number): v is number => v !== undefined && v <= t
++
++/**
++ * Replay estimate of a span still streaming at t (D2, revised 2026-10-09): the stored part keeps only its final text and
++ * end, so the prefix shown is proportional to the elapsed share of [start, end]. An approximation, flagged as such in
++ * the view; without a known end nothing is shown. Never splits a surrogate pair.
++ */
++export function revealAt(span: { start: number; end?: number; text: string }, t: number): string {
++  if (span.end === undefined || span.end <= span.start || t <= span.start) return ""
++  const f = Math.min(1, (t - span.start) / (span.end - span.start))
++  let n = Math.floor(span.text.length * f)
++  const c = span.text.charCodeAt(n - 1)
++  if (n > 0 && c >= 0xd800 && c <= 0xdbff) n--
++  return span.text.slice(0, n)
++}
 +
 +/** One-line preview: only whitespace is merged; `**` and backticks stay (mockup cutRaw L1172). */
 +const cutRaw = (s: string | undefined, n: number) => {
@@ -12596,9 +12561,9 @@ index 0000000..c9d9635
 +  const items: RingSubAct[] = shown.slice(more).map((a) => {
 +    if (a.kind === "tool") return toolAct(a.tool, t)
 +    const ended = at(a.span.end, t)
-+    // D2: replay shows nothing of a span still streaming at t; live shows what has arrived, with a caret.
++    // D2: live shows what has arrived, with a caret; replay shows a time-proportional prefix of a span still streaming.
 +    if (opts.live) return { kind: "text", id: a.span.partID, text: a.span.text, streaming: !ended }
-+    return { kind: "text", id: a.span.partID, text: ended ? a.span.text : "", streaming: !ended }
++    return { kind: "text", id: a.span.partID, text: ended ? a.span.text : revealAt(a.span, t), streaming: !ended }
 +  })
 +  const think = p.state === "run" && child ? child.thinks.find((k) => k.start <= t && !at(k.end, t)) : undefined
 +  const acts: RingSubDetail["acts"] = { more, items }
@@ -13385,7 +13350,7 @@ index 0000000..ac7355b
 +}
 diff --git a/packages/app/src/components/session/session-runtime-ring-types.ts b/packages/app/src/components/session/session-runtime-ring-types.ts
 new file mode 100644
-index 0000000..0ef23bb
+index 0000000..3043d59
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-types.ts
 @@ -0,0 +1,243 @@
@@ -13517,10 +13482,10 @@ index 0000000..0ef23bb
 +  pre?: Phrase
 +  body: string                     // verbatim, cut to t (a prefix while streaming)
 +  bodyMode: "head" | "tail" | "mid"; mono: boolean; streaming: boolean
++  estimated?: true                 // replay: body is a time-proportional estimate of a part still streaming (D2)
 +  post?: Phrase | string
 +  plan?: { items: { text: string; status: RingTodo["status"]; partial: boolean }[] }
 +  meta: Phrase[]                   // joined by ring.sep
-+  age?: Phrase                     // right-side timer
 +  full?: string                    // full-text overlay, only content at or before t
 +}
 +export type RingYou = {
@@ -13562,7 +13527,7 @@ index 0000000..0ef23bb
 +export type RingFrame = {
 +  t: number; stage: RingStage; status: RingStatus; counter: RingCounter; model: RingModelBox
 +  card: RingCard; pills: RingPills; you: RingYou; tools: RingToolsDock; subs: RingSubsDock
-+  k: number; caption: Phrase; live: Phrase; bar: RingBar
++  k: number; live: Phrase; bar: RingBar
 +  dk: number                      // tools dock openness 0..1 (dockOpen; added after M5)
 +}
 +
@@ -13634,10 +13599,10 @@ index 0000000..0ef23bb
 +}
 diff --git a/packages/app/src/components/session/session-runtime-ring-view.tsx b/packages/app/src/components/session/session-runtime-ring-view.tsx
 new file mode 100644
-index 0000000..da168d8
+index 0000000..4fb687f
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-view.tsx
-@@ -0,0 +1,1277 @@
+@@ -0,0 +1,1285 @@
 +// oco (patches/opencode/0019): M5 runtime ring — the stage view. Ring SVG (stations, coverage arc, token, bus wires),
 +// fixed boxes (you, model, counter, centre card, tools), the packet / label layer, the subagent dock mount and the
 +// card's full-text overlay. Reads only `frame` (facts at t) and the pure geometry of session-runtime-ring-geo.ts;
@@ -13986,10 +13951,11 @@ index 0000000..da168d8
 +
 +  // ---------- card ----------
 +  const card = () => f().card
-+  // the whole card opens the full-content overlay whenever it shows any text (running or not)
++  // the whole card opens the full-content overlay whenever it has anything to show (running or not);
++  // a streaming part with no text yet (thinking in replay, or before the first delta) still opens to its meta
 +  const canExpand = createMemo(() => {
 +    const c = card()
-+    return !!(c.body || c.full || c.pre || c.post || c.plan?.items.length)
++    return !!(c.body || c.full || c.pre || c.post || c.plan?.items.length || c.streaming || c.meta.length)
 +  })
 +  const body = createMemo(() => {
 +    const c = card()
@@ -14517,9 +14483,6 @@ index 0000000..da168d8
 +              <span data-oco-runtime-card-route style={{ ...ell, "font-weight": 700, color: "var(--c)" }}>
 +                {`${say(card().from)} → ${say(card().to)}`}
 +              </span>
-+              <span style={{ "margin-left": "auto", flex: "none", color: "var(--rt-faint)", "font-family": mono, "font-size": "11px" }}>
-+                {say(card().age)}
-+              </span>
 +            </div>
 +            <div
 +              data-oco-runtime-card-body
@@ -14858,7 +14821,12 @@ index 0000000..da168d8
 +                  <Show when={card().pre}>
 +                    <div style={{ color: "var(--rt-weak)", "margin-bottom": "4px" }}>{say(card().pre)}</div>
 +                  </Show>
-+                  {card().full ?? card().body}
++                  <Show
++                    when={card().full || card().body || !card().streaming}
++                    fallback={<span style={{ color: "var(--rt-faint)" }}>{text.t("ring.card.streaming")}</span>}
++                  >
++                    {card().full ?? card().body}
++                  </Show>
 +                  <Show when={card().plan?.items.length}>
 +                    <ul style={{ margin: "0", padding: "0", "list-style": "none", "white-space": "normal" }}>
 +                      <For each={card().plan?.items ?? []}>
@@ -14875,6 +14843,11 @@ index 0000000..da168d8
 +                  </Show>
 +                  <Show when={card().post}>
 +                    <div style={{ color: "var(--rt-weak)", "margin-top": "4px" }}>{say(card().post)}</div>
++                  </Show>
++                  <Show when={card().estimated}>
++                    <div data-oco-runtime-card-estimated style={{ color: "var(--rt-faint)", "font-size": "11px", "margin-top": "8px", "white-space": "normal" }}>
++                      {text.t("ring.card.estimated")}
++                    </div>
 +                  </Show>
 +                  <Show when={card().meta.length}>
 +                    <div data-oco-runtime-card-meta style={{ color: "var(--rt-weak)", "font-size": "11px", "margin-top": "8px", "white-space": "normal" }}>
@@ -15191,10 +15164,10 @@ index 0000000..80429e8
 +}
 diff --git a/packages/app/src/components/session/session-runtime-ring.test.ts b/packages/app/src/components/session/session-runtime-ring.test.ts
 new file mode 100644
-index 0000000..7c6ffd1
+index 0000000..4febc3c
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring.test.ts
-@@ -0,0 +1,770 @@
+@@ -0,0 +1,784 @@
 +// oco (patches/opencode/0019): unit tests for the M5 ring pure module (Task 5): stage, frame, no-leak property.
 +import { describe, expect, test } from "bun:test"
 +import { backgroundNoticesOf } from "./session-runtime-model"
@@ -15705,34 +15678,48 @@ index 0000000..7c6ffd1
 +    dismissed: f.stage.dismissed?.id,
 +  },
 +})
++// D2 (revised 2026-10-09): replay shows a time-proportional estimate of a part still streaming at t, computed from its
++// final text and end, so these fields are an accepted approximation and the one explicit exemption from the property:
++// the body (and the full text and mono flag derived from it) and `estimated` of a streaming card, and the text of a
++// streaming sub line. Character counts stay exact (only shown once a part ends), so they are not exempt.
++const scrubEstimate = (f: RingFrame): RingFrame => {
++  if (!f.card.streaming) return f
++  const { estimated: _, full: __, ...card } = f.card
++  return { ...f, card: { ...card, body: "", mono: false } }
++}
++const scrubSubEstimate = (d: ReturnType<typeof subDetailAt>) =>
++  d && { ...d, acts: { ...d.acts, items: d.acts.items.map((a) => (a.kind === "text" && a.streaming ? { ...a, text: "" } : a)) } }
 +function expectNoLeak(input: RingIndexInput, points: readonly number[]) {
 +  const full = buildRingIndex(input)
 +  for (const t of points) {
 +    const cut = buildRingIndex(truncateAt(input, t))
-+    const A = refIds(frameAt(full, t, { reduced: false, wide: true })) as Record<string, unknown>
-+    const B = refIds(frameAt(cut, t, { reduced: false, wide: true })) as Record<string, unknown>
++    const A = refIds(scrubEstimate(frameAt(full, t, { reduced: false, wide: true }))) as Record<string, unknown>
++    const B = refIds(scrubEstimate(frameAt(cut, t, { reduced: false, wide: true }))) as Record<string, unknown>
 +    for (const k of Object.keys(A)) expect({ t, k, v: B[k] }).toEqual({ t, k, v: A[k] })
 +    expect(Object.keys(B).sort()).toEqual(Object.keys(A).sort())
 +    const subs = full.subs.filter((s) => s.created <= t)
 +    expect(cut.subs.map((s) => s.uid)).toEqual(subs.map((s) => s.uid))
 +    subs.forEach((s, i) =>
-+      expect({ t, uid: s.uid, d: subDetailAt(cut.subs[i], t, { narrow: false }) }).toEqual({
++      expect({ t, uid: s.uid, d: scrubSubEstimate(subDetailAt(cut.subs[i], t, { narrow: false })) }).toEqual({
 +        t,
 +        uid: s.uid,
-+        d: subDetailAt(s, t, { narrow: false }),
++        d: scrubSubEstimate(subDetailAt(s, t, { narrow: false })),
 +      }),
 +    )
 +  }
 +}
 +
-+describe("13 no future leak (property): frameAt(full, t) equals frameAt(truncateAt(input, t), t), no exempt field", () => {
++describe("13 no future leak (property): frameAt(full, t) equals frameAt(truncateAt(input, t), t), except the D2 replay estimate", () => {
 +  test("13 synthetic: 3-step child, background task, streaming text and reasoning; every index time and +-1 ms", () => {
 +    const { input } = propSession()
 +    const index = buildRingIndex(input)
 +    const pts = [...new Set(index.times.flatMap((t) => [t - 1, t, t + 1]))]
 +    expect(pts.length).toBeGreaterThan(150)
 +    // the streaming parts really stream inside the sampled range
-+    expect(frameAt(index, at(14350), { reduced: false, wide: true }).card).toMatchObject({ kind: "think", body: "", streaming: true })
++    // reasoning 14300..14400 (ended by the next part): halfway shows half of "still thinking", flagged as an estimate
++    expect(frameAt(index, at(14350), { reduced: false, wide: true }).card).toMatchObject({ kind: "think", body: "still t", streaming: true, estimated: true })
++    // the output has no known end yet: nothing to estimate from, so the body stays empty and unflagged
++    expect(frameAt(index, at(14500), { reduced: false, wide: true }).card.estimated).toBeUndefined()
 +    expect(frameAt(index, at(14500), { reduced: false, wide: true }).card).toMatchObject({ kind: "output", body: "", streaming: true })
 +    expect(
 +      frameAt(index, at(14500), { reduced: false, wide: true, live: liveIn({ run: "working" }) }).card,
@@ -15967,10 +15954,10 @@ index 0000000..7c6ffd1
 +})
 diff --git a/packages/app/src/components/session/session-runtime-ring.ts b/packages/app/src/components/session/session-runtime-ring.ts
 new file mode 100644
-index 0000000..31adb02
+index 0000000..54bd979
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring.ts
-@@ -0,0 +1,1880 @@
+@@ -0,0 +1,1819 @@
 +// oco (patches/opencode/0019): M5 runtime ring — index, stage and frame as pure functions of t (Task 5).
 +// buildRingIndex reads the full data once; every query below (roundAt, stageAt, laneOpen, planAt, frameAt,
 +// trackInputOf) reads only facts whose time is at or before t (D1, D2), so a frame equals the frame computed from
@@ -15986,7 +15973,7 @@ index 0000000..31adb02
 +  runtimeSubagentOf,
 +  type BackgroundNotice,
 +} from "./session-runtime-model"
-+import { subStateAt } from "./session-runtime-ring-sub"
++import { revealAt, subStateAt } from "./session-runtime-ring-sub"
 +import { LOOP_CONTINUE, RING } from "./session-runtime-ring-types"
 +import type {
 +  Phrase,
@@ -16029,7 +16016,6 @@ index 0000000..31adb02
 +const ph = (key: RuntimeKey, params?: Record<string, PhraseParam>): Phrase => (params ? { key, params } : { key })
 +const at = (v: number | undefined, t: number): v is number => v !== undefined && v <= t
 +const ms = (v: number): PhraseParam => ({ ms: Math.max(0, v) })
-+const ago = (v: number) => ph("ring.card.age.ago", { dur: ms(v) })
 +/** Display form of an agent name: the part before " - " (mockup L463-465, D4). */
 +const display = (agent: string | undefined) => {
 +  const a = agent ?? ""
@@ -17067,10 +17053,11 @@ index 0000000..31adb02
 +  return F
 +}
 +
-+/** D2: a span's text at t. Replay: nothing while it streams. Live: what has arrived. */
++/** D2: a span's text at t. Live: what has arrived. Replay while it streams: a time-proportional estimate (`estimated`). */
 +function shownSpan(span: RingSpan, t: number, live: boolean) {
 +  const ended = at(span.end, t)
-+  return { text: ended || live ? span.text : "", streaming: !ended, ended }
++  if (ended || live) return { text: span.text, streaming: !ended, ended, estimated: false }
++  return { text: revealAt(span, t), streaming: true, ended, estimated: span.end !== undefined }
 +}
 +
 +function carriedOf(F: Facts, t: number) {
@@ -17293,7 +17280,6 @@ index 0000000..31adb02
 +    plan: { items },
 +    meta: [meta],
 +    streaming: writing,
-+    age: writing ? ago(t - x.created) : ph("ring.plan.chip", { done: c.done, total: c.total }),
 +  })
 +}
 +
@@ -17318,7 +17304,6 @@ index 0000000..31adb02
 +      return card("message", "main", who("ring.card.who.you"), ag, {
 +        body: r!.text,
 +        meta: [ph("ring.card.say.meta", { n: r!.n, at: { at: r!.start } })],
-+        age: ago(t - r!.start),
 +      })
 +    case "asm":
 +    case "fly": {
@@ -17330,36 +17315,35 @@ index 0000000..31adb02
 +          : ph("ring.card.fly.meta", { dur: ms(t - (q!.stepStart ?? t)), ctx })
 +      const extra: Partial<RingCard> = {
 +        meta: [meta],
-+        age: ago(S.st === "asm" ? t - q!.created : t - (q!.stepStart ?? t)),
 +      }
 +      if (cr.kind === "msg") Object.assign(extra, { pre: ph("ring.card.req.msg"), body: r!.text })
 +      else Object.assign(extra, { pre: ph("ring.card.req.res", { n: cr.n }), body: cr.list }, cr.subsPhrase ? { post: cr.subsPhrase } : {})
 +      return card("request", "main", ag, who("ring.card.who.model"), extra)
 +    }
 +    case "think": {
-+      const s = F.think ? shownSpan(F.think, t, live) : { text: "", streaming: true }
++      const s = F.think ? shownSpan(F.think, t, live) : { text: "", streaming: true, estimated: false }
 +      return card("think", "acc", who("ring.card.who.model"), ag, {
 +        body: s.text,
 +        bodyMode: "tail",
 +        mono: latin(s.text),
 +        streaming: s.streaming,
++        ...(s.estimated ? { estimated: true } : {}),
 +        meta: [ph("ring.card.think.meta", { dur: ms(t - (F.think?.start ?? t)), carry: carriedOf(F, t).phrase })],
-+        age: ago(t - (F.think?.start ?? t)),
 +      })
 +    }
 +    case "out": {
-+      const s = F.text ? shownSpan(F.text, t, live) : { text: "", streaming: true, ended: false }
++      const s = F.text ? shownSpan(F.text, t, live) : { text: "", streaming: true, ended: false, estimated: false }
 +      const counted = s.ended || live
 +      return card("output", "text", who("ring.card.who.model"), who("ring.card.who.chat"), {
 +        body: s.text,
 +        bodyMode: "tail",
 +        streaming: s.streaming,
++        ...(s.estimated ? { estimated: true } : {}),
 +        meta: [
 +          counted
 +            ? ph("ring.card.out.meta", { n: codePoints(s.text) })
 +            : ph("ring.card.out.meta.dur", { dur: ms(t - (F.text?.start ?? t)) }),
 +        ],
-+        age: ago(t - (F.text?.start ?? t)),
 +      })
 +    }
 +    case "call": {
@@ -17367,17 +17351,17 @@ index 0000000..31adb02
 +      const started = at(x.start, t)
 +      const meta = [ph("ring.card.call.meta", { made: madeOf(F), run: F.tc.run + F.qsc.run })]
 +      if (x.kind === "question")
-+        return card("call", "attn", ag, who("ring.card.who.you"), { pre: ph("ring.card.call.ask"), meta, age: ago(t - x.created) })
++        return card("call", "attn", ag, who("ring.card.who.you"), { pre: ph("ring.card.call.ask"), meta})
 +      if (x.kind === "task") {
 +        const sub = x.sub!
 +        const to = ph("ring.card.who.sub", { n: sub.num, name: started ? sub.name : "" })
 +        return started
-+          ? card("handoff", "sub", ag, to, { body: sub.prompt, ...(sub.type ? { post: sub.type } : {}), meta, age: ago(t - x.start!) })
-+          : card("call", "sub", ag, to, { pre: ph("ring.card.call.task"), meta, age: ago(t - x.created) })
++          ? card("handoff", "sub", ag, to, { body: sub.prompt, ...(sub.type ? { post: sub.type } : {}), meta})
++          : card("call", "sub", ag, to, { pre: ph("ring.card.call.task"), meta})
 +      }
 +      return started
-+        ? card("call", "tool", ag, x.name, { body: x.arg, mono: true, meta, age: ago(t - x.start!) })
-+        : card("call", "tool", ag, x.name, { pre: ph("ring.card.call.tool", { tool: x.name }), meta, age: ago(t - x.created) })
++        ? card("call", "tool", ag, x.name, { body: x.arg, mono: true, meta})
++        : card("call", "tool", ag, x.name, { pre: ph("ring.card.call.tool", { tool: x.name }), meta})
 +    }
 +    case "wait": {
 +      const x = newestDone(q!, t)
@@ -17388,14 +17372,12 @@ index 0000000..31adb02
 +        return card("return", "ok", ph("ring.card.who.sub", { n: sub.num, name: sub.name }), ag, {
 +          body: result,
 +          meta: [...meta, ph("ring.card.return.chars", { n: codePoints(result) })],
-+          age: ago(t - x.end!),
 +        })
 +      }
 +      if (x && declinedAt(x, t) === "rejected")
 +        return card("rejected", "faint", who("ring.card.who.you"), ag, {
 +          pre: ph("ring.card.rejected.body", { tool: x.name }),
 +          meta,
-+          age: ago(t - x.end!),
 +        })
 +      if (x && x.status === "error")
 +        return card("failed", "err", x.name, ag, {
@@ -17403,7 +17385,6 @@ index 0000000..31adb02
 +          mono: true,
 +          post: `${x.name} ${cut(x.arg, 60)}`,
 +          meta,
-+          age: ago(t - x.end!),
 +        })
 +      if (x) {
 +        const res = stripTags(x.output)
@@ -17413,7 +17394,6 @@ index 0000000..31adb02
 +          ...(res ? {} : { pre: ph("ring.card.noOutput") }),
 +          post: `${x.name} ${cut(x.arg, 60)}`,
 +          meta: [...meta, ph("ring.card.chars", { n: x.chars }), ph("ring.card.took", { dur: ms(x.end! - (x.start ?? x.end!)) })],
-+          age: ago(t - x.end!),
 +        })
 +      }
 +      const runs = F.made.filter((y) =>
@@ -17442,7 +17422,6 @@ index 0000000..31adb02
 +        body: qq?.question ?? "",
 +        bodyMode: "mid",
 +        meta: [opts.wide ? ph("ring.card.ask.wide", { n }) : ph("ring.card.ask.narrow", { n })],
-+        age: ph("ring.card.age.waited", { dur: ms(t - x.start!) }),
 +      })
 +    }
 +    case "next": {
@@ -17458,7 +17437,6 @@ index 0000000..31adb02
 +        }),
 +        post: ph("ring.card.receipt.post", { n, next: q!.m + 1 }),
 +        meta: [ph("ring.card.receipt.meta", { tok: { tok: f.tokens.total } })],
-+        age: ago(t - f.at),
 +      })
 +    }
 +    case "end": {
@@ -17479,6 +17457,7 @@ index 0000000..31adb02
 +      return card("round-end", "ok", ag, who("ring.card.who.you"), {
 +        body: s?.text ?? "",
 +        streaming: s?.streaming ?? false,
++        ...(s?.estimated ? { estimated: true } : {}),
 +        meta,
 +      })
 +    }
@@ -17630,58 +17609,6 @@ index 0000000..31adb02
 +  return dock
 +}
 +
-+function captionOf(S: RingStage, F: Facts, t: number, live: boolean): Phrase {
-+  const r = F.r
-+  const q = F.q
-+  const agent = F.agent
-+  switch (S.st) {
-+    case "pre":
-+      return ph("state.idle")
-+    case "say":
-+      return ph("ring.cap.say", { n: r!.n, agent })
-+    case "asm":
-+      return ph("ring.cap.asm", { agent, m: q!.m, carry: carriedOf(F, t).phrase })
-+    case "fly":
-+      return ph("ring.cap.fly", { m: q!.m, dur: ms(t - (q!.stepStart ?? t)) })
-+    case "think":
-+      return ph("ring.cap.think", { dur: ms(t - (F.think?.start ?? t)), carry: carriedOf(F, t).phrase })
-+    case "out": {
-+      const s = F.text ? shownSpan(F.text, t, live) : undefined
-+      return s && (s.ended || live)
-+        ? ph("ring.cap.out", { n: codePoints(s.text) })
-+        : ph("ring.cap.out.dur", { dur: ms(t - (F.text?.start ?? t)) })
-+    }
-+    case "call": {
-+      const lx = F.made[F.made.length - 1]
-+      if (lx?.name === "todowrite") {
-+        const v = lx.planVersion ?? 1
-+        if (!at(lx.start, t)) return ph("ring.cap.plan.writing", { v })
-+        const c = planCount(lx.todos ?? [])
-+        return ph("ring.cap.plan", { agent, v, done: c.done, total: c.total })
-+      }
-+      if (!F.nCall) return ph("ring.cap.call.ask")
-+      const run = F.tc.run + F.qsc.run
-+      return run
-+        ? ph("ring.cap.call.running", { made: madeOf(F), tools: F.tc.run, subs: F.qsc.run })
-+        : ph("ring.cap.call", { made: madeOf(F) })
-+    }
-+    case "wait":
-+      return ph("ring.cap.wait", { phrase: joinPhrases(waitBits(F)) })
-+    case "ask":
-+      if (S.permission) return ph("ring.cap.permission", { agent, permission: S.permission.permission })
-+      return ph("ring.cap.ask", { agent, header: S.ask?.question?.header ?? "", dur: ms(t - (S.ask?.start ?? t)) })
-+    case "next":
-+      return ph("ring.cap.next", { m: q!.m, n: F.made.length, next: q!.m + 1 })
-+    case "end":
-+      return S.why === "dismiss"
-+        ? ph("ring.cap.end.dismiss", { n: r!.n, agent, dur: ms(F.idle) })
-+        : ph("ring.cap.end", { n: r!.n, agent, dur: ms(F.idle) })
-+    case "abort":
-+      return ph("ring.cap.abort", { n: r!.n, m: q!.m, name: q!.error?.name ?? "", agent, dur: ms(F.idle) })
-+  }
-+  return ph("state.idle")
-+}
-+
 +function liveOf(S: RingStage, F: Facts): Phrase {
 +  const r = F.r
 +  if (!r) return ph("state.idle")
@@ -17733,7 +17660,6 @@ index 0000000..31adb02
 +    subs: subsOf(index, F, t, opts.live),
 +    k: laneOpen(index, t, opts.reduced),
 +    dk: dockOpen(index, t, opts.reduced),
-+    caption: captionOf(stage, F, t, live),
 +    live: liveOf(stage, F),
 +    bar: barOf(index, F, t),
 +  }
@@ -18026,12 +17952,12 @@ index 0000000..3008106
 +}
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
 new file mode 100644
-index 0000000..c6a2426
+index 0000000..b09e1f0
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -0,0 +1,1217 @@
+@@ -0,0 +1,1203 @@
 +// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view.
-+// M5 (2026-10-08): top bar / stage (ring) / caption line / status bar. The ring index is rebuilt at most every
++// M5 (2026-10-08): top bar / stage (ring) / status bar (the caption line was dropped 2026-10-09: it repeated the model box). The ring index is rebuilt at most every
 +// RING.REBUILD_MS from a dirty-session set (D11); the frame at the visual t is recomputed per animation frame into a
 +// reconciled store, so the views only touch the DOM that changed.
 +import { createEffect, createMemo, createSignal, For, on, onCleanup, onMount, Show, untrack } from "solid-js"
@@ -18103,7 +18029,7 @@ index 0000000..c6a2426
 +]
 +
 +// Frame fields kept in the reconciled store; `stage` holds index objects (round / request) and lives in a signal.
-+const FRAME_KEYS = ["t", "status", "counter", "model", "card", "pills", "you", "tools", "subs", "k", "dk", "caption", "live", "bar"] as const
++const FRAME_KEYS = ["t", "status", "counter", "model", "card", "pills", "you", "tools", "subs", "k", "dk", "live", "bar"] as const
 +// every RingFrame field except stage must be listed above, or the view reads undefined for it
 +const FRAME_KEYS_COMPLETE: Exclude<keyof RingFrame, "stage"> extends (typeof FRAME_KEYS)[number] ? true : never = true
 +void FRAME_KEYS_COMPLETE
@@ -18907,7 +18833,7 @@ index 0000000..c6a2426
 +        </div>
 +      </div>
 +
-+      {/* M5 frame: top bar / stage / caption line / status bar */}
++      {/* M5 frame: top bar / stage / status bar */}
 +      <div
 +        data-oco-runtime-frame
 +        class="oco-runtime-view flex-1 min-h-0 flex flex-col"
@@ -18987,7 +18913,7 @@ index 0000000..c6a2426
 +              )}
 +              {playbackButton(
 +                "prev",
-+                () => "◀",
++                () => "|◀",
 +                () => t("replay.prev"),
 +                () => stepTo(-1),
 +              )}
@@ -19085,6 +19011,7 @@ index 0000000..c6a2426
 +        <div
 +          ref={stageRef}
 +          class="relative flex-1 min-h-0 min-w-0"
++          data-oco-runtime-focus={frame.stage.st}
 +          data-oco-runtime-child={entered() ? shownID() : undefined}
 +          data-oco-runtime-child-lifecycle={entered() ? lifecycleOf(shownID()) : undefined}
 +          data-oco-runtime-child-depth={entered() ? enteredStack().length : undefined}
@@ -19104,18 +19031,6 @@ index 0000000..c6a2426
 +          />
 +        </div>
 +
-+        {/* Caption line */}
-+        <p
-+          data-oco-runtime-focus={frame.stage.st}
-+          class="m-0 shrink-0 ell text-12-regular"
-+          style={{ color: "var(--rt-text)" }}
-+          title={copy.phrase(frame.caption)}
-+        >
-+          <span style={{ color: "var(--rt-faint)" }}>{t("ring.cap.now")}</span>
-+          {"  "}
-+          {copy.phrase(frame.caption)}
-+        </p>
-+
 +        {/* Status bar */}
 +        <div
 +          data-oco-runtime-summary
@@ -19133,9 +19048,6 @@ index 0000000..c6a2426
 +                {barPhrase({ key: "ring.bar.round.wait", params: { dur: { ms: bar().waitMs } } })}
 +              </Show>
 +            </span>
-+          </Show>
-+          <Show when={bar().idleMs !== undefined}>
-+            <span data-oco-runtime-idle>{barPhrase({ key: "ring.bar.idle", params: { dur: { ms: bar().idleMs ?? 0 } } })}</span>
 +          </Show>
 +          <Show when={bar().ctx !== undefined}>
 +            <span data-oco-runtime-context>{barPhrase({ key: "ring.bar.ctx", params: { tok: { tok: bar().ctx ?? 0 } } })}</span>
@@ -20168,10 +20080,10 @@ index 0000000..72a5832
 +})
 diff --git a/packages/app/test-browser/session-runtime-ring-view.test.tsx b/packages/app/test-browser/session-runtime-ring-view.test.tsx
 new file mode 100644
-index 0000000..142d9d5
+index 0000000..9fc4355
 --- /dev/null
 +++ b/packages/app/test-browser/session-runtime-ring-view.test.tsx
-@@ -0,0 +1,217 @@
+@@ -0,0 +1,238 @@
 +// oco (patches/opencode/0019): RingView mounted on the real-data fixture (Task 9): data attributes, tool-row node
 +// identity across frames, focus back to the opener after the full-text overlay closes, no forbidden attribute names.
 +import { afterEach, expect, mock, test } from "bun:test"
@@ -20379,6 +20291,27 @@ index 0000000..142d9d5
 +  expect(v.host.querySelector("[data-oco-runtime-card-expand]")!.getAttribute("aria-disabled")).toBeNull()
 +  // the meta line is not in the card any more; it is in the overlay
 +  expect(v.host.querySelector("[data-oco-runtime-card] [data-oco-runtime-card-meta]")).toBeNull()
++})
++
++test("a thinking card mid-stream in replay opens with its estimated text and the estimate note", async () => {
++  const ts = fixture.keyframes.map((k) => Number(k.t))
++  let think: number | undefined
++  for (let t = Math.min(...ts); t <= Math.max(...ts) && think === undefined; t += 100) {
++    const c = frameAt(index, t, { reduced: false, wide: true }).card
++    if (c.kind === "think" && c.streaming && c.estimated && c.body) think = t
++  }
++  expect(think).toBeDefined()
++  const v = mount(think!)
++  const expand = v.host.querySelector("[data-oco-runtime-card-expand]") as HTMLElement
++  expect(expand.getAttribute("aria-disabled")).toBeNull()
++  expand.click()
++  await Promise.resolve()
++  await Promise.resolve()
++  const panel = v.host.querySelector('[data-oco-runtime-card-panel="card"]')!
++  expect(panel).not.toBeNull()
++  expect(panel.textContent).toContain(v.frame().card.full ?? v.frame().card.body)
++  expect(panel.querySelector("[data-oco-runtime-card-estimated]")!.textContent).toBe(text.t("ring.card.estimated"))
++  expect(panel.querySelector("[data-oco-runtime-card-meta]")).not.toBeNull()
 +})
 +
 +test("no element carries a forbidden attribute name", () => {

@@ -167,3 +167,13 @@ Feedback round 2 (2026-10-09): (a) the plan chip still could not be clicked: the
 | task_id | Write scope (exclusive) | requested_route | actual_provider/model | agent_id/run_id | Status | Result path | fallback_reason |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | fb-e2e-3 | `docs/evidence/e2e-fb-2026-10-09.md` (append), `.oco-e2e-fb-*` logs | gemini-worker | unknown / Gemini 3.8 Flash (High) (self-reported) | a5819f40 / gem-mv0bcauq-hka3a | Returned, accepted: c5 en 43/43, zh 43/43; plan-chip real click opens 3 items (results.json checked by main thread) | same file | — |
+
+Feedback round 3 (2026-10-09): the centre card could not be opened while the model was thinking (empty body → `canExpand` false); it now opens while streaming or whenever it has meta. The bottom "Now" caption line (frame `caption`, `captionOf`, 20 `ring.cap.*` keys) and the card's top-right age (`RingCard.age`, `ring.card.age.*`) were removed as duplicates of the model box / station label; `data-oco-runtime-focus` moved to the stage element. Main thread did the in-file integration and patch 0020 regeneration (same-file edits, not separable).
+
+| task_id | Write scope (exclusive) | requested_route | actual_provider/model | agent_id/run_id | Status | Result path |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| fb-e2e-4 | `docs/evidence/e2e-fb-2026-10-09.md` (append), `.oco-e2e-fb-*` logs | gemini-worker | Gemini (Antigravity) / unknown | gem-mv0kvgr2-01ncn | Returned, accepted: c5 en 43/43, zh 43/43 (results.json checked by main thread) on the build before the idle-text and prev-icon edits | `runs/20261009-062906-c5-runtime-ca69`, `runs/20261009-065054-c5-runtime-c918` |
+
+After fb-e2e-4: status-bar idle text (`ring.bar.idle`, `data-oco-runtime-idle`) removed and the replay previous-step glyph changed `◀` → `|◀`; neither is asserted by c5-runtime; covered by typecheck, session unit 419/0 and test-browser 67/0 only.
+
+D2 revised (2026-10-09, user decision): replay reveals a time-proportional prefix of a streaming text/reasoning part (`revealAt` in ring-sub.ts, used by ring.ts `shownSpan` and the sub panel text lines), cards flag `estimated`; the no-leak property tests exempt exactly the streaming card body/full/mono/estimated and streaming sub text. Main thread implemented it: it is the D2 contract change itself plus same-file edits to modules already in this batch (not separable). E2E not rerun (c5-runtime asserts no replay streaming body); typecheck 0, session 420/0, test-browser 67/0.

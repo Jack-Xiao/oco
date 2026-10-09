@@ -1,0 +1,50 @@
+{
+  "s01": {
+    "engine": "gemini",
+    "seconds": 13.21
+  },
+  "s02": {
+    "engine": "gemini",
+    "seconds": 17.09
+  },
+  "s03": {
+    "engine": "gemini",
+    "seconds": 17.45
+  },
+  "s04": {
+    "engine": "gemini",
+    "seconds": 20.77
+  },
+  "s05": {
+    "engine": "gemini",
+    "seconds": 14.41
+  },
+  "s06": {
+    "engine": "gemini",
+    "seconds": 11.73
+  },
+  "s07": {
+    "engine": "gemini",
+    "seconds": 15.33
+  },
+  "s08": {
+    "engine": "gemini",
+    "seconds": 14.93
+  },
+  "s09": {
+    "engine": "gemini",
+    "seconds": 18.53
+  },
+  "s10": {
+    "engine": "gemini",
+    "seconds": 15.09
+  },
+  "s11": {
+    "engine": "gemini",
+    "seconds": 15.61
+  },
+  "s12": {
+    "engine": "gemini",
+    "seconds": 16.69
+  }
+}
