@@ -415,3 +415,112 @@ P1b-1 已完成。下一轮范围取决于独立源码审查的结论和新的�
 
 - 用户确认 spike 效果后：webview 接管 `oco.sessions`，原生 TreeView、实验开关、viewsWelcome 和 Connection 视图删除；搜索改为标题栏按钮触发；状态文字抽成纯函数 `listMessage()`。决定见 [ADR-008](adr/008-webview-sessions-list.md)。
 - E2E 适配：Grok 改写 `p1b-sidebar`（只改代码），主线程运行并修正 2 处；Gemini 两次健康检查超时。结果见 [spike 记录](evidence/sessions-webview-spike-2026-10-08.md)。
+
+## 2026-10-08 会话标题行恢复上下文用量（补丁 0019）
+
+- 起因：用户反馈插件没有常驻的上下文占比提示，容易超限；补丁 0017 曾在嵌入模式隐藏圆环。
+- 补丁 0019：`SessionContextUsage` 新增 `label` 模式（圆环 + 百分比、阈值配色、无上限显示「—」），挂到 `SessionHeaderEmbeddedActions`。`c4-trajectory` 断言改为要求圆环与标签存在。
+- `scripts/setup.sh`：重放时 `git clean` 补丁新建的文件，补丁失败即退出（之前 0007、0012–0014 在重跑时被静默跳过）。
+- 委派：Gemini 健康检查 10 秒超时；Grok 健康检查通过，但沙箱启动不了 VS Code，主线程运行 E2E 17/17。见 [c5-context-usage](evidence/c5-context-usage.md)。
+- 跟进：用户要求不显示百分比数字（占空间，一眼看颜色即可）。改为只显示圆环并按阈值着色，数字留在悬停提示；`c4-trajectory` 改断言为无文字、`data-oco-context-usage="normal"`，重跑 17/17（`runs/20261008-101353-c4-trajectory-5b15`）。Gemini 复查仍 10 秒超时，Grok 沙箱不能启动 VS Code，主线程运行。
+
+## 2026-10-03 运行视图 M1（补丁 0019）
+
+- 改动：新增 `session-runtime-model/i18n/.tsx` 与三组测试，改 `session-trajectory.tsx`、`session-trajectory-i18n.ts`、`pages/session.tsx`；补丁 0019；E2E 套件 `c5-runtime`（`DEFAULT_SUITES` 22 个）；spec/计划/证据文档。
+- 结果：vendor 类型 0 错误；session 单测 90/90；根 unit 185/185、typecheck 0 错误；补丁 0001→0019 干净重放 19/19；E2E（mock）c5-runtime en 9/9、zh 9/9，c4-trajectory 17/17（独立服务 4617，未触碰 4517）。评审：9 个任务级评审 + 最终整分支评审，共修复 3 个 Important 与若干回归，见 [验收](evidence/runtime-m1-verification.md)。
+- NOT RUN / 限制：真实模型、Remote、真实大会话性能、子代理/审批界面/429/取消 E2E、逐事件重建一致性；M2/M3 未做；“断连”需宿主消息，另提集成人。2026-10-03 经用户授权本地提交，未推送。
+- 委派：实现与 E2E 运行走 Gemini（agy，型号 unknown）；Grok 额度不足不用；包装代理 2 次 API 额度中断，主线程核对 results.json 与进程/端口后继续。
+
+## 2026-10-03 运行视图 M2（补丁 0019 追加）
+
+- 改动：
+  - vendor 11 个提交（`c861179..474534a`）：稳定按键渲染、模型增量（取消、子代理生命周期、待处理上溯）、批准/拒绝/提问转对话/停止/重试倒计时、子代理展开（`session-runtime-child.tsx`）、事件级测试、两轮评审修复。
+  - mock LLM 的 `RETRY-ONCE` 429。
+  - `c5-runtime` 新增 7 项检查。
+  - 补丁 0019 重新生成。
+  - 计划、证据和账本。
+- 结果：
+  - session 单测 147/147，vendor 类型 0 错误；根 unit 188/188，typecheck 0 错误。
+  - 补丁 0001→0019 干净重放 19/19。
+  - E2E（mock）：c5-runtime en 16/16、zh 16/16，c4-trajectory 17/17。
+  - 终审（Opus）0 Critical、1 Important、4 Minor，已全部处理。
+  - 见 [验收](evidence/runtime-m2-verification.md)。
+- NOT RUN / 限制：真实模型、Remote、超过 8 个子代理或同步失败的 E2E、时钟偏差。2026-10-03 本地提交，未推送，未部署。
+- 委派：
+  - Grok 完成 Task 1–4 后返回 402。
+  - Gemini 前期报 400 地域错误，固定台湾出口后完成终审修复与 E2E 重跑。
+  - 主线程接手 Task 5、Task 4 修复、Task 7、Task 8，理由是两路都不可用。
+  - Task 5 第一次派发时，转发层越界提交了补丁文件，已撤回；它写的用例不合格，已丢弃。
+  - E2E 重跑的转发层报告与事实不符，以 worktree 中的提交为准。
+- 部署（同日，用户要求只留在本分支）：`oco-0.0.4-9ff60a9.vsix` 已安装到 gcp-workstation，远端 webview 哈希与包内一致；Remote 交互实测 NOT RUN。
+
+## 2026-10-04 运行视图 M3（补丁 0019 追加）
+
+- 改动：
+  - vendor Task 1–6（性能测量、机制投影、思考流、键盘与读屏、嵌套同步）→ 改版 1（agent 树，4b/4c）→ 改版 2（固定框架，4d + 主线程视觉修复 `96b6e45`、`4385e3f`）；空树缺陷修复 `1d04f8d`。
+  - mock：`SLOW-REASON`、一条消息并行派 N 个子代理；`scripts/look-runtime.mjs` 真实界面截图与布局诊断。
+  - `c5-runtime` 扩展到 32 项；补丁 0019 重新生成。
+- 结果（最终 vendor `ebb9c65`）：session 单测 218/218，test:browser 48/48，类型 0 错误；根 verify:brief typecheck PASS、unit 190/190；E2E c5 en 33/33、zh 33/33，c4 17/17；干净重放 19/19。
+- 用户反馈与改版：第一版（默认折叠的机制图）被认为“没有可视化”；第二版（agent 树）被认为“不好点、忽大忽小、布局总变”；第三版按用户参考图做固定框架，评审稿三轮（加图例、精简文字、Tokyo Night 配色、放宽间距、日志最新在上）后由用户 `/goal` 授权主线程定稿实现。
+- 教训：单测与代理自查都通过的界面，在真实 VS Code 里仍严重溢出重叠（底部输入框占去大量高度）。界面任务必须在真实宿主里截图诊断，已固化为 `scripts/look-runtime.mjs`。
+- 委派：Gemini 完成 preflight、Task 1–6、4b、4c、4d、终审；Task 7 首次因 Gemini 额度 429 + Grok 402 由主线程接手；4d 视觉修复因“自查通过但真实界面错乱”的证据矛盾与快速迭代需要由主线程完成；见 [账本](evidence/delegation-runtime-m3-2026-10-03.md)。
+- NOT RUN：亮色主题、嵌套 ≥2 层 E2E、真实模型、Remote。本地提交，未推送，未部署。
+- 终审修复波（同日）：Gemini 终审 12 条，主线程修 10 条（含阻断 D-01：流式更新整卡重建致焦点丢失，新增 `focus-stable` 并做对照；内容在变的卡片仍会重建，记入 NEXT）。收尾复核又发现 `width-1600` 测错了元素、全屏下状态栏被推出可视区，已修（`ebb9c65`，按视图自身高度缩放间距）。最终包见下一行。
+- 最终包：`oco-0.0.4-da3825f.vsix`（vendor `ebb9c65`），已安装到本机 VS Code，需 Reload Window。
+- 补完（同日）：卡片改为按位置原地更新（内容变化时焦点保留，`focus-on-change` 有对照）、窄屏连线竖轨（D-11）、子代理加载失败可重试（D-12）；vendor `6164506`，E2E en/zh 34/34、c4 17/17，干净重放 19/19。最终包见下一行。
+- 最终包：`oco-0.0.4-a66baa8.vsix`（vendor `6164506`），已安装到本机 VS Code，需 Reload Window。
+
+## 2026-10-04 运行视图 M4 第一批（补丁 0019 追加）
+
+- 设计：用户评审了多版示意图，第二批定为回环航道 + 终端 HUD 配色，放弃阶段看板。设计记录 `docs/design/runtime-m4.md`，示意 `docs/design/runtime-m4-loop-mockup.html`。
+- 交付：回放播放控制、日志精简与浮层、思考框字号与全文浮层；E2E 新增 `playback`、`log-overlay`、`think-expand`。
+- 委派：Grok 402 额度耗尽；Gemini（Antigravity）资格检查两次 EOF。映射调查、单测、E2E 由主线程接手，记录在 `docs/evidence/delegation-runtime-m4.md`。
+- 结果：session 单测 226/0，E2E en/zh 37/37，c4 17/17，干净重放 19/19。未提交，未部署。
+
+## 2026-10-04 运行视图 M4 第二批（补丁 0019 追加）
+
+- 交付：回环航道（`session-runtime-loop.ts` 纯函数 + `session-runtime-loop-view.tsx`，实际像素布局）、模型后台映射（category 回退、`backgroundTaskId`、取回判定、通知解析、本轮起点）、HUD 配色、左栏去名册、状态栏着色与窄宽度隐藏；E2E 夹具 `tests/e2e/lib/bg-task-plugin.mjs` + mock 后台提示词；c5-runtime 改为航道断言。
+- 用户中途改版：航道作为主视觉、主代理框两行、对齐示意页。另一会话「运行视图 M4 优化」在同一 worktree 按用户反馈继续改了航道（第 N 轮、沿航道移动、取回判定补充），双方用消息协调了文件归属。
+- 委派：Gemini 单测 49 条（发现 2 个缺陷已修）；Gemini 夹具任务产物可用但工具返回 ERROR；Gemini E2E 任务约 2 h 后转 Grok，Grok 402，E2E 由主线程接手。记录在 `docs/evidence/delegation-runtime-m4.md`。
+- E2E 中修复两处视图缺陷：探针无法键盘聚焦（SVG `tabindex`）、子会话提前结束时生命周期停在 unknown（补一次拉取）。
+- 结果：session 单测 270/0，E2E en/zh 37/37，干净重放 19/19，vsix 已装本机。未提交，未部署。
+
+
+### 2026-10-04 运行视图 M4 第三批（用户实测反馈）
+
+- 早轮失败子代理不再留在航道；航道动画回放中按状态运行、空闲慢呼吸；左栏改为会话概况（需你处理 / 本轮目标 / 任务清单 / 本会话）。
+- 委派：Grok 402、Gemini 两次失败（ERROR、loadCodeAssist EOF），实现与 E2E 由主线程接手，记录见 evidence/runtime-m4-batch3.md。
+- 结果：session 单测 276/0，E2E en/zh 37/37，干净重放 19/19，vsix 已装本机。未提交，未部署。
+- 追加：左栏「本会话」移入状态栏（时长 / 上下文 / 花费 / 用量），航道动画不再在任务间停顿或变速。单测 276/0，E2E en/zh 37/37，重放 19/19，vsix 已装本机；gcp-workstation 已删除，Remote 未部署。
+- 第三轮反馈：去掉运行页的「需你处理」和停止按钮，拒绝/忽略不再记为失败，状态词与重复信息整理，图例文字恢复。单测 263/0，E2E en/zh 37/37，重放 19/19，vsix 已装本机；E2E 改写委派 Gemini（最终返回 ERROR，改写已落盘），主线程做最终验收。
+- 第四轮：交接卡片默认显示最新子代理 / 最近工具调用；去掉「当时」「（推断）」。单测 266/0，E2E en/zh 37/37，vsix 已装本机。
+- 文案：子代理最后一步「已吸收」改为「已取回」（英文 Absorbed → Collected），与「待取回」成对。已提交 97251ac；单测 266/0，干净重放 19/19（与 vendor 一致），E2E（mock）c5-runtime en 37/37、zh 37/37（runs/20261004-153652-c5-runtime-b6d0、20261004-153855-c5-runtime-3bbe），vsix `oco-0.0.4-97251ac` 已装本机。未部署；NOT RUN：真实模型、Remote。
+
+### 2026-10-07 运行视图：本机查看 + 真实数据修正
+
+- gcp-workstation 已不存在，改为本机：新增 `scripts/install-local.sh`（装到本机 VS Code 并核对哈希）与 `scripts/look-local.mjs`（隔离 VS Code + managed 模式，对本机真实会话只读回放截图）。本机此前不可用的原因是窗口没开文件夹；按用户决定保持 Open Folder 提示。
+- 真实会话回放发现并修正 4 处：交接卡耗时用墙钟（`3738m` → 随游标、加小时档）、状态栏 Context 不随回放、思考框半行截断与滚动条、左栏标题按词折行。
+- 委派：Gemini 两次探测未确认；Grok 首次因遗留状态锁失败，锁改名后完成修正，主线程审 diff 退回一处流式思考回归；E2E 由 Grok 跑。记录见 evidence/runtime-local-2026-10-07.md。
+- 结果：session 单测 270/0，vendor 类型 0 错误，0019 干净重放 19/19，根 typecheck PASS / unit 190/0，E2E（mock）c5-runtime en/zh 37/37，`oco-0.0.4-98dda03.vsix` 已装本机。经用户同意停掉两个遗留测试服务。未提交；NOT RUN：真实模型新对话、Remote。
+
+### 2026-10-08 运行视图 M5 设计与实现（进行中，按用户要求中止）
+
+- 纯文字「此刻」稿被用户否决。改用多代理工作流：先做三个动画方向（环形航道 / 泳道 / 阶段环），从三个角度评审，以阶段环为底合成，逐帧审查通过。之后按用户 5 项决定和居中要求修订，补上收起时的连线和可点开的子代理。
+- 计划 15 个任务；实现到第 1 波前半（Task 1/2/3/4/6/7 完成），半成品导出为 `patches/wip/runtime-m5-wip.patch`。typecheck、单测、构建、E2E 全量 NOT RUN。
+
+### 2026-10-08 运行视图 M5 第二批：实现完成、集成、E2E、本机安装
+
+- 接上一批（工作流 `wf_9af8ca23-fa8` 停在第 1 波前半）。vendor 半成品与 `patches/wip/runtime-m5-wip.patch` 字节一致，未恢复；Task 4 夹具脱敏抽查通过。
+- 工作流 `wf_d1bdd9ad-b6b`（32 个代理，约 3 小时）：复审 T3/4/6/7 通过；T5/T8；T9/10/11/13/14；T12 集成（契约 / UI / 清理三视角门禁，两轮修复）；构建与 E2E（一轮产品修复：实时数据没有 step part）。
+- 主线程裁定并由子代理落地：D18 契约（⊘ / faint）、全量重建复用与 D22 性能预算、D21 step 时间旁表（两个同步文件各加一行 import 和一行调用）。
+- 结果：vendor typecheck 0；session 单测 418/0；test-browser 65/0；性能在预算内（B 根变化带 prev 2.7 ms，每帧 ≤ 0.40 ms）；verify:brief PASS；0019 重生成 55 个文件、干净重放 19/19；build PASS；E2E（mock，最终构建 54ab5d2）c5-runtime en 43/43（`runs/20261008-161513-c5-runtime-7bdc`）、zh 43/43（`runs/20261008-161824-c5-runtime-73be`）、c4-trajectory 17/17（`runs/20261008-162120-c4-trajectory-adcb`），无测试侧改动；历史翻页没有专门断言（只隐式跑到），8292fba 上的前一轮同样 43/43、43/43、17/17；look-local 修复后 14/14；`oco-0.0.4-54ab5d2.vsix` 已装本机。提交 8292fba、54ab5d2 与文档提交，未推送，未合入 main。
+- 2026-10-09 真实会话 look-local 先是 12/14：第 1 轮两帧不一致。只读诊断（opus）查明重开会话只加载最近 20 条消息、运行视图不翻页；修复（sonnet 加翻页 effect，opus 查明旧页原地合并后索引不重建并补 history 钩子）后 14/14（54ab5d2），E2E 复跑通过。
+- 委派：Gemini 503；Grok 健康检查通过但工作流内未真正启动，Task 14 回退 sonnet；文档一致性检查由 Grok 直接路线完成（6 处措辞/补记项，已改）；其余 Claude opus / sonnet（用户指定按能力分配）。记录见 evidence/runtime-m5.md。
+
+### 2026-10-09 运行视图 M5 用户反馈修正（5 项）
+
+- 用户首用反馈：「全文」偏下且结束时禁用、工具台无调用时应收缩、计划标签不可点、新会话首轮显示「第 2 轮」、结束时计数行左侧裁字。全部修正，补丁 0019 重生成（`git diff deb241e -- packages/app`，`diff --check` 干净），本机安装 fb2 包。
+- 「第 2 轮」由 Gemini 只读调查定位、主线程核实：乐观消息时间戳与服务端不同导致 store 同 id 两条；修在 `message.updated` 插入路径。
+- look-local 发现单测未覆盖的实时路径缺陷（`FRAME_KEYS` 漏 `dk`），已修并加编译期检查；look-local 新增 `rects` 字段（各块相对舞台的矩形）。
+- E2E 首轮 c5 en/zh 各 42/1（`geometry-stable` 断言假设工具台固定），改测试后重跑 43/43、43/43；c4 17/17。委派记录见 `docs/evidence/runtime-m5.md`。
+- 第二轮反馈（同日）：计划标签真实点击无效（父级 pointer-events none，单测用 el.click() 未覆盖）；「全文」按钮改为卡片整块可点；卡片去掉 meta 行。session 单测 419/0、test-browser 66/0、c5 en/zh 43/43；本机安装 fb3。

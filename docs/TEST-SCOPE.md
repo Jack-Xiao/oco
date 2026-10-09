@@ -10,7 +10,7 @@
 | 构建 | `bun run verify:brief -- --build` | 另加约 12 秒 | 改到 webview、扩展打包、上游补丁，或准备跑 E2E 前 |
 | 定向 E2E（mock） | 服务用 `OCO_E2E_MODEL=mock bash scripts/test-server.sh`，再 `node tests/e2e/run.mjs <套件…>` | 单套件 10–130 秒 | 改到下表对应范围 |
 | 定向 E2E（真实模型） | 服务不带该变量启动，同一命令 | 比 mock 慢，受模型与网络影响 | 发送、取消、流式、权限/问答链路的改动收尾 |
-| 全量（真实模型） | `node tests/e2e/run.mjs`（默认 20 个套件） | 真实模型本轮实测合计见 STATUS | 阶段交付、公共等待逻辑、桥接协议、上游升级 |
+| 全量（真实模型） | `node tests/e2e/run.mjs`（默认 22 个套件） | 真实模型本轮实测合计见 STATUS | 阶段交付、公共等待逻辑、桥接协议、上游升级 |
 
 mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为特殊运行，不算验收。mock 证明不了真实流式输出、取消时序和模型协议兼容。
 
@@ -34,6 +34,7 @@ mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为�
 | 补丁 0012（对话 / 轨迹视图）、`message-timeline.tsx` 标题栏 | app `session-trajectory-model.test.ts` | c4-trajectory、c3-fork、p1b-main-panel、p1b-narrow | mock；计时与费用口径用真实模型抽查 |
 | 补丁 0013（轨迹多语言、工具页签、折叠）、`apps/chat-webview/src/app.tsx` 语言映射 | app `session-trajectory-model.test.ts` | c4-trajectory（默认英文，再用 `OCO_E2E_LOCALE=zh-cn` 跑一次）、p1a-chat | mock |
 | 补丁 0014（比例按钮状态、子智能体行）、`tests/e2e/lib/mock-llm.mjs` 的 `task` 指令 | app `session-trajectory-model.test.ts` | c4-trajectory（英文 + `OCO_E2E_LOCALE=zh-cn`） | mock |
+| 补丁 0019（运行视图 M1：对话 / 轨迹 / 运行三视图、`session-runtime-*`） | app `session-runtime-model.test.ts`、`session-runtime-i18n.test.ts`、`session-runtime-events.test.ts` | c5-runtime（英文 + `OCO_E2E_LOCALE=zh-cn`），回归 c4-trajectory | mock；子代理、权限审批界面、429 重试、取消在途 NOT RUN（M2） |
 | 补丁 0016（嵌入模式不提供会话 href）、`directory-layout.tsx` 的 `DataProvider` 参数；`apps/chat-webview/index.html` 的 `a:focus` 样式层 | — | c4-trajectory（`subagent-link`）、p1a-identity、p1b-main-panel、p1a-chat、c1-open-file | mock |
 | 补丁 0015（切换时保持工作区、首开预置目录、输入框会话事件）、`app.tsx` 的 ready 时机、`bridge-core.ts` 的 gzip 与 `/provider` 合并 | bridge-core | p1b-main-panel（`switch-uncached-*`）、p1a-identity、p1b-pending-send、t010-recover；gzip 再用 `OCO_BRIDGE_GZIP=1` 跑 p1a-identity、p1a-chat | mock；黑屏与耗时只能在 Remote 上用 `docs/evidence/switch-perf/switch-probe.mjs` 测 |
 | `apps/chat-webview/index.html`、`src/main.tsx` 的骨架屏（保留到出现文字或输入框、“无法连接”页持续 1.5 s 才算）、`bridge-core.ts` 的 `painted` 放行 `/provider` | bridge-core | p1b-theme-load（`boot-continuous`）、t010-recover（`initial-unreachable`）、p1b-main-panel、p1a-identity | mock |
@@ -44,15 +45,15 @@ mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为�
 | 补丁 0004（等模型加载再发送） | — | p1b-pending-send、p1b-theme-load、p1b-switch-pending | mock |
 | `apps/chat-webview/`（主题、输入） | — | p1b-theme-load、p1b-ime、p1a-chat | mock |
 | 发送 / 取消 / 流式 / 权限 / 问答 链路 | 相关单元 | p1a-chat、p1b-sidebar（chain-*） | mock 定向后，收尾用真实模型 |
-| `tests/e2e/vscode.mjs`、`server.mjs`、`lib/`（公共测试设施） | e2e-results | 全部 20 个 | mock 全量；等待逻辑改动再加真实模型全量 |
+| `tests/e2e/vscode.mjs`、`server.mjs`、`lib/`（公共测试设施） | e2e-results | 全部 22 个 | mock 全量；等待逻辑改动再加真实模型全量 |
 | `scripts/brief*.mjs`、`scripts/lib/` | brief、e2e-results | — | — |
-| 上游升级、补丁重放 | 全部 | 全部 20 个 | 真实模型 |
+| 上游升级、补丁重放 | 全部 | 全部 22 个 | 真实模型 |
 
 一个改动命中多行时取并集。拿不准时，多跑一个相关套件比跑全量便宜。
 
 ## 全量的定义
 
-`tests/e2e/run.mjs` 的 `DEFAULT_SUITES`，共 20 个：p1a-chat、p1a-identity、p1b-sidebar、p1b-narrow、p1b-theme-load、p1b-ime、p1b-reconnect、p1b-pending-send、p1b-switch-pending、c1-open-file、c1-focus、c2-diff-unavailable、t010-recover、t014-connection、p1b-main-panel、c3-fork、t007-managed、t007-multiroot、t015-diagnostics、c4-trajectory。
+`tests/e2e/run.mjs` 的 `DEFAULT_SUITES`，共 22 个：p1a-chat、p1a-identity、p1b-sidebar、p1b-narrow、p1b-theme-load、p1b-ime、p1b-reconnect、p1b-pending-send、p1b-switch-pending、c1-open-file、c1-focus、c2-diff-unavailable、t010-recover、t014-connection、p1b-main-panel、c3-fork、t007-managed、t007-multiroot、t015-diagnostics、c4-trajectory、c5-runtime。
 
 不在默认列表中：t004、t005（P0 历史套件）、perf、smoke。p1b-ime 的 `ime-real-macos` 需要真人使用系统输入法，自动运行时恒为 NOT RUN。
 

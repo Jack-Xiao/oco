@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>运行视图 · 固定框架评审稿</title>
+<style>
+/* 评审稿：演示数据。配色参照用户给的参考图（Tokyo Night 风格）。 */
+:root{
+  --bg:#1a1b26;--panel:#1f2335;--inset:#24283b;--line:#2f3549;--line-strong:#4a5272;
+  --text:#c0caf5;--weak:#9aa3c7;--faint:#8189ad;
+  --main:#7dcfff;--sub:#7aa2f7;--tool:#9ece6a;--attn:#ff9e64;--err:#f7768e;--ok:#73daca;--accent:#bb9af7;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"PingFang SC",monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.6 var(--mono)}
+.weak{color:var(--weak)}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* 评审稿切换条（不是产品的一部分） */
+.demo{height:34px;display:flex;gap:8px;align-items:center;padding:0 18px;background:#13141c;color:#8089ad;font-size:12px}
+.demo button{background:transparent;color:#a9b1d6;border:1px solid #3b4261;border-radius:4px;padding:3px 12px;cursor:pointer;font:inherit}
+.demo button[aria-pressed=true]{background:#283457;border-color:var(--sub);color:#fff}
+/* 固定框架：整屏，页面本身不滚动；中部随窗口高度伸缩 */
+.view{height:calc(100vh - 34px);display:grid;grid-template-rows:auto minmax(0,1fr) clamp(112px,18vh,176px) auto;gap:22px;padding:22px 30px}
+.box{border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+/* 顶栏（下方双线，参照参考图） */
+.top{display:flex;align-items:center;gap:22px;min-width:0;padding-bottom:16px;border-bottom:1px solid var(--line-strong)}
+.state{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.04em}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.dot.idle{background:var(--faint)}
+.chip{padding:3px 12px;border:1px solid var(--attn);border-radius:12px;font-size:12px;color:var(--attn)}
+.chip.zero{border-color:var(--line-strong);color:var(--weak)}
+.stop{background:transparent;border:1px solid var(--err);color:var(--err);border-radius:6px;padding:5px 16px;cursor:pointer;font:inherit;font-size:12px}
+.legend{display:flex;gap:20px;font-size:12px;color:var(--weak);white-space:nowrap}
+.sw{display:inline-block;width:9px;height:9px;margin-right:8px;border-radius:2px}
+.timeline{margin-left:auto;display:flex;align-items:center;gap:14px;min-width:0}
+.seg{display:flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden}
+.seg button{background:transparent;border:0;color:var(--weak);padding:6px 16px;cursor:pointer;font:inherit;font-size:12px}
+.seg button.on{background:#283457;color:#fff}
+.slider{width:clamp(120px,15vw,240px);accent-color:var(--sub)}
+.steptxt{font-size:12px;color:var(--weak);white-space:nowrap}
+.replaybadge{display:none;padding:3px 12px;border-radius:5px;background:#2e2a3f;color:var(--accent);font-size:12px;white-space:nowrap}
+.s-replay .replaybadge{display:inline-block}
+/* 中部：左栏 + 树 */
+.mid{display:grid;grid-template-columns:minmax(0,290px) minmax(0,1fr);gap:24px;min-height:0}
+.left{display:grid;grid-template-rows:auto minmax(0,1fr);gap:22px;min-height:0;min-width:0}
+.sec{padding:18px 20px;min-height:0;min-width:0;overflow:hidden}
+.sec h3{margin:0 0 14px;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--weak)}
+.attncard{border:1px solid var(--attn);border-radius:6px;padding:14px 16px;background:rgba(255,158,100,.07);min-width:0}
+.attncard .cmd{font-size:12px;margin-top:6px;color:var(--weak)}
+.btns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+.btns button{height:34px;border-radius:6px;border:1px solid var(--line-strong);background:var(--inset);color:var(--text);cursor:pointer;font:inherit;font-size:12px}
+.btns .yes{border-color:var(--ok);color:var(--ok)}
+.btns .no{border-color:var(--err);color:var(--err)}
+.roster{overflow:auto;height:calc(100% - 34px);display:flex;flex-direction:column;gap:6px}
+.rrow{display:grid;grid-template-columns:16px minmax(0,1fr) auto;column-gap:10px;row-gap:2px;padding:8px 10px;border-radius:6px;font-size:12px;cursor:pointer}
+.rrow:hover{background:var(--inset)}
+.rrow .nm{color:var(--sub);font-weight:600}
+.rrow .act{grid-column:2/4;color:var(--weak)}
+/* 树：主行 / 派发线 / 通道 / 汇回线 / 回填 */
+.tree{display:grid;grid-template-rows:minmax(100px,148px) 44px minmax(100px,184px) 44px auto;align-content:center;padding:26px 30px;min-height:0;min-width:0}
+.toprow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;min-height:0}
+.node{border:1px solid var(--line-strong);border-radius:6px;background:var(--inset);padding:16px 18px;min-width:0;min-height:0;overflow:hidden}
+.mainnode{border-color:var(--main);display:flex;flex-direction:column;justify-content:center;gap:12px}
+.mainnode .ttl{color:var(--main);font-weight:700;letter-spacing:.03em}
+.stages{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.stages span{text-align:center;font-size:12px;padding:5px 8px;border:1px solid var(--line);border-radius:4px;color:var(--weak)}
+.stages span.on{border-color:var(--main);color:var(--main);background:rgba(125,207,255,.08)}
+.think{display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px;border-color:var(--accent);border-style:dashed}
+.think .hd{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.04em}
+.think .body{overflow:auto;font-size:12px;color:var(--weak);line-height:1.7}
+.think .body p{margin:0 0 6px}
+.wire{position:relative}
+.wire .stem{position:absolute;left:50%;top:0;height:50%;border-left:1px dashed var(--line-strong)}
+.wire .bus{position:absolute;left:12.5%;right:12.5%;top:50%;border-top:1px dashed var(--line-strong)}
+.wire .drop{position:absolute;top:50%;height:50%;border-left:1px dashed var(--line-strong)}
+.wire .tag{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:var(--panel);padding:0 14px;font-size:12px;color:var(--weak);white-space:nowrap}
+.flow{position:absolute;width:7px;height:7px;border-radius:50%;margin-left:-3.5px;background:var(--sub);animation:down 1.1s linear infinite}
+@keyframes down{from{top:50%}to{top:100%}}
+@media (prefers-reduced-motion:reduce){.flow{animation:none;top:75%}}
+.s-replay .flow{display:none}
+.lanes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px;min-height:0}
+.lane{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line-strong);border-radius:6px;background:var(--inset);padding:16px 18px;min-width:0;min-height:0;overflow:hidden;font-size:12px;cursor:pointer}
+.lane .h{display:flex;justify-content:space-between;gap:10px;min-width:0}
+.lane .h b{font-weight:700;font-size:13px}
+.lane .go{margin-top:auto;color:var(--sub);text-align:right}
+.lane.sub{border-color:var(--sub)} .lane.sub .h b{color:var(--sub)}
+.lane.tool{border-color:var(--tool)} .lane.tool .h b{color:var(--tool)}
+.lane.attn{border-color:var(--attn);background:rgba(255,158,100,.07)} .lane.attn .h b{color:var(--attn)}
+.lane.done{opacity:.62}
+.lane.empty{border:1px dashed var(--line);background:transparent;color:var(--faint);align-items:center;justify-content:center;cursor:default}
+.fill{justify-self:center;border:1px solid var(--ok);border-radius:6px;padding:10px 24px;background:var(--inset);font-size:12px;white-space:nowrap;color:var(--ok)}
+.fill b{font-weight:600;color:var(--text);margin-left:6px}
+/* 日志：固定高度，框内滚动，最新在上 */
+.log{display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px;padding:16px 22px}
+.log h3{margin:0;font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--weak)}
+.rows{overflow:auto;font-size:12px;line-height:2}
+.row{display:grid;grid-template-columns:80px 130px minmax(0,1fr);gap:16px;padding:1px 10px;border-radius:4px}
+.row span:first-child{color:var(--faint)}
+.row span:nth-child(2){font-weight:600}
+.row.cur{background:#2e2a3f}
+.row.attn span:last-child{color:var(--attn)}
+/* 状态栏 */
+.status{display:flex;gap:34px;font-size:12px;color:var(--weak);white-space:nowrap;overflow:hidden;padding:0 4px}
+.status b{color:var(--main);font-weight:600}
+</style>
+</head>
+<body class="s-live">
+<div class="demo">评审稿状态：
+  <button data-s="live" aria-pressed="true">实时 · 多个子代理并行</button>
+  <button data-s="replay" aria-pressed="false">回放</button>
+  <button data-s="done" aria-pressed="false">一轮结束</button>
+</div>
+
+<div class="view">
+  <!-- 1 顶栏：状态 · 停止 · 图例 · 常驻时间轴（回放入口） -->
+  <div class="top">
+    <div class="state"><span class="dot" id="dot"></span><span id="stateText"></span></div>
+    <span class="chip" id="attnChip"></span>
+    <button class="stop" id="stopBtn">■ 停止</button>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--main)"></i>主 agent</span>
+      <span><i class="sw" style="background:var(--sub)"></i>子代理</span>
+      <span><i class="sw" style="background:var(--tool)"></i>工具</span>
+      <span><i class="sw" style="background:var(--attn)"></i>需你处理</span>
+    </div>
+    <div class="timeline">
+      <span class="replaybadge">只读回放 · 23:41:38</span>
+      <div class="seg"><button id="segLive">● 实时</button><button id="segReplay">⏮ 回放</button></div>
+      <input class="slider" type="range" min="1" max="41" id="slider" aria-label="步骤">
+      <span class="steptxt" id="stepText"></span>
+    </div>
+  </div>
+
+  <!-- 2 中部 -->
+  <div class="mid">
+    <aside class="left">
+      <div class="box sec">
+        <h3 id="attnTitle"></h3>
+        <div id="attnList"></div>
+      </div>
+      <div class="box sec">
+        <h3 id="rosterTitle"></h3>
+        <div class="roster" id="roster"></div>
+      </div>
+    </aside>
+
+    <section class="box tree">
+      <div class="toprow">
+        <div class="node mainnode">
+          <div class="ttl ell">Sisyphus · ultraworker</div>
+          <div class="weak ell" style="font-size:12px" id="mainSub"></div>
+          <div class="stages" id="stages"><span>准备</span><span>模型</span><span>工具</span><span>回填</span></div>
+        </div>
+        <div class="node think">
+          <div class="hd" id="thinkState"></div>
+          <div class="body" id="thinkBody"></div>
+        </div>
+      </div>
+
+      <div class="wire" id="wireDown">
+        <div class="stem"></div><div class="bus"></div>
+        <div class="drop" style="left:12.5%"></div><div class="drop" style="left:37.5%"></div>
+        <div class="drop" style="left:62.5%"></div><div class="drop" style="left:87.5%"></div>
+        <span class="tag" id="dispatchTag"></span>
+      </div>
+
+      <div class="lanes" id="lanes"></div>
+
+      <div class="wire">
+        <div class="drop" style="left:12.5%;top:0"></div><div class="drop" style="left:37.5%;top:0"></div>
+        <div class="drop" style="left:62.5%;top:0"></div><div class="drop" style="left:87.5%;top:0"></div>
+        <div class="bus"></div><div class="stem" style="top:50%"></div>
+      </div>
+
+      <div class="fill">回填 → Sisyphus <b id="fillText"></b></div>
+    </section>
+  </div>
+
+  <!-- 3 会话日志 -->
+  <div class="box log">
+    <h3>会话日志</h3>
+    <div class="rows" id="rows"></div>
+  </div>
+
+  <!-- 4 状态栏 -->
+  <div class="status" id="status"></div>
+</div>
+
+<script>
+const S = {
+  live: {
+    dot: "", state: "运行中", attnText: "需你处理 1", stop: true,
+    seg: "live", max: 41, slider: 41, step: "41 / 41", stage: 2, mainSub: "deepseek-flash · 第 41 次请求 · 1 分 12 秒",
+    think: ["思考中", ["要确认三件事：插件在哪读配置、缓存目录会不会复用、删缓存是否安全。", "派 explore 找调用点，general 核对缓存路径，researcher 查文档。", "删缓存要你批准，其余子代理先跑……"]],
+    dispatch: "派发 4", fill: "1 / 4", flows: [0, 1],
+    lanes: [
+      {k: "sub", g: "◐", n: "explore", s: "运行中", m: "deepseek-flash", d: "查找 loadOmoConfig 调用点", a: "read ×4"},
+      {k: "sub", g: "◐", n: "general", s: "运行中", m: "deepseek-flash", d: "核对插件缓存路径", a: "grep ×2 · 内含子代理 1"},
+      {k: "sub done", g: "✓", n: "researcher", s: "已完成", m: "deepseek-flash", d: "查插件文档", a: "→ 配置在会话开始时读取"},
+      {k: "tool attn", g: "!", n: "bash", s: "等你批准", m: "rm -rf ~/.cache/opencode/packages/oh-my-openagent", d: "rm -rf ~/.cache/opencode/…", a: "在左侧批准"},
+    ],
+    attn: [{t: "bash 需要权限", c: "rm -rf ~/.cache/opencode/packages/oh-my-openagent"}], ro: false,
+    roster: [["◐", "explore", "运行中", "read ×4"], ["◐", "general", "运行中", "grep ×2"], ["✓", "researcher", "完成", "3 个工具"], ["✓", "explore", "完成", "第 33 次请求"]],
+    io: "15万 / 8,664", cost: "$0.0017",
+    rows: [
+      ["23:41:38", "Sisyphus", "main", "第 41 次请求开始"],
+      ["23:41:40", "explore", "sub", "派发：查找 loadOmoConfig 调用点"],
+      ["23:41:40", "general", "sub", "派发：核对插件缓存路径"],
+      ["23:41:40", "researcher", "sub", "派发：查插件文档"],
+      ["23:41:41", "bash", "attn", "等你批准 rm -rf ~/.cache/opencode/…"],
+      ["23:41:52", "researcher", "sub", "完成"],
+      ["23:41:58", "explore", "sub", "read src/plugin/config.ts"],
+    ], cur: -1,
+    status: [["Sisyphus", "deepseek-flash"], ["子代理", "2/4 运行"], ["工具", "1 等待"], ["请求", "41"], ["用量", "15万 / 8,664"], ["上下文", "8.3万 / 100万"], ["花费", "$0.0017"]],
+  },
+};
+S.replay = Object.assign({}, S.live, {
+  seg: "replay", slider: 23, step: "23 / 41", stop: false, attnText: "历史",
+  think: ["思考（到此步）", ["要确认三件事：插件在哪读配置、缓存目录会不会复用、删缓存是否安全。"]],
+  dispatch: "派发 3", fill: "0 / 3", flows: [],
+  lanes: [
+    {k: "sub", g: "◐", n: "explore", s: "未知", m: "deepseek-flash", d: "查找 loadOmoConfig 调用点", a: "read ×1"},
+    {k: "sub", g: "◐", n: "general", s: "未知", m: "deepseek-flash", d: "核对插件缓存路径", a: "—"},
+    {k: "sub", g: "◐", n: "researcher", s: "未知", m: "deepseek-flash", d: "查插件文档", a: "—"},
+    null,
+  ],
+  attn: [], ro: true, cur: 3,
+});
+S.done = Object.assign({}, S.live, {
+  dot: "idle", state: "空闲", attnText: "需你处理 0", stop: false,
+  max: 52, slider: 52, step: "52 / 52", stage: -1, mainSub: "deepseek-flash · 第 52 次请求 · 4 分钟前",
+  think: ["思考完成", ["缓存目录会复用，删除后下次会话开始时重新安装。", "配置在会话开始时读取，中途新建文件要重启才生效。"]],
+  dispatch: "上一次派发 · 第 41 次请求", fill: "4 / 4", flows: [],
+  lanes: [
+    {k: "sub done", g: "✓", n: "explore", s: "已完成", m: "deepseek-flash", d: "查找 loadOmoConfig 调用点", a: "→ 3 处调用"},
+    {k: "sub done", g: "✓", n: "general", s: "已完成", m: "deepseek-flash", d: "核对插件缓存路径", a: "→ ~/.cache/opencode/packages"},
+    {k: "sub done", g: "✓", n: "researcher", s: "已完成", m: "deepseek-flash", d: "查插件文档", a: "→ 配置在会话开始时读取"},
+    {k: "tool done", g: "✓", n: "bash", s: "已完成", m: "rm -rf ~/.cache/opencode/packages/oh-my-openagent", d: "rm -rf ~/.cache/opencode/…", a: "0.4 秒"},
+  ],
+  attn: [], ro: false,
+  roster: [["✓", "explore", "完成", "6 个工具"], ["✓", "general", "完成", "内含子代理 1"], ["✓", "researcher", "完成", "3 个工具"], ["✓", "explore", "完成", "第 33 次请求"]],
+  io: "17万 / 9,910", cost: "$0.0019",
+  rows: S.live.rows.concat([["23:42:20", "bash", "tool", "完成"], ["23:42:31", "Sisyphus", "main", "第 52 次请求结束"]]),
+  status: [["Sisyphus", "deepseek-flash"], ["子代理", "0/4 运行"], ["工具", "0 等待"], ["请求", "52"], ["用量", "17万 / 9,910"], ["上下文", "9.1万 / 100万"], ["花费", "$0.0019"]],
+});
+
+const $ = (id) => document.getElementById(id)
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]))
+const roleColor = {main: "var(--main)", sub: "var(--sub)", tool: "var(--tool)", attn: "var(--attn)"}
+
+function render(name) {
+  const d = S[name]
+  document.body.className = "s-" + name
+  document.querySelectorAll(".demo button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.s === name)))
+  $("dot").className = "dot " + d.dot
+  $("stateText").textContent = d.state
+  $("attnChip").textContent = d.attnText
+  $("attnChip").className = "chip" + (d.attn.length ? "" : " zero")
+  $("stopBtn").style.visibility = d.stop ? "visible" : "hidden"
+  $("segLive").className = d.seg === "live" ? "on" : ""
+  $("segReplay").className = d.seg === "replay" ? "on" : ""
+  $("slider").max = d.max
+  $("slider").value = d.slider
+  $("stepText").textContent = d.step
+  $("mainSub").textContent = d.mainSub
+  ;[...$("stages").children].forEach((s, i) => (s.className = i === d.stage ? "on" : ""))
+  $("thinkState").textContent = d.think[0]
+  $("thinkBody").innerHTML = d.think[1].map((p) => `<p>${esc(p)}</p>`).join("")
+  $("dispatchTag").textContent = d.dispatch
+  $("fillText").textContent = d.fill
+  document.querySelectorAll(".flow").forEach((f) => f.remove())
+  d.flows.forEach((i) => { const f = document.createElement("i"); f.className = "flow"; f.style.left = 12.5 + i * 25 + "%"; $("wireDown").appendChild(f) })
+  // 固定 4 条通道：空的显示空槽；卡片 3 行，悬停看模型/完整命令
+  $("lanes").innerHTML = d.lanes.map((l) => !l ? `<div class="lane empty">空闲</div>` : `
+    <div class="lane ${l.k.includes("sub") ? "sub" : "tool"} ${l.k}" title="${esc(l.m)}">
+      <div class="h"><span class="ell">${l.g} <b>${esc(l.n)}</b></span><span class="weak">${esc(l.s)}</span></div>
+      <div class="ell">${esc(l.d)}</div>
+      <div class="ell weak">${esc(l.a)}</div>
+      <div class="go">${l.k.includes("sub") ? "进入 ›" : "详情 ›"}</div>
+    </div>`).join("")
+  // 需你处理：按钮位置固定在左栏顶部
+  $("attnTitle").textContent = `需你处理 · ${d.attn.length}`
+  $("attnList").innerHTML = d.attn.length
+    ? d.attn.map((a) => `<div class="attncard"><div style="color:var(--attn)">${esc(a.t)}</div><div class="cmd ell" title="${esc(a.c)}">${esc(a.c)}</div>
+        <div class="btns"><button class="yes">批准</button><button>总是</button><button class="no">拒绝</button></div></div>`).join("")
+    : `<div class="weak" style="font-size:12px">${d.ro ? "回放中只读" : "暂无"}</div>`
+  $("rosterTitle").textContent = `子代理 · ${d.roster.length}`
+  $("roster").innerHTML = d.roster.map((r) => `<div class="rrow"><span style="color:${r[0] === "✓" ? "var(--ok)" : "var(--sub)"}">${r[0]}</span><span class="nm ell">${esc(r[1])}</span><span class="weak">${esc(r[2])}</span><span class="act ell">${esc(r[3])}</span></div>`).join("")
+  // 最新的日志在最上面
+  $("rows").innerHTML = d.rows.map((r, i) => [r, i]).reverse().map(([r, i]) => `<div class="row ${r[2] === "attn" ? "attn" : ""} ${i === d.cur ? "cur" : ""}"><span>${r[0]}</span><span class="ell" style="color:${roleColor[r[2]]}">${esc(r[1])}</span><span class="ell">${esc(r[3])}</span></div>`).join("")
+  $("status").innerHTML = d.status.map(([k, v], i) => i === 0 ? `<span><b>${esc(k)}</b> · ${esc(v)}</span>` : `<span>${esc(k)} <b>${esc(v)}</b></span>`).join("")
+}
+document.querySelectorAll(".demo button").forEach((b) => b.addEventListener("click", () => render(b.dataset.s)))
+$("segReplay").addEventListener("click", () => render("replay"))
+$("segLive").addEventListener("click", () => render("live"))
+render("live")
+</script>
+</body>
+</html>

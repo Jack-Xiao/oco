@@ -47,7 +47,9 @@ bash scripts/test-server.sh
 
 安装、连接方式（attached / managed）、侧栏视图和故障排查见 [使用与故障说明](docs/USER-GUIDE.md)；打包用 `bash scripts/package-vsix.sh`。
 
-打包当前代码并装到 VS Code Remote（`SSH: gcp-workstation`）时，按 [构建并安装到 Remote](docs/remote-install.md) 执行。那不是上面的扩展开发宿主。
+装到本机 VS Code：`bash scripts/package-vsix.sh && bash scripts/install-local.sh`，然后 Developer: Reload Window，并打开一个文件夹（managed 模式在第一个工作区文件夹启动服务）。用本机真实会话查看运行视图（只回放、不发 prompt）：`LOOK_WS=<文件夹> LOOK_TITLE=<会话标题片段> node scripts/look-local.mjs`。
+
+装到 VS Code Remote 时按 [构建并安装到 Remote](docs/remote-install.md) 执行（原 `gcp-workstation` 已不存在）。
 
 ## 测试
 

@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>运行视图 · 回环航道示意</title>
+<style>
+:root{--page:#16161e;--r:8px;--bg:#1a1b26;--pn:#1f2335;--in:#24283b;--ln:#2f3549;--ls:#4a5272;--tx:#c0caf5;--wk:#9aa3c7;--ft:#8189ad;--mn:#7dcfff;--sb:#7aa2f7;--ok:#9ece6a;--er:#f7768e;--at:#e0af68;--pp:#bb9af7}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--page);color:var(--tx);font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12px}
+.wrap{padding:12px;overflow:hidden}
+.frame{width:1120px;transform-origin:top left;background:var(--bg);border:1px solid var(--ln);border-radius:calc(var(--r) + 4px);padding:14px 22px;display:grid;grid-template-rows:auto 1fr 96px auto;gap:14px;height:720px;position:relative}
+.top{display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--ln);padding-bottom:10px;white-space:nowrap}
+.wk{color:var(--wk)}.ft{color:var(--ft)}.mn{color:var(--mn)}.sb{color:var(--sb)}.ok{color:var(--ok)}.er{color:var(--er)}.at{color:var(--at)}.pp{color:var(--pp)}
+.seg{display:inline-flex;border:1px solid var(--ls);border-radius:6px;overflow:hidden}
+.seg button{background:transparent;border:0;color:var(--wk);padding:5px 14px;font:inherit;cursor:pointer}
+.seg button.on{background:color-mix(in srgb,var(--sb) 30%,var(--in));color:var(--tx)}
+.cb{display:inline-flex;align-items:center;justify-content:center;width:28px;height:26px;border:1px solid var(--ls);border-radius:6px;background:transparent;color:var(--tx);font:inherit;font-size:13px;cursor:pointer;padding:0}
+.cb:hover,.seg button:hover{background:var(--in)}
+input[type=range]{accent-color:var(--sb);width:120px}
+.badge{padding:2px 10px;border-radius:4px;background:color-mix(in srgb,var(--pp) 15%,var(--pn));color:var(--pp)}
+.mid{display:grid;grid-template-columns:260px minmax(0,1fr);gap:20px;min-height:0}
+.box{background:var(--pn);border:1px solid var(--ln);border-radius:var(--r);padding:12px 14px;min-height:0}
+h3{margin:0 0 10px;font-size:12px;color:var(--wk);font-weight:600;letter-spacing:.05em}
+.att{border:1px solid var(--er);border-radius:6px;padding:8px 10px;margin-bottom:8px;cursor:pointer;background:color-mix(in srgb,var(--er) 7%,transparent)}
+.att.ask{border-color:var(--at);background:color-mix(in srgb,var(--at) 7%,transparent)}
+.att:hover{filter:brightness(1.2)}
+.right{display:grid;grid-template-rows:74px minmax(0,1fr) 62px;gap:10px;min-height:0;min-width:0}
+.heads{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:12px}
+.main{border:1px solid var(--mn);border-radius:var(--r);padding:10px 14px;background:var(--pn)}
+.think{border:1px dashed var(--pp);border-radius:var(--r);padding:8px 12px;background:var(--in);overflow:hidden;position:relative}
+.think p{margin:3px 0 0;font-size:11px;line-height:1.4;color:var(--wk)}
+.think .ex{position:absolute;right:8px;top:6px;font-size:11px;color:var(--ft)}
+.stage{background:var(--pn);border:1px solid var(--ln);border-radius:var(--r);min-height:0;overflow:hidden;padding:8px 10px}
+svg{display:block;width:100%;height:100%}
+.det{background:var(--in);border:1px solid var(--ln);border-radius:var(--r);padding:8px 12px;font-size:12px;line-height:1.6;overflow:hidden}
+.log{background:var(--pn);border:1px solid var(--ln);border-radius:var(--r);padding:6px 12px;position:relative;overflow:hidden}
+.lr{display:grid;grid-template-columns:80px 110px minmax(0,1fr);gap:14px;padding:1px 8px;border-radius:4px;cursor:pointer;line-height:21px}
+.lr:hover{background:var(--in)}.lr.cur{background:color-mix(in srgb,var(--pp) 18%,var(--in))}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lgtag{position:absolute;right:10px;top:6px;color:var(--ft);font-size:11px;cursor:pointer;background:var(--pn);padding:0 4px;z-index:1}
+.lgtag:hover{color:var(--tx)}
+.sum{display:flex;gap:26px;color:var(--wk);white-space:nowrap;padding:0 4px}
+.ov{position:absolute;left:302px;right:22px;top:62px;bottom:130px;background:var(--pn);border:1px solid var(--ls);border-radius:var(--r);padding:12px 14px;display:none;flex-direction:column;z-index:5}
+.ov.open{display:flex}
+.ov .list{overflow-y:auto;flex:1;margin-top:8px}
+.chip{background:transparent;border:1px solid var(--ls);color:var(--wk);border-radius:5px;padding:2px 10px;font:inherit;font-size:11px;cursor:pointer}
+.chip.on{background:color-mix(in srgb,var(--sb) 25%,var(--in));color:var(--tx)}
+.pr{transition:transform .55s ease,opacity .45s;cursor:pointer}
+.orb,.hubr{transform-box:fill-box;transform-origin:center;animation:spin 2.4s linear infinite}
+.hubr{animation-duration:6s}
+.pul{transform-box:fill-box;transform-origin:center;animation:pul 1.4s ease-out infinite}
+.flow{animation:flow 1.2s linear infinite}
+.flash{transform-box:fill-box;transform-origin:center;animation:flash .9s ease-out 2}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pul{0%{transform:scale(1);opacity:.9}100%{transform:scale(2.3);opacity:0}}
+@keyframes flow{to{stroke-dashoffset:-28}}
+@keyframes flash{0%{transform:scale(1);opacity:1}100%{transform:scale(2.6);opacity:0}}
+@media (prefers-reduced-motion:reduce){.orb,.hubr,.pul,.flow,.flash{animation:none}.pr{transition:none}}
+.thb{cursor:pointer;padding:1px 8px;border:1px solid var(--ln);border-radius:4px;margin-right:4px}.thb.on{color:var(--tx);border-color:var(--ls)}
+.note{max-width:1120px;color:var(--ft);font-size:11px;margin:8px 2px 0;font-family:-apple-system,system-ui,sans-serif;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+<div class="frame" id="frame">
+
+<div class="top">
+  <span><span class="mn" id="runDot">◐</span> <b style="font-weight:600">Sisyphus – ultraworker</b> <span class="wk" id="runSt">运行中</span></span>
+  <span class="ft ell" style="min-width:0;flex-shrink:1" id="topFocus"></span>
+  <span style="margin-left:auto;display:flex;gap:8px;align-items:center">
+    <span class="badge" id="roBadge" style="display:none"></span>
+    <span class="seg"><button id="sLive" class="on">实时</button><button id="sRep">回放</button></span>
+    <button class="cb" id="bF" title="回到第一步">⏮</button>
+    <button class="cb" id="bP" title="上一步（←）">◀</button>
+    <button class="cb" id="bPl" title="播放 / 暂停（空格）">▶</button>
+    <button class="cb" id="bN" title="下一步（→）">▶|</button>
+    <input type="range" id="rg" min="0" value="0" step="1">
+    <span class="wk" id="stp" style="min-width:52px"></span>
+    <button class="cb" id="bS" style="width:auto;padding:0 8px">1×</button>
+  </span>
+</div>
+
+<div class="mid">
+  <aside class="box" style="overflow-y:auto">
+    <h3>需要关注 · <span id="atN">0</span></h3>
+    <div id="atL"></div>
+  </aside>
+  <section class="right">
+    <div class="heads">
+      <div class="main">
+        <div class="mn">Sisyphus – ultraworker <span class="wk">· deepseek-flash · 请求 <span id="req"></span></span></div>
+        <div style="margin-top:7px;font-size:14px" id="mainSt"></div>
+      </div>
+      <div class="think"><span class="pp" style="font-size:11px" id="thinkSt">思考中</span><span class="ex">展开 ⤢</span><p id="think"></p></div>
+    </div>
+    <div class="stage">
+      <svg id="sv" viewBox="0 0 800 330" preserveAspectRatio="xMidYMid meet">
+        <rect x="456" y="70" width="320" height="196" rx="16" fill="none" stroke="#3b4261" stroke-dasharray="3 5"/>
+        <text x="470" y="88" fill="#8189ad" font-size="11">作业区 · 执行中 <tspan id="zoneN" fill="#c0caf5"></tspan></text>
+        <path d="M150 128 L176 54 H636 A116 116 0 0 1 636 286 H176 L150 212" fill="none" stroke="#2f3549" stroke-width="3"/>
+        <path class="flow" d="M150 128 L176 54 H636 A116 116 0 0 1 636 286 H176 L150 212" fill="none" stroke="#7aa2f7" stroke-width="1.2" stroke-dasharray="3 11" opacity=".5"/>
+        <text x="190" y="36" fill="#8189ad" font-size="11">派发航道 · 待执行 <tspan id="qN" fill="#c0caf5"></tspan> ›</text>
+        <text x="772" y="318" text-anchor="end" fill="#8189ad" font-size="11">‹ 回传航道 · 待取回泊位 <tspan id="dN" fill="#c0caf5"></tspan></text>
+        <g id="beams"></g>
+        <circle cx="96" cy="170" r="64" fill="none" stroke="#2f3549"/>
+        <g id="ticks"></g>
+        <circle class="hubr" id="hubRing" cx="96" cy="170" r="54" fill="none" stroke="#7dcfff" stroke-width="1.2" stroke-dasharray="6 8" opacity=".7"/>
+        <circle cx="96" cy="170" r="46" fill="#24283b" stroke="#7dcfff" stroke-width="1.6"/>
+        <text x="96" y="165" text-anchor="middle" fill="#7dcfff" font-size="12">Sisyphus</text>
+        <text x="96" y="183" text-anchor="middle" fill="#9aa3c7" font-size="11" id="hubReq"></text>
+        <text x="96" y="252" text-anchor="middle" fill="#9aa3c7" font-size="11" id="absN"></text>
+        <g id="clusters"></g>
+        <g id="probes"></g>
+      </svg>
+    </div>
+    <div class="det" id="det"><span class="ft">点航道上的任务、左栏的问题或日志行，查看交接详情</span></div>
+  </section>
+</div>
+
+<div class="log">
+  <span class="lgtag" id="lgOpen">日志 · <span id="lgN">0</span> ⤢</span>
+  <div id="lgL"></div>
+</div>
+
+<div class="sum">
+  <span><b class="mn" style="font-weight:600">Sisyphus</b> · deepseek-flash</span>
+  <span id="sum1"></span><span id="sum2"></span><span>输入/输出 182k / 9.4k</span>
+  <span style="margin-left:auto;display:flex;gap:16px">
+    <span><span class="sb">◯</span> 执行</span><span><span class="at">◯</span> 待取回 / 等授权</span><span><span class="er">◯</span> 失败</span><span><span class="ok">●</span> 已取回</span><span>··● 流向</span>
+  </span>
+</div>
+
+<div class="ov" id="ov">
+  <div style="display:flex;gap:8px;align-items:center">
+    <h3 style="margin:0">会话日志 · <span id="ovN"></span></h3>
+    <button class="chip on" data-f="all">全部</button><button class="chip" data-f="err">出错</button><button class="chip" data-f="sub">子代理</button>
+    <span style="margin-left:auto;cursor:pointer" class="wk" id="ovX">✕ Esc</span>
+  </div>
+  <div class="list" id="ovL"></div>
+</div>
+
+</div>
+<p class="note">配色对比（仅评审用，不是界面的一部分）：<span class="thb" data-t="hud">推荐 · 中性 HUD</span> <span class="thb" data-t="traj">轨迹同源</span> <span class="thb" data-t="term">终端 HUD（已选定）</span> <span class="thb" data-t="tokyo">当前 · Tokyo Night</span><br>示意：按 ▶ 播放本轮全过程（共 21 步），◀ ▶ 单步，← → / 空格 也可用；点「实时」回到最新。点任务探针、左栏问题或日志行查看交接详情，详情会随回放进度变化。系统开启“减少动态效果”时，所有动画停止，仅保留位置与颜色。</p>
+</div>
+
+<script>
+const T={
+A:['列出工作区目录','explore','#56 列出工作区目录结构，忽略 node_modules','1.8k tok · 12 个目录 + 3 个配置'],
+B:['查 agent 配置文档','librarian','#56 查 opencode agent 配置文档，列出字段含义','2.4k tok · 3 个来源 + 字段表'],
+C:['快速扫描根目录','explore','#56 快速扫描根目录','没有返回 · webfetch 超时'],
+D:['审查实施计划','oracle','#57 审查 PLAN.md 中 M4 的实施步骤','尚未返回'],
+E:['修复 runtime 测试','explore','#58 修复 session-runtime 的失败用例','尚未返回'],
+F:['读 ADR 总结约束','librarian','#59 读 ADR 并总结约束（同步任务）','900 tok · 4 条约束'],
+G:['搜 i18n 缺失键','explore','#58 搜索 zh/en 缺失的 i18n 键','620 tok · 7 个缺失键'],
+H:['统计包体积','explore','#58 统计 media/chat 包体积','410 tok · 6.5 MB / 1.9 MB gzip'],
+I:['找慢查询','explore','#58 找会话打开时的慢请求','1.1k tok · /provider 5.7s'],
+J:['比对上游补丁','librarian','#58 比对 0019 与上游 dev 的冲突','1.5k tok · 2 处冲突'],
+K:['检查 E2E 失败','explore','#58 检查 c5-runtime 最近失败','830 tok · 1 个不稳定用例'],
+L:['归纳会话结构','librarian','#58 归纳 session/message/part 结构','2.0k tok · 结构图'],
+M:['核对类型定义','explore','#58 核对 RuntimeTool 类型使用处','700 tok · 14 处引用'],
+N:['复现超时','explore','#58 复现子会话同步超时','尚未返回'],
+O:['生成测试数据','explore','#58 生成 15 个子代理的 mock','尚未返回'],
+P:['梳理权限流程','librarian','#58 梳理 permission 事件流程','尚未返回']};
+const W8=['G','H','I','J','K','L','M','N','O','P'];
+const set=(ids,v)=>Object.fromEntries(ids.map(i=>[i,v]));
+const EV=[
+{r:55,m:'规划任务',k:'用户要做 runtime 审计。先拆成几个只读查询，并行派出去。',l:['Sisyphus','开始第 55 次请求'],s:{}},
+{r:56,m:'派发 3 个任务',k:'派出 3 个后台查询，不等结果，先准备汇总结构。',l:['Sisyphus','派发 explore ×2、librarian'],s:set(['A','B','C'],[0])},
+{m:'等待 3 个任务返回',k:'等待后台任务……',l:['explore','3 个任务开始执行'],s:set(['A','B','C'],[1])},
+{m:'等待 2 个任务返回',l:['explore','✕ 快速扫描根目录：webfetch 超时'],s:{C:[1,'err']}},
+{l:['explore','列出工作区目录：完成，停靠泊位'],s:{A:[2]}},
+{r:57,m:'派发 oracle',k:'趁等待的时间，让 oracle 审查计划。',l:['Sisyphus','派发 oracle 审查计划'],s:{D:[0]}},
+{l:['oracle','开始执行'],s:{D:[1]}},
+{l:['librarian','查 agent 配置文档：完成，停靠泊位'],s:{B:[2]}},
+{r:58,m:'取回 2 个结果，正在汇总',k:'两个结果已就绪，取回并合并到报告里。',l:['Sisyphus','牵引取回 explore、librarian 的结果'],s:{A:[3],B:[3]}},
+{m:'派发 10 个任务',k:'报告缺细节。一次并行派出 10 个细查任务。',l:['Sisyphus','派发 explore ×6、librarian ×4'],s:set(W8,[0])},
+{m:'等待 11 个任务返回',k:'等待细查结果……',l:['explore','10 个任务开始执行'],s:set(W8,[1])},
+{l:['Sisyphus','派发 explore 修复测试'],s:{E:[1]}},
+{m:'等待 12 个任务返回',l:['explore','! 修复 runtime 测试：请求授权写 src/app.ts'],s:{E:[1,'ask']}},
+{r:59,k:'写报告前需要 ADR 里的约束，这个同步等。',l:['Sisyphus','派发 librarian 读 ADR（同步）'],s:{F:[1]}},
+{l:['explore','3 个任务完成，停靠泊位'],s:set(['G','H','I'],[2])},
+{m:'等待 12 个任务返回',l:['librarian','读 ADR：完成，结果直接回传 #59'],s:{F:[3]}},
+{l:['librarian','2 个任务完成，停靠泊位'],s:set(['J','K'],[2])},
+{r:60,m:'取回 5 个结果，正在汇总',k:'泊位上有 5 个结果，一次取回。',l:['Sisyphus','牵引取回 5 个结果'],s:set(['G','H','I','J','K'],[3])},
+{l:['explore','2 个任务完成，停靠泊位'],s:set(['L','M'],[2])},
+{m:'等待 6 个任务返回',k:'还剩 oracle 和几个细查。oracle 回来后把审查意见并进报告……',l:['oracle','read src/runtime.tsx'],s:{}},
+{l:['explore','复现超时：read sync.ts'],s:{}}];
+const SN=[];{let st={},r=55,m='',k='',L=[];EV.forEach((e,i)=>{st=JSON.parse(JSON.stringify(st));const ch=[];for(const id in e.s){st[id]={c:e.s[id][0],f:e.s[id][1]||'',at:i};ch.push(id)}if(e.r)r=e.r;if(e.m)m=e.m;if(e.k)k=e.k;const t=new Date(Date.UTC(2026,9,4,7,50,10+i*9)).toISOString().slice(11,19);L=[{t,who:e.l[0],tx:e.l[1],i,ids:ch}].concat(L);SN.push({st,r,m,k,L})});}
+const NS='http://www.w3.org/2000/svg',$=id=>document.getElementById(id),N=SN.length-1,HUB=[96,170];
+let cur=N,live=true,tm=null,sp=1,nodes={},prev=null,sel=null,ovF='all';
+$('rg').max=N;
+function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a){let v=a[k];if((k==='fill'||k==='stroke')&&BASE[v]){e.setAttribute('data-b'+k,v);v=th(v)}e.setAttribute(k,v)}if(p)p.appendChild(e);return e}
+const ZONE=Array.from({length:12},(_,i)=>[500+(i%4)*76,122+Math.floor(i/4)*52]);
+const QUE=Array.from({length:4},(_,i)=>[214+i*70,54]);
+const DOCK=Array.from({length:5},(_,i)=>[500-i*76,286]);
+// Stable slots in dispatch order; an anomaly that would fall into the overflow cluster swaps with the last visible normal probe, so nothing else moves.
+const ord=(S,c,cap)=>{const ids=Object.keys(S.st).filter(k=>S.st[k].c===c);if(ids.length<=cap)return ids;const vis=cap-1;
+const hidden=ids.slice(vis).filter(k=>S.st[k].f);let j=vis-1;for(const h of hidden){while(j>=0&&S.st[ids[j]].f)j--;if(j<0)break;const hi=ids.indexOf(h);[ids[j],ids[hi]]=[ids[hi],ids[j]];j--}return ids};
+function layout(S){const P={},CL=[];[[0,QUE],[1,ZONE],[2,DOCK]].forEach(([c,slots])=>{const ids=ord(S,c,slots.length);const over=ids.length>slots.length;const vis=over?slots.length-1:slots.length;ids.forEach((id,i)=>{P[id]=i<vis?{xy:slots[i],show:1}:{xy:slots[slots.length-1],show:0}});if(over)CL.push({xy:slots[slots.length-1],n:ids.length-vis})});Object.keys(S.st).forEach(id=>{if(S.st[id].c===3)P[id]={xy:HUB,show:0}});return{P,CL}}
+function col(s){return th(s.f==='err'?'#f7768e':s.f==='ask'?'#e0af68':s.c===2?'#e0af68':s.c===3?'#9ece6a':s.c===1?'#7aa2f7':'#9aa3c7')}
+function make(id){const g=el('g',{class:'pr'},$('probes'));g.style.transform=`translate(${HUB[0]}px,${HUB[1]}px)`;g.style.opacity=0;
+el('circle',{class:'pul',r:10,fill:'none','stroke-width':1.5},g);el('circle',{class:'orb',r:16,fill:'none','stroke-width':1,'stroke-dasharray':'4 5'},g);
+el('circle',{class:'selr',r:21,fill:'none',stroke:'#c0caf5','stroke-width':1.2,'stroke-dasharray':'2 3'},g);
+el('circle',{class:'core',r:10,fill:'#1f2335','stroke-width':1.8},g);el('text',{class:'gl','text-anchor':'middle',y:4,'font-size':11},g);
+const nm=T[id][0];const lb=el('text',{'text-anchor':'middle',y:30,fill:'#c0caf5','font-size':11},g);lb.textContent=nm.length>5?nm.slice(0,5)+'…':nm;
+const ttl=el('title',{},g);ttl.textContent=nm+' · '+T[id][1];g.onclick=()=>pick(id);nodes[id]=g;return g}
+function style(id,s){const g=nodes[id],c=col(s);g.querySelector('.core').setAttribute('stroke',c);
+const o=g.querySelector('.orb');o.setAttribute('stroke',c);o.style.display=(s.c===1&&!s.f)?'':'none';
+const p=g.querySelector('.pul');p.setAttribute('stroke',c);p.style.display=(s.c===2||s.f)?'':'none';
+g.querySelector('.selr').style.display=sel===id?'':'none';
+const gl=g.querySelector('.gl');gl.textContent=s.f==='err'?'✕':s.f==='ask'?'!':s.c===2?'●':s.c===0?'·':'';gl.setAttribute('fill',c)}
+function move(g,xy,op){g.style.transform=`translate(${xy[0]}px,${xy[1]}px)`;g.style.opacity=op}
+function beam(xy){const b=el('line',{x1:HUB[0]+46,y1:HUB[1]+14,x2:xy[0],y2:xy[1],stroke:'#9ece6a','stroke-width':2,'stroke-dasharray':'5 4',class:'flow'},$('beams'));setTimeout(()=>b.remove(),1200)}
+function render(anim){const S=SN[cur],{P,CL}=layout(S),PL=prev?layout(prev).P:{};
+for(const id in nodes)if(!(id in S.st)){nodes[id].remove();delete nodes[id]}
+for(const id in S.st){const s=S.st[id],g=nodes[id]||make(id);style(id,s);const was=prev&&prev.st[id],to=P[id];
+if(s.c===3){if(anim&&was&&was.c===2){beam(PL[id].xy);setTimeout(()=>move(g,to.xy,0),480)}
+else if(anim&&was&&was.c===1){move(g,[560,286],1);setTimeout(()=>move(g,[176,286],1),560);setTimeout(()=>move(g,to.xy,0),1120)}
+else move(g,to.xy,0)}
+else if(anim&&!was){requestAnimationFrame(()=>requestAnimationFrame(()=>move(g,to.xy,to.show)))}
+else move(g,to.xy,to.show)}
+$('clusters').innerHTML='';CL.forEach(c=>{const g=el('g',{transform:`translate(${c.xy[0]},${c.xy[1]})`},$('clusters'));el('circle',{r:13,fill:'#24283b',stroke:'#4a5272','stroke-dasharray':'2 2'},g);const t=el('text',{'text-anchor':'middle',y:4,fill:'#c0caf5','font-size':11},g);t.textContent='+'+c.n});
+const abs=Object.keys(S.st).filter(k=>S.st[k].c===3);$('absN').textContent='已取回 '+abs.length;$('ticks').innerHTML='';
+abs.forEach((id,i)=>{const a=(-90+i*22)*Math.PI/180;const d=el('circle',{cx:96+64*Math.cos(a),cy:170+64*Math.sin(a),r:3.4,fill:'#9ece6a',style:'cursor:pointer'},$('ticks'));const tt=el('title',{},d);tt.textContent=T[id][0]+' · 已取回';d.onclick=()=>pick(id)});
+const cnt=c=>Object.values(S.st).filter(s=>s.c===c).length;
+$('qN').textContent=cnt(0)||'';$('zoneN').textContent=cnt(1)||'';$('dN').textContent=cnt(2)||'';
+$('hubReq').textContent='#'+S.r;$('req').textContent=S.r;$('mainSt').textContent=S.m;$('think').textContent=S.k;
+$('hubRing').style.animationDuration=/汇总|规划|派发/.test(S.m)?'1.5s':'6s';
+const run=Object.values(S.st).filter(s=>s.c===1&&!s.f).length,blk=Object.values(S.st).filter(s=>s.f).length;
+$('sum1').innerHTML=`子代理 ${Object.keys(S.st).length}（运行 ${run}`+(blk?` / <span class="er">阻塞 ${blk}</span>`:'')+'）';$('sum2').textContent='请求 '+S.r;
+$('topFocus').textContent='· '+S.m;
+const at=Object.keys(S.st).filter(k=>S.st[k].f);$('atN').textContent=at.length;
+$('atL').innerHTML=at.length?at.map(id=>{const f=S.st[id].f;return `<div class="att ${f}" data-id="${id}"><div class="${f==='err'?'er':'at'}">${f==='err'?'✕ 失败':'! 等待授权'}</div><div style="margin-top:3px">${T[id][0]}</div><div class="wk" style="margin-top:2px;font-size:11px">${T[id][1]} · ${f==='err'?'webfetch 超时':'写 src/app.ts'}</div><div class="ft" style="margin-top:4px;font-size:11px">${f==='err'?'定位 ›':'去处理 ›'}</div></div>`}).join(''):'<div class="ft">暂无</div>';
+document.querySelectorAll('.att').forEach(a=>a.onclick=()=>pick(a.dataset.id,true));
+$('lgN').textContent=S.L.length;
+$('lgL').innerHTML=S.L.slice(0,3).map((x,i)=>row(x,i===0&&!live)).join('');bindRows($('lgL'));
+$('rg').value=cur;$('stp').textContent=(cur+1)+' / '+(N+1);
+$('sLive').className=live?'on':'';$('sRep').className=live?'':'on';$('runSt').textContent=live?'运行中':'回放 · 只读';
+$('roBadge').style.display=live?'none':'';$('roBadge').textContent='回放 · '+S.L[0].t;
+detail();if($('ov').classList.contains('open'))ovRender();prev=S}
+function row(x,c){const er=x.tx.startsWith('✕'),at=x.tx.startsWith('!');return `<div class="lr ${c?'cur':''}" data-i="${x.i}" data-id="${x.ids.length===1?x.ids[0]:''}"><span class="ft">${x.t}</span><span class="${x.who==='Sisyphus'?'mn':'sb'} ell">${x.who}</span><span class="ell ${er?'er':at?'at':''}">${x.tx}</span></div>`}
+function bindRows(root){root.querySelectorAll('.lr').forEach(r=>r.onclick=()=>{stop();if(r.dataset.id)sel=r.dataset.id;go(+r.dataset.i,false)})}
+function pick(id,flash){sel=id;Object.keys(nodes).forEach(k=>style(k,SN[cur].st[k]));if(flash&&nodes[id]){const f=el('circle',{class:'flash',r:14,fill:'none',stroke:col(SN[cur].st[id]),'stroke-width':2},nodes[id]);setTimeout(()=>f.remove(),1900)}detail()}
+function detail(){if(!sel){return}const t=T[sel],s=SN[cur].st[sel];
+if(!s){$('det').innerHTML=`<span>${t[0]}</span> <span class="wk">· ${t[1]}</span>　<span class="ft">此时尚未派发（回放到第 ${cur+1} 步）</span>`;return}
+const st=['待执行','执行中','已完成 · 停靠泊位待取回','已取回 · 主代理已读入结果'][s.c]+(s.f==='err'?' · 失败':s.f==='ask'?' · 等待授权':'');
+const ret=s.c>=2||s.f==='err'?t[3]:'尚未返回';
+$('det').innerHTML=`<div><span>${t[0]}</span> <span class="wk">· ${t[1]} · ${st}</span> <span class="ft" style="float:right;cursor:pointer">打开子会话 ›　展开全文 ⤢</span></div><div class="ell"><span class="pp">↓ 交给它</span>　${t[2]}　　<span class="ok">↑ 返回</span>　${ret}</div>`}
+function ovRender(){const S=SN[cur];const L=S.L.filter(x=>ovF==='all'||(ovF==='err'?(x.tx.startsWith('✕')||x.tx.startsWith('!')):x.who!=='Sisyphus'));$('ovN').textContent=L.length;$('ovL').innerHTML=L.map((x,i)=>row(x,x.i===cur&&!live)).join('');bindRows($('ovL'))}
+function go(i,anim){cur=Math.max(0,Math.min(N,i));live=false;render(anim)}
+function stop(){clearInterval(tm);tm=null;$('bPl').textContent='▶'}
+function play(){clearInterval(tm);tm=setInterval(()=>{if(cur>=N){stop();return}go(cur+1,true)},1400/sp)}
+function restart(){for(const id in nodes)nodes[id].remove();nodes={};prev=null;cur=-1}
+$('bPl').onclick=()=>{if(tm){stop();return}if(cur>=N)restart();go(cur+1,true);$('bPl').textContent='⏸';play()};
+$('bN').onclick=()=>{stop();go(cur+1,true)};$('bP').onclick=()=>{stop();go(cur-1,false)};$('bF').onclick=()=>{stop();go(0,false)};
+$('rg').oninput=e=>{stop();go(+e.target.value,false)};
+$('sRep').onclick=()=>{stop();go(cur,false)};$('sLive').onclick=()=>{stop();live=true;cur=N;render(false)};
+$('bS').onclick=()=>{sp=sp===1?2:sp===2?4:1;$('bS').textContent=sp+'×';if(tm)play()};
+$('lgOpen').onclick=()=>{$('ov').classList.add('open');ovRender()};$('ovX').onclick=()=>$('ov').classList.remove('open');
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ovF=c.dataset.f;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('on',x===c));ovRender()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('ov').classList.remove('open');else if(e.key===' '){e.preventDefault();$('bPl').click()}else if(e.key==='ArrowLeft')$('bP').click();else if(e.key==='ArrowRight')$('bN').click()});
+
+// Palette comparison (mockup only). Keys are the CSS variables; SVG hex literals are written in the Tokyo base and translated.
+const BASE={'#16161e':'page','#1a1b26':'bg','#1f2335':'pn','#24283b':'in','#2f3549':'ln','#3b4261':'ln2','#4a5272':'ls','#c0caf5':'tx','#9aa3c7':'wk','#8189ad':'ft','#7dcfff':'mn','#7aa2f7':'sb','#9ece6a':'ok','#f7768e':'er','#e0af68':'at','#bb9af7':'pp'};
+const THEMES={
+ hud:{name:'推荐 · 中性 HUD',r:'4px',page:'#161616',bg:'#1e1e1e',pn:'#232323',in:'#2a2a2a',ln:'#363636',ln2:'#444444',ls:'#555555',tx:'#d6d6d6',wk:'#a3a3a3',ft:'#858585',mn:'#6fd3e0',sb:'#7fa6f5',ok:'#8bd49c',er:'#f2787c',at:'#e6c07b',pp:'#b39ddb'},
+ traj:{name:'轨迹同源',r:'6px',page:'#161616',bg:'#1e1e1e',pn:'#252526',in:'#2d2d30',ln:'#3c3c3c',ln2:'#4a4a4a',ls:'#5a5a5a',tx:'#d4d4d4',wk:'#a6a6a6',ft:'#858585',mn:'#f4a582',sb:'#e98fb4',ok:'#89d185',er:'#f48771',at:'#f5c26b',pp:'#c5a5f5'},
+ term:{name:'终端 HUD（已选定）',r:'2px',page:'#0b0e14',bg:'#141821',pn:'#181d27',in:'#1e2430',ln:'#2c3445',ln2:'#3a4458',ls:'#4b566d',tx:'#cdd6e4',wk:'#8d97aa',ft:'#808aa0',mn:'#6fd3e0',sb:'#7fa6f5',ok:'#8bd49c',er:'#f2787c',at:'#e6c07b',pp:'#b39ddb'},
+ tokyo:{name:'当前 · Tokyo Night',r:'8px',page:'#16161e',bg:'#1a1b26',pn:'#1f2335',in:'#24283b',ln:'#2f3549',ln2:'#3b4261',ls:'#4a5272',tx:'#c0caf5',wk:'#9aa3c7',ft:'#8189ad',mn:'#7dcfff',sb:'#7aa2f7',ok:'#9ece6a',er:'#f7768e',at:'#e0af68',pp:'#bb9af7'}};
+let TH=THEMES.hud;
+function th(hex){const k=BASE[hex];return k&&TH[k]?TH[k]:hex}
+function applyTheme(key){TH=THEMES[key];const rs=document.documentElement.style;for(const k in TH)if(k!=='name')rs.setProperty('--'+k,TH[k]);
+document.querySelectorAll('#sv [fill],#sv [stroke]').forEach(e=>['fill','stroke'].forEach(a=>{const v=e.getAttribute(a);const b=e.getAttribute('data-b'+a)||(BASE[v]?v:null);if(b){e.setAttribute('data-b'+a,b);e.setAttribute(a,th(b))}}));
+document.querySelectorAll('.thb').forEach(b=>b.classList.toggle('on',b.dataset.t===key));render(false)}
+document.querySelectorAll('.thb').forEach(b=>b.onclick=()=>applyTheme(b.dataset.t));
+function fit(){const s=Math.min(1,(window.innerWidth-24)/1122);$('frame').style.transform=`scale(${s})`;$('wrap').style.height=(720*s+60)+'px'}
+window.addEventListener('resize',fit);fit();applyTheme('term');
+</script>
+</body>
+</html>

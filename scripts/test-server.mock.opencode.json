@@ -5,6 +5,7 @@
   "autoupdate": false,
   "share": "disabled",
   "permission": { "bash": "ask", "edit": "ask" },
+  "plugin": ["file://__OCO_ROOT__/tests/e2e/lib/bg-task-plugin.mjs"],
   "provider": {
     "oco-mock": {
       "npm": "@ai-sdk/openai-compatible",

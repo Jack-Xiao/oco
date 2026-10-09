@@ -2,10 +2,115 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
-## 会话侧栏改为 webview（2026-10-08；分支 `feat/webview-session-list`，PR 待合并）
+## 补丁编号：运行视图补丁改为 0020（2026-10-09，合并 main 时）
+
+- main 上 2026-10-08 新增 `0019-oco-embedded-context-usage.patch`，与分支的运行视图补丁同号；合并时把运行视图补丁改名为 `0020-oco-runtime-view.patch`，两者不改同一文件。清库重放 0001–0020 全部通过（`git apply --check` 逐个应用）。历史文档中提到「补丁 0019 运行视图」的均指现在的 0020。
+
+## 运行视图 M5 用户反馈修正（2026-10-09；同分支，未提交，已装本机 `oco-0.0.4-dd67556-fb3.vsix`，需 Reload Window）
+
+- 修正：结束卡片「全文」可点开且垂直居中；工具台按轮收缩（本轮首次调工具展开，最后一次请求未调工具即收为 30 px 标题条；仅宽布局，窄布局不变；新属性 `data-oco-runtime-tools-k`）；「计划 n/m」改为按钮，浮层列出全部计划项；计数行改为 safe center，超长时右侧省略，不再裁掉 agent 名；新会话首轮显示「第 2 轮」——根因是乐观用户消息与服务端副本 `time.created` 不同、按 `created+id` 查找未命中而重复插入（`context/server-session.ts` 的 `message.updated` 插入前按 id 去重，补回归测试）。
+- 第二轮反馈：计划标签所在计数行 `pointer-events: none` 导致真实点击无效（已修，E2E 改为 Playwright 真实点击）；去掉「全文」按钮，中心卡片整块可点（有任何文本即可，运行中也可），浮层显示标签、全文、计划项、附注和 meta；卡片内不再显示 meta 行，空间留给正文。E2E（Gemini，mock）c5-runtime en 43/43、zh 43/43。
+- 实时帧字段经 `session-runtime.tsx` 的 `FRAME_KEYS` 白名单传递，新增编译期检查保证覆盖 `RingFrame` 全部字段（本轮 `dk` 漏列曾导致工具台 NaN 定位）。
+- 验证（本机）：vendor typecheck 0；session 单测 419/0；test-browser 66/0；app 全量单测 1143/1（`i18n/desktop-native.test.ts` 期望 "pa" 得 "en"，主机 ICU，0019 未触及）；look-local 真实会话 1100/1600 宽各 3 时刻，溢出 0，轮末 tools-k 0 / 30 px，轮中 1 / 208 px；E2E（Gemini 执行，mock 模型）c5-runtime en 43/43、zh 43/43（`geometry-stable` 断言已改为工具台仅在 tools-k 相同时比较），c4-trajectory 17/17。证据：`docs/evidence/runtime-m5.md` 末节、`docs/evidence/e2e-fb-2026-10-09.md`、`docs/evidence/round-two-investigation-2026-10-09.md`。
+
+## 运行视图 M5：环形循环 + 环心卡片 + 三个坞（2026-10-08；第二批完成，本分支本地提交 8292fba、54ab5d2 及文档提交，未推送，未合入 main）
+
+- 设计已定：动画对比稿 [runtime-m5-animated-mockup](superpowers/specs/runtime-m5-animated-mockup.html)（第 1–4 轮真实数据；模板 [runtime-m5-mockup.src.html](superpowers/specs/runtime-m5-mockup.src.html)，关键帧 [runtime-m5-keyframes.json](superpowers/specs/runtime-m5-keyframes.json)）。用户决定（无子代理的轮次收起子代理区、问题原文进环心卡片、计划卡片、≥10 秒等待折叠、英文直显、卡片居中、连线不悬空、子代理可点开进子会话）和 D18（已忽略/已拒绝不用红色）全部实现。计划：[2026-10-08-runtime-m5-ring](superpowers/plans/2026-10-08-runtime-m5-ring.md)；委派与验收记录：[runtime-m5 证据](evidence/runtime-m5.md)。
+- 实现：15 个任务全部完成。第一批（工作流 `wf_9af8ca23-fa8`）做了 Task 1/2/3/4/6/7；第二批（工作流 `wf_d1bdd9ad-b6b`，32 个代理，约 3 小时）复审第 1 波并完成 Task 5/8/9/10/11/12/13/14（集成门禁三个视角、两轮修复；E2E 一轮产品修复）。之后主线程三项裁定，由子代理落地：
+  - D18 契约：`RingSubAct` 增加 glyph `⊘` / border `faint`，被拒绝或忽略的行由数据层直接给出，视图不再从 `✗ + line-strong` 推断；`RingSub.uid` 固定为 `${messageID}:${callID}`，`num` 为轮内 task 调用序号。
+  - 性能：全量重建按 messageID 复用已完成请求（规模 B 根变化重建 12.0 → 2.7 ms p95），链式重建与全新构建 `toStrictEqual`。D22：性能断言改为空载 p95 的 2 倍（冷启动 A 8 / B 32 ms，带 prev 8 ms，子会话增量 4 ms，每帧 1 ms），避免并行测试负载误报；D11 的 4 ms 以记录数字为准。
+  - D21 发送时刻：应用同步层在 4 处丢弃 step-start / step-finish part，实时与重开会话原本没有 fly（模型思考）阶段，「组装请求」会一直持续到首个 token。新增 `session-runtime-step-times.ts` 旁表在丢弃点记录时间（`global-sync/event-reducer.ts`、`server-session.ts` 各加一行 import 和一行调用），环取 min(step-start, 旁表, 第一个 part 到达) 作发送时刻；性质测试覆盖旁表截断，无豁免。旁表没有清理机制（约每请求 0.5 KB），记入 NEXT。
+  - 历史翻页（2026-10-09，54ab5d2）：重开会话时应用只加载最近 20 条消息（`initialMessagePageSize`），运行视图现在像轨迹视图一样循环 `history.loadMore` 翻完历史，并按消息数变化重建索引（旧页在原数组上合并，引用不变）；根元素暴露 `data-oco-runtime-history`，钩子 `__ocoRuntime.history()` 报告 stored / indexed。子会话仍只取最近 20 条（记入 NEXT）。
+- 代码位置：全部在补丁 0019（55 个文件，相对 `deb241e`；含上述两个同步文件各一处最小改动，这是对计划「不改其他 vendor 文件」的记录在案偏离）。M4 的 mechanism-view / loop-view / child 视图与 mechanism 模块已删除，21 个废 i18n 键已清理。`patches/wip/runtime-m5-wip.patch` 已删除（内容全部进入 0019）。
+- 验证（2026-10-08，本机，load 5–8）：vendor `bun run typecheck` 0 错误；session 单测 418/0（23 个文件）；`bun run test:browser` 65/0（19 个文件；ring-view 7/0、ring-sub-view 8/0、JSX 冒烟 1/0）；性能：ring-perf A 全量 3.0 ms / B 全量 13.1 ms、B 根变化带 prev 2.7 ms、子会话增量 0.17 ms，每帧 p95 ≤ 0.40 ms（预算 4）；根 `bun run verify:brief` PASS（typecheck 0 错误，unit 190/0）；0019 重新生成后 `git diff --check` 无告警、无本机路径，干净重放 19/19 且重放树与开发树 `src` / `test-browser` / `package.json` 一致；`bun run build` PASS。E2E（mock，最终构建 54ab5d2）：c5-runtime en 43/43（`runs/20261008-161513-c5-runtime-7bdc`）、zh 43/43（`runs/20261008-161824-c5-runtime-73be`）、c4-trajectory 17/17（`runs/20261008-162120-c4-trajectory-adcb`），无测试侧改动；历史翻页没有专门断言（只隐式跑到），8292fba 上的前一轮同样 43/43、43/43、17/17。真实数据（`look-local`）：修复前 12/14（第 1 轮两帧：重开会话只加载最近 20 条消息，运行视图不翻页，且旧页合并时数组引用不变、索引不重建）；修复后（54ab5d2）14/14 关键帧在 1100 / 560 / 1600 三种宽度下结构一致、横向滚动 0/14、无陈旧帧，history 钩子报告 stored 33 / indexed 33。本机安装：`oco-0.0.4-54ab5d2.vsix` 已装到 `~/.vscode/extensions/oco-local-test.oco-0.0.4`（extension.js sha256 `c4530fd9…` 与打包一致；webview 产物在 vsix 内），需执行 Developer: Reload Window；无文件夹时 oco 会提示 Open Folder。
+- NOT RUN：真实模型新对话（fly / 流式思考跟随只有 mock E2E 与回放）；Remote（无主机）；亮色主题；`bun run test:bench` 的 Playwright 半边仍 BLOCKED（会占用 4096 / 3000）。
+- 已知遗留：`snapshotAt` 的 token / 花费泄漏仍在（M5 视图不读它，无界面影响）；`ring.cap.pre` 键已定义但未引用。
+- 委派：Gemini 探测返回 503 不可用；Grok 健康检查通过，但工作流内 `grok-worker` 没拿到转发启动行、未真正启动，Task 14 由 sonnet 完成；其余按用户指示由 Claude opus / sonnet 子代理按能力分配，主线程只做契约、裁定、补丁、验收与文档。
+
+## 运行视图：本机查看 + 真实数据修正（2026-10-07；同分支，2026-10-08 随 M5 进度一起本地提交）
+
+- gcp-workstation 已不存在，改为本机查看：`bash scripts/package-vsix.sh && bash scripts/install-local.sh`（新增，安装后核对哈希）→ Reload Window → 打开一个文件夹并选择信任（managed 模式需要文件夹且不在受限模式下启动；没开文件夹时侧栏提示 Open Folder，用户确认保持此行为）。本机此前“不能用”只因窗口没开文件夹。`scripts/look-local.mjs`（新增）在隔离 VS Code 中对本机真实会话做只读回放截图。
+- 真实会话（`~/Ai-Project`，8 个子会话）暴露并修正 4 处 mock 测不到的问题：回放中交接卡耗时用墙钟（显示 `3738m`，现随游标并有小时档）；状态栏 Context 不随回放变化；思考框第二行被截半、出现滚动条（现两整行 + 省略号；流式时跟最新两行——仅代码审查，未实测）；左栏标题与「Read-only in replay」按词折成两列。
+- 验证：session 单测 270/0，vendor 类型 0 错误；0019 重新生成 31 个文件，干净重放 19/19；根 typecheck PASS、unit 190/0；`oco-0.0.4-98dda03.vsix` 已装本机（哈希一致）；真实数据回放复测 4 项均修正。E2E（mock）c5-runtime en 37/37、zh 37/37（`runs/20261007-034656-c5-runtime-a187`、`runs/20261007-034907-c5-runtime-5cc1`）。见 [本批证据](evidence/runtime-local-2026-10-07.md)。
+- 另：停掉两个 10-01 遗留、各占约 99% CPU 的 `test-server.sh` 进程（4517/4527，用户同意）。NOT RUN：真实模型新对话（只做了回放，流式思考跟随未实测）、Remote（无主机）、亮色主题。
+
+## 运行视图 M4 第三批（用户反馈修正，2026-10-04；同分支，未提交，未部署）
+
+- 早轮失败子代理不再留在航道（修复切回「运行」后出现「阻塞 13」）；航道动画回放中也按状态运行，空闲慢呼吸；左栏改为会话概况：需你处理（有才显示）/ 本轮目标 / 任务清单 / 本会话统计。
+- 验证：类型 0 错误；session 单测 276/0；look-runtime 动画与概况通过；0019 重新生成 31 文件、干净重放 19/19；E2E（mock）c5-runtime en 37/37、zh 37/37；vsix 已装本机。详见 [验收](evidence/runtime-m4-batch3.md)。
+- 追加（第二轮反馈）：左栏去掉「本会话」，状态栏改为 时长 / 上下文 / 花费 / 用量，子代理段只在有任务时出现，去掉请求数与工具数；航道动画匀速，步与步之间不再停顿，空闲 2 s 后原地暂停并慢呼吸。类型 0 错误、单测 276/0、E2E en/zh 37/37（用量前缀改动后未重跑；2026-10-07 已在其上重跑 37/37）、0019 重放 19/19；vsix 已装本机。gcp-workstation 已不存在，Remote 部署 BLOCKED。
+- 第三轮反馈：删「需你处理」面板与运行页停止按钮（改用输入区原生 dock / 停止）；拒绝授权、忽略提问不再算失败；状态词改为 运行中 / 等你回应 / 待命 等，回放写「当时…」，去「（推断）」与「N 个会话」；build 不再三处重复；图例文字恢复；「执行计划」单行。单测 263/0，E2E en/zh 37/37（最终构建），重放 19/19，vsix 已装本机。
+- 第四轮：交接卡片未选中时显示最新子代理，没有子代理时显示主代理最近一次工具调用；去掉「当时」与「最后事件（推断）」。单测 266/0，E2E en/zh 37/37（文案改动前），重放 19/19，vsix 已装本机。
+- 文案：子代理最后一步「已吸收」改为「已取回」（英文 Absorbed → Collected），与「待取回」成对。已提交 97251ac；单测 266/0，干净重放 19/19（与 vendor 一致），E2E（mock）c5-runtime en 37/37、zh 37/37（runs/20261004-153652-c5-runtime-b6d0、20261004-153855-c5-runtime-3bbe），vsix `oco-0.0.4-97251ac` 已装本机。未部署；NOT RUN：真实模型、Remote。
+
+## 运行视图 M4 第二批（补丁 0019 追加，2026-10-04；在分支 `claude/nostalgic-gates-ef74ca`，已提交 97251ac，未部署）
+
+- 回环航道替换运行树的子代理卡片与回填框：探针按 待执行 / 执行中 / 泊位（待取回）/ 已吸收 移动，后台任务按 `backgroundTaskId` 对上子会话，`background_output` 取到结果才算取回；点探针看交接详情、可进入子会话。左栏去掉子代理名册；主代理框两行；终端 HUD 配色；状态栏按含义着色、窄宽度隐藏低优先项；停止按钮改图标。另一会话按用户反馈加了「第 N 轮」、探针沿航道移动等（见验收 checkpoint）。
+- 验证：vendor 类型 0 错误；session 单测 270/0；browser 7/0；根 typecheck PASS、unit 190/0；E2E（mock）c5-runtime en 37/37、zh 37/37；0019 重新生成（29 个文件），干净重放 19/19、重放树单测 270/0。vsix 已装本机。详见 [验收](evidence/runtime-m4-batch2.md)。
+- NOT RUN：真实模型、Remote、亮色主题、嵌套 ≥2 层。
+
+## 运行视图 M4 第一批（补丁 0019 追加，2026-10-04；在分支 `claude/nostalgic-gates-ef74ca`，已提交 97251ac，未部署）
+
+- 回放播放控制（⏮ ◀ ▶/⏸ ▶|、1×/2×/4×、空格 / ← →）、会话日志精简 + 全文浮层（筛选、点行跳转）、思考框 11 px + 全文浮层。顶栏在 1100 px 下保持一行。
+- 验证：vendor 类型 0 错误；session 单测 226/0；test:browser 48/0；根 typecheck PASS、unit 190/0；E2E（mock）c5-runtime en 37/37、zh 37/37，c4-trajectory 17/17；0019 重新生成（25 个文件，+9283/−5），干净重放 19/19、重放树单测 226/0。详见 [验收](evidence/runtime-m4-batch1.md)。
+- NOT RUN：真实模型、Remote、亮色主题。（第一批 vsix 已被第二批的包替换。）
+- 第二批（回环航道 + 终端 HUD 配色）未开工；后台任务映射已查清：[调查](evidence/runtime-m4-bg-task-mapping.md)。
+
+## 运行视图 M3（补丁 0019 追加，2026-10-04；在分支 `claude/nostalgic-gates-ef74ca`，未合入 main，未推送，未部署 Remote）
+
+- 运行视图改为**固定框架**（用户两轮反馈后定稿；评审稿 [v3](superpowers/specs/runtime-m3-fixed-layout-mockup.html)）：
+  - 顶栏：状态、需你处理数、会话数、停止、最后事件，右侧常驻时间轴（● 实时 / ⏮ 回放 + 步骤滑块）。
+  - 左栏：“需你处理”（批准/总是/拒绝只在这里，每种一次）+“其他异常 N”；子代理名册（本会话全部子代理、当前活动，点行进入）。
+  - 中间树：主节点（agent、模型、第几次请求、焦点句、四段阶段条）+ 固定高度思考框；派发线 → **固定 4 条通道**（子代理优先，空槽显示“空闲”，溢出 +N）→ 汇回 → “回填 x / y”。一轮结束后保留最近一次派发（“上一次派发 · 第 N 次请求”）。
+  - 卡片头打开叠加的详情面板，不挪动任何框；子代理“进入”后树换成子树，面包屑返回。
+  - 会话日志最新在上；状态栏含用量、上下文、花费和图例。
+  - 自带 Tokyo Night 风格配色（`--rt-*` 只在根节点定义一次），全部等宽字体。
+  - 宽 ≥ 900 时整屏固定、内容变化不改变任何框的位置尺寸；窗口过矮时整体滚动而不重叠。< 900 单列堆叠（需你处理 → 树 → 名册），< 560 通道单列。
+- 检查（本轮实测，vendor HEAD `6164506`）：session 单测 218/218，test:browser 48/48，vendor 类型 0 错误；根 `verify:brief` typecheck PASS、unit 190/190；E2E（mock，独立服务 4617）`c5-runtime` en 34/34、zh 34/34（含 width-1600 测内层框架不滚动且状态栏可见、parallel-subagents、geometry-stable、focus-stable 与 focus-on-change（两项均有去掉修复的对照 FAIL）、reply-in-panel），`c4-trajectory` 17/17；补丁 0001→0019 干净重放 19/19，重放树单测 218/218。终审 12 条全部处理（含窄屏竖轨、子代理加载失败可重试）。真实界面在本机最高窗口（框架 601 px）下 1600/1100 宽不滚动、状态栏可见。
+- 本地包：`oco-0.0.4-a66baa8.vsix`，已安装到本机 VS Code（需 Reload Window）。
+- NOT RUN / 限制：亮色主题（用户裁定不做）；嵌套 ≥2 层子代理 E2E（mock 不产生孙会话）；真实模型长会话性能；Remote（gcp-workstation）未部署。
+
+## 运行视图 M2（补丁 0019 追加，2026-10-03；在分支 `claude/nostalgic-gates-ef74ca`，未合入 main，未推送；已部署 gcp-workstation）
+
+- 运行视图支持在焦点区直接处理需要你的时刻：
+  - 权限可以允许一次、始终允许或拒绝；提问可以“去对话中回答”或直接拒绝。回复都发给请求自己所在的会话，子会话的请求也一样。
+  - 停止按钮只在实时模式、且根会话忙碌时显示；停止后先显示“已请求取消”，再显示“已取消”。
+  - 429 重试会显示倒计时。
+  - 子代理行可以展开一层，显示子会话的焦点、活跃工具和生命周期，并提供“在对话中打开”。task 的状态和子会话的生命周期分两段文字显示（后台 task 不会被误当作已结束）。
+  - 回看时 DOM 中没有任何回复或停止按钮。
+- 补丁 0019 追加 M2 后共 15 个文件，+4258/−5，在干净 `51ef4be` 上与 0001–0018 依序应用 19/19。
+- 检查（本轮实测）：
+  - vendor 类型 0 错误；session 单测 147/147。
+  - 根 `verify:brief`：typecheck 0 错误，unit 188/188。
+  - E2E（mock，独立服务 4617）：`c5-runtime` 英文 16/16、中文 16/16，回归 `c4-trajectory` 17/17。
+  - 证据：[验收](evidence/runtime-m2-verification.md)、[E2E 与断言对应](evidence/runtime-m2-e2e.md)。
+- NOT RUN 与限制：
+  - 未验证的环境：真实模型、Remote（例如 gcp-workstation）。
+  - 时钟偏差可能让“已请求取消”提前消失或一直显示。
+  - 停止不清空待办和排队中的消息。
+  - 一轮超过 8 个子代理、同步失败、缓存驱逐后重新拉取，这几条路径没有 E2E，也没有组件级测试。
+  - M3（机制图、思考流、嵌套折叠、键盘/读屏、多宽度/主题 E2E）未做。
+- 部署：`oco-0.0.4-9ff60a9.vsix` 已用 `scripts/deploy-remote.sh` 安装到 gcp-workstation。`extension.js` sha256 为 `c4530fd9…`，与上次部署相同（扩展端未变）；远端 `media/chat/index.html` 与 VSIX 内的哈希一致，前缀均为 `99ed8148…`，运行视图代码已在远端包内。需要在 Remote 窗口执行 Reload Window 才会生效。Remote 上的交互实测为 NOT RUN。
+- 路由：Grok 完成 Task 1–4 后余额用尽（402）。Gemini 前期一直报地域错误；用户固定台湾出口后恢复，完成终审修复与 E2E 重跑。两路都不可用期间由主线程接手，记录在 [账本](evidence/delegation-runtime-m2-2026-10-03.md)。
+
+## 运行视图 M1（补丁 0019，2026-10-03；本地已提交，未推送，未部署）
+
+- 会话标题栏第三个视图“运行”（对话 | 轨迹 | 运行），只读，实时 + 按步骤回看：焦点区、阶段条、并行工具/子代理行、事件日志、用量（未知≠0、已结算标记）、最后事件 xx 前（推断）；子会话权限/提问也算“等你处理”；中断的请求/工具标“已中断（推断）”。**不显示“断连”**（嵌入页没有连接健康信号）。三语 en/zh/zht。设计与计划：[spec](superpowers/specs/2026-10-02-runtime-dashboard-design.md)、[M1 计划](superpowers/plans/2026-10-03-runtime-dashboard-m1.md)。
+- 补丁 `patches/opencode/0020-oco-runtime-view.patch`（9 个文件，+2332/−5）在干净 `51ef4be` 上与 0001–0018 依序应用 19/19；不改宿主、桥、公共契约。
+- 检查（本轮实测）：vendor app 类型 0 错误；session 目录单测 90/90（运行视图 67）；根 `verify:brief` typecheck 0 错误、unit 185/185；webview 构建 PASS；E2E（mock，独立服务 4617）`c5-runtime` 英文 9/9、中文 9/9，回归 `c4-trajectory` 17/17。证据：[验收](evidence/runtime-m1-verification.md)、[E2E](evidence/runtime-m1-e2e.md)。
+- NOT RUN：真实模型、Remote、1000+ 消息真实性能（合成基准一次重建约 140–165 ms，其中约 116 ms 为既有 `buildTrajectory`）、子代理/审批界面/429/取消的 E2E、实时与事后重建的逐事件一致性对比。M2（审批按钮、子代理加载与下钻、取消）与 M3（机制图、思考流、嵌套折叠、键盘/读屏、多宽度/主题 E2E）未做；M3 前须先重构单一大 memo 与按对象引用重建的行。
+- 过程：Gemini（agy）实现与跑 E2E，Claude 评审；Grok 额度不足未用。委派包装代理两次因 API 额度错误被中断，但 agy 任务自行完成并经主线程核对。`tests/unit/e2e-results.test.ts` 与 `docs/TEST-SCOPE.md` 已同步到 22 个全量套件。
+
+## 会话标题行恢复上下文用量（补丁 0019，已提交到 main，2026-10-08；`oco-0.0.4-24fb5da.vsix` 已装本机 VS Code，需 Reload Window）
+
+- 嵌入模式会话标题行（对话、轨迹两个视图）显示上下文圆环，不显示数字（用户要求省空间）；≥75% 黄、≥90% 红；数字只在悬停提示里，模型无上限时提示显示「—」。替代补丁 0017 隐藏圆环的做法。`scripts/setup.sh` 修复重放：清掉补丁新建的未跟踪文件，补丁失败即退出。
+- 检查：补丁 0001–0019 在固定 SHA 上重放两次通过；`tsgo -b` PASS；build PASS；E2E（mock）`c4-trajectory` 17/17（去掉数字后重跑）。NOT RUN：配色阈值与「—」、窄面板、真实模型、Remote。详情 [c5-context-usage](evidence/c5-context-usage.md)。
+
+## 会话侧栏改为 webview（[Jack-Xiao/oco#3](https://github.com/Jack-Xiao/oco/pull/3)，2026-10-08 合并为 `9b32950`；已装本机 VS Code）
 
 - 侧栏 oco 只有一个 webview 视图 "Sessions"（id 仍为 `oco.sessions`），外观接近 Claude Code：时间右对齐、圆角选中、30px 行高。搜索改为标题栏按钮触发；Connection 视图删除。决定见 [ADR-008](adr/008-webview-sessions-list.md)，过程与委派见 [spike 记录](evidence/sessions-webview-spike-2026-10-08.md)。
 - 检查：typecheck PASS；build PASS；unit 185/185；E2E（mock）`p1b-sidebar` 13/13、`c3-fork` 4/4、`p1b-reconnect` 5/5、`t010-recover` 5/5、`t014-connection` 6/6。NOT VERIFIED：右键菜单（macOS 原生菜单）。NOT RUN：其余 E2E、Remote（gcp-workstation 已不存在）。
+- 部署：`oco-0.0.4-9b32950.vsix`（extension.js sha256 `fa68647b…`）用 VS Code 自带 CLI 覆盖安装到本机，安装目录哈希一致；需 Reload Window。旧实验设置 `oco.experimental.webviewSessions` 已不存在，可从用户设置删除。
 
 ## 项目委派规则收紧（2026-10-02；文档）
 

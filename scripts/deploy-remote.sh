@@ -11,7 +11,7 @@ VER="$(node -p "require('./apps/extension/package.json').version")"
 PUB="$(node -p "require('./apps/extension/package.json').publisher")"
 NAME="$(node -p "require('./apps/extension/package.json').name")"
 VSIX="${2:-$ROOT/oco-${VER}-$(git rev-parse --short HEAD).vsix}"
-test -f "$VSIX" || { echo "找不到 $VSIX，先运行 bash scripts/package-vsix.sh" >&2; exit 1; }
+test -f "$VSIX" || { echo "找不到 ${VSIX}，先运行 bash scripts/package-vsix.sh" >&2; exit 1; }
 EXPECT="$(unzip -p "$VSIX" extension/dist/extension.js | shasum -a 256 | awk '{print $1}')"
 REMOTE_NAME="${PUB}.${NAME}-${VER}"
 scp -q -o BatchMode=yes "$VSIX" "$HOST:/tmp/${REMOTE_NAME}.vsix"
