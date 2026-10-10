@@ -31,7 +31,7 @@ button,select{font:inherit;color:inherit}
 .mock .how{background:transparent;border:1px solid var(--rt-line-strong);border-radius:4px;height:22px;padding:0 8px;cursor:pointer;color:var(--rt-text)}
 .mock .sp{flex:1}
 /* ---------- 运行视图（固定框架） ---------- */
-.frame{height:calc(100vh - 30px);min-height:430px;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:6px;padding:8px 16px;background:var(--rt-bg);position:relative}
+.frame{height:calc(100vh - 30px);min-height:430px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:6px;padding:8px 16px;background:var(--rt-bg);position:relative}
 .top{display:grid;grid-template-columns:auto auto auto minmax(120px,1fr) auto auto;grid-template-areas:"state mode ctl track clock spd";align-items:center;column-gap:10px;padding-bottom:6px;border-bottom:1px solid var(--rt-line-strong);min-width:0}
 .state{grid-area:state;display:flex;align-items:center;gap:7px;font-weight:700;white-space:nowrap;width:128px;overflow:hidden}
 .state i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--c)}
@@ -66,18 +66,18 @@ button,select{font:inherit;color:inherit}
 /* 你 */
 .you{border:1px solid var(--rt-line);border-radius:8px;background:var(--rt-bg);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
 .you.need{border-color:var(--rt-attn);background:#1d1b16}
-.you.dism{border-color:#6b3a3d}
+.you.dism{border-color:var(--rt-faint)}
 .yh{display:flex;align-items:center;gap:8px;min-width:0}
 .av{flex:none;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--rt-line-strong);display:grid;place-items:center;font:700 12px var(--sans);font-style:normal;color:var(--rt-weak)}
 .need .av{border-color:var(--rt-attn);color:var(--rt-attn);background:#2c2616}
-.dism .av{border-color:var(--rt-err);color:var(--rt-err)}
+.dism .av{border-color:var(--rt-faint);color:var(--rt-faint)}
 .ys{font-size:12px;color:var(--rt-weak);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .need .ys{color:var(--rt-attn);font-weight:700}
-.dism .ys{color:var(--rt-err);font-weight:700}
+.dism .ys{color:var(--rt-faint);font-weight:700}
 .yl{font-size:11.5px;color:var(--rt-faint)}
 .ytxt{font-size:12.5px;line-height:1.55;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical}
 .yq{font-size:12.5px;font-weight:700;color:var(--rt-attn)}
-.yq.err{color:var(--rt-err)}
+.yq.err{color:var(--rt-err)} .yq.dim{color:var(--rt-faint)}
 .opts{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px;font-size:12px}
 .opts li{display:grid;grid-template-columns:16px minmax(0,1fr);column-gap:4px}
 .opts li i{font-style:normal;color:var(--rt-attn)}
@@ -99,8 +99,8 @@ button,select{font:inherit;color:inherit}
 .model .cr{color:var(--rt-faint);font-size:11px}
 .model.lit{border-color:var(--c)}
 .model.lit .l1 b{color:var(--c)}
-/* 圆心计数 */
-.ctr{text-align:center;pointer-events:none}
+/* 圆心计数：safe center，超长从右侧省略，代理名不裁；本行可点（计划按钮） */
+.ctr{text-align:center;pointer-events:auto}
 .ctr .who{font:700 12px var(--mono);color:var(--rt-main);letter-spacing:.04em}
 .ctr .n{font-size:15px;font-weight:700;white-space:nowrap}
 .ctr .n em{font-style:normal;color:var(--rt-main)}
@@ -112,13 +112,14 @@ button,select{font:inherit;color:inherit}
 .ctr.dim .n,.ctr.dim .who{color:var(--rt-weak)}
 .ctr .pips b{font-weight:400;font-size:10px;line-height:7px;color:var(--rt-faint)}
 /* 宽屏：计数收成一行，放在卡片上沿和上半环之间 */
-.ctr.line{display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
+.ctr.line{display:flex;align-items:center;justify-content:center;justify-content:safe center;gap:7px;white-space:nowrap;overflow:hidden}
 .ctr.line .who{flex:none;font-size:12px}
-.ctr.line .n{flex:none;font-size:13px}
+.ctr.line .n{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:13px}
 .ctr.line .pips{flex:none;margin-top:0;gap:4px;align-items:center}
 .ctr.line .pips i{width:6px;height:6px}
 /* 计划小标：会话里有过计划才出现 */
-.pchip{flex:none;display:inline-block;font:11px/16px var(--sans);color:var(--rt-weak);border:1px solid var(--rt-line-strong);border-radius:9px;padding:0 7px;background:var(--rt-panel);white-space:nowrap}
+.pchip{flex:none;display:inline-block;font:11px/16px var(--sans);color:var(--rt-weak);border:1px solid var(--rt-line-strong);border-radius:9px;padding:0 7px;background:var(--rt-panel);white-space:nowrap;cursor:pointer;pointer-events:auto}
+button.pchip{font-family:inherit}
 .pchip b{font:700 11px var(--mono);color:var(--rt-text)}
 .pchip.done b{color:var(--rt-ok)}
 .ctr:not(.line) .pchip{margin-top:4px}
@@ -126,8 +127,9 @@ button,select{font:inherit;color:inherit}
 .pay{border:1px solid var(--c,var(--rt-line-strong));border-radius:8px;background:#151a23;padding:8px 10px;display:flex;flex-direction:column;gap:4px}
 .pay .h{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px}
 .pay .k{flex:none;padding:0 6px;border-radius:4px;font-size:11.5px;font-weight:700;color:#0e1218;background:var(--c,var(--rt-line-strong))}
-.pay .rt{font-weight:700;color:var(--c,var(--rt-text));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pay .el{margin-left:auto;flex:none;color:var(--rt-faint);font:11px var(--mono)}
+.pay .rt{flex:1;min-width:0;font-weight:700;color:var(--c,var(--rt-text));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pay[role=button]{cursor:pointer}
+.pay[role=button]:focus-visible,.pchip:focus-visible{outline:2px solid var(--rt-main);outline-offset:1px}
 .pay .b{flex:none;font-size:12.5px;line-height:19px;overflow:hidden;word-break:break-word}
 .pay .b.m{font:12px/19px var(--mono)}
 .pay .b .tag{display:inline-block;font:10.5px var(--sans);color:var(--rt-faint);border:1px solid var(--rt-line-strong);border-radius:3px;padding:0 4px;margin-right:5px;vertical-align:1px}
@@ -147,6 +149,7 @@ button,select{font:inherit;color:inherit}
 .plan li.pending>span{color:var(--rt-text)}
 .plan li.cancelled>span{text-decoration:line-through;color:var(--rt-faint)}
 .plan li.more{display:block;padding-left:17px;color:var(--rt-faint)}
+.plan.full li>span{white-space:normal}
 /* 工具台 */
 .tools{border:1px solid var(--rt-line);border-radius:8px;background:var(--rt-bg);padding:5px 8px}
 .dh{display:flex;align-items:baseline;gap:6px;font-size:12px;height:20px;white-space:nowrap;overflow:hidden}
@@ -166,6 +169,7 @@ button,select{font:inherit;color:inherit}
 .trow.run{border-left-color:var(--rt-sub);border-color:#3c4f78;border-left-color:var(--rt-sub)} .trow.run .g,.trow.run .tn{color:var(--rt-sub)}
 .trow.ok{border-left-color:var(--rt-ok)} .trow.ok .g{color:var(--rt-ok)} .trow.ok .z{color:#9fc7a8}
 .trow.err{border-left-color:var(--rt-err);border-color:#5a3236;border-left-color:var(--rt-err)} .trow.err .g,.trow.err .z{color:var(--rt-err)}
+.trow.rej{border-color:var(--rt-line);border-left-color:var(--rt-faint)} .trow.rej .g,.trow.rej .tn,.trow.rej .z{color:var(--rt-weak)}
 .trow.more{border-style:dashed;border-left-width:1px;color:var(--rt-weak);display:flex;align-items:center}
 .trow.chip{padding:1px 6px;display:flex;align-items:center}
 .empty{position:absolute;left:8px;right:8px;text-align:center;color:var(--rt-faint);font-size:12px;line-height:1.5}
@@ -234,11 +238,14 @@ button,select{font:inherit;color:inherit}
 .sd .act li.run{border-left-color:var(--rt-sub)} .sd .act li.run .g,.sd .act li.run .tn{color:var(--rt-sub)}
 .sd .act li.ok{border-left-color:var(--rt-ok)} .sd .act li.ok .g{color:var(--rt-ok)} .sd .act li.ok .z{color:#9fc7a8}
 .sd .act li.err{border-left-color:var(--rt-err)} .sd .act li.err .g,.sd .act li.err .z{color:var(--rt-err)}
+.sd .act li.rej{border-color:var(--rt-line);border-left-color:var(--rt-faint)} .sd .act li.rej .g,.sd .act li.rej .tn,.sd .act li.rej .z{color:var(--rt-weak)}
 .sd .act li.more,.sd .act li.none{border:0;background:transparent;padding:0;color:var(--rt-faint);font-size:11px}
 .sd .ft{flex:none;display:flex;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid var(--rt-line);min-width:0;white-space:nowrap}
 .sd .go{flex:none;height:24px;border:1px solid var(--rt-line-strong);border-radius:5px;background:var(--rt-panel);color:var(--rt-main);padding:0 9px;cursor:pointer}
 .sd .go:disabled{color:var(--rt-faint);cursor:default}
 .sd .ft .nt{color:var(--rt-faint);font-size:11px;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sd .est{color:var(--rt-faint);font-size:11px;margin-top:8px}
+.sd .om{color:var(--rt-weak);font-size:11px;margin-top:8px;white-space:normal}
 .sd .lg h5{margin:2px 0 4px}
 .sd .li{display:flex;align-items:center;gap:6px;width:100%;min-width:0;margin:0 0 4px;border:1px solid var(--rt-line);border-left-width:3px;border-radius:5px;background:var(--rt-panel);padding:3px 8px;text-align:left;cursor:pointer;white-space:nowrap}
 .sd .li:hover{background:#1f2633}
@@ -248,6 +255,7 @@ button,select{font:inherit;color:inherit}
 .sd .li.queued{border-left-color:var(--rt-line-strong)} .sd .li.run{border-left-color:var(--rt-sub)} .sd .li.docked{border-left-color:var(--rt-attn)} .sd .li.done{border-left-color:var(--rt-ok)} .sd .li.err{border-left-color:var(--rt-err)}
 .sd .li.run .du{color:var(--rt-sub)} .sd .li.docked .du{color:var(--rt-attn)} .sd .li.done .du{color:var(--rt-ok)} .sd .li.err .du{color:var(--rt-err)}
 .sd{position:absolute;z-index:4}
+#cd.sd{z-index:5}
 @media (prefers-reduced-motion:no-preference){.sd:not([hidden]){animation:sdIn .16s ease-out}}
 @keyframes sdIn{from{opacity:0}}
 .sd .sb.lst{gap:4px}
@@ -259,18 +267,14 @@ button,select{font:inherit;color:inherit}
 .cnt{position:absolute;text-align:center;font-size:11px;color:var(--rt-weak);line-height:1.35}
 .cnt b{display:block;font:700 20px/1.2 var(--mono);color:var(--rt-ok)}
 .cnt.zero b{color:var(--rt-faint)}
-/* 此刻（次要的一句话） + 状态栏 */
-.cap{height:20px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--rt-text)}
-.cap b{color:var(--rt-weak);margin-right:6px}
+/* 状态栏（字幕行已去掉，舞台顺延） */
 .status{display:flex;gap:14px;align-items:center;font:11.5px var(--mono);color:var(--rt-weak);height:20px;white-space:nowrap;overflow:hidden}
 .status .sv{color:var(--rt-text)}
 .legend{margin-left:auto;display:flex;gap:10px;font-family:var(--sans);font-size:11.5px;flex:none}
 .legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;background:var(--c)}
 @media (max-width:719px){
-  .cap{height:38px;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:19px}
   .legend,.status .wide{display:none}
 }
-body.cover .cap{visibility:hidden}
 /* 怎么看 / 对照 */
 .howbox{position:absolute;right:16px;bottom:34px;z-index:5;width:min(440px,calc(100% - 32px));background:#10141c;border:1px solid var(--rt-line-strong);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 .howbox h4{margin:0 0 4px;font-size:12.5px}
@@ -293,8 +297,8 @@ body.cover .cap{visibility:hidden}
 </head>
 <body>
 <div class="mock" id="mock">
-  <b>样稿</b><span class="ell" id="mockTitle">M5 运行视图 · 真实数据第 1–4 轮</span>
-  <div class="seg" id="cmpSeg"><button data-v="now">现在</button><button data-v="new" class="on">改后</button></div>
+  <b>样稿</b><span class="ell" id="mockTitle">M5 运行视图 · 真实数据第 1–4 轮 · 已同步 2026-10-09 产品</span>
+  <div class="seg" id="cmpSeg"><button data-v="now">M4（旧）</button><button data-v="new" class="on">改后</button></div>
   <select id="kf" aria-label="关键帧"></select>
   <button class="how" id="howBtn">怎么看</button>
   <span class="sp"></span>
@@ -305,20 +309,19 @@ body.cover .cap{visibility:hidden}
     <div class="state" id="state"><i></i><b>运行中</b></div>
     <div class="seg mode" id="modeSeg"><button data-v="live">● 实时</button><button data-v="replay" class="on">回放</button></div>
     <div class="ctl">
-      <button id="bStart" title="回到开头">⏮</button><button id="bPrev" title="上一个事件">◀</button><button id="bPlay" title="播放 / 暂停">▶</button><button id="bNext" title="下一个事件">▶|</button>
+      <button id="bStart" title="回到开头">⏮</button><button id="bPrev" title="上一个事件">|◀</button><button id="bPlay" title="播放 / 暂停">▶</button><button id="bNext" title="下一个事件">▶|</button>
     </div>
     <div class="track" id="track"></div>
     <span class="clock" id="clock">--:--:--</span>
     <button class="spd" id="spd">1×</button>
   </header>
   <main class="stage" id="stage"><div class="inner" id="inner"></div></main>
-  <div class="cap" id="cap"></div>
   <footer class="status" id="status"></footer>
   <div class="howbox" id="howbox" hidden>
     <h4>怎么看这张图</h4>
     <ol>
       <li><b>中间的环 = 当前代理（第 1 轮 Sisyphus，之后 build）的一次循环</b>：组装请求 → 模型思考 → 模型输出 → 调工具 → 等结果 → 带回结果，再发下一次请求。<b>亮的站 = 此刻阶段</b>，亮的弧 = 这次请求走到哪了。卡片上方一行是轮次 / 请求计数；会话里有过执行计划时，旁边多一个“计划 完成数/总数”。</li>
-      <li><b>环心卡片 = 此刻在发的东西</b>：左上角是种类，后面是“谁 → 谁”，正文是原样摘录。代理写 / 更新执行计划时，卡片种类是“计划”，逐项照录内容和状态。</li>
+      <li><b>环心卡片 = 此刻在发的东西</b>：左上角是种类，后面是“谁 → 谁”，正文是原样摘录。代理写 / 更新执行计划时，卡片种类是“计划”，逐项照录内容和状态。点卡片看全文。</li>
       <li><b>位置固定</b>：左边是“你”，环上方是“模型”，右边是“工具台”和“子代理航道”。本轮还没派子代理时，航道收成一条（本轮情况 + 本会话共几个子代理），腾出的地方给环；派出第一个时展开。<b>移动的小点</b>就是正在路上的请求、调用、结果或提问；在哪里停着，哪里就在干活（工具停在那一行门口，子代理停在格子右上角）。子代理航道沿用 M4：上沿派发 → 格子里作业 → 下沿回传 → 左下泊位待取回 → 取回。</li>
       <li><b>点子代理看它此刻的状态</b>：格子、路上 / 停着的小点、收起时那一条都能点（键盘 Tab + 回车也行）。详情盖在环上：名字和类型、状态（派发中 / 运行中 / 待取回 / 已取回 / 失败）和用时、交接内容、它自己的工具调用和文字、返回结果，以及“打开子会话”（跳转，不是操作）。收起那一条点开是本会话到此刻派过的全部子代理。Esc 或 ✕ 关闭；只用 ≤ 此刻的事件。</li>
       <li>颜色：<span class="sw" style="--c:var(--rt-main)"></span>build <span class="sw" style="--c:var(--rt-accent)"></span>思考 <span class="sw" style="--c:var(--rt-sub)"></span>运行 / 子代理 <span class="sw" style="--c:var(--rt-ok)"></span>完成 <span class="sw" style="--c:var(--rt-err)"></span>失败 / 忽略 <span class="sw" style="--c:var(--rt-attn)"></span>需要你</li>
@@ -339,6 +342,17 @@ body.cover .cap{visibility:hidden}
     <li><b>英文：直接输出，不加任何标记。</b></li>
     <li><b>收起时的连线：不再悬空。</b> <span class="now">每条总线只画到此刻真有支线的地方：去程 = 调工具出口 + 用到的工具行 + 航道入口；回程 = 用到的工具行 + 回传航道（仅展开时）→ 等结果，什么都不回来就整条不画。航道收起时去程接一小段到那一条的左缘，止于接口小圆，用不亮的虚线；展开时恢复派发 / 回传两条航道（0.4 秒交叉淡入淡出）。</span></li>
     <li><b>子代理可以点开看状态（只看，不操作）。</b> <span class="now">格子 / 小点 / 收起那一条都可点、可用键盘到达（有焦点框）。详情盖在环所在区域（宽屏：“你”与总线之间、以环心为中心；窄屏：“你”之下、工具台和航道之上），不推动画面；Esc 或 ✕ 关闭，焦点回到点开它的地方。内容全由 ≤ 此刻的事件算出：交接要等 task 参数写完才有原文；返回结果要等取回（task 收尾）才有原文；所选子代理在此刻还没派出时面板直接关闭。</span></li>
+  </ol>
+  <h3>2026-10-09 反馈修正（产品已实现，样稿已同步）</h3>
+  <ol>
+    <li><b>上一步图标。</b> <span class="now">回放「上一步」由 ◀ 改为 |◀，与「下一步」▶| 对称。</span></li>
+    <li><b>去掉「此刻」字幕。</b> <span class="now">底部那一行删掉，舞台高度顺延，不留空行。</span></li>
+    <li><b>环心卡片。</b> <span class="now">去掉右上角时长和卡片内的 meta 行，正文占满可用高度。整卡可点（有文字、流式中或有 meta 即可，运行中也可），浮层显示种类、谁 → 谁、全文、附注和 meta。没有「全文」按钮。</span></li>
+    <li><b>回放估算。</b> <span class="now">尚未结束的思考 / 输出仍按已过时间显示前缀，浮层多一行「回放：按时间估算的进度」。字数只在该段结束后出现。流式且正文为空时显示「生成中…」。</span></li>
+    <li><b>状态栏与结束卡片。</b> <span class="now">结束卡片的 meta 和底部状态栏都不再附空闲时长；空闲超过 2 秒环仍降频。</span></li>
+    <li><b>计数行与计划。</b> <span class="now">safe center，超长从右侧省略，代理名保留。「计划 n/m」是按钮（查看计划），浮层列出全部计划项：✓ 完成 · ● 进行中 · ○ 待办 · 取消划线。</span></li>
+    <li><b>工具台按轮收缩。</b> <span class="now">仅宽布局：本轮到此刻还没调工具，或最后一次请求结束时没调工具，收成 30px 标题条（data-oco-runtime-tools-k=0）；本轮首次调工具展开。收起时去程 / 回程总线仍接到工具台边缘。窄布局不收。</span></li>
+    <li><b>拒绝 / 忽略不用红色。</b> <span class="now">被拒绝或被忽略的工具行和子代理动作行用 ⊘ 和淡边框，不用红色。</span></li>
   </ol>
   <h3>仍待定</h3>
   <ol>
@@ -407,6 +421,9 @@ function mkTool(p, q, i) {
   const kind = p.tool === 'task' ? 'task' : p.tool === 'question' ? 'question' : 'tool';
   const x = { q, i, tool: p.tool, kind, input, created: p.created, start: p.time ? p.time.start ?? null : null, end: p.time ? p.time.end ?? null : null, status: p.status, error: String(p.error || ''), out: p.output_head || '', chars: p.output_chars || 0 };
   x.fail = p.status === 'error';
+  const errS = String(p.error || '');
+  x.declined = errS.startsWith('The user rejected permission') ? 'rejected'
+    : errS.startsWith('The user dismissed this question') || (kind === 'question' && /dismiss/i.test(errS)) ? 'dismissed' : '';
   x.arg = input.command ?? input.filePath ?? (input.pattern != null ? input.pattern + (input.path ? '  ' + input.path : '') : null) ?? input.url ?? input.query ?? input.name ?? '';
   x.key = p.tool + '|' + JSON.stringify(input);
   if (p.tool === 'todowrite') {   // 执行计划：逐项照录 + 状态
@@ -511,6 +528,19 @@ function laneOpen(t) {
   let v = r.prev && r.prev.firstTask != null ? 1 : 0;
   v = Math.max(0, v - ((ft ?? t) - r.start) / LANE_MS);
   if (ft != null) v = Math.min(1, v + (t - ft) / LANE_MS);
+  return v * v * (3 - 2 * v);
+}
+// 工具台开合（仅宽布局用）：0 = 30px 标题条。本轮还没调过工具则收起；本轮第一次工具调用起展开；
+// 之后若最近一次请求已经结束且没调工具，再收起。提问也算这次请求的工具调用。窄布局不读这个值。
+function dockOpen(t) {
+  const r = roundAt(t); if (!r) return 0;
+  let ft = Infinity;
+  for (const q of r.reqs) for (const x of q.tools) if (x.created <= t && x.created < ft) ft = x.created;
+  if (ft === Infinity) return 0;
+  const qs = r.reqs.filter(q => q.created <= t), q = qs[qs.length - 1];
+  const closeAt = q && q.created > ft && q.finish && q.finish.at <= t && !q.tools.some(x => x.created <= t) ? q.finish.at : null;
+  if (REDUCED) return closeAt == null ? 1 : 0;
+  const v = closeAt == null ? Math.min(1, (t - ft) / LANE_MS) : Math.max(0, 1 - (t - closeAt) / LANE_MS);
   return v * v * (3 - 2 * v);
 }
 const childCost = (x, t) => x.child ? x.child.messages.reduce((s, m) => s + (m.role === 'assistant' && m.completed != null && m.completed <= t ? m.cost || 0 : 0), 0) : 0;
@@ -719,7 +749,8 @@ const lerp = (a, b, k) => a + (b - a) * k;
 const STRIP_H = 40;       // 航道收起后的一条（两行字：本轮情况 / 本会话共几个子代理）
 const PAY_H = 116;        // 宽屏环心卡片固定高：边框 2 + 上下内边距 16 + 标题 18 + 正文 3 行 57 + 说明 1 行 15 + 间距 8
 const CTR_H = 20;         // 宽屏计数行
-function geoWide(W, H, k) {
+function geoWide(W, H, k, dk) {
+  if (dk == null) dk = 1;
   const pad = 14;
   // 航道收起（k=0）时右栏只剩工具台，变窄；腾出的宽度给环
   const youW = clamp(W * 0.19, 190, 290), dockW = Math.round(lerp(clamp(W * 0.24, 262, 400), clamp(W * 0.28, 300, 470), k));
@@ -728,7 +759,7 @@ function geoWide(W, H, k) {
   const R = Math.max(118, Math.min((x1 - x0 - 124) / 2, (H - 112) / 2, lerp(258, 236, k)));
   const cx = x0 + R + 42 + Math.max(0, (x1 - x0 - (2 * R + 84)) / 2);
   const cy = clamp(H / 2 + 6, R + 68, H - R - 44);
-  const g = { mode: 'wide', k, W, H, R, cx, cy, pad, busO: busX - 4, busB: busX + 4 };
+  const g = { mode: 'wide', k, dk, W, H, R, cx, cy, pad, busO: busX - 4, busB: busX + 4 };
   const yh = Math.min(H - 2 * pad, 330);
   g.you = { x: pad, y: clamp(cy - yh / 2, pad, H - pad - yh), w: youW, h: yh };
   const mw = Math.min(1.95 * R, 360);
@@ -739,7 +770,7 @@ function geoWide(W, H, k) {
   // 计数一行：卡片上沿与上半环之间，宽度不超过这一高度处的弦长
   const ly = g.pay.y - 8 - CTR_H, half = Math.sqrt(Math.max(0, R * R - (cy - ly) ** 2)) - 18;
   g.ctr = { x: cx - half, y: ly, w: 2 * half, h: CTR_H };
-  const compact = H < 440, rowH = compact ? 22 : 32, rows = 5, th = 24 + rows * (rowH + 4) + 4;
+  const compact = H < 440, rowH = compact ? 22 : 32, rows = 5, full = 24 + rows * (rowH + 4) + 4, th = Math.round(lerp(30, full, dk));
   const lh = lerp(STRIP_H, clamp(H - 2 * pad - th - 12, 130, 180), k), gap = lerp(8, 12, k);
   const dy = clamp(cy - (th + gap + lh) / 2, pad, H - pad - (th + gap + lh));
   g.tools = { x: dockX, y: dy, w: dockW, h: th };
@@ -776,7 +807,7 @@ function laneGeo(g, sx0, sx1, cols = 3, nrows = 2) {
 }
 function geoNarrow(W, H, k) {
   const pad = 8;
-  const g = { mode: 'narrow', k, W, H, pad };
+  const g = { mode: 'narrow', k, dk: 1, W, H, pad };
   g.you = { x: pad, y: pad, w: W - 2 * pad, h: 70 };
   const ringTop = g.you.y + g.you.h + 10;
   const dockH = clamp(H - pad - ringTop - 8 - (72 + 2 * 100), 168, 196);
@@ -835,13 +866,15 @@ const inner = $('inner');
 inner.innerHTML = '<svg id="sv"></svg><div class="bx you" id="cYou"></div><div class="bx model" id="cModel"></div><div class="bx ctr" id="cCtr"></div><div class="bx pay" id="cPay"></div><div class="bx tools" id="cTools"></div><div class="bx lane" id="cLane"></div><svg id="fx"></svg><div class="hits" id="hits"></div>'
   + '<div class="sd" id="sd" role="dialog" aria-labelledby="sdT" hidden><div class="sh"><span class="k" id="sdK">子代理</span><b class="tt" id="sdT"></b><span class="ty" id="sdY"></span><span class="r" id="sdR"></span>'
   + '<button id="sdBack" title="回到子代理列表">← 列表</button><button id="sdX" title="关闭（Esc）" aria-label="关闭">✕</button></div><div class="sb" id="sdB"></div>'
-  + '<div class="ft" id="sdF"><button class="go" id="sdGo">打开子会话 ↗</button><span class="nt" id="sdN"></span></div></div>';
+  + '<div class="ft" id="sdF"><button class="go" id="sdGo">打开子会话 ↗</button><span class="nt" id="sdN"></span></div></div>'
+  + '<div class="sd" id="cd" role="dialog" aria-labelledby="cdT" hidden><div class="sh"><span class="k" id="cdK"></span><b class="tt" id="cdT"></b>'
+  + '<button id="cdX" title="关闭（Esc）" aria-label="关闭">✕</button></div><div class="sb" id="cdB"></div></div>';
 const place = (el, o) => { el.style.left = o.x + 'px'; el.style.top = o.y + 'px'; el.style.width = o.w + 'px'; el.style.height = o.h + 'px'; };
 let SW = 0, SH = 0;
 // 几何只取决于舞台尺寸和航道开合 k（k 是 t 的纯函数）；k 变了才重算
-function applyGeo(k) {
-  G = finishGeo(SW >= 980 ? geoWide(SW, SH, k) : geoNarrow(SW, SH, k));
-  place($('cYou'), G.you); place($('cModel'), G.model); place($('cCtr'), G.ctr); place($('cPay'), G.pay); place($('cTools'), G.tools); place($('cLane'), G.lane); place($('sd'), G.sd);
+function applyGeo(k, dk) {
+  G = finishGeo(SW >= 980 ? geoWide(SW, SH, k, dk) : geoNarrow(SW, SH, k));
+  place($('cYou'), G.you); place($('cModel'), G.model); place($('cCtr'), G.ctr); place($('cPay'), G.pay); place($('cTools'), G.tools); place($('cLane'), G.lane); place($('sd'), G.sd); place($('cd'), G.sd);
 }
 function layout() {
   const st = $('stage');
@@ -891,8 +924,8 @@ function tokenAt(t) {
 function render(t) {
   T = clamp(t, T0, T1);
   t = T;
-  const k = laneOpen(t);
-  if (!G || Math.abs(G.k - k) > 1e-4) applyGeo(k);
+  const k = laneOpen(t), dk = SW >= 980 ? dockOpen(t) : 1;
+  if (!G || Math.abs(G.k - k) > 1e-4 || Math.abs((G.dk ?? 1) - dk) > 1e-4) applyGeo(k, dk);
   const S = stageAt(t), F = facts(t, S);
   const [word, wc] = statusWord(S);
   const se = $('state'); se.style.setProperty('--c', CV[wc]); se.querySelector('b').textContent = word;
@@ -900,7 +933,9 @@ function render(t) {
   renderYou(t, S, F); renderModel(t, S, F); renderCtr(t, S, F); renderPay(t, S, F); renderTools(t, S, F); renderLane(t, S, F);
   renderSvg(t, S, F);
   renderSd(t);
-  $('cap').innerHTML = '<b>此刻</b>' + esc(caption(t, S, F));
+  if (PANEL === 'card' && CUR && !canOpen(CUR)) PANEL = null;
+  if (PANEL === 'plan' && !planAt(t)) PANEL = null;
+  renderCd(t);
   renderStatus(t, S, F);
   updateTrack(t);
   syncKf(t);
@@ -922,8 +957,8 @@ function renderYou(t, S, F) {
   } else if (ask && ask.state === 'dismissed') {
     const x = ask.x;
     body = narrow
-      ? `<div class="ytxt" style="color:var(--rt-err)">✕ 你忽略了提问「${esc(x.header)}」· 提问等了 ${sCN(x.end - x.start)}</div>`
-      : `<div class="yq err">✕ 你忽略了提问「${esc(x.header)}」</div><ol class="opts struck">${x.options.map((o, i) => `<li><i style="color:var(--rt-faint)">${NUM[i]}</i><b>${esc(o.label)}</b></li>`).join('')}</ol><div class="hint">提问等了 ${sCN(x.end - x.start)} · 第 ${r.n} 轮到此结束</div>`;
+      ? `<div class="ytxt" style="color:var(--rt-faint)">⊘ 你忽略了提问「${esc(x.header)}」· 提问等了 ${sCN(x.end - x.start)}</div>`
+      : `<div class="yq dim">⊘ 你忽略了提问「${esc(x.header)}」</div><ol class="opts struck">${x.options.map((o, i) => `<li><i style="color:var(--rt-faint)">${NUM[i]}</i><b>${esc(o.label)}</b></li>`).join('')}</ol><div class="hint">提问等了 ${sCN(x.end - x.start)} · 第 ${r.n} 轮到此结束</div>`;
   } else if (r) {
     body = narrow
       ? `<div class="ytxt">第 ${r.n} 轮你说：${esc(flat(r.text))}</div>`
@@ -938,7 +973,7 @@ function modelLine(t, S, F) {
     case 'asm': return ['等第 ' + q.m + ' 次请求', 'faint'];
     case 'fly': return [`收到请求 · 等首个回复 ${sCN(t - q.stepStart)}`, 'main'];
     case 'think': return [`思考中 ${sCN(t - F.think.start)}`, 'acc'];
-    case 'out': return [`输出中 · 已 ${reveal(F.text, t).n} 字`, 'text'];
+    case 'out': { if (!F.text) return ['输出中', 'text']; const rv = reveal(F.text, t), ended = F.text.end != null && t >= F.text.end; return [ended ? `输出中 · 已 ${rv.n} 字` : `输出中 ${sCN(t - F.text.start)}`, 'text']; }
     case 'call': return F.nCall ? [`写调用 · 已写 ${madeTxt(F)}`, 'tool'] : ['写一个给你的提问', 'attn'];
     case 'wait': return ['这次回复已写完 · 等结果', 'faint'];
     case 'ask': return ['这次回复已写完 · 等你回答', 'attn'];
@@ -959,9 +994,10 @@ function renderModel(t, S, F) {
   if (G.mode === 'narrow') el.innerHTML = `<div class="l1"><b>模型</b><span class="st ell">${esc(line)}</span></div><div class="cr ell">${esc(carry)}</div>`;
   else el.innerHTML = `<div class="l1"><b>模型</b><span class="mono" style="color:var(--rt-faint)">${esc(q ? q.model : '—')}</span><span class="r">${q ? '第 ' + q.m + ' 次请求' : ''}</span></div><div class="st ell">${esc(line)}</div><div class="cr ell">这次请求：${esc(carry)}</div>`;
 }
-function planChip(t) {   // 会话里有过计划才出现；没有计划的对话什么都不画
+function planChip(t) {   // 会话里有过计划才出现；按钮，点开浮层（没有计划的对话什么都不画）
   const p = planAt(t);
-  return p ? `<span class="pchip${p.d === p.n ? ' done' : ''}">计划 <b>${p.d}/${p.n}</b></span>` : '';
+  if (!p) return '';
+  return `<button type="button" class="pchip${p.d === p.n ? ' done' : ''}" aria-label="查看计划" aria-haspopup="dialog" aria-expanded="${PANEL === 'plan' ? 'true' : 'false'}">计划 <b>${p.d}/${p.n}</b></button>`;
 }
 function pipsHtml(reqs, m, S, t, max) {   // 请求点：超过 max 个时只画最近的，前面用 … 表示
   const over = reqs.length > max, list = over ? reqs.slice(reqs.length - (max - 1)) : reqs;
@@ -978,7 +1014,7 @@ function renderCtr(t, S, F) {
     const short = F.ended ? `第 ${r.n} 轮 · 已结束` : `第 ${r.n} 轮 · <em>请求 ${m || 1}</em>`;
     const mk = (np, txt, who) => `${who ? `<span class="who">${esc(ag)}</span>` : ''}<span class="n">${txt}</span>${np ? `<span class="pips">${pipsHtml(reqs, m, S, t, np)}</span>` : ''}${chip}`;
     const need = () => [...el.children].reduce((s, c) => s + c.offsetWidth + 7, -7);
-    for (const [np, txt, who] of [[10, main, 1], [6, main, 1], [0, main, 1], [6, short, 1], [0, short, 1], [0, short, 0]]) { el.innerHTML = mk(np, txt, who); if (need() <= el.clientWidth) break; }
+    for (const [np, txt, who] of [[10, main, 1], [6, main, 1], [0, main, 1], [6, short, 1], [0, short, 1]]) { el.innerHTML = mk(np, txt, who); if (need() <= el.clientWidth) break; }
     return;
   }
   const n = F.ended ? `<div class="n">第 ${r.n} 轮</div><div class="n" style="font-size:12.5px;color:var(--rt-weak)">已结束</div>` : `<div class="n">第 ${r.n} 轮</div><div class="n" style="font-size:13px"><em>第 ${m || 1} 次请求</em></div>`;
@@ -993,7 +1029,8 @@ function newestDone(q, t) {   // 等结果阶段：最近一次回来的结果
 const Bd = (pre, text, post, mode, cls) => ({ pre: pre || '', text: flat(text), post: post || '', mode: mode || 'head', cls: cls || '' });
 const madeTxt = F => F.nCall && F.nQ ? `${F.nCall} 个调用 + ${F.nQ} 个提问` : F.nQ ? `${F.nQ} 个提问` : `${F.nCall} 个调用`;
 function payload(t, S, F) {
-  const r = S.r, q = S.q, ag = agOf(r), C = (k, c, rt, body, meta, el, mono) => ({ k, c, rt, body, meta, el, mono });
+  const r = S.r, q = S.q, ag = agOf(r), C = (k, c, rt, body, meta, el, mono, extra) => ({ k, c, rt, body, meta, el, mono, ...(extra || {}) });
+  const spanOpen = p => !!(p && !(p.end != null && t >= p.end));
   const ctxM = F.ctx != null ? `上下文 ≈ ${tokn(F.ctx)}（上次回执）` : '上下文：这次回执后可知';
   const caret = '<span class="caret">▍</span>';
   const ps = planShown(t, S);
@@ -1006,8 +1043,8 @@ function payload(t, S, F) {
       const body = cr.kind === 'msg' ? Bd(tag + '带上你的消息：', '「' + flat(r.text) + '」') : Bd(tag + `带回 ${cr.n} 个结果：`, cr.list);
       return C('请求', 'main', `${ag} → 模型`, body, S.st === 'asm' ? `组装中 · ${ctxM}` : `已发出 ${sCN(t - q.stepStart)} · 等首个回复 · ${ctxM}`, S.st === 'asm' ? sK(t - q.created) : sK(t - q.stepStart));
     }
-    case 'think': { const rv = reveal(F.think, t); return C('思考', 'acc', `模型 → ${ag}`, Bd('', rv.s, rv.done ? '' : caret, 'tail'), `思考 ${sCN(t - F.think.start)} · 这次请求${F.carry.text}`, sK(t - F.think.start), latin(F.think.text)); }
-    case 'out': { const rv = reveal(F.text, t); return C('输出', 'text', '模型 → 你（对话）', Bd('', rv.s, rv.done ? '' : caret, 'tail'), `已 ${rv.n} 字`, sK(t - F.text.start)); }
+    case 'think': { const rv = reveal(F.think, t), open = spanOpen(F.think); return C('思考', 'acc', `模型 → ${ag}`, Bd('', rv.s, open ? caret : '', 'tail'), `思考 ${sCN(t - F.think.start)} · 这次请求${F.carry.text}`, sK(t - F.think.start), latin(F.think.text), { streaming: open, estimated: open && F.think.end != null, fullText: rv.s }); }
+    case 'out': { const rv = reveal(F.text, t), open = spanOpen(F.text); return C('输出', 'text', '模型 → 你（对话）', Bd('', rv.s, open ? caret : '', 'tail'), open ? `输出 ${sCN(t - F.text.start)}` : `已 ${rv.n} 字`, sK(t - F.text.start), false, { streaming: open, estimated: open && F.text.end != null, fullText: rv.s }); }
     case 'call': {
       const x = F.made[F.made.length - 1], started = x.start != null && x.start <= t;
       const meta = `这次请求已写 ${madeTxt(F)} · 在跑 ${F.tc.run + F.qsc.run}`;
@@ -1031,13 +1068,15 @@ function payload(t, S, F) {
     case 'ask': { const x = S.ask; return C('提问', 'attn', `${ag} → 你`, Bd('', x.question, '', 'mid'), G.mode === 'wide' ? `${x.options.length} 个选项见左侧「你」· 在输入框回答` : `${x.options.length} 个选项见上方「你」`, '已等 ' + sK(t - x.start)); }
     case 'next': { const f = q.finish; return C('回执', 'main', `模型 → ${ag}`, Bd('', `第 ${q.m} 次请求完成：回执 合计 ${tokn(f.tokens.total)}（入 ${tokn(f.tokens.input + f.tokens.cache.read + f.tokens.cache.write)} · 出 ${tokn(f.tokens.output + f.tokens.reasoning)}）· ${usd(f.cost)}`, `<span class="small">带上 ${q.tools.length} 个结果，发第 ${q.m + 1} 次请求</span>`), `上下文 ${tokn(f.tokens.total)}（= 这次回执合计）`, sK(t - f.at)); }
     case 'end': {
-      if (S.why === 'dismiss') { const x = S.x; return C('已忽略', 'err', `你 → ${ag}`, Bd('', `你忽略了提问「${x.header}」，第 ${r.n} 轮到此结束。`, `<span class="small">${esc(x.error)}</span>`), `${clock(x.end)} · 提问等了 ${sCN(x.end - x.start)} · 已空闲 ${sCN(F.idle)}`, ''); }
+      if (S.why === 'dismiss') { const x = S.x; return C('已忽略', 'faint', `你 → ${ag}`, Bd('', `你忽略了提问「${x.header}」，第 ${r.n} 轮到此结束。`, `<span class="small">${esc(x.error)}</span>`), `${clock(x.end)} · 提问等了 ${sCN(x.end - x.start)}`, '', false, { note: x.error || '', fullText: `你忽略了提问「${x.header}」，第 ${r.n} 轮到此结束。` }); }
       const tx = q.texts[q.texts.length - 1];
-      return C('本轮结束', 'ok', `${ag} → 你`, Bd('', tx ? tx.text : ''), `${clock(S.endAt)} · 已空闲 ${sCN(F.idle)}`, '');
+      const open = tx ? spanOpen(tx) : false, rv = tx ? reveal(tx, t) : { s: '' };
+      return C('本轮结束', 'ok', `${ag} → 你`, Bd('', rv.s, open ? caret : '', 'tail'), clock(S.endAt), '', false, { streaming: open, estimated: open && tx.end != null, fullText: rv.s });
     }
     case 'abort': {
       const th = q.think[q.think.length - 1];
-      return C('已中止', 'err', `${ag} ✕ 模型`, Bd('', `第 ${q.m} 次请求被中止：${q.err.name}（${q.err.message}）。`, th ? `<span class="small">中止前模型在思考：${esc(cut(th.text, 90))}</span>` : ''), `${clock(S.endAt)} · 已空闲 ${sCN(F.idle)}`, '');
+      const note = th ? `中止前模型在思考：${cut(th.text, 90)}` : '';
+      return C('已中止', 'err', `${ag} ✕ 模型`, Bd('', `第 ${q.m} 次请求被中止：${q.err.name}（${q.err.message}）。`, note ? `<span class="small">${esc(note)}</span>` : ''), clock(S.endAt), '', false, { note, fullText: `第 ${q.m} 次请求被中止：${q.err.name}（${q.err.message}）。` });
     }
   }
   return C('', 'faint', '', Bd('', ''), '', '');
@@ -1070,7 +1109,7 @@ function planCard(t, S, ps, ag) {
   const meta = writing ? `正在写计划第 ${x.ver} 版 · 已写完 ${full} 项`
     : ps.via === 'carry' ? `计划第 ${x.ver} 版随第 ${q.m} 次请求带回模型 · 完成 ${c.d}/${c.n}`
     : `计划第 ${x.ver} 版 · 完成 ${c.d} · 进行中 ${c.p} · 待办 ${c.n - c.d - c.p}`;
-  return { k: '计划', c: 'main', rt: `${ag} → 计划`, body: { html: mh => planHtml(items, mh) }, meta, el: writing ? sK(t - x.created) : `${c.d}/${c.n}` };
+  return { k: '计划', c: 'main', rt: `${ag} → 计划`, body: { html: mh => planHtml(items, mh) }, meta, el: writing ? sK(t - x.created) : `${c.d}/${c.n}`, streaming: writing, planItems: items, fullText: '' };
 }
 function planHtml(items, mh) {   // 每项一行（窄屏空间够时最多 3 行），放不下时以进行中的那项为准开窗，其余写“另 N 项”
   const nr = Math.max(1, Math.floor(mh / 14)), n = items.length;
@@ -1101,38 +1140,94 @@ function fitBody(el, B, mh) {
   }
   return search(a.length, n => a.slice(0, n).join('') + '…');
 }
+let PANEL = null, CUR = null;
+function canOpen(p) {
+  if (!p) return false;
+  const b = p.body || {};
+  const text = !!(b.text || b.pre || b.post || (typeof b.html === 'function') || (p.planItems && p.planItems.length) || p.fullText || p.note);
+  return text || !!p.streaming || !!p.meta;
+}
 function renderPay(t, S, F) {
   const p = payload(t, S, F), el = $('cPay');
+  CUR = p;
   el.className = 'bx pay' + (G.mode === 'wide' ? ' wide' : '');
   el.style.setProperty('--c', CV[p.c]);
-  el.innerHTML = `<div class="h"><span class="k">${esc(p.k)}</span><span class="rt">${esc(p.rt)}</span><span class="el">${esc(p.el)}</span></div><div class="b${p.mono ? ' m' : ''}"></div>${p.meta ? `<div class="mt">${p.meta}</div>` : ''}`;
-  const b = el.querySelector('.b'), h = el.querySelector('.h'), mt = el.querySelector('.mt');
-  const LH = 19, avail = el.clientHeight - 16 - h.offsetHeight - 4 - (mt ? mt.offsetHeight + 4 : 0);
+  el.innerHTML = `<div class="h"><span class="k">${esc(p.k)}</span><span class="rt">${esc(p.rt)}</span></div><div class="b${p.mono ? ' m' : ''}"></div>`;
+  const b = el.querySelector('.b'), h = el.querySelector('.h');
+  const LH = 19, avail = el.clientHeight - 16 - h.offsetHeight - 4;
   const mh = Math.max(LH, Math.floor(avail / LH) * LH);
   b.style.maxHeight = mh + 'px';
-  if (p.body.html) b.innerHTML = p.body.html(mh);
+  const emptyStream = p.streaming && !(p.body.text || (p.planItems && p.planItems.length));
+  if (emptyStream && !p.body.html) b.innerHTML = '<span class="small">生成中…</span>';
+  else if (p.body.html) b.innerHTML = p.body.html(mh);
   else fitBody(b, p.body, mh);
+  const on = canOpen(p);
+  el.setAttribute('role', 'button');
+  el.tabIndex = on ? 0 : -1;
+  el.setAttribute('aria-haspopup', 'dialog');
+  el.setAttribute('aria-expanded', PANEL === 'card' ? 'true' : 'false');
+  el.setAttribute('aria-label', '展开全文');
+  if (on) el.removeAttribute('aria-disabled'); else el.setAttribute('aria-disabled', 'true');
+  el.style.cursor = on ? 'pointer' : 'default';
+}
+function planFullHtml(items) {
+  return `<ul class="plan full">${items.map(o => `<li class="${o.part ? 'pending' : o.st}"><i>${o.part ? '·' : PLAN_G[o.st] || '○'}</i><span>${esc(o.text)}${o.part ? '<span class="caret">▍</span>' : ''}</span></li>`).join('')}</ul>`;
+}
+function renderCd(t) {
+  const el = $('cd');
+  if (!PANEL) { el.hidden = true; return; }
+  el.hidden = false;
+  if (PANEL === 'plan') {
+    const p = planAt(t);
+    el.style.setProperty('--c', CV.main);
+    setH('cdK', '计划');
+    setH('cdT', p ? `计划 ${p.d}/${p.n}` : '计划');
+    const items = p ? p.x.todos.map(o => ({ text: flat(o.text), st: o.st })) : [];
+    setH('cdB', items.length ? planFullHtml(items) : '<div class="tx wait">生成中…</div>');
+    return;
+  }
+  const p = CUR || { k: '', c: 'faint', rt: '', body: {}, meta: '' };
+  el.style.setProperty('--c', CV[p.c] || CV.faint);
+  setH('cdK', esc(p.k || ''));
+  setH('cdT', esc(p.rt || ''));
+  const b = p.body || {};
+  let html = '';
+  if (b.pre) html += `<div class="st">${b.pre}</div>`;
+  if (p.planItems) html += p.planItems.length ? planFullHtml(p.planItems) : (p.streaming ? '<div class="tx wait">生成中…</div>' : '');
+  else if (p.streaming && !(p.fullText || b.text)) html += '<div class="tx wait">生成中…</div>';
+  else html += `<div class="tx">${esc(p.fullText != null ? p.fullText : b.text || '')}${p.streaming ? '<span class="caret">▍</span>' : ''}</div>`;
+  // 思考/输出的 post 只是卡片光标；浮层正文已自带一个，不再重复
+  if (b.post && !b.post.includes('class="caret"')) html += `<div class="st">${b.post}</div>`;
+  else if (p.note) html += `<div class="st">${esc(p.note)}</div>`;
+  if (p.estimated) html += '<div class="est" data-oco-runtime-card-estimated>回放：按时间估算的进度</div>';
+  if (p.meta) html += `<div class="om" data-oco-runtime-card-meta>${esc(p.meta)}</div>`;
+  setH('cdB', html);
 }
 function renderTools(t, S, F) {
   const el = $('cTools'), q = S.q, narrow = G.mode === 'narrow';
   const own = F.own || [], tc = F.tc || { pend: 0, run: 0, ok: 0, err: 0 };
-  let h = `<div class="dh"><b>工具台</b><span>${q ? '第 ' + q.m + ' 次请求' : ''}</span><span class="r">${own.length ? `在跑 ${tc.run} · <b>✓${tc.ok}</b> · <span style="color:${tc.err ? 'var(--rt-err)' : 'inherit'}">✗${tc.err}</span>${tc.pend ? ' · 写参数 ' + tc.pend : ''}` : ''}</span></div>`;
+  const shut = G.mode === 'wide' && G.dk < 0.5;
+  el.dataset.ocoRuntimeToolsK = shut ? '0' : '1';
+  const prev = q && q.m > 1 ? q.r.reqs[q.m - 2].tools.length : 0;
+  const emptyMain = !q ? `${agOf(S.r)} 待命` : F.nQ ? `第 ${q.m} 次请求只发了一个提问（给你）` : q.finish && q.finish.at <= t || F.ended ? `第 ${q.m} 次请求没有调工具` : `第 ${q.m} 次请求还没调工具`;
+  const errN = own.filter(x => toolSt(x, t) === 'err' && !x.declined).length;
+  let h = `<div class="dh"><b>工具台</b><span>${q ? '第 ' + q.m + ' 次请求' : ''}</span><span class="r">${own.length ? `在跑 ${tc.run} · <b>✓${tc.ok}</b> · <span style="color:${errN ? 'var(--rt-err)' : 'inherit'}">✗${errN}</span>${tc.pend ? ' · 写参数 ' + tc.pend : ''}` : (shut ? esc(emptyMain) : '')}</span></div>`;
   if (!own.length) {
-    const prev = q && q.m > 1 ? q.r.reqs[q.m - 2].tools.length : 0;
-    // 与环上“调工具”站的小字同一口径：提问不算工具
-    const main = !q ? `${agOf(S.r)} 待命` : F.nQ ? `第 ${q.m} 次请求只发了一个提问（给你）` : q.finish && q.finish.at <= t || F.ended ? `第 ${q.m} 次请求没有调工具` : `第 ${q.m} 次请求还没调工具`;
+    // 与环上“调工具”站的小字同一口径：提问不算工具。收起时标题条装不下居中空态
     const sub = q && !F.nQ && prev && !F.ended ? `<small>上一次的 ${prev} 个结果已随这次请求带回模型</small>` : '';
-    h += `<div class="empty" style="top:${G.tools.h / 2 - 16}px">${main}${sub}</div>`;
+    if (!shut) h += `<div class="empty" style="top:${G.tools.h / 2 - 16}px">${emptyMain}${sub}</div>`;
   } else {
     const cap = G.toolCap, over = own.length > cap ? own.length - cap + 1 : 0;
     own.slice(0, over ? cap - 1 : cap).forEach((x, i) => {
       const rw = G.rows[i], s = toolSt(x, t), d = sameSoFar(x, t);
-      const g = { pend: '…', run: '●', ok: '✓', err: '✗' }[s];
+      const declined = s === 'err' && (x.declined === 'rejected' || x.declined === 'dismissed');
+      const g = declined ? '⊘' : { pend: '…', run: '●', ok: '✓', err: '✗' }[s];
       const du = s === 'pend' ? '' : s === 'run' ? sK(t - x.start) : sK(x.end - x.start);
-      const z = s === 'pend' ? '模型在写这个调用的参数' : s === 'run' ? `运行中 ${sK(t - x.start)}` : s === 'ok' ? `→ ✓ ${x.chars} 字「${cut(x.res1, 60) || '无输出'}」` : `→ ✗ ${cut(x.error, 70)}`;
+      const z = declined ? (x.declined === 'rejected' ? '你已拒绝授权' : '已忽略') : s === 'pend' ? '模型在写这个调用的参数' : s === 'run' ? `运行中 ${sK(t - x.start)}` : s === 'ok' ? `→ ✓ ${x.chars} 字「${cut(x.res1, 60) || '无输出'}」` : `→ ✗ ${cut(x.error, 70)}`;
       const arg = s === 'pend' ? '（参数生成中）' : x.arg;
+      const cls = declined ? 'rej' : s;
       const lr = { x: rw.x - G.tools.x - 1, y: rw.y - G.tools.y - 1 };
-      h += `<div class="trow ${s}${narrow || rw.h < 28 ? ' chip' : ''}" style="left:${lr.x}px;top:${lr.y}px;width:${rw.w}px;height:${rw.h}px"><div class="a"><span class="g">${g}</span><span class="tn">${esc(x.tool)}</span><span class="ar">${esc(arg)}</span>${d ? `<span class="dup">${narrow ? '' : '同一命令 '}${d[0]}/${d[1]}</span>` : ''}<span class="du">${du}</span></div>${narrow || rw.h < 28 ? '' : `<div class="z">${esc(z)}</div>`}</div>`;
+      h += `<div class="trow ${cls}${narrow || rw.h < 28 ? ' chip' : ''}" style="left:${lr.x}px;top:${lr.y}px;width:${rw.w}px;height:${rw.h}px"><div class="a"><span class="g">${g}</span><span class="tn">${esc(x.tool)}</span><span class="ar">${esc(arg)}</span>${d ? `<span class="dup">${narrow ? '' : '同一命令 '}${d[0]}/${d[1]}</span>` : ''}<span class="du">${du}</span></div>${narrow || rw.h < 28 ? '' : `<div class="z">${esc(z)}</div>`}</div>`;
     });
     if (over) { const rw = G.rows[cap - 1]; h += `<div class="trow more" style="left:${rw.x - G.tools.x - 1}px;top:${rw.y - G.tools.y - 1}px;width:${rw.w}px;height:${rw.h}px">+${over} 个调用</div>`; }
   }
@@ -1270,16 +1365,25 @@ function sdDetail(t, x) {
   // 它自己的动态：工具调用和文字，原文，新的在下
   const acts = x.acts.filter(a => a.at <= t), MAXA = G.mode === 'narrow' ? 4 : 6;
   let li = acts.length > MAXA ? `<li class="more">前面还有 ${acts.length - MAXA} 条</li>` : '';
+  let subEst = false;
   for (const a of acts.slice(-MAXA)) {
-    if (a.kind === 'text') { const rv = revealRaw(a, t); li += `<li class="text"><i>输出</i><span>${esc(rv.s)}${rv.done ? '' : '<span class="caret">▍</span>'}</span></li>`; continue; }
-    const st = toolSt(a, t), g = { pend: '…', run: '●', ok: '✓', err: '✗' }[st];
+    if (a.kind === 'text') {
+      const rv = revealRaw(a, t), open = !(a.end != null && t >= a.end);
+      if (open && a.end != null) subEst = true;
+      const body = rv.s || (open ? '生成中…' : '');
+      li += `<li class="text"><i>输出</i><span>${esc(body)}${open && rv.s ? '<span class="caret">▍</span>' : ''}</span></li>`;
+      continue;
+    }
+    const st = toolSt(a, t), declined = st === 'err' && (a.declined === 'rejected' || a.declined === 'dismissed');
+    const g = declined ? '⊘' : { pend: '…', run: '●', ok: '✓', err: '✗' }[st];
     const du = st === 'pend' ? '' : st === 'run' ? sK(t - a.start) : sK(a.end - a.start);
-    const z = st === 'pend' ? '模型在写这个调用的参数' : st === 'run' ? `运行中 ${sK(t - a.start)}` : st === 'ok' ? `→ ✓ ${a.chars} 字「${cutRaw(a.res1, 80) || '无输出'}」` : `→ ✗ ${cutRaw(a.error, 90)}`;
-    li += `<li class="${st}"><div class="a"><span class="g">${g}</span><span class="tn">${esc(a.tool)}</span><span class="ar">${esc(st === 'pend' ? '（参数生成中）' : a.arg)}</span><span class="du">${du}</span></div><div class="z">${esc(z)}</div></li>`;
+    const z = declined ? (a.declined === 'rejected' ? '你已拒绝授权' : '已忽略') : st === 'pend' ? '模型在写这个调用的参数' : st === 'run' ? `运行中 ${sK(t - a.start)}` : st === 'ok' ? `→ ✓ ${a.chars} 字「${cutRaw(a.res1, 80) || '无输出'}」` : `→ ✗ ${cutRaw(a.error, 90)}`;
+    li += `<li class="${declined ? 'rej' : st}"><div class="a"><span class="g">${g}</span><span class="tn">${esc(a.tool)}</span><span class="ar">${esc(st === 'pend' ? '（参数生成中）' : a.arg)}</span><span class="du">${du}</span></div><div class="z">${esc(z)}</div></li>`;
   }
   const th = s === 'run' ? x.thinks.find(k => k.start <= t && t < k.end) : null;
   if (th) li += `<li class="none">在思考 ${sK(t - th.start)}</li>`;
   if (!acts.length && !th) li += `<li class="none">${s === 'queued' ? '子会话还没开始' : s === 'run' ? '还没有工具调用或文字' : '没有工具调用或文字'}</li>`;
+  if (subEst) li += '<li class="none">回放：按时间估算的进度</li>';
   setH('sdA', `<h5>它的动态 · 工具调用和文字（新的在下）</h5><ul class="act">${li}</ul>`);
   // 返回结果：task 收尾（end）之后才有原文；子代理做完但还没取回时只说停在泊位
   const z = s === 'done' ? `<div class="tx">${esc(x.result) || '（空）'}</div>` : s === 'err' ? `<div class="tx err">${esc(x.error) || '失败'}</div>`
@@ -1308,8 +1412,23 @@ function closeSd() {
   else if (op) to = inner.querySelector(`${op.sel}[data-sub="${op.uid}"]`) || inner.querySelector(`.cell[data-sub="${op.uid}"], .phit[data-sub="${op.uid}"]`);
   if (to) to.focus({ preventScroll: true });
 }
+function openPanel(which) {
+  if (which === 'card' && !canOpen(CUR)) return;
+  if (which === 'plan' && !planAt(T)) return;
+  PANEL = which;
+  render(T);
+  $('cdX').focus({ preventScroll: true });
+}
+function closePanel() {
+  const which = PANEL; PANEL = null; render(T);
+  const to = which === 'plan' ? $('cCtr').querySelector('.pchip') : $('cPay');
+  if (to) to.focus({ preventScroll: true });
+}
 inner.addEventListener('click', e => {
   const b = e.target.closest('button, [role=button]'); if (!b || !inner.contains(b)) return;
+  if (b.id === 'cdX') return closePanel();
+  if (b.classList.contains('pchip')) return openPanel('plan');
+  if (b.id === 'cPay') return openPanel('card');
   if (b.id === 'sdX') return closeSd();
   if (b.id === 'sdBack') { SEL = { list: true, opener: SEL && SEL.opener }; render(T); ($('sdB').querySelector(`[data-sub]`) || $('sdX')).focus({ preventScroll: true }); return; }
   if (b.id === 'sdGo') { if (SEL) SEL.went = true; render(T); return; }
@@ -1319,38 +1438,20 @@ inner.addEventListener('click', e => {
 inner.addEventListener('keydown', e => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role=button]:not(button)')) { e.preventDefault(); e.target.click(); }
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && SEL) { e.preventDefault(); closeSd(); } });
-function caption(t, S, F) {
-  const r = S.r, q = S.q, ag = agOf(r);
-  switch (S.st) {
-    case 'pre': return `${ag} 待命。`;
-    case 'say': return `你发出第 ${r.n} 轮消息，${ag} 收到。`;
-    case 'asm': return `${ag} 在组装第 ${q.m} 次请求（${F.carry.text}）。`;
-    case 'fly': return `第 ${q.m} 次请求已发给模型，等首个回复（${sCN(t - q.stepStart)}）。`;
-    case 'think': return `模型在思考（${sCN(t - F.think.start)}）· 这次请求${F.carry.text}。`;
-    case 'out': return `模型在回复你（已输出 ${reveal(F.text, t).n} 字）。`;
-    case 'call': {
-      const lx = F.made[F.made.length - 1];
-      if (lx && lx.todos) return lx.start != null && lx.start <= t ? `${ag} 写下执行计划第 ${lx.ver} 版（完成 ${planCount(lx.todos).d}/${lx.todos.length}）。` : `模型在写执行计划（todowrite 第 ${lx.ver} 版）。`;
-      const run = F.tc.run + F.qsc.run; return F.nCall ? `模型在写工具调用（已写 ${madeTxt(F)}）${run ? ` · 同时在跑：工具 ${F.tc.run} · 子代理 ${F.qsc.run}` : ''}。` : '模型在写一个给你的提问。'; }
-    case 'wait': return waitPhrase(F) + '。';
-    case 'ask': return `${ag} 停下来等你回答「${S.ask.header}」· 已等 ${sCN(t - S.ask.start)} · 在下方输入框回答。`;
-    case 'next': return `第 ${q.m} 次请求完成，带上 ${q.tools.length} 个结果发第 ${q.m + 1} 次请求。`;
-    case 'end': return S.why === 'dismiss' ? `你忽略了提问，第 ${r.n} 轮结束 · ${ag} 待命 · 已空闲 ${sCN(F.idle)}。` : `第 ${r.n} 轮结束 · ${ag} 待命 · 已空闲 ${sCN(F.idle)}。`;
-    case 'abort': return `第 ${r.n} 轮第 ${q.m} 次请求已中止（${q.err.name}）· ${ag} 待命 · 已空闲 ${sCN(F.idle)}。`;
-  }
-  return '';
-}
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (PANEL) { e.preventDefault(); closePanel(); return; }
+  if (SEL) { e.preventDefault(); closeSd(); }
+});
 function renderStatus(t, S, F) {
   const r = S.r;
   const bits = [];
   if (r) {
     bits.push(`第 ${r.n} 轮用时 <span class="sv">${sCN(F.dur)}</span>${F.wait > 500 ? `（其中等你 ${sCN(F.wait)}）` : ''}`);
-    if (F.ended) bits.push(`已空闲 <span class="sv">${sCN(F.idle)}</span>`);
     bits.push(`<span class="wide">上下文 <span class="sv">${F.ctx != null ? tokn(F.ctx) : '—'}</span>（上次回执）</span>`);
     bits.push(`本轮花费 <span class="sv">${F.cost ? usd(F.cost) : '—'}</span><span class="wide">（含子代理）</span>`);
   }
-  $('status').innerHTML = bits.map(b => `<span>${b}</span>`).join('') + `<span class="legend"><span><i style="--c:var(--rt-accent)"></i>思考</span><span><i style="--c:var(--rt-sub)"></i>运行</span><span><i style="--c:var(--rt-ok)"></i>完成</span><span><i style="--c:var(--rt-err)"></i>失败 / 忽略</span><span><i style="--c:var(--rt-attn)"></i>需要你</span></span>`;
+  $('status').innerHTML = bits.map(b => `<span>${b}</span>`).join('') + `<span class="legend"><span><i style="--c:var(--rt-accent)"></i>思考</span><span><i style="--c:var(--rt-sub)"></i>运行</span><span><i style="--c:var(--rt-ok)"></i>完成</span><span><i style="--c:var(--rt-err)"></i>失败</span><span><i style="--c:var(--rt-faint)"></i>忽略 / 拒绝 ⊘</span><span><i style="--c:var(--rt-attn)"></i>需要你</span></span>`;
 }
 
 /* ---------- SVG：环、通道、包（包只是装饰，文字一律来自数据） ---------- */
@@ -1377,8 +1478,11 @@ function renderSvg(t, S, F) {
   const lk = g.k, off = g.mode === 'wide' ? 4 : 3, rx = 16;
   const nRow = Math.min(g.rows.length, F.own ? F.own.length : 0), rowY = i => g.rows[i].y + g.rows[i].h / 2;
   const laneDrawn = lk > 0.02 && g.botY - g.topY > 2 * rx;
+  const dockShut = g.mode === 'wide' && g.dk < 0.98 && nRow === 0;
+  const dockY = g.tools.y + Math.min(30, g.tools.h) / 2;
   const outYs = [g.cy], backYs = [];
   for (let i = 0; i < nRow; i++) { outYs.push(rowY(i) - off); backYs.push(rowY(i) + off); }
+  if (dockShut) { outYs.push(dockY - off); backYs.push(dockY + off); }
   if (laneDrawn) { outYs.push(g.topY); backYs.push(g.botY); }
   if (backYs.length) backYs.push(g.waitR.y);
   const oLo = Math.min(...outYs), oHi = Math.max(...outYs);
@@ -1403,6 +1507,11 @@ function renderSvg(t, S, F) {
     f += pl([P(g.busO, rw.y + rw.h / 2 - (g.mode === 'wide' ? 4 : 3)), P(x0, rw.y + rw.h / 2 - (g.mode === 'wide' ? 4 : 3))], CV.tool, 1.2, 0.45, '');
     f += pl([P(x0, rw.y + rw.h / 2 + (g.mode === 'wide' ? 4 : 3)), P(g.busB, rw.y + rw.h / 2 + (g.mode === 'wide' ? 4 : 3))], CV.ok, 1.2, 0.3, '');
   }
+  if (dockShut) {
+    const edge = g.tools.x;
+    f += pl([P(g.busO, dockY - off), P(edge, dockY - off)], CV.tool, 1.2, 0.45, '');
+    f += pl([P(edge, dockY + off), P(g.busB, dockY + off)], CV.ok, 1.2, 0.3, '');
+  }
   // 子代理航道（M4 语义：派发航道 → 作业区 → 回传航道 → 待取回泊位 → 已取回）
   const laneLit = subsLive > 0;
   const lo = (laneLit ? 0.8 : (F.subs && F.subs.length ? 0.35 : 0.18)) * lk;
@@ -1417,7 +1526,7 @@ function renderSvg(t, S, F) {
   // 你 ↔ build、build ↔ 模型
   const askLit = S.st === 'ask', youLit = S.st === 'say' || (S.st === 'asm' && S.q && S.q.m === 1 && t - S.r.start < 3000);
   s += pl(g.pYou.pts, CV.main, 1.5, youLit ? 0.85 : 0.22, youLit ? '6 6' : '', youLit ? flowDash(t) : '');
-  s += pl(g.pAsk.pts, askLit ? CV.attn : (S.st === 'end' && S.why === 'dismiss' ? CV.err : CV.faint), askLit ? 2 : 1.2, askLit ? 0.9 : (S.st === 'end' && S.why === 'dismiss' ? 0.45 : 0.16), askLit ? '6 6' : '4 6', askLit ? flowDash(t) : '');
+  s += pl(g.pAsk.pts, askLit ? CV.attn : CV.faint, askLit ? 2 : 1.2, askLit ? 0.9 : (S.st === 'end' && S.why === 'dismiss' ? 0.45 : 0.16), askLit ? '6 6' : '4 6', askLit ? flowDash(t) : '');
   const mLit = ['fly', 'think', 'out', 'call'].includes(S.st);
   s += pl(g.modelCh.pts, mLit ? col : CV.faint, mLit ? 2 : 1.2, mLit ? 0.85 : 0.2, mLit ? '4 5' : '', mLit ? flowDash(t) : '');
   // ---- 环 ----
@@ -1505,7 +1614,7 @@ function stationSubs(t, S, F) {
   const o = {}; const q = S.q; if (!q || S.st === 'end' || S.st === 'abort') return o;
   o.asm = q.m === 1 ? '带上你的消息' : `带回 ${F.carry.n} 个结果`;
   if (F.think) o.think = sK(Math.min(t, F.think.end) - F.think.start);
-  if (F.text) o.out = reveal(F.text, t).n + ' 字';
+  if (F.text && F.text.end != null && t >= F.text.end) o.out = reveal(F.text, t).n + ' 字';
   if (F.made.length) o.call = F.nCall ? madeTxt(F) : `${F.nQ} 个提问 → 你`;
   if (S.st === 'ask') o.wait = '已等 ' + sK(t - S.ask.start);
   else if (F.made.length && (S.st === 'wait' || S.st === 'call' || S.st === 'next')) { const run = F.tc.run + F.qsc.run + F.qsc.docked, back = F.tc.ok + F.tc.err + F.qsc.done + F.qsc.err; o.wait = `在跑 ${run} · 回来 ${back}`; }
@@ -1546,7 +1655,7 @@ function packetsAt(t, S) {
       } else if (x.kind === 'question') {
         const pending = x.start != null && !(x.end != null && t >= x.end);
         if (pending) add(G.pAsk, x.start, { c: 'attn', label: `提问「${x.header}」`, glyph: '?', park: true });
-        if (x.end != null && t >= x.end && x.dismissed) add(G.pAskBack, x.end, { c: 'err', label: '✕ 你忽略了提问', glyph: '✕', park: true, marker: '✕ 已忽略' });
+        if (x.end != null && t >= x.end && x.dismissed) add(G.pAskBack, x.end, { c: 'faint', label: '✕ 你忽略了提问', glyph: '✕', park: true, marker: '✕ 已忽略' });
       }
     }
   }
@@ -1656,7 +1765,7 @@ if (location.hash.includes('cover')) document.body.classList.add('cover');
 window.mock = {
   seek, play, pause,
   // 校验用（不属于产品）：此刻的文字事实
-  facts: () => ({ status: $('state').innerText, cap: $('cap').innerText, ctr: $('cCtr').innerText, pay: $('cPay').innerText, model: $('cModel').innerText, you: $('cYou').innerText, tools: $('cTools').innerText, lane: $('cLane').innerText, bar: $('status').innerText, sd: $('sd').hidden ? '' : $('sd').innerText, strip: $('cLane').getAttribute('role') || '' })
+  facts: () => ({ status: $('state').innerText, cap: '', ctr: $('cCtr').innerText, pay: $('cPay').innerText, model: $('cModel').innerText, you: $('cYou').innerText, tools: $('cTools').innerText, lane: $('cLane').innerText, bar: $('status').innerText, sd: $('sd').hidden ? '' : $('sd').innerText, cd: $('cd').hidden ? '' : $('cd').innerText, strip: $('cLane').getAttribute('role') || '' })
 };
 let rz = 0;
 new ResizeObserver(() => { cancelAnimationFrame(rz); rz = requestAnimationFrame(layout); }).observe($('stage'));
