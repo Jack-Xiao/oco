@@ -26,6 +26,7 @@ mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为�
 | 补丁 0007（单轮 Diff 展示） | — | c2-diff-unavailable、c1-open-file | 夹具 / mock |
 | `session-feed.ts`、`session-store.ts` | session-feed、session-store | p1b-sidebar、p1b-reconnect | mock |
 | `sessions-view.ts` | session-store | p1b-sidebar、p1b-reconnect、t014-connection | mock |
+| `session-store.ts`、结果卡 / `navigate.review` / 补丁 0021 | session-store、sessions-view、contracts、e2e-results | c7-result-card、c2-diff-unavailable、c6-inbox | mock + 摘要 fixture；真实模型另验 |
 | `sessions-webview.ts`、`media/sessions-list/`、`session-groups.ts`（收件箱 / 行内批复 / 通知） | session-store、sessions-view、session-groups | c6-inbox、p1b-sidebar | mock |
 | `connection.ts`、`endpoint.ts`、`apps/extension/package.json` 设置项 | endpoint、settings-contribution | t014-connection、p1b-switch-pending、p1b-reconnect | mock |
 | `panels.ts`、`host-store.ts`（面板、草稿、恢复、主面板切换） | host-store | p1a-identity、p1b-main-panel、p1b-sidebar、t010-recover、p1b-pending-send | mock |
@@ -54,9 +55,9 @@ mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为�
 
 ## 全量的定义
 
-`tests/e2e/run.mjs` 的 `DEFAULT_SUITES`，共 23 个：p1a-chat、p1a-identity、p1b-sidebar、p1b-narrow、p1b-theme-load、p1b-ime、p1b-reconnect、p1b-pending-send、p1b-switch-pending、c1-open-file、c1-focus、c2-diff-unavailable、t010-recover、t014-connection、p1b-main-panel、c3-fork、t007-managed、t007-multiroot、t015-diagnostics、c4-trajectory、c5-runtime、c6-inbox。
+`tests/e2e/run.mjs` 的 `DEFAULT_SUITES`，共 23 个：p1a-chat、p1a-identity、p1b-sidebar、p1b-narrow、p1b-theme-load、p1b-ime、p1b-reconnect、p1b-pending-send、p1b-switch-pending、c1-open-file、c1-focus、c2-diff-unavailable、t010-recover、t014-connection、p1b-main-panel、c3-fork、t007-managed、t007-multiroot、t015-diagnostics、c4-trajectory、c5-runtime、c6-inbox、c7-result-card。
 
-不在默认列表中：t004、t005（P0 历史套件）、perf、smoke。p1b-ime 的 `ime-real-macos` 需要真人使用系统输入法，自动运行时恒为 NOT RUN。
+不在默认列表中：t004、t005（P0 历史套件）、perf、smoke、c8-git-review（切换 Review 范围时的定向回归，验证会话文件去重 / 外部 Git 文件排除、Git 入口及单文件定位）。p1b-ime 的 `ime-real-macos` 需要真人使用系统输入法，自动运行时恒为 NOT RUN。
 
 ## 读结果
 

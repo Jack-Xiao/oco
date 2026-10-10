@@ -31,6 +31,25 @@ export type PendingRequest = {
   }>
   tool?: { messageID: string; callID: string }
 }
+/** One changed file of a run. `patch` is never stored. */
+export type FileChange = { file: string; additions: number; deletions: number; status?: "added" | "deleted" | "modified" }
+/** Result summary of a session's last run (busy → idle), for the "done" / "error" inbox rows (result card, step 4). */
+export type RunResult = {
+  /**
+   * Changed files for the last run.
+   * Authoritative source is the latest user message `summary.diffs`; `session.diff` fills in only until that summary owns the run.
+   * Undefined when none were recorded.
+   */
+  files?: FileChange[]
+  /** Last run's wall time (busy → idle) when both ends were observed. */
+  durMs?: number
+  /** Sum of the assistant messages' `cost` seen during the last run (server-computed, never recomputed here). */
+  costUsd?: number
+  /** Sum of the assistant messages' total tokens seen during the last run. */
+  tokens?: number
+  /** Text of the last assistant text part of the last run, trimmed; undefined when none was seen. */
+  lastText?: string
+}
 export type InboxRow = {
   id: string
   kind: "permission" | "question" | "error" | "done"
@@ -44,6 +63,8 @@ export type InboxRow = {
   time: string
   at: number
   aria: string
+  /** "done" / "error" rows only: the result summary fields the sidebar renders as one line. */
+  result?: RunResult
 }
 export type InboxGroup = {
   kind: "group"
@@ -62,7 +83,26 @@ export type Snapshot = {
 }
 export type ServerEvent = { id?: string; type: string; properties?: Record<string, unknown> }
 
-type Row = { session: ServerSession; status: ServerStatus["type"]; error?: string }
+type SummaryWatermark = { id: string; created: number; sealed: boolean }
+
+type Row = {
+  session: ServerSession
+  status: ServerStatus["type"]
+  error?: string
+  files?: FileChange[]
+  /** Latest user message seen for summary ordering. */
+  summaryWatermark?: SummaryWatermark
+  /** User id of the last round that reached idle. A later busy seals only this id. */
+  completedUserId?: string
+  /** True while `files` (including a deliberate empty summary) belong to the current run's user summary. */
+  filesAuthoritative?: boolean
+  runStart?: number
+  runEnd?: number
+  assistantMessages: Set<string>
+  messageMetrics: Map<string, { cost: number; tokens: number }>
+  lastText?: string
+  lastPart?: { messageID: string; partID: string }
+}
 
 export class SessionStore {
   private rows = new Map<string, Row>()
@@ -70,12 +110,16 @@ export class SessionStore {
   private questions = new Map<string, PendingRequest>()
   private seen = new Set<string>() // recent event ids (bounded), for duplicate delivery
   private static readonly SEEN_MAX = 1024
+  private static readonly RUN_COLLECTION_MAX = 500
   readonly stats = { snapshots: 0, events: 0, duplicates: 0, ignored: 0 }
   /** The loaded root page came back full, so older sessions were not loaded. Search is not limited by this. */
   limitReached = false
 
   /** Only sessions for which this returns true are kept (workspace ownership). */
-  constructor(private readonly owns: (directory: string) => boolean) {}
+  constructor(
+    private readonly owns: (directory: string) => boolean,
+    private readonly now: () => number = () => Date.now(),
+  ) {}
 
   applySnapshot(s: Snapshot) {
     this.stats.snapshots++
@@ -84,7 +128,21 @@ export class SessionStore {
     for (const session of s.sessions) {
       if (!session?.id || !this.owns(session.directory) || session.time?.archived) continue
       const prev = this.rows.get(session.id)
-      rows.set(session.id, { session, status: s.status[session.id]?.type ?? "idle", error: prev?.error })
+      rows.set(session.id, {
+        session,
+        status: s.status[session.id]?.type ?? "idle",
+        error: prev?.error,
+        files: prev?.files,
+        summaryWatermark: prev?.summaryWatermark ? { ...prev.summaryWatermark } : undefined,
+        completedUserId: prev?.completedUserId,
+        filesAuthoritative: prev?.filesAuthoritative,
+        runStart: prev?.runStart,
+        runEnd: prev?.runEnd,
+        assistantMessages: prev?.assistantMessages ?? new Set(),
+        messageMetrics: prev?.messageMetrics ?? new Map(),
+        lastText: prev?.lastText,
+        lastPart: prev?.lastPart,
+      })
     }
     this.rows = rows
     this.permissions = new Map(s.permissions.filter((p) => rows.has(p.sessionID)).map((p) => [p.id, p]))
@@ -114,7 +172,28 @@ export class SessionStore {
         const row = sid && this.rows.get(sid)
         if (!row) return this.ignore()
         const type = (p.status?.type ?? "idle") as ServerStatus["type"]
-        if (type === "busy") row.error = undefined // a new run clears the previous error
+        const prevStatus = row.status
+        if (type === "busy") {
+          row.error = undefined // a new run clears the previous error
+          if (prevStatus !== "busy") {
+            row.runStart = this.now()
+            row.runEnd = undefined
+            row.assistantMessages.clear()
+            row.messageMetrics.clear()
+            row.lastText = undefined
+            row.lastPart = undefined
+            if (row.filesAuthoritative) {
+              row.files = undefined
+              row.filesAuthoritative = false
+            }
+            // Seal the finished round only. The next prompt often arrives before busy and must stay open.
+            if (row.summaryWatermark && row.completedUserId === row.summaryWatermark.id) {
+              row.summaryWatermark = { ...row.summaryWatermark, sealed: true }
+            }
+          }
+        } else if (type === "idle") {
+          this.noteRunIdle(row, prevStatus)
+        }
         const changed = row.status !== type
         row.status = type
         return changed || type === "busy"
@@ -122,6 +201,8 @@ export class SessionStore {
       case "session.idle": {
         const row = sid && this.rows.get(sid)
         if (!row) return this.ignore()
+        const prevStatus = row.status
+        this.noteRunIdle(row, prevStatus)
         const changed = row.status !== "idle"
         row.status = "idle"
         return changed
@@ -134,6 +215,84 @@ export class SessionStore {
         if (err?.name === "MessageAbortedError") return false
         row.error = err?.data?.message || err?.name || "error"
         return true
+      }
+      case "session.diff": {
+        if (sid && Array.isArray(p.diff)) {
+          const row = this.rows.get(sid)
+          if (row && !row.filesAuthoritative) row.files = fileChangesFromDiff(p.diff)
+        }
+        return false
+      }
+      case "message.updated": {
+        const info = p.info
+        if (info && typeof info === "object" && info.role === "user") return this.applyUserSummary(info, sid)
+        if (info && typeof info === "object" && info.role === "assistant") {
+          const infoSid = typeof info.sessionID === "string" ? info.sessionID : sid
+          if (infoSid && typeof info.id === "string") {
+            const row = this.rows.get(infoSid)
+            if (row) {
+              row.assistantMessages.add(info.id)
+              if (row.assistantMessages.size > SessionStore.RUN_COLLECTION_MAX) {
+                row.assistantMessages.delete(row.assistantMessages.values().next().value as string)
+              }
+              const cost = typeof info.cost === "number" && !isNaN(info.cost) ? info.cost : 0
+              let tokens = 0
+              if (info.tokens && typeof info.tokens === "object") {
+                if (typeof info.tokens.total === "number" && !isNaN(info.tokens.total)) {
+                  tokens = info.tokens.total
+                } else {
+                  const input = Number(info.tokens.input) || 0
+                  const output = Number(info.tokens.output) || 0
+                  const reasoning = Number(info.tokens.reasoning) || 0
+                  const cacheRead = Number(info.tokens.cache?.read) || 0
+                  const cacheWrite = Number(info.tokens.cache?.write) || 0
+                  tokens = input + output + reasoning + cacheRead + cacheWrite
+                }
+              }
+              row.messageMetrics.set(info.id, { cost, tokens })
+              if (row.messageMetrics.size > SessionStore.RUN_COLLECTION_MAX) {
+                row.messageMetrics.delete(row.messageMetrics.keys().next().value as string)
+              }
+            }
+          }
+        }
+        return false
+      }
+      case "message.part.updated": {
+        const part = p.part
+        if (part && typeof part === "object" && part.type === "text") {
+          const partSid = typeof part.sessionID === "string" ? part.sessionID : sid
+          const msgId = typeof part.messageID === "string" ? part.messageID : undefined
+          const partId = part.id !== undefined ? String(part.id) : undefined
+          if (partSid && msgId && partId) {
+            const row = this.rows.get(partSid)
+            if (row && row.assistantMessages.has(msgId)) {
+              row.lastText = typeof part.text === "string" ? part.text : ""
+              row.lastPart = { messageID: msgId, partID: partId }
+            }
+          }
+        }
+        return false
+      }
+      case "message.part.delta": {
+        if (p.field === "text") {
+          const deltaSid = typeof p.sessionID === "string" ? p.sessionID : (typeof p.part?.sessionID === "string" ? p.part.sessionID : sid)
+          const msgId = typeof p.messageID === "string" ? p.messageID : (typeof p.part?.messageID === "string" ? p.part.messageID : undefined)
+          const partId = p.partID !== undefined ? String(p.partID) : (p.id !== undefined ? String(p.id) : (p.part?.id !== undefined ? String(p.part.id) : undefined))
+          const delta = typeof p.delta === "string" ? p.delta : ""
+          if (deltaSid && msgId && partId) {
+            const row = this.rows.get(deltaSid)
+            if (row && row.assistantMessages.has(msgId)) {
+              if (row.lastPart && row.lastPart.messageID === msgId && row.lastPart.partID === partId) {
+                row.lastText = (row.lastText ?? "") + delta
+              } else {
+                row.lastText = delta
+                row.lastPart = { messageID: msgId, partID: partId }
+              }
+            }
+          }
+        }
+        return false
       }
       case "permission.asked":
         return sid && this.rows.has(sid) && typeof p.id === "string"
@@ -263,7 +422,12 @@ export class SessionStore {
     if (info.time?.archived) return this.remove(info.id)
     const row = this.rows.get(info.id)
     if (!row) {
-      this.rows.set(info.id, { session: info, status: "idle" })
+      this.rows.set(info.id, {
+        session: info,
+        status: "idle",
+        assistantMessages: new Set(),
+        messageMetrics: new Map(),
+      })
       return true
     }
     // Out-of-order delivery: never replace newer info with older.
@@ -332,7 +496,7 @@ export class SessionStore {
   inbox(
     currentSessionId?: string,
     unreadIds?: Iterable<string> | ((id: string) => boolean),
-    now = Date.now(),
+    now = this.now(),
   ): InboxRow[] {
     const isUnread =
       typeof unreadIds === "function"
@@ -405,6 +569,7 @@ export class SessionStore {
         const summary = info.error
         const detail = info.error
         const aria = [info.title, info.agent ? `@${info.agent}` : "", info.parent ? `(${info.parent})` : "", summary, info.time].filter(Boolean).join(", ")
+        const result = this.buildRunResult(row)
         errorRows.push({
           id: `err:${sid}`,
           kind: "error",
@@ -418,11 +583,13 @@ export class SessionStore {
           time: info.time,
           at: info.updated,
           aria,
+          ...(result ? { result } : {}),
         })
       } else if (info.status === "idle" && sid !== currentSessionId && isUnread(sid)) {
-        const summary = "Finished"
-        const detail = info.time ? `Finished · ${info.time}` : "Finished"
-        const aria = [info.title, info.agent ? `@${info.agent}` : "", info.parent ? `(${info.parent})` : "", "Finished", info.time].filter(Boolean).join(", ")
+        const result = this.buildRunResult(row)
+        const summary = this.formatDoneSummary(result)
+        const detail = this.formatDoneDetail(info.time, result)
+        const aria = [info.title, info.agent ? `@${info.agent}` : "", info.parent ? `(${info.parent})` : "", summary, info.time].filter(Boolean).join(", ")
         doneRows.push({
           id: `done:${sid}`,
           kind: "done",
@@ -436,6 +603,7 @@ export class SessionStore {
           time: info.time,
           at: info.updated,
           aria,
+          ...(result ? { result } : {}),
         })
       }
     }
@@ -446,8 +614,209 @@ export class SessionStore {
     return [...permQuesRows, ...errorRows, ...doneRows]
   }
 
+  private buildRunResult(row: Row): RunResult | undefined {
+    let durMs: number | undefined
+    if (row.runStart !== undefined && row.runEnd !== undefined) {
+      durMs = Math.max(0, row.runEnd - row.runStart)
+    }
+
+    let costUsd: number | undefined
+    let tokens: number | undefined
+    if (row.messageMetrics.size > 0) {
+      let totalCost = 0
+      let totalTokens = 0
+      for (const m of row.messageMetrics.values()) {
+        totalCost += m.cost
+        totalTokens += m.tokens
+      }
+      costUsd = totalCost
+      tokens = totalTokens
+    }
+
+    let lastText: string | undefined
+    if (row.lastText !== undefined) {
+      const trimmed = row.lastText.trim()
+      if (trimmed.length > 0) {
+        lastText = trimmed
+      }
+    }
+
+    const res: RunResult = {}
+    if (row.files !== undefined) res.files = row.files
+    if (durMs !== undefined) res.durMs = durMs
+    if (costUsd !== undefined) res.costUsd = costUsd
+    if (tokens !== undefined) res.tokens = tokens
+    if (lastText !== undefined) res.lastText = lastText
+
+    return Object.keys(res).length > 0 ? res : undefined
+  }
+
+  private formatDoneSummary(result?: RunResult): string {
+    let filesPart: string | undefined
+    if (result?.files && result.files.length > 0) {
+      filesPart = result.files.length === 1 ? "1 file" : `${result.files.length} files`
+    }
+
+    let durPart: string | undefined
+    if (result?.durMs !== undefined) {
+      const totalSec = Math.max(0, Math.round(result.durMs / 1000))
+      if (totalSec < 60) {
+        durPart = `${totalSec}s`
+      } else if (totalSec < 3600) {
+        const m = Math.floor(totalSec / 60)
+        const s = totalSec % 60
+        durPart = `${m}m${String(s).padStart(2, "0")}s`
+      } else {
+        const h = Math.floor(totalSec / 3600)
+        const m = Math.floor((totalSec % 3600) / 60)
+        durPart = `${h}h${String(m).padStart(2, "0")}m`
+      }
+    }
+
+    let costPart: string | undefined
+    if (result?.costUsd !== undefined && result.costUsd > 0) {
+      if (result.costUsd < 0.005) {
+        costPart = "<$0.01"
+      } else {
+        costPart = `$${result.costUsd.toFixed(2)}`
+      }
+    }
+
+    let textPart: string | undefined
+    if (result?.lastText) {
+      const trimmed = result.lastText.trim()
+      if (trimmed) {
+        const firstLine = trimmed.split(/\r?\n/)[0].trim()
+        if (firstLine) {
+          textPart = firstLine.length > 80 ? firstLine.slice(0, 80) + "…" : firstLine
+        }
+      }
+    }
+
+    const parts = [filesPart, durPart, costPart, textPart].filter(Boolean) as string[]
+    return parts.length > 0 ? parts.join(" · ") : "Finished"
+  }
+
+  private formatDoneDetail(time?: string, result?: RunResult): string {
+    const firstLine = time ? `Finished · ${time}` : "Finished"
+    const lines: string[] = [firstLine]
+
+    if (result?.files && result.files.length > 0) {
+      const countStr = result.files.length === 1 ? "1 file" : `${result.files.length} files`
+      let adds = 0
+      let dels = 0
+      for (const f of result.files) {
+        adds += f.additions
+        dels += f.deletions
+      }
+      lines.push(`${countStr} (+${adds} −${dels})`)
+    }
+
+    let costStr: string | undefined
+    if (result?.costUsd !== undefined && result.costUsd > 0) {
+      costStr = result.costUsd < 0.005 ? "<$0.01" : `$${result.costUsd.toFixed(2)}`
+    }
+    let tokenStr: string | undefined
+    if (result?.tokens !== undefined && result.tokens > 0) {
+      tokenStr = `${(result.tokens / 1000).toFixed(1)}k tokens`
+    }
+    if (costStr && tokenStr) {
+      lines.push(`${costStr} · ${tokenStr}`)
+    } else if (costStr) {
+      lines.push(costStr)
+    } else if (tokenStr) {
+      lines.push(tokenStr)
+    }
+
+    if (result?.lastText) {
+      const trimmed = result.lastText.trim()
+      if (trimmed) {
+        lines.push(trimmed.length > 300 ? trimmed.slice(0, 300) : trimmed)
+      }
+    }
+
+    return lines.join("\n")
+  }
+
+  /**
+   * Latest user `summary.diffs` owns run files. Returns true only when the visible file list changes
+   * (including a summary that arrives after idle). Older messages, a sealed completed round, a missing
+   * summary, and illegal diffs leave files alone. Host time is not compared with server timestamps.
+   */
+  private applyUserSummary(info: any, sid: string | undefined): boolean {
+    const infoSid = typeof info.sessionID === "string" ? info.sessionID : sid
+    const id = typeof info.id === "string" && info.id.length > 0 ? info.id : undefined
+    if (!infoSid || !id) return false
+    const row = this.rows.get(infoSid)
+    if (!row) return false
+
+    const created =
+      info.time && typeof info.time === "object" && typeof info.time.created === "number" && Number.isFinite(info.time.created)
+        ? info.time.created
+        : 0
+    const mark = row.summaryWatermark
+    if (mark) {
+      if (id === mark.id) {
+        if (mark.sealed) return false
+      } else if (created < mark.created || (created === mark.created && id <= mark.id)) {
+        return false
+      }
+    }
+    row.summaryWatermark = { id, created, sealed: false }
+
+    const summary = info.summary
+    if (!summary || typeof summary !== "object") return false
+    const diffs = summary.diffs
+    if (!Array.isArray(diffs)) return false
+    const parsed = fileChangesFromDiff(diffs)
+    if (diffs.length > 0 && parsed.length === 0) return false
+    // A summary that lands after idle still belongs to the finished round. A prompt with no summary does not.
+    if (row.status === "idle" && row.runEnd !== undefined) row.completedUserId = id
+
+    const next = parsed.length > 0 ? parsed : undefined
+    const changed = !sameFileChanges(row.files, next)
+    row.files = next
+    row.filesAuthoritative = true
+    return changed
+  }
+
+  /** Record the user id of a round that just reached idle. Busy seals only this id. */
+  private noteRunIdle(row: Row, prevStatus: ServerStatus["type"]) {
+    if (prevStatus !== "busy" && prevStatus !== "retry") return
+    row.runEnd = this.now()
+    if (row.summaryWatermark) row.completedUserId = row.summaryWatermark.id
+  }
+
   private ignore() {
     this.stats.ignored++
     return false
   }
+}
+
+function fileChangesFromDiff(diff: unknown[]): FileChange[] {
+  const files: FileChange[] = []
+  for (const item of diff) {
+    if (!item || typeof item !== "object") continue
+    const raw = item as { file?: unknown; additions?: unknown; deletions?: unknown; status?: unknown }
+    if (typeof raw.file !== "string" || raw.file.length === 0) continue
+    const change: FileChange = {
+      file: raw.file,
+      additions: typeof raw.additions === "number" ? raw.additions : 0,
+      deletions: typeof raw.deletions === "number" ? raw.deletions : 0,
+    }
+    if (raw.status === "added" || raw.status === "deleted" || raw.status === "modified") change.status = raw.status
+    files.push(change)
+  }
+  return files
+}
+
+function sameFileChanges(a: FileChange[] | undefined, b: FileChange[] | undefined): boolean {
+  if (a === b) return true
+  if (!a || !b || a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i]
+    const y = b[i]
+    if (x.file !== y.file || x.additions !== y.additions || x.deletions !== y.deletions || x.status !== y.status) return false
+  }
+  return true
 }

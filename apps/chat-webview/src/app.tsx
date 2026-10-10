@@ -205,6 +205,9 @@ const saveState = () => vscode.setState({ binding: { ...bound }, role: init.role
 
 // Host -> switch to another session (ADR-007). Same connection and directory, validated by the host.
 onNavigate((msg) => {
+  // Result card: the host asks for the review (diff) panel too. The page-side module keeps the intent until the
+  // session page is on screen (patches/opencode/0021), so a navigate to an uncached session loses nothing.
+  if (msg.review) window.dispatchEvent(new CustomEvent("oco:review-intent", { detail: { sessionID: msg.sessionId, file: msg.review.file } }))
   if (msg.sessionId === bound.sessionId) return void ready(currentRoute)
   stats.navigations++
   bound.sessionId = msg.sessionId

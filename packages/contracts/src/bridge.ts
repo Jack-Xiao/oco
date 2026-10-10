@@ -101,7 +101,7 @@ export type ConnectionNotice = Envelope<
 >
 /** ADR-007: the host switched this panel to another session of the same connection and directory. The page's
  * route guard accepts only the session the host last sent; the page never picks its own session. */
-export type Navigate = Envelope<"navigate", { sessionId: string }>
+export type Navigate = Envelope<"navigate", { sessionId: string; review?: { file?: string } }>
 export type HostToWebview = Welcome | FetchHead | FetchChunk | FetchEnd | FetchError | StoreResult | DraftInsert | ConnectionNotice | Navigate
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v)

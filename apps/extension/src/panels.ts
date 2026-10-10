@@ -2,7 +2,7 @@ import * as vscode from "vscode"
 import * as crypto from "node:crypto"
 import * as fs from "node:fs"
 import * as nodePath from "node:path"
-import { BRIDGE_ORIGIN, type ConnectionSummary, type PanelRole, type SessionBinding, type WebviewInit } from "@oco/contracts"
+import { BRIDGE_ORIGIN, type ConnectionSummary, type PanelRole, type ReviewIntent, type SessionBinding, type WebviewInit } from "@oco/contracts"
 import { findPackedApp, loaderScript, type PackedApp } from "./app-loader"
 import { BlobStore, createBridge } from "./bridge-host"
 import type { Connection } from "./connection"
@@ -42,6 +42,8 @@ export type Entry = {
   focusTrace?: string[]
   /** Diagnostics: when the last file open finished (counts late re-activations; never acts on them). */
   openedAt?: number
+  /** Result card: open the review (diff) panel once the page shows the bound session; sent with "navigate". */
+  pendingReview?: ReviewIntent
 }
 
 /** Chat panels (ADR-007): at most one "main" panel that switches sessions in place, plus "pinned" panels
@@ -97,14 +99,26 @@ export class PanelRegistry {
    * panel switches to it; otherwise a new main panel opens. `newPanel` opens a pinned panel instead of
    * switching the main one (still revealing a panel that already shows the session).
    */
-  open(binding: SessionBinding, title?: string, column: vscode.ViewColumn = vscode.ViewColumn.Active, focus = true, newPanel = false) {
+  open(
+    binding: SessionBinding,
+    title?: string,
+    column: vscode.ViewColumn = vscode.ViewColumn.Active,
+    focus = true,
+    newPanel = false,
+    review?: ReviewIntent,
+  ) {
     const existing = this.get(binding)
     if (existing) {
       existing.panel.reveal(undefined, !focus)
+      if (review) {
+        existing.pendingReview = review
+        if (existing.ready) this.sendNavigate(existing)
+      }
       return existing
     }
     const main = this.main
     if (!newPanel && main) {
+      main.pendingReview = review
       this.switchTo(main, binding, title)
       main.panel.reveal(undefined, !focus)
       return main
@@ -117,7 +131,15 @@ export class PanelRegistry {
       retainContextWhenHidden: true,
       localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, "media")],
     })
-    return this.attach(panel, binding, title, role)
+    const entry = this.attach(panel, binding, title, role)
+    entry.pendingReview = review
+    return entry
+  }
+
+  /** "navigate" for the entry's current session, carrying the pending review intent (ADR-007 + result card). */
+  private sendNavigate(entry: Entry) {
+    const review = entry.pendingReview
+    entry.bridge.core.sendCurrent({ type: "navigate", sessionId: entry.binding.sessionId, ...(review ? { review } : {}) })
   }
 
   /**
@@ -134,7 +156,7 @@ export class PanelRegistry {
     if (sameDirectory) {
       entry.ready = false // the page says ready again once the new route rendered; drafts wait for it
       entry.bridge.retarget(binding.sessionId)
-      entry.bridge.core.sendCurrent({ type: "navigate", sessionId: binding.sessionId })
+      this.sendNavigate(entry)
     } else {
       entry.stats.switchReloads++
       entry.ready = false
@@ -251,11 +273,16 @@ export class PanelRegistry {
             // A ready for another session: a switch happened before this document could receive "navigate"
             // (still loading), or it is late from before the switch. Either way, (re)send the current session.
             if (!msg.route.endsWith(`/session/${entry.binding.sessionId}`)) {
-              entry.bridge.core.sendCurrent({ type: "navigate", sessionId: entry.binding.sessionId })
+              this.sendNavigate(entry)
               return
             }
             entry.ready = true
             entry.route = msg.route
+            if (entry.pendingReview) {
+              // The page is on the session now: deliver the review intent (a new panel never saw a "navigate").
+              this.sendNavigate(entry)
+              entry.pendingReview = undefined
+            }
             this.log.info(`panel ready ${entry.binding.sessionId} gen ${entry.bridge.core.generation}`)
             this.flushDrafts(entry)
             this.sendConnection(entry)

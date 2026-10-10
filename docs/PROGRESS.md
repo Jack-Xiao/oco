@@ -1004,3 +1004,33 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 
 - 只改 `media/sessions-list/index.js` / `index.css`：`.section-head` 复用 `.chevron` 三角，标签与行标题左缘对齐；SESSIONS 始终渲染、可折叠、搜索强制展开；`collapsed` 并入 `vscode.setState`。
 - 测试：node --check、build PASS；E2E c6-inbox 12.8 s + p1b-sidebar 48.5 s，18 PASS / 0 FAIL。Gemini 实现 10 min。
+
+## 2026-10-10 驾驶舱第二步：每会话结果卡（侧栏摘要行 + 运行视图终态卡 + 一键 Review）
+
+- 侧栏：`session-store.ts` 记录每会话最近一次运行的摘要（`session.diff` / 计时 / 花费 / 最后一句），done / error 行带 `result` 与一行 summary；页面 Open / Diff / Mark read；`sessions-view.markRead`。宿主：`oco.openSessionReview`、`OpenSessionRequest.review`、bridge `navigate.review`、面板 `pendingReview`；chat-webview 以 `oco:review-intent` 事件转交页面。
+- 上游补丁 0021：`context/oco-review-intent.ts`、session.tsx 消费意图并传 `onOpenReview`、运行视图环心卡片终态文件列表 + Open diff、i18n 三语。
+- 测试：typecheck 0、app tsgo 0、单测 213 / 0、webview build 17 s、vsix 已装本机。E2E c7-result-card：3 PASS / 1 FAIL（runtime-result-card，测试服务器空 diff + fixture 路由待查）。
+- 委派：Gemini store 9.9 min（落盘后包装层报错）、Grok 侧栏 4 min、Claude 子代理 E2E 21 min。证据 [cockpit-result-card-2026-10-10](evidence/cockpit-result-card-2026-10-10.md)。
+- 决策：批量发起改为 DEFER（脚本代替，等真实需求）；Agent 定义编辑搁置。
+
+
+## 2026-10-10 Codex 接续结果卡验收（Claude 额度耗尽后的 1803c55）
+
+- 修复真实数据链路：侧栏改从最新 user summary.diffs 记录文件，支持 idle 后摘要更新，并防旧轮迟到；运行卡仅列最近一轮，与 Review last-turn 同源。结果卡 / 侧栏 Diff 显式切到 turn + review，点文件定位 diff，不再打开全文。
+- c7 改用消息摘要 fixture（GET + SSE），保留真实 session.diff=[]；展开点整张卡；新增单文件和全部 Diff 的文件名、shadow-root patch 内容断言；默认套件实际增至 23。
+- 验证：221 单测 / 0 失败，根 / app 类型检查 0；构建通过；0021 五文件 +168 −1，0001–0021 重放一致；mock E2E c7 6/0、c6 5/0、c2 3/0，共 14/0。
+- 已装本机包 oco-0.0.4-1803c55（基线 + 本批代码，需 Reload Window），安装哈希一致。真实模型目视仍 NOT RUN，服务端快照生成不由本轮 fixture 证明。
+- 委派：Grok 审查 / 单测诊断 / store 实现；Gemini 探测成功，但原生 subscription_worker HTTP 400，换 Grok。Claude 子代理工具不可用，E2E 按已记录结构性限制由主线程接手。证据 [cockpit-result-card-2026-10-10](evidence/cockpit-result-card-2026-10-10.md)，批量发起等 DEFER 不变。
+
+## 2026-10-10 Diff 入口改用原生 Git 变更
+
+- 用户确认「行 git 变更吧」；补丁 0021 的 openReview 从 turn 改为 git，复用 OpenCode 原生 Git / Branch / Last-turn 下拉，不新增会话 Diff API。卡片仍显示本轮摘要，Review 范围为工作目录未提交改动。
+- 验证：221 单测 / 0 失败，根 / app 类型检查 0，构建及 0001–0021 重放通过；新 c8 4/0（真实两轮文件 + 未拦截 Git API，消息摘要 fixture 只含各轮文件），c7 6/0（Git 文件树改用原生筛选定位）。
+- 安装：oco-0.0.4-2cb3c4c.vsix（HEAD + 本批未提交模式修改），extension.js / index 安装哈希一致；需 Reload Window。用户已有服务未改，原有未提交 fixture / 文档改动保留。
+- 证据 [session-diff-scope-2026-10-10](evidence/session-diff-scope-2026-10-10.md)。Claude/Sonnet 工具不可用且订阅路线 E2E 有已知结构性限制，主线程例外执行定向验收；本轮仅一行紧耦合上游集成。
+
+## 2026-10-10 卡片汇总本会话文件名
+
+- 用户指出旧卡片只列最后一轮两个文件，明确希望复用当前会话记录列出跨轮文件，不直接拿工作区 Git 数据；若需额外系统则倾向删除。最小修正为各轮 user summary.diffs 路径去重，沿用完整历史 walk 和原有回退边界；不新建追踪系统、不合成净 patch。卡片只列文件数 / 文件名，Git Review 入口保持原生行为。
+- 验证：221 单测 / 0 失败、根 / app typecheck 0、build 与 0001–0021 重放通过；c8 5/0（两轮三文件、重复去重、额外 Git 文件排除）、c7 6/0。源数据为摘要 fixture，Git API 未拦截；未新增真实模型验收。
+- 安装 oco-0.0.4-d83978f.vsix（基线 + 本批代码），extension.js / chat index 哈希一致；需 Reload Window。证据 [session-diff-scope](evidence/session-diff-scope-2026-10-10.md)。原有他人未提交改动保留，按已有授权补充提交本批。

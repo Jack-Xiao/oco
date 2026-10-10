@@ -1,0 +1,284 @@
+diff --git a/packages/app/src/components/session/session-runtime-i18n.ts b/packages/app/src/components/session/session-runtime-i18n.ts
+index 497a963..4f908d1 100644
+--- a/packages/app/src/components/session/session-runtime-i18n.ts
++++ b/packages/app/src/components/session/session-runtime-i18n.ts
+@@ -186,6 +186,11 @@ const en = {
+   "ring.card.dismissed.meta": "The question waited {{dur}} · idle {{idle}}",
+   "ring.card.end.meta": "{{at}} · idle {{dur}}",
+   "ring.card.end.reason": "Finish reason {{reason}}",
++  "ring.card.result.files": "{{n}} changed files in this session",
++  "ring.card.result.file": "1 changed file in this session",
++  "ring.card.result.title": "Session changed files",
++  "ring.card.result.open": "Open diff",
++  "ring.card.result.open.all": "Open all diffs",
+   "ring.card.aborted.body": "Request {{m}} was stopped: {{name}} ({{message}}).",
+   "ring.card.aborted.post": "Before the stop the model was thinking: {{text}}",
+   "ring.card.expand.aria": "Show the full text",
+@@ -502,6 +507,11 @@ const zh: Record<Key, string> = {
+   "ring.card.dismissed.meta": "提问等了 {{dur}} · 已空闲 {{idle}}",
+   "ring.card.end.meta": "{{at}} · 已空闲 {{dur}}",
+   "ring.card.end.reason": "结束原因 {{reason}}",
++  "ring.card.result.files": "本会话改动 {{n}} 个文件",
++  "ring.card.result.file": "本会话改动 1 个文件",
++  "ring.card.result.title": "本会话改动文件",
++  "ring.card.result.open": "打开 diff",
++  "ring.card.result.open.all": "打开全部 diff",
+   "ring.card.aborted.body": "第 {{m}} 次请求被中止：{{name}}（{{message}}）。",
+   "ring.card.aborted.post": "中止前模型在思考：{{text}}",
+   "ring.card.expand.aria": "展开全文",
+@@ -814,6 +824,11 @@ const zht: Record<Key, string> = {
+   "ring.card.dismissed.meta": "提問等了 {{dur}} · 已閒置 {{idle}}",
+   "ring.card.end.meta": "{{at}} · 已閒置 {{dur}}",
+   "ring.card.end.reason": "結束原因 {{reason}}",
++  "ring.card.result.files": "本會話變更 {{n}} 個檔案",
++  "ring.card.result.file": "本會話變更 1 個檔案",
++  "ring.card.result.title": "本會話變更檔案",
++  "ring.card.result.open": "開啟 diff",
++  "ring.card.result.open.all": "開啟全部 diff",
+   "ring.card.aborted.body": "第 {{m}} 次請求被中止：{{name}}（{{message}}）。",
+   "ring.card.aborted.post": "中止前模型在思考：{{text}}",
+   "ring.card.expand.aria": "展開全文",
+diff --git a/packages/app/src/components/session/session-runtime-ring-view.tsx b/packages/app/src/components/session/session-runtime-ring-view.tsx
+index 2158313..01e6722 100644
+--- a/packages/app/src/components/session/session-runtime-ring-view.tsx
++++ b/packages/app/src/components/session/session-runtime-ring-view.tsx
+@@ -38,8 +38,14 @@ import type {
+   Tone,
+ } from "./session-runtime-ring-types"
+ 
++/** Result card (patches/opencode/0021): the session's changed files and the page's "open review" action. */
++export type RingResult = {
++  files: { file: string }[]
++  open: (file?: string) => void
++}
+ export type RingViewProps = {
+   index: Accessor<RingIndex>; frame: Accessor<RingFrame>; t: Accessor<number>
++  result?: Accessor<RingResult | undefined>   // result card: shown on the end / abort card, live only
+   mode: Accessor<"live" | "replay">; reduced: Accessor<boolean>; text: RuntimeText
+   childLoad: (sessionID: string) => "ready" | "loading" | "failed"
+   onLoadChild: (sessionID: string) => void; onRetryChild: (sessionID: string) => void
+@@ -346,6 +352,22 @@ export function RingView(props: RingViewProps): JSX.Element {
+ 
+   // ---------- card ----------
+   const card = () => f().card
++  // ---------- result card (patches/opencode/0021) ----------
++  const result = () => props.result?.()
++  const showResult = () => {
++    const r = result()
++    if (!r || !r.files.length || props.mode() !== "live") return false
++    const st = f().stage.st
++    return st === "end" || st === "abort"
++  }
++  const resultLine = () => {
++    const n = result()?.files.length ?? 0
++    return text.t(n === 1 ? "ring.card.result.file" : "ring.card.result.files", { n })
++  }
++  const resultBtn = {
++    flex: "none", height: "18px", padding: "0 6px", "border-radius": "4px", cursor: "pointer", "font-size": "11px",
++    border: "1px solid var(--rt-line-strong)", background: "transparent", color: "var(--rt-main)", "font-family": "inherit",
++  } as const
+   // the whole card opens the full-content overlay whenever it has anything to show (running or not);
+   // a streaming part with no text yet (thinking in replay, or before the first delta) still opens to its meta
+   const canExpand = createMemo(() => {
+@@ -940,6 +962,25 @@ export function RingView(props: RingViewProps): JSX.Element {
+                 {say(card().post)}
+               </span>
+             </Show>
++            <Show when={showResult()}>
++              <div
++                data-oco-runtime-card-result
++                style={{ display: "flex", "align-items": "center", gap: "8px", flex: "none", "min-width": "0", "font-size": "11px", "line-height": `${LH}px`, color: "var(--rt-weak)" }}
++              >
++                <span style={{ ...ell, flex: "1 1 auto" }}>{resultLine()}</span>
++                <button
++                  type="button"
++                  data-oco-runtime-card-result-open
++                  style={resultBtn}
++                  onClick={(e) => {
++                    e.stopPropagation()
++                    result()?.open()
++                  }}
++                >
++                  {text.t("ring.card.result.open")}
++                </button>
++              </div>
++            </Show>
+           </div>
+ 
+           {/* ---------- tools ---------- */}
+@@ -1249,6 +1290,40 @@ export function RingView(props: RingViewProps): JSX.Element {
+                       {card().meta.map((p) => text.phrase(p)).join(sep())}
+                     </div>
+                   </Show>
++                  <Show when={showResult()}>
++                    <div data-oco-runtime-card-result-list style={{ "margin-top": "10px", "border-top": "1px solid var(--rt-line)", "padding-top": "8px", "white-space": "normal" }}>
++                      <div style={{ display: "flex", "align-items": "center", gap: "8px", "font-size": "11px", color: "var(--rt-weak)", "margin-bottom": "4px" }}>
++                        <b style={{ color: "var(--rt-text)" }}>{text.t("ring.card.result.title")}</b>
++                        <span style={{ ...ell, flex: "1 1 auto" }}>{resultLine()}</span>
++                        <button type="button" data-oco-runtime-card-result-open style={resultBtn} onClick={() => result()?.open()}>
++                          {text.t("ring.card.result.open.all")}
++                        </button>
++                      </div>
++                      <ul style={{ margin: "0", padding: "0", "list-style": "none" }}>
++                        <For each={result()?.files ?? []}>
++                          {(x) => (
++                            <li
++                              data-oco-runtime-card-result-file={x.file}
++                              role="button"
++                              tabIndex={0}
++                              onClick={() => result()?.open(x.file)}
++                              onKeyDown={(e) => {
++                                if (e.key !== "Enter" && e.key !== " ") return
++                                e.preventDefault()
++                                result()?.open(x.file)
++                              }}
++                              style={{
++                                display: "grid", "grid-template-columns": "minmax(0,1fr)", "align-items": "center",
++                                padding: "2px 0", cursor: "pointer", "font-family": mono, "font-size": "11.5px",
++                              }}
++                            >
++                              <span style={{ ...ell, color: "var(--rt-text)" }}>{x.file}</span>
++                            </li>
++                          )}
++                        </For>
++                      </ul>
++                    </div>
++                  </Show>
+                 </>
+               }
+             >
+diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
+index 4927cc2..25e42c1 100644
+--- a/packages/app/src/components/session/session-runtime.tsx
++++ b/packages/app/src/components/session/session-runtime.tsx
+@@ -33,7 +33,9 @@ import { buildRingIndex, frameAt, liveTime, roundAt, trackInputOf } from "./sess
+ import { stepTimesOf } from "./session-runtime-step-times"
+ import { navStep, trackMap } from "./session-runtime-ring-track"
+ import { RingTrack } from "./session-runtime-ring-track-view"
+-import { RingView } from "./session-runtime-ring-view"
++import { RingView, type RingResult } from "./session-runtime-ring-view"
++import { diffs as reviewDiffs } from "@/utils/diffs"
++import { selectVisibleUserMessages } from "@/pages/session/timeline/model"
+ import {
+   RING,
+   type Phrase,
+@@ -117,6 +119,8 @@ export function SessionRuntime(props: {
+   onView: (view: SessionViewMode) => void
+   actions?: JSX.Element
+   onOpenSession?: (sessionID: string) => void
++  /** Result card: open the page's review (diff) panel, on `file` when given. */
++  onOpenReview?: (file?: string) => void
+ }) {
+   const sync = useSync()
+   const sdk = useSDK()
+@@ -385,6 +389,22 @@ export function SessionRuntime(props: {
+   for (const k of FRAME_KEYS) Object.defineProperty(frame, k, { enumerable: true, get: () => store[k] })
+   Object.defineProperty(frame, "stage", { enumerable: true, get: stage })
+   const frameAcc: Accessor<RingFrame> = () => frame
++  // File list from this session's recorded turn summaries. Reuse the existing full-history walk and
++  // revert boundary; do not mix workspace Git files or pretend per-turn patches form a net session diff.
++  const ringResult = createMemo<RingResult | undefined>(() => {
++    const open = props.onOpenReview
++    const sid = shownID()
++    if (!open || walk() !== "done" || sync().session.history.more(sid) || sync().session.history.loading(sid)) return undefined
++    const messages = (sync().data.message[sid] ?? emptyMessages) as Message[]
++    const users = selectVisibleUserMessages(messages.filter((m) => m.role === "user"), sync().session.get(sid)?.revert?.messageID)
++    const files = new Set<string>()
++    for (const user of users) {
++      for (const diff of reviewDiffs(user.summary?.diffs)) {
++        if (typeof diff.file === "string" && diff.file) files.add(diff.file)
++      }
++    }
++    return { files: [...files].map((file) => ({ file })), open }
++  })
+ 
+   // ---------- playback ----------
+   let playV = 0
+@@ -1083,6 +1103,7 @@ export function SessionRuntime(props: {
+             onRetryChild={retryChild}
+             onEnterChild={onEnterChild}
+             onGeo={(g) => setGeoMode(g.mode)}
++            result={ringResult}
+           />
+         </div>
+ 
+diff --git a/packages/app/src/context/oco-review-intent.ts b/packages/app/src/context/oco-review-intent.ts
+new file mode 100644
+index 0000000..c03d752
+--- /dev/null
++++ b/packages/app/src/context/oco-review-intent.ts
+@@ -0,0 +1,30 @@
++// oco (patches/opencode/0021): "show me the diff" intent from the VS Code host. The sidebar's result row sends
++// navigate{review} (ADR-007 bridge); apps/chat-webview relays it as a window event because the page may not be on
++// the session yet. The session page takes the intent once it shows that session (pages/session.tsx).
++import { createSignal } from "solid-js"
++
++export type ReviewIntent = { sessionID: string; file?: string; at: number }
++
++const [intent, setIntent] = createSignal<ReviewIntent | undefined>(undefined)
++
++export const reviewIntent = intent
++
++export function requestReview(sessionID: string, file?: string) {
++  setIntent({ sessionID, file, at: Date.now() })
++}
++
++/** Takes the pending intent for `sessionID`; undefined when there is none or it is for another session. */
++export function takeReview(sessionID: string): ReviewIntent | undefined {
++  const cur = intent()
++  if (!cur || cur.sessionID !== sessionID) return undefined
++  setIntent(undefined)
++  return cur
++}
++
++if (typeof window !== "undefined") {
++  window.addEventListener("oco:review-intent", (e) => {
++    const d = (e as CustomEvent<{ sessionID?: unknown; file?: unknown }>).detail
++    if (!d || typeof d.sessionID !== "string" || !d.sessionID) return
++    requestReview(d.sessionID, typeof d.file === "string" && d.file ? d.file : undefined)
++  })
++}
+diff --git a/packages/app/src/pages/session.tsx b/packages/app/src/pages/session.tsx
+index f48a0f0..e877f22 100644
+--- a/packages/app/src/pages/session.tsx
++++ b/packages/app/src/pages/session.tsx
+@@ -43,6 +43,7 @@ import { NewSessionView, SessionHeader } from "@/components/session"
+ import { SessionHeaderEmbeddedActions } from "@/components/session/session-header"
+ import { SessionTrajectory, SessionViewToggle, type SessionViewMode } from "@/components/session/session-trajectory"
+ import { SessionRuntime } from "@/components/session/session-runtime"
++import { reviewIntent, takeReview } from "@/context/oco-review-intent"
+ import { ErrorPage } from "@/pages/error"
+ import { CommentsProvider, useComments } from "@/context/comments"
+ import { useCommand } from "@/context/command"
+@@ -1175,6 +1176,23 @@ export default function Page() {
+     loadFile: file.load,
+   })
+ 
++  // oco (patches/opencode/0021): result card. The host (sidebar "Diff") or the runtime view's card asks for the
++  // review panel; the chat view hosts it, so the view switches back first.
++  const openReview = (path?: string) => {
++    if (store.view !== "chat") setStore("view", "chat")
++    view().review.setMode("git")
++    openReviewPanel()
++    tabs().setActive("review")
++    if (path) focusReviewDiff(path)
++  }
++  createEffect(() => {
++    const it = reviewIntent()
++    const id = params.id
++    if (!it || !id || it.sessionID !== id || !messagesReady()) return
++    takeReview(id)
++    openReview(it.file)
++  })
++
+   const changesLabel = (option: ChangeMode) => {
+     if (option === "git") return language.t("ui.sessionReview.title.git")
+     if (option === "branch") return language.t("ui.sessionReview.title.branch")
+@@ -2145,6 +2163,7 @@ export default function Page() {
+                       : legacySessionHref(sdk().directory, sessionID),
+                   )
+                 }}
++                onOpenReview={openReview}
+               />
+             )}
+           </Match>
