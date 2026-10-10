@@ -4,11 +4,11 @@
 
 ## 多 agent 驾驶舱第二步：每会话结果卡（2026-10-10，分支 claude/cleanup-2026-10-10，本地未推送）
 
-- 侧栏收件箱 done / error 行多一行摘要：`N files · 4m12s · $0.08 · 最后一句`（缺项省略，全缺回退 Finished），hover / 聚焦 / 选中时露出 Open / Diff / Mark read（error 行无 Mark read）。数据全来自上游事件：`session.diff` 文件列表、`session.status/idle` 计时、`message.updated` 花费、`message.part.updated/delta` 最后一句；oco 不重算。已读走现有 UnreadTracker，新增手动 markRead。
-- 运行视图环心卡片 end / abort 终态（live）显示「N files changed · +a −d」与 Open diff；展开后列出文件，每行可点。点击走上游 Review 面板：页面切回 chat 视图 → 打开 Review → 定位文件。侧栏 Diff 通过 `oco.openSessionReview` → `navigate{review}` → `oco:review-intent` 窗口事件 → 页面消费。不做 VS Code 原生 diff（上游只给 patch 文本）。
-- 补丁链新增 0021（5 文件 +165 −1，`regen-patch.sh --check` 复核一致）。契约：`OpenSessionRequest.review`、bridge `Navigate.review`、侧栏页面消息 `openReview` / `markRead`。
-- 验证：typecheck 0；上游 app tsgo 0；单测 213 / 0；webview build 通过；vsix `oco-0.0.4-bb9e90e` 已装本机。E2E c7-result-card（mock）：侧栏三用例 PASS；runtime-result-card FAIL，原因是测试服务器 `session.diff` 恒为空（c2 已记录），复查判定为产品缺陷（嵌入 app 不接收 `session.diff`，store 恒空），数据源已改为用户消息 `summary.diffs` 并重新打包安装；该用例按新数据源 NOT RUN；真实模型目视 NOT RUN。
-- 委派：Gemini 实现 store（结果落盘后包装层报错）；Grok 实现侧栏 4 min；E2E 由 Claude 子代理（Sonnet）21 min。证据 [cockpit-result-card-2026-10-10](evidence/cockpit-result-card-2026-10-10.md)。
+- 侧栏 done / error 行提供最近一次运行的摘要（文件数 · 耗时 · 花费 · 最后一句）和 Open / Diff / Mark read（error 无 Mark read）。文件来源为最新 user `message.updated.info.summary.diffs`，不保存 patch；当前上游 `session.diff` 只发空数组。其他字段沿用上游事件与客户端 busy/idle 时间。
+- 运行视图 end / abort 终态在 live 模式显示最近一轮改动文件和增删行；点整张卡展开文件列表。卡片、侧栏 Diff 和单文件动作均切回 chat、显式打开 Review「last turn」；单文件动作定位 diff，不打开源码全文。卡片与 Review 使用同一条 user 消息摘要，不跨轮混合统计。
+- 补丁 0021：5 文件 +168 −1，重生成后 0001–0021 干净重放并与 vendor app 逐文件一致；上游 app tsgo 0、webview build PASS。`navigate.review` / `oco.openSessionReview` 契约不变。c7 已加入默认 23 套件，之前枚举只有 22 项的文档偏差已修正。
+- 接续验证：typecheck 0、上游 app tsgo 0；221 单测 / 0 失败（store 35，含 user 先于 busy 的两条真实顺序回归）；webview / extension build PASS；c7-result-card 6/0（19.25 s）、c6-inbox 5/0（9.06 s）、c2-diff-unavailable 3/0（13.29 s）。这些 E2E 为 mock，c7 的 diff 来自消息摘要 fixture，不证明服务端真实快照生成。已安装 `oco-0.0.4-1803c55.vsix`（基线 1803c55 + 本批代码，SHA 文件名只指基线），扩展 JS 与包内一致：`e14010b3cf287be61af9258b5bd47a2f11aab630391883d6be2b7bcddc0e8e2a`。VS Code 需 Reload Window；真实模型目视仍 NOT RUN。
+- 委派：Grok 订阅完成独立审查、单测失败诊断和 store 修复；Gemini 健康探测成功，但原生订阅代理 HTTP 400 `Requests ending with a model turn are not supported`，已记录并换 Grok。Claude 额度及工具不可用，VS Code E2E 由主线程按记录例外接手。证据 [cockpit-result-card-2026-10-10](evidence/cockpit-result-card-2026-10-10.md)。
 
 ## 多 agent 驾驶舱第一步：ADR-009 + 跨会话「待处理」收件箱（2026-10-10，分支 claude/cleanup-2026-10-10）
 

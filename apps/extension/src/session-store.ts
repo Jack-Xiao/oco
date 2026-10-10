@@ -31,11 +31,15 @@ export type PendingRequest = {
   }>
   tool?: { messageID: string; callID: string }
 }
-/** One changed file of a session, from the server's `session.diff` event (snapshot diff since the session began). */
+/** One changed file of a run. `patch` is never stored. */
 export type FileChange = { file: string; additions: number; deletions: number; status?: "added" | "deleted" | "modified" }
 /** Result summary of a session's last run (busy → idle), for the "done" / "error" inbox rows (result card, step 4). */
 export type RunResult = {
-  /** Changed files from `session.diff`; undefined when the server sent none yet. */
+  /**
+   * Changed files for the last run.
+   * Authoritative source is the latest user message `summary.diffs`; `session.diff` fills in only until that summary owns the run.
+   * Undefined when none were recorded.
+   */
   files?: FileChange[]
   /** Last run's wall time (busy → idle) when both ends were observed. */
   durMs?: number
@@ -79,11 +83,19 @@ export type Snapshot = {
 }
 export type ServerEvent = { id?: string; type: string; properties?: Record<string, unknown> }
 
+type SummaryWatermark = { id: string; created: number; sealed: boolean }
+
 type Row = {
   session: ServerSession
   status: ServerStatus["type"]
   error?: string
   files?: FileChange[]
+  /** Latest user message seen for summary ordering. */
+  summaryWatermark?: SummaryWatermark
+  /** User id of the last round that reached idle. A later busy seals only this id. */
+  completedUserId?: string
+  /** True while `files` (including a deliberate empty summary) belong to the current run's user summary. */
+  filesAuthoritative?: boolean
   runStart?: number
   runEnd?: number
   assistantMessages: Set<string>
@@ -121,6 +133,9 @@ export class SessionStore {
         status: s.status[session.id]?.type ?? "idle",
         error: prev?.error,
         files: prev?.files,
+        summaryWatermark: prev?.summaryWatermark ? { ...prev.summaryWatermark } : undefined,
+        completedUserId: prev?.completedUserId,
+        filesAuthoritative: prev?.filesAuthoritative,
         runStart: prev?.runStart,
         runEnd: prev?.runEnd,
         assistantMessages: prev?.assistantMessages ?? new Set(),
@@ -167,11 +182,17 @@ export class SessionStore {
             row.messageMetrics.clear()
             row.lastText = undefined
             row.lastPart = undefined
+            if (row.filesAuthoritative) {
+              row.files = undefined
+              row.filesAuthoritative = false
+            }
+            // Seal the finished round only. The next prompt often arrives before busy and must stay open.
+            if (row.summaryWatermark && row.completedUserId === row.summaryWatermark.id) {
+              row.summaryWatermark = { ...row.summaryWatermark, sealed: true }
+            }
           }
         } else if (type === "idle") {
-          if (prevStatus === "busy" || prevStatus === "retry") {
-            row.runEnd = this.now()
-          }
+          this.noteRunIdle(row, prevStatus)
         }
         const changed = row.status !== type
         row.status = type
@@ -181,9 +202,7 @@ export class SessionStore {
         const row = sid && this.rows.get(sid)
         if (!row) return this.ignore()
         const prevStatus = row.status
-        if (prevStatus === "busy" || prevStatus === "retry") {
-          row.runEnd = this.now()
-        }
+        this.noteRunIdle(row, prevStatus)
         const changed = row.status !== "idle"
         row.status = "idle"
         return changed
@@ -200,28 +219,13 @@ export class SessionStore {
       case "session.diff": {
         if (sid && Array.isArray(p.diff)) {
           const row = this.rows.get(sid)
-          if (row) {
-            const files: FileChange[] = []
-            for (const item of p.diff) {
-              if (item && typeof item === "object" && typeof item.file === "string" && item.file.length > 0) {
-                const change: FileChange = {
-                  file: item.file,
-                  additions: typeof item.additions === "number" ? item.additions : 0,
-                  deletions: typeof item.deletions === "number" ? item.deletions : 0,
-                }
-                if (item.status === "added" || item.status === "deleted" || item.status === "modified") {
-                  change.status = item.status
-                }
-                files.push(change)
-              }
-            }
-            row.files = files
-          }
+          if (row && !row.filesAuthoritative) row.files = fileChangesFromDiff(p.diff)
         }
         return false
       }
       case "message.updated": {
         const info = p.info
+        if (info && typeof info === "object" && info.role === "user") return this.applyUserSummary(info, sid)
         if (info && typeof info === "object" && info.role === "assistant") {
           const infoSid = typeof info.sessionID === "string" ? info.sessionID : sid
           if (infoSid && typeof info.id === "string") {
@@ -734,8 +738,85 @@ export class SessionStore {
     return lines.join("\n")
   }
 
+  /**
+   * Latest user `summary.diffs` owns run files. Returns true only when the visible file list changes
+   * (including a summary that arrives after idle). Older messages, a sealed completed round, a missing
+   * summary, and illegal diffs leave files alone. Host time is not compared with server timestamps.
+   */
+  private applyUserSummary(info: any, sid: string | undefined): boolean {
+    const infoSid = typeof info.sessionID === "string" ? info.sessionID : sid
+    const id = typeof info.id === "string" && info.id.length > 0 ? info.id : undefined
+    if (!infoSid || !id) return false
+    const row = this.rows.get(infoSid)
+    if (!row) return false
+
+    const created =
+      info.time && typeof info.time === "object" && typeof info.time.created === "number" && Number.isFinite(info.time.created)
+        ? info.time.created
+        : 0
+    const mark = row.summaryWatermark
+    if (mark) {
+      if (id === mark.id) {
+        if (mark.sealed) return false
+      } else if (created < mark.created || (created === mark.created && id <= mark.id)) {
+        return false
+      }
+    }
+    row.summaryWatermark = { id, created, sealed: false }
+
+    const summary = info.summary
+    if (!summary || typeof summary !== "object") return false
+    const diffs = summary.diffs
+    if (!Array.isArray(diffs)) return false
+    const parsed = fileChangesFromDiff(diffs)
+    if (diffs.length > 0 && parsed.length === 0) return false
+    // A summary that lands after idle still belongs to the finished round. A prompt with no summary does not.
+    if (row.status === "idle" && row.runEnd !== undefined) row.completedUserId = id
+
+    const next = parsed.length > 0 ? parsed : undefined
+    const changed = !sameFileChanges(row.files, next)
+    row.files = next
+    row.filesAuthoritative = true
+    return changed
+  }
+
+  /** Record the user id of a round that just reached idle. Busy seals only this id. */
+  private noteRunIdle(row: Row, prevStatus: ServerStatus["type"]) {
+    if (prevStatus !== "busy" && prevStatus !== "retry") return
+    row.runEnd = this.now()
+    if (row.summaryWatermark) row.completedUserId = row.summaryWatermark.id
+  }
+
   private ignore() {
     this.stats.ignored++
     return false
   }
+}
+
+function fileChangesFromDiff(diff: unknown[]): FileChange[] {
+  const files: FileChange[] = []
+  for (const item of diff) {
+    if (!item || typeof item !== "object") continue
+    const raw = item as { file?: unknown; additions?: unknown; deletions?: unknown; status?: unknown }
+    if (typeof raw.file !== "string" || raw.file.length === 0) continue
+    const change: FileChange = {
+      file: raw.file,
+      additions: typeof raw.additions === "number" ? raw.additions : 0,
+      deletions: typeof raw.deletions === "number" ? raw.deletions : 0,
+    }
+    if (raw.status === "added" || raw.status === "deleted" || raw.status === "modified") change.status = raw.status
+    files.push(change)
+  }
+  return files
+}
+
+function sameFileChanges(a: FileChange[] | undefined, b: FileChange[] | undefined): boolean {
+  if (a === b) return true
+  if (!a || !b || a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i]
+    const y = b[i]
+    if (x.file !== y.file || x.additions !== y.additions || x.deletions !== y.deletions || x.status !== y.status) return false
+  }
+  return true
 }

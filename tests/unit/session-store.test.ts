@@ -1161,4 +1161,416 @@ describe("SessionStore run summary and inbox results", () => {
     const rows = store.inbox(undefined, new Set(["s-tok"]))
     expect(rows[0].result?.tokens).toBe(185)
   })
+
+  test("real user summary.diffs supplies run files and is not overridden by session.diff", () => {
+    let t = 1000
+    const store = new SessionStore((directory) => directory === WORK, () => t)
+    store.add(session({ id: "s1", title: "Task 1", time: { updated: 1000 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          info: { id: "asst-1", sessionID: "s1", role: "assistant", cost: 0.05, tokens: { total: 1000 } },
+        }),
+      ),
+    ).toBe(false)
+    store.applyEvent(
+      ev("message.part.updated", {
+        part: { id: "p1", messageID: "asst-1", sessionID: "s1", type: "text", text: "Edited a.ts" },
+      }),
+    )
+    // Upstream publishes an empty session diff, then the real diff on the user message.
+    expect(store.applyEvent(ev("session.diff", { sessionID: "s1", diff: [] }))).toBe(false)
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: {
+            id: "msg_u1",
+            sessionID: "s1",
+            role: "user",
+            time: { created: 1000 },
+            summary: {
+              diffs: [
+                { file: "src/a.ts", additions: 4, deletions: 1, status: "modified", patch: "@@ secret" },
+                { file: "src/b.ts", additions: 2, deletions: 0, status: "added" },
+                { additions: 9, deletions: 9, patch: "@@ no file" },
+              ],
+            },
+          },
+        }),
+      ),
+    ).toBe(true)
+    expect(
+      store.applyEvent(
+        ev("session.diff", {
+          sessionID: "s1",
+          diff: [{ file: "other.ts", additions: 9, deletions: 9, status: "modified", patch: "@@ later" }],
+        }),
+      ),
+    ).toBe(false)
+
+    t = 4000
+    store.applyEvent(ev("session.idle", { sessionID: "s1" }))
+    const rows = store.inbox(undefined, new Set(["s1"]), t)
+    expect(rows[0].result).toEqual({
+      files: [
+        { file: "src/a.ts", additions: 4, deletions: 1, status: "modified" },
+        { file: "src/b.ts", additions: 2, deletions: 0, status: "added" },
+      ],
+      durMs: 3000,
+      costUsd: 0.05,
+      tokens: 1000,
+      lastText: "Edited a.ts",
+    })
+    expect(rows[0].result?.files?.[0]).not.toHaveProperty("patch")
+  })
+
+  test("user summary arriving after idle updates files and applyEvent returns true", () => {
+    let t = 1000
+    const store = new SessionStore((directory) => directory === WORK, () => t)
+    store.add(session({ id: "s1", title: "Task", time: { updated: 10 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))
+    t = 2500
+    expect(store.applyEvent(ev("session.idle", { sessionID: "s1" }))).toBe(true)
+    expect(store.inbox(undefined, new Set(["s1"]), t)[0].result?.files).toBeUndefined()
+
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: {
+            id: "msg_u1",
+            sessionID: "s1",
+            role: "user",
+            time: { created: 1000 },
+            summary: { diffs: [{ file: "late.ts", additions: 3, deletions: 1, status: "modified", patch: "@@" }] },
+          },
+        }),
+      ),
+    ).toBe(true)
+
+    const rows = store.inbox(undefined, new Set(["s1"]), t)
+    expect(rows[0].result?.files).toEqual([{ file: "late.ts", additions: 3, deletions: 1, status: "modified" }])
+    expect(rows[0].summary).toBe("1 file · 2s")
+  })
+
+  test("a new busy run clears files from the previous user summary", () => {
+    let t = 1000
+    const store = new SessionStore((directory) => directory === WORK, () => t)
+    store.add(session({ id: "s1", title: "Task", time: { updated: 10 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))
+    store.applyEvent(
+      ev("message.updated", {
+        sessionID: "s1",
+        info: {
+          id: "msg_u1",
+          sessionID: "s1",
+          role: "user",
+          time: { created: 1000 },
+          summary: { diffs: [{ file: "first.ts", additions: 1, deletions: 0, status: "added" }] },
+        },
+      }),
+    )
+    t = 2000
+    store.applyEvent(ev("session.idle", { sessionID: "s1" }))
+    expect(store.inbox(undefined, new Set(["s1"]), t)[0].result?.files).toEqual([
+      { file: "first.ts", additions: 1, deletions: 0, status: "added" },
+    ])
+
+    t = 5000
+    expect(store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))).toBe(true)
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: {
+            id: "msg_u1",
+            sessionID: "s1",
+            role: "user",
+            time: { created: 1000 },
+            summary: { diffs: [{ file: "first.ts", additions: 8, deletions: 8, status: "modified" }] },
+          },
+        }),
+      ),
+    ).toBe(false)
+    t = 8000
+    store.applyEvent(ev("session.idle", { sessionID: "s1" }))
+    expect(store.inbox(undefined, new Set(["s1"]), t)[0].result?.files).toBeUndefined()
+    expect(store.inbox(undefined, new Set(["s1"]), t)[0].summary).toBe("3s")
+  })
+
+  test("user without summary, then busy, then the same user's summary, then idle keeps the files", () => {
+    // Upstream prompt order. Server created is far from the host clock on purpose.
+    let t = 1000
+    const store = new SessionStore((directory) => directory === WORK, () => t)
+    store.add(session({ id: "s1", title: "Task", time: { updated: 10 } }))
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: { id: "msg_u1", sessionID: "s1", role: "user", time: { created: 50 } },
+        }),
+      ),
+    ).toBe(false)
+    expect(only(store).activity).toBe("idle")
+    expect(store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))).toBe(true)
+    expect(only(store).activity).toBe("busy")
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: {
+            id: "msg_u1",
+            sessionID: "s1",
+            role: "user",
+            time: { created: 50 },
+            summary: { diffs: [{ file: "now.ts", additions: 2, deletions: 1, status: "modified" }] },
+          },
+        }),
+      ),
+    ).toBe(true)
+    t = 4000
+    expect(store.applyEvent(ev("session.idle", { sessionID: "s1" }))).toBe(true)
+    expect(only(store).activity).toBe("idle")
+    const row = store.inbox(undefined, new Set(["s1"]), t)[0]
+    expect(row.result?.files).toEqual([{ file: "now.ts", additions: 2, deletions: 1, status: "modified" }])
+    expect(row.summary).toBe("1 file · 3s")
+  })
+
+  test("after idle, a new user without summary then busy then that user's summary keeps the new files", () => {
+    let t = 1000
+    const store = new SessionStore((directory) => directory === WORK, () => t)
+    store.add(session({ id: "s1", title: "Task", time: { updated: 10 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))
+    store.applyEvent(
+      ev("message.updated", {
+        sessionID: "s1",
+        info: {
+          id: "msg_u1",
+          sessionID: "s1",
+          role: "user",
+          time: { created: 50 },
+          summary: { diffs: [{ file: "first.ts", additions: 1, deletions: 0, status: "added" }] },
+        },
+      }),
+    )
+    t = 2000
+    expect(store.applyEvent(ev("session.idle", { sessionID: "s1" }))).toBe(true)
+    expect(store.inbox(undefined, new Set(["s1"]), t)[0].result?.files).toEqual([
+      { file: "first.ts", additions: 1, deletions: 0, status: "added" },
+    ])
+
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: { id: "msg_u2", sessionID: "s1", role: "user", time: { created: 60 } },
+        }),
+      ),
+    ).toBe(false)
+    expect(only(store).activity).toBe("idle")
+    t = 5000
+    expect(store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))).toBe(true)
+    expect(only(store).activity).toBe("busy")
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: {
+            id: "msg_u2",
+            sessionID: "s1",
+            role: "user",
+            time: { created: 60 },
+            summary: { diffs: [{ file: "second.ts", additions: 4, deletions: 0, status: "added" }] },
+          },
+        }),
+      ),
+    ).toBe(true)
+    t = 8000
+    expect(store.applyEvent(ev("session.idle", { sessionID: "s1" }))).toBe(true)
+    const row = store.inbox(undefined, new Set(["s1"]), t)[0]
+    expect(row.result?.files).toEqual([{ file: "second.ts", additions: 4, deletions: 0, status: "added" }])
+    expect(row.summary).toBe("1 file · 3s")
+  })
+
+  test("a late older user summary does not overwrite a newer round", () => {
+    const store = new SessionStore((directory) => directory === WORK, () => 1000)
+    store.add(session({ id: "s1", title: "Task", time: { updated: 10 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))
+    store.applyEvent(
+      ev("message.updated", {
+        sessionID: "s1",
+        info: {
+          id: "msg_b",
+          sessionID: "s1",
+          role: "user",
+          time: { created: 200 },
+          summary: { diffs: [{ file: "new.ts", additions: 2, deletions: 0, status: "added" }] },
+        },
+      }),
+    )
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: {
+            id: "msg_a",
+            sessionID: "s1",
+            role: "user",
+            time: { created: 100 },
+            summary: { diffs: [{ file: "old.ts", additions: 9, deletions: 9, status: "modified" }] },
+          },
+        }),
+      ),
+    ).toBe(false)
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: {
+            id: "msg_a",
+            sessionID: "s1",
+            role: "user",
+            time: { created: 200 },
+            summary: { diffs: [{ file: "tie.ts", additions: 1, deletions: 1 }] },
+          },
+        }),
+      ),
+    ).toBe(false)
+    store.applyEvent(ev("session.idle", { sessionID: "s1" }))
+    expect(store.inbox(undefined, new Set(["s1"]), 1000)[0].result?.files).toEqual([
+      { file: "new.ts", additions: 2, deletions: 0, status: "added" },
+    ])
+
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: {
+            id: "msg_c",
+            sessionID: "s1",
+            role: "user",
+            time: { created: 200 },
+            summary: { diffs: [{ file: "tie-new.ts", additions: 1, deletions: 0, status: "added" }] },
+          },
+        }),
+      ),
+    ).toBe(true)
+    expect(store.inbox(undefined, new Set(["s1"]), 1000)[0].result?.files).toEqual([
+      { file: "tie-new.ts", additions: 1, deletions: 0, status: "added" },
+    ])
+  })
+
+  test("an empty user summary clears files and session.diff cannot restore them", () => {
+    const store = new SessionStore((directory) => directory === WORK, () => 1000)
+    store.add(session({ id: "s1", title: "Task", time: { updated: 10 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))
+    store.applyEvent(
+      ev("message.updated", {
+        sessionID: "s1",
+        info: {
+          id: "msg_u1",
+          sessionID: "s1",
+          role: "user",
+          time: { created: 1000 },
+          summary: { diffs: [{ file: "gone.ts", additions: 4, deletions: 1 }] },
+        },
+      }),
+    )
+    store.applyEvent(ev("session.idle", { sessionID: "s1" }))
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: {
+            id: "msg_u1",
+            sessionID: "s1",
+            role: "user",
+            time: { created: 1000 },
+            summary: { diffs: [] },
+          },
+        }),
+      ),
+    ).toBe(true)
+    expect(
+      store.applyEvent(
+        ev("session.diff", {
+          sessionID: "s1",
+          diff: [{ file: "restored.ts", additions: 2, deletions: 0 }],
+        }),
+      ),
+    ).toBe(false)
+    const row = store.inbox(undefined, new Set(["s1"]), 1000)[0]
+    expect(row.result?.files).toBeUndefined()
+    expect(row.summary).toBe("0s")
+  })
+
+  test("a user message with no summary or an illegal diff does not change files", () => {
+    const store = new SessionStore((directory) => directory === WORK, () => 1000)
+    store.add(session({ id: "s1", title: "Task", time: { updated: 10 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))
+    store.applyEvent(
+      ev("message.updated", {
+        sessionID: "s1",
+        info: {
+          id: "msg_u1",
+          sessionID: "s1",
+          role: "user",
+          time: { created: 1000 },
+          summary: { diffs: [{ file: "keep.ts", additions: 1, deletions: 0, status: "modified" }] },
+        },
+      }),
+    )
+    store.applyEvent(ev("session.idle", { sessionID: "s1" }))
+
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: { id: "msg_u1", sessionID: "s1", role: "user", time: { created: 1000 } },
+        }),
+      ),
+    ).toBe(false)
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: { id: "msg_u1", sessionID: "s1", role: "user", time: { created: 1000 }, summary: { diffs: "nope" } },
+        }),
+      ),
+    ).toBe(false)
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "s1",
+          info: {
+            id: "msg_u1",
+            sessionID: "s1",
+            role: "user",
+            time: { created: 1000 },
+            summary: { diffs: [{ additions: 3, deletions: 1, patch: "@@ only" }] },
+          },
+        }),
+      ),
+    ).toBe(false)
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          sessionID: "missing",
+          info: {
+            id: "msg_x",
+            sessionID: "missing",
+            role: "user",
+            time: { created: 5000 },
+            summary: { diffs: [{ file: "z.ts", additions: 1, deletions: 0 }] },
+          },
+        }),
+      ),
+    ).toBe(false)
+    expect(store.has("missing")).toBe(false)
+    expect(store.inbox(undefined, new Set(["s1"]), 1000)[0].result?.files).toEqual([
+      { file: "keep.ts", additions: 1, deletions: 0, status: "modified" },
+    ])
+  })
 })

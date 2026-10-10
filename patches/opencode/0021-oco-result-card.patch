@@ -159,19 +159,20 @@ index 2158313..e03aecf 100644
                }
              >
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
-index 4927cc2..2322942 100644
+index 4927cc2..1295011 100644
 --- a/packages/app/src/components/session/session-runtime.tsx
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -33,7 +33,7 @@ import { buildRingIndex, frameAt, liveTime, roundAt, trackInputOf } from "./sess
+@@ -33,7 +33,8 @@ import { buildRingIndex, frameAt, liveTime, roundAt, trackInputOf } from "./sess
  import { stepTimesOf } from "./session-runtime-step-times"
  import { navStep, trackMap } from "./session-runtime-ring-track"
  import { RingTrack } from "./session-runtime-ring-track-view"
 -import { RingView } from "./session-runtime-ring-view"
 +import { RingView, type RingResult } from "./session-runtime-ring-view"
++import { diffs as reviewDiffs } from "@/utils/diffs"
  import {
    RING,
    type Phrase,
-@@ -117,6 +117,8 @@ export function SessionRuntime(props: {
+@@ -117,6 +118,8 @@ export function SessionRuntime(props: {
    onView: (view: SessionViewMode) => void
    actions?: JSX.Element
    onOpenSession?: (sessionID: string) => void
@@ -180,32 +181,27 @@ index 4927cc2..2322942 100644
  }) {
    const sync = useSync()
    const sdk = useSDK()
-@@ -385,6 +387,24 @@ export function SessionRuntime(props: {
+@@ -385,6 +388,19 @@ export function SessionRuntime(props: {
    for (const k of FRAME_KEYS) Object.defineProperty(frame, k, { enumerable: true, get: () => store[k] })
    Object.defineProperty(frame, "stage", { enumerable: true, get: stage })
    const frameAcc: Accessor<RingFrame> = () => frame
-+  // Result card (patches/opencode/0021): the shown session's changed files, from the user messages' `summary.diffs`
-+  // (the same source as the review panel's "last turn" mode). Not `sync().data.session_diff`: the embedded app
-+  // applies directory events with sessionContent=false, so that store never fills (E2E c7, 2026-10-10). Union
-+  // over turns, newest turn wins per file. Only the view decides when to show them (live, round ended).
++  // Result card (patches/opencode/0021): the latest run's files, exactly as the Review panel's "last turn".
++  // Directory events do not populate session_diff in the embedded app. Do not merge earlier turns: their
++  // patches cannot be reviewed in "last turn" and their line counts are not a session-wide net diff.
 +  const ringResult = createMemo<RingResult | undefined>(() => {
 +    const open = props.onOpenReview
 +    if (!open) return undefined
-+    const byFile = new Map<string, RingResult["files"][number]>()
-+    for (const m of (sync().data.message[shownID()] ?? emptyMessages) as Message[]) {
-+      if (m.role !== "user") continue
-+      const diffs = (m.summary?.diffs ?? []) as { file?: string; additions?: number; deletions?: number; status?: string }[]
-+      for (const d of diffs) {
-+        if (typeof d.file !== "string" || !d.file) continue
-+        byFile.set(d.file, { file: d.file, additions: d.additions ?? 0, deletions: d.deletions ?? 0, status: d.status })
-+      }
-+    }
-+    return { files: [...byFile.values()], open }
++    const messages = (sync().data.message[shownID()] ?? emptyMessages) as Message[]
++    const user = messages.findLast((m) => m.role === "user")
++    const files = reviewDiffs(user?.role === "user" ? user.summary?.diffs : undefined).flatMap((d) =>
++      typeof d.file === "string" && d.file ? [{ file: d.file, additions: d.additions, deletions: d.deletions, status: d.status }] : [],
++    )
++    return { files, open }
 +  })
  
    // ---------- playback ----------
    let playV = 0
-@@ -1083,6 +1103,7 @@ export function SessionRuntime(props: {
+@@ -1083,6 +1099,7 @@ export function SessionRuntime(props: {
              onRetryChild={retryChild}
              onEnterChild={onEnterChild}
              onGeo={(g) => setGeoMode(g.mode)}
@@ -250,7 +246,7 @@ index 0000000..c03d752
 +  })
 +}
 diff --git a/packages/app/src/pages/session.tsx b/packages/app/src/pages/session.tsx
-index f48a0f0..cdc8678 100644
+index f48a0f0..d485387 100644
 --- a/packages/app/src/pages/session.tsx
 +++ b/packages/app/src/pages/session.tsx
 @@ -43,6 +43,7 @@ import { NewSessionView, SessionHeader } from "@/components/session"
@@ -261,7 +257,7 @@ index f48a0f0..cdc8678 100644
  import { ErrorPage } from "@/pages/error"
  import { CommentsProvider, useComments } from "@/context/comments"
  import { useCommand } from "@/context/command"
-@@ -1175,6 +1176,21 @@ export default function Page() {
+@@ -1175,6 +1176,23 @@ export default function Page() {
      loadFile: file.load,
    })
  
@@ -269,8 +265,10 @@ index f48a0f0..cdc8678 100644
 +  // review panel; the chat view hosts it, so the view switches back first.
 +  const openReview = (path?: string) => {
 +    if (store.view !== "chat") setStore("view", "chat")
++    view().review.setMode("turn")
 +    openReviewPanel()
-+    if (path) openReviewFile(path)
++    tabs().setActive("review")
++    if (path) focusReviewDiff(path)
 +  }
 +  createEffect(() => {
 +    const it = reviewIntent()
@@ -283,7 +281,7 @@ index f48a0f0..cdc8678 100644
    const changesLabel = (option: ChangeMode) => {
      if (option === "git") return language.t("ui.sessionReview.title.git")
      if (option === "branch") return language.t("ui.sessionReview.title.branch")
-@@ -2145,6 +2161,7 @@ export default function Page() {
+@@ -2145,6 +2163,7 @@ export default function Page() {
                        : legacySessionHref(sdk().directory, sessionID),
                    )
                  }}

@@ -1013,3 +1013,11 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 委派：Gemini store 9.9 min（落盘后包装层报错）、Grok 侧栏 4 min、Claude 子代理 E2E 21 min。证据 [cockpit-result-card-2026-10-10](evidence/cockpit-result-card-2026-10-10.md)。
 - 决策：批量发起改为 DEFER（脚本代替，等真实需求）；Agent 定义编辑搁置。
 
+
+## 2026-10-10 Codex 接续结果卡验收（Claude 额度耗尽后的 1803c55）
+
+- 修复真实数据链路：侧栏改从最新 user summary.diffs 记录文件，支持 idle 后摘要更新，并防旧轮迟到；运行卡仅列最近一轮，与 Review last-turn 同源。结果卡 / 侧栏 Diff 显式切到 turn + review，点文件定位 diff，不再打开全文。
+- c7 改用消息摘要 fixture（GET + SSE），保留真实 session.diff=[]；展开点整张卡；新增单文件和全部 Diff 的文件名、shadow-root patch 内容断言；默认套件实际增至 23。
+- 验证：221 单测 / 0 失败，根 / app 类型检查 0；构建通过；0021 五文件 +168 −1，0001–0021 重放一致；mock E2E c7 6/0、c6 5/0、c2 3/0，共 14/0。
+- 已装本机包 oco-0.0.4-1803c55（基线 + 本批代码，需 Reload Window），安装哈希一致。真实模型目视仍 NOT RUN，服务端快照生成不由本轮 fixture 证明。
+- 委派：Grok 审查 / 单测诊断 / store 实现；Gemini 探测成功，但原生 subscription_worker HTTP 400，换 Grok。Claude 子代理工具不可用，E2E 按已记录结构性限制由主线程接手。证据 [cockpit-result-card-2026-10-10](evidence/cockpit-result-card-2026-10-10.md)，批量发起等 DEFER 不变。
