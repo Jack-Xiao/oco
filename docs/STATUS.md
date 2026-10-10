@@ -44,7 +44,7 @@
 ## 基线与版本
 
 - 上游基线：vendor OpenCode v1.18.33（提交 `51ef4be`，浅克隆；旧文档里的补丁基线 `deb241e` 已不存在，补丁再生成改用 `scripts/regen-patch.sh` 在临时 worktree 重建基线）。
-- 补丁链：`patches/opencode/` 0001–0020 全部干净重放通过（`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020）。
+- 补丁链：`patches/opencode/` 0001–0021 全部干净重放通过（`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡）。
 - 本机扩展：已装 `oco-0.0.4-d83978f.vsix`（`d83978f` + 2026-10-10 会话文件卡片补齐；extension.js sha256 `e14010b3…`；位于 `~/.vscode/extensions/oco-local-test.oco-0.0.4`，需 Reload Window）。
 
 ## 已合入 main 的能力

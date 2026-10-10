@@ -6,7 +6,7 @@
 
 | 层级 | 命令 | 耗时（2026-09-30 实测） | 何时跑 |
 |---|---|---|---|
-| 离线 | `bun run verify:brief`（typecheck + 136 个单元测试） | 约 3 秒 | 每个代码改动批次 |
+| 离线 | `bun run verify:brief`（typecheck + 221 个单元测试） | 约 6 秒 | 每个代码改动批次 |
 | 构建 | `bun run verify:brief -- --build` | 另加约 12 秒 | 改到 webview、扩展打包、上游补丁，或准备跑 E2E 前 |
 | 定向 E2E（mock） | 服务用 `OCO_E2E_MODEL=mock bash scripts/test-server.sh`，再 `node tests/e2e/run.mjs <套件…>` | 单套件 10–130 秒 | 改到下表对应范围 |
 | 定向 E2E（真实模型） | 服务不带该变量启动，同一命令 | 比 mock 慢，受模型与网络影响 | 发送、取消、流式、权限/问答链路的改动收尾 |

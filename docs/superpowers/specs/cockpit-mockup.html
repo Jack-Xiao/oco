@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>多 agent 驾驶舱模拟稿</title>
+<style>
+:root{
+  --rt-page:#0b0e14;--rt-bg:#141821;--rt-panel:#181d27;--rt-inset:#1e2430;--rt-line:#2c3445;--rt-line-mid:#3a4458;--rt-line-strong:#4b566d;
+  --rt-text:#cdd6e4;--rt-weak:#8d97aa;--rt-faint:#808aa0;
+  --rt-main:#6fd3e0;--rt-sub:#7fa6f5;--rt-tool:#9fb7cc;--rt-accent:#b39ddb;--rt-ok:#8bd49c;--rt-attn:#e6c07b;--rt-err:#f2787c;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"PingFang SC","Microsoft YaHei",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--rt-page);color:var(--rt-text)}
+body{font:13px/1.5 var(--sans);padding:0 16px 40px}
+button{font:inherit;color:inherit;cursor:pointer}
+.mono{font-family:var(--mono)}
+h1{font-size:18px;margin:20px 0 4px}
+.lead{color:var(--rt-weak);margin:0 0 14px;max-width:900px}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--rt-line);margin-bottom:14px}
+.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:8px 14px;color:var(--rt-weak);font-size:14px}
+.tabs button.on{color:var(--rt-text);border-bottom-color:var(--rt-main)}
+.page{display:none}.page.on{display:block}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+@media(max-width:1000px){.wrap{grid-template-columns:1fr}}
+
+/* ---- 模拟 VS Code 窗口 ---- */
+.vsc{border:1px solid var(--rt-line-mid);border-radius:8px;overflow:hidden;background:var(--rt-bg);box-shadow:0 10px 40px #0008}
+.vsc .title{height:30px;display:flex;align-items:center;justify-content:center;background:#0f131b;color:var(--rt-faint);font-size:12px;border-bottom:1px solid var(--rt-line);position:relative}
+.vsc .title .dots{position:absolute;left:12px;top:9px;display:flex;gap:7px}
+.vsc .title .dots i{width:12px;height:12px;border-radius:50%;background:#3a4458;display:block}
+.vsc .body{display:grid;grid-template-columns:44px 300px minmax(0,1fr);min-height:560px}
+.act{background:#0f131b;border-right:1px solid var(--rt-line);display:flex;flex-direction:column;align-items:center;padding-top:10px;gap:18px;color:var(--rt-faint);font-size:18px}
+.act .on{color:var(--rt-text);position:relative}
+.act .on::before{content:"";position:absolute;left:-13px;top:-3px;width:2px;height:28px;background:var(--rt-text)}
+.act .badge{position:absolute;right:-9px;top:-6px;background:var(--rt-attn);color:#000;font:600 10px/16px var(--sans);min-width:16px;height:16px;border-radius:8px;text-align:center;padding:0 4px}
+.side{background:var(--rt-panel);border-right:1px solid var(--rt-line);overflow:hidden}
+.side .hd{padding:8px 12px;font-size:11px;letter-spacing:.06em;color:var(--rt-weak);text-transform:uppercase}
+.sec{border-top:1px solid var(--rt-line)}
+.sec>.sh{display:flex;align-items:center;gap:6px;padding:5px 10px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--rt-text)}
+.sec>.sh .n{margin-left:auto;background:var(--rt-inset);border:1px solid var(--rt-line-mid);border-radius:9px;padding:0 7px;font-weight:500;color:var(--rt-weak)}
+.sec>.sh .n.hot{background:var(--rt-attn);color:#000;border-color:transparent}
+.row{padding:6px 10px 7px 14px;border-left:3px solid transparent}
+.row:hover{background:var(--rt-inset)}
+.row .t{display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.row .t b{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.row .t .k{font-size:10px;padding:0 5px;border-radius:3px;border:1px solid;flex:none}
+.row .p{color:var(--rt-faint);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .s{font-family:var(--mono);font-size:11.5px;color:var(--rt-weak);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.row .a{display:flex;gap:5px;margin-top:5px}
+.row .a button{background:var(--rt-inset);border:1px solid var(--rt-line-mid);border-radius:4px;padding:1px 9px;font-size:11.5px}
+.row .a button.ok{border-color:var(--rt-ok);color:var(--rt-ok)}
+.row .a button.no{border-color:var(--rt-err);color:var(--rt-err)}
+.row .a button:hover{background:var(--rt-line)}
+.row[data-kind=permission]{border-left-color:var(--rt-attn)}.row[data-kind=permission] .k{color:var(--rt-attn);border-color:var(--rt-attn)}
+.row[data-kind=question]{border-left-color:var(--rt-accent)}.row[data-kind=question] .k{color:var(--rt-accent);border-color:var(--rt-accent)}
+.row[data-kind=error]{border-left-color:var(--rt-err)}.row[data-kind=error] .k{color:var(--rt-err);border-color:var(--rt-err)}
+.row[data-kind=done]{border-left-color:var(--rt-ok)}.row[data-kind=done] .k{color:var(--rt-ok);border-color:var(--rt-ok)}
+.row.gone{animation:gone .35s forwards}
+@keyframes gone{to{opacity:0;height:0;padding:0;margin:0;overflow:hidden}}
+.srow{display:flex;align-items:center;gap:7px;padding:4px 10px 4px 14px;white-space:nowrap;overflow:hidden}
+.srow .pill{width:8px;height:8px;border-radius:50%;flex:none;background:var(--rt-line-strong)}
+.srow .pill.busy{background:var(--rt-main);box-shadow:0 0 0 3px #6fd3e033;animation:pulse 1.2s infinite}
+.srow .pill.wait{background:var(--rt-attn)}.srow .pill.err{background:var(--rt-err)}.srow .pill.done{background:var(--rt-ok)}
+@keyframes pulse{50%{box-shadow:0 0 0 1px #6fd3e033}}
+.srow .nm{overflow:hidden;text-overflow:ellipsis}
+.srow .meta{margin-left:auto;color:var(--rt-faint);font-size:11px;font-family:var(--mono);flex:none}
+.srow.sub{padding-left:28px;color:var(--rt-weak)}
+.srow.sub .nm::before{content:"└ ";color:var(--rt-faint)}
+.edit{background:var(--rt-bg);position:relative;display:flex;flex-direction:column;min-width:0}
+.edit .tabbar{display:flex;background:#0f131b;border-bottom:1px solid var(--rt-line);height:34px}
+.edit .tabbar span{padding:0 14px;line-height:34px;font-size:12px;color:var(--rt-faint);border-right:1px solid var(--rt-line)}
+.edit .tabbar span.on{color:var(--rt-text);background:var(--rt-bg);border-top:1px solid var(--rt-main)}
+.edit .c{flex:1;padding:16px 20px;overflow:auto}
+.empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--rt-faint);text-align:center;gap:6px;min-height:380px}
+.empty b{color:var(--rt-weak);font-weight:500;font-size:14px}
+.sbar{height:24px;background:#0f131b;border-top:1px solid var(--rt-line);display:flex;align-items:center;gap:14px;padding:0 12px;font-size:11.5px;color:var(--rt-weak)}
+.sbar .bell{color:var(--rt-attn);font-weight:600}
+.sbar .r{margin-left:auto}
+.toast{position:absolute;right:14px;bottom:14px;background:var(--rt-inset);border:1px solid var(--rt-line-strong);border-left:3px solid var(--rt-attn);border-radius:6px;padding:10px 12px;width:300px;box-shadow:0 8px 24px #000a;font-size:12.5px}
+.toast .tt{display:flex;gap:8px;align-items:center}
+.toast .tt i{font-style:normal;color:var(--rt-attn)}
+.toast .ta{margin-top:8px;display:flex;gap:6px;justify-content:flex-end}
+.toast button{background:#2b3a55;border:1px solid var(--rt-line-strong);border-radius:3px;padding:2px 10px;font-size:12px}
+.toast.hide{display:none}
+
+/* ---- 右侧说明 ---- */
+.note{background:var(--rt-panel);border:1px solid var(--rt-line);border-radius:8px;padding:14px 16px;position:sticky;top:12px}
+.note h3{font-size:13px;margin:0 0 6px;color:var(--rt-main)}
+.note h3+p,.note p{margin:0 0 10px;color:var(--rt-weak)}
+.note ul{margin:0 0 12px;padding-left:18px;color:var(--rt-weak)}
+.note li{margin:3px 0}
+.note li b{color:var(--rt-text);font-weight:600}
+.note code{font-family:var(--mono);font-size:11.5px;background:var(--rt-inset);padding:0 4px;border-radius:3px;color:var(--rt-tool)}
+.note .dont{border-left:3px solid var(--rt-err);padding-left:10px}
+.note .try{border:1px dashed var(--rt-line-strong);border-radius:6px;padding:8px 10px;color:var(--rt-text);margin-bottom:12px}
+.note .try button{background:var(--rt-inset);border:1px solid var(--rt-line-mid);border-radius:4px;padding:2px 10px;margin-top:4px}
+
+/* ---- 流程图 ---- */
+.flow{display:flex;align-items:stretch;gap:0;margin:14px 0 18px;flex-wrap:wrap}
+.flow .bx{background:var(--rt-panel);border:1px solid var(--rt-line-mid);border-radius:6px;padding:8px 12px;min-width:150px;flex:1}
+.flow .bx b{display:block;font-size:12px}
+.flow .bx span{color:var(--rt-weak);font-size:11.5px;display:block}
+.flow .bx.oco{border-color:var(--rt-main)}.flow .bx.oc{border-color:var(--rt-sub)}
+.flow .ar{display:flex;align-items:center;padding:0 8px;color:var(--rt-faint);font-size:18px}
+
+/* ---- 第四步：任务清单、发起面板、结果卡 ---- */
+.code{font-family:var(--mono);font-size:12px;line-height:1.55;white-space:pre;color:var(--rt-text);background:var(--rt-page);border:1px solid var(--rt-line);border-radius:6px;padding:12px 14px;overflow:auto}
+.code .c1{color:var(--rt-faint)}.code .c2{color:var(--rt-sub)}.code .c3{color:var(--rt-ok)}
+.qp{position:absolute;left:50%;top:40px;transform:translateX(-50%);width:520px;background:var(--rt-inset);border:1px solid var(--rt-line-strong);border-radius:6px;box-shadow:0 12px 40px #000c;z-index:3;font-size:12.5px}
+.qp .qh{padding:8px 10px;border-bottom:1px solid var(--rt-line);color:var(--rt-weak)}
+.qp .qr{display:flex;align-items:center;padding:6px 10px;gap:10px;border-bottom:1px solid var(--rt-line)}
+.qp .qr label{width:90px;color:var(--rt-weak)}
+.qp .qr .v{font-family:var(--mono);flex:1}
+.qp .qr .v em{font-style:normal;color:var(--rt-faint)}
+.qp .qf{padding:8px 10px;display:flex;justify-content:flex-end;gap:6px}
+.qp button{background:#2b3a55;border:1px solid var(--rt-line-strong);border-radius:3px;padding:3px 12px}
+.qp button.go{background:var(--rt-main);color:#000;border-color:transparent;font-weight:600}
+.qp.hide{display:none}
+.sum{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.sum .st{background:var(--rt-panel);border:1px solid var(--rt-line);border-radius:6px;padding:6px 12px;min-width:84px}
+.sum .st b{display:block;font-size:17px;font-weight:600;font-family:var(--mono)}
+.sum .st span{font-size:11px;color:var(--rt-weak)}
+.sum .st.ok b{color:var(--rt-ok)}.sum .st.err b{color:var(--rt-err)}.sum .st.wait b{color:var(--rt-attn)}.sum .st.busy b{color:var(--rt-main)}
+.sum .acts{margin-left:auto;display:flex;gap:6px}
+.sum .acts button{background:var(--rt-inset);border:1px solid var(--rt-line-mid);border-radius:4px;padding:3px 10px;font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.card{background:var(--rt-panel);border:1px solid var(--rt-line);border-radius:7px;padding:10px 12px;border-top:3px solid var(--rt-line-strong);min-height:150px;display:flex;flex-direction:column}
+.card.done{border-top-color:var(--rt-ok)}.card.err{border-top-color:var(--rt-err)}.card.wait{border-top-color:var(--rt-attn)}.card.busy{border-top-color:var(--rt-main)}.card.queued{opacity:.55}
+.card .ch{display:flex;gap:6px;align-items:baseline}
+.card .ch b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .ch .tg{margin-left:auto;font-size:10.5px;font-family:var(--mono);color:var(--rt-faint);flex:none}
+.card .m{display:flex;gap:12px;font-family:var(--mono);font-size:11.5px;color:var(--rt-weak);margin:5px 0}
+.card .m i{font-style:normal;color:var(--rt-text)}
+.card .last{font-size:12px;color:var(--rt-weak);border-left:2px solid var(--rt-line-mid);padding-left:8px;margin:2px 0 8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card .last.err{color:var(--rt-err);border-color:var(--rt-err)}
+.card .ca{margin-top:auto;display:flex;gap:5px;flex-wrap:wrap}
+.card .ca button{background:var(--rt-inset);border:1px solid var(--rt-line-mid);border-radius:4px;padding:1px 9px;font-size:11.5px}
+.card .ca button.pri{border-color:var(--rt-main);color:var(--rt-main)}
+.card .files{font-family:var(--mono);font-size:11px;color:var(--rt-faint);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .sp{height:3px;background:var(--rt-line);border-radius:2px;margin:4px 0 8px;overflow:hidden}
+.card .sp i{display:block;height:100%;background:var(--rt-main);width:0;transition:width .6s linear}
+.gh{display:flex;align-items:center;gap:6px;padding:4px 10px 4px 14px;font-size:11.5px;color:var(--rt-weak)}
+.gh .tag{background:var(--rt-inset);border:1px solid var(--rt-line-mid);border-radius:3px;padding:0 6px;font-family:var(--mono);font-size:11px;color:var(--rt-accent)}
+.gh .pr{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--rt-faint)}
+.legend{display:flex;gap:14px;font-size:11.5px;color:var(--rt-weak);margin:0 0 10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.ans{max-width:560px}
+.ans .q{background:var(--rt-panel);border:1px solid var(--rt-line);border-left:3px solid var(--rt-accent);border-radius:6px;padding:10px 12px;margin-bottom:10px}
+.ans .q b{display:block;margin-bottom:6px}
+.ans .q button{display:block;width:100%;text-align:left;background:var(--rt-inset);border:1px solid var(--rt-line-mid);border-radius:4px;padding:5px 10px;margin:4px 0}
+.ans .q button:hover{border-color:var(--rt-accent)}
+.ans .bk{color:var(--rt-faint);font-size:12px;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<h1>多 agent 驾驶舱：第三步、第四步长什么样</h1>
+<p class="lead">这是一个可点的模拟稿，不是实现。左边模拟 VS Code 窗口里的 oco；右边说明「这是什么、数据从哪来、用户能做什么、oco 刻意不做什么」。推理、工具执行、权限判定全部留在 OpenCode 服务端，oco 只是发起、看、介入、收割。</p>
+
+<div class="flow">
+  <div class="bx oco"><b>oco（VS Code 扩展）</b><span>侧栏收件箱 · 批次发起 · 结果卡</span><span class="mono">只读视图 + 几个 POST</span></div>
+  <div class="ar">⇄</div>
+  <div class="bx oc"><b>OpenCode 服务端 1.18.33</b><span>/session · /prompt_async · /permission · /question · /event SSE</span><span class="mono">推理循环、工具、子代理都在这里</span></div>
+  <div class="ar">→</div>
+  <div class="bx"><b>工作区</b><span>文件改动、git diff、测试输出</span><span class="mono">结果卡从这里投影</span></div>
+</div>
+
+<div class="tabs">
+  <button class="on" data-page="p1">第三步 · 跨会话「待处理」收件箱</button>
+  <button data-page="p2">第四步 · 批量发起 + 结果卡</button>
+</div>
+
+<!-- ============================ 第三步 ============================ -->
+<section class="page on" id="p1">
+<div class="wrap">
+<div class="vsc">
+  <div class="title"><div class="dots"><i></i><i></i><i></i></div>oco — ~/work/payments</div>
+  <div class="body">
+    <div class="act"><span>▤</span><span>⌕</span><span class="on">◎<span class="badge" id="actBadge">4</span></span><span>⑂</span><span>⚙</span></div>
+    <div class="side">
+      <div class="hd">oco · Sessions</div>
+      <div class="sec" id="inboxSec">
+        <div class="sh">▾ Needs attention <span class="n hot" id="inboxN">6</span></div>
+        <div id="inboxRows"></div>
+      </div>
+      <div class="sec">
+        <div class="sh">▾ Sessions <span class="n">5</span></div>
+        <div class="srow"><i class="pill busy"></i><span class="nm">重构 auth 模块</span><span class="meta" id="m1">3 子代理</span></div>
+        <div class="srow sub"><i class="pill wait" id="pa"></i><span class="nm">child-alpha (@explore subagent)</span><span class="meta">12s</span></div>
+        <div class="srow sub"><i class="pill wait" id="pb"></i><span class="nm">child-beta (@build subagent)</span><span class="meta">9s</span></div>
+        <div class="srow sub"><i class="pill wait" id="pc"></i><span class="nm">child-gamma (@general subagent)</span><span class="meta">4s</span></div>
+        <div class="srow"><i class="pill wait" id="pq"></i><span class="nm">迁移脚本</span><span class="meta">1m</span></div>
+        <div class="srow"><i class="pill err"></i><span class="nm">生成 changelog</span><span class="meta">2m</span></div>
+        <div class="srow"><i class="pill done"></i><span class="nm">补齐单元测试</span><span class="meta">3m</span></div>
+        <div class="srow"><i class="pill busy"></i><span class="nm">修复 flaky e2e</span><span class="meta">6m</span></div>
+      </div>
+    </div>
+    <div class="edit">
+      <div class="tabbar"><span class="on" id="edTab">（没有打开任何会话）</span></div>
+      <div class="c" id="edBody">
+        <div class="empty"><b>不需要打开会话</b><span>三个子代理同时等授权，在左侧收件箱里直接批完。</span><span>点 Allow / Always / Deny 试试。</span></div>
+      </div>
+      <div class="toast" id="toast">
+        <div class="tt"><i>⚠</i><span><b id="toastN">4</b> request(s) waiting for approval</span></div>
+        <div class="ta"><button onclick="toastHide()">Show</button><button onclick="toastHide()">✕</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="sbar"><span class="bell">🔔 <span id="sbN">4</span></span><span>oco: localhost:4096</span><span>5 sessions · 2 busy</span><span class="r">Ln 1, Col 1</span></div>
+</div>
+
+<aside class="note">
+  <h3>这是什么</h3>
+  <p>侧栏最上面新增一个分区 <b>Needs attention</b>，把所有会话（包括子代理）里「在等人」的事情列成一张待办清单。你不用猜哪个会话卡住了，也不用逐个点开。</p>
+  <h3>四种行</h3>
+  <ul>
+    <li><b>权限</b>：某个子代理想跑 <code>bash</code>、改文件、访问网络。行内直接 Allow / Always / Deny，对应上游 <code>POST /permission/:id/reply</code>。</li>
+    <li><b>提问</b>：agent 问你一个选择题。Answer 打开那个会话答题，Dismiss 直接拒答。</li>
+    <li><b>报错</b>：会话异常终止（限流、鉴权、崩溃），点开看。</li>
+    <li><b>完成未读</b>：跑完了你还没看过，沿用侧栏现有未读机制。</li>
+  </ul>
+  <h3>数据从哪来</h3>
+  <p>没有新接口。session-feed 已经在收 <code>/event</code> SSE 和 <code>/permission</code>、<code>/question</code> 快照，收件箱只是同一份状态的另一种投影。批复从 Extension Host 直接发给服务端，不经过聊天 webview 的桥。</p>
+  <h3>状态栏与通知</h3>
+  <p>状态栏 🔔 计数 = 权限 + 提问行数。新请求出现且不是当前打开的会话时弹一条 VS Code 原生通知，点 Show 聚焦侧栏。同一时刻只保留一条。</p>
+  <div class="try">试一下：批掉三条权限，看计数归零、子代理恢复 busy。<br><button onclick="resetInbox()">重置场景</button></div>
+  <h3 class="dont" style="color:var(--rt-err)">oco 不做</h3>
+  <ul class="dont">
+    <li>不自己判断该不该允许，不建本地规则库。「Always」就是上游的 <code>always</code>，由服务端记。</li>
+    <li>不做常驻弹窗、不出声音，不轮询。</li>
+    <li>过期请求只提示「已处理」，绝不重发到别的请求上（按 requestId + sessionID 绑定）。</li>
+  </ul>
+  <h3>验收标准</h3>
+  <p>E2E 造三个后台子代理同时等授权，不打开任何会话面板就能全部批完；批完后 <code>GET /permission</code> 为空，计数归零。</p>
+</aside>
+</div>
+</section>
+
+<!-- ============================ 第四步 ============================ -->
+<section class="page" id="p2">
+<div class="wrap">
+<div class="vsc">
+  <div class="title"><div class="dots"><i></i><i></i><i></i></div>oco — ~/work/payments</div>
+  <div class="body">
+    <div class="act"><span>▤</span><span>⌕</span><span class="on">◎</span><span>⑂</span><span>⚙</span></div>
+    <div class="side">
+      <div class="hd">oco · Sessions</div>
+      <div class="sec" id="batchSec" style="display:none">
+        <div class="sh">▾ Batch <span class="n" id="batchN">0</span></div>
+        <div class="gh"><span class="tag">nightly-cleanup</span><span id="ghState">准备中</span><span class="pr" id="ghPr">0/6</span></div>
+        <div id="batchRows"></div>
+      </div>
+      <div class="sec">
+        <div class="sh">▾ Sessions <span class="n">3</span></div>
+        <div class="srow"><i class="pill done"></i><span class="nm">重构 auth 模块</span><span class="meta">1h</span></div>
+        <div class="srow"><i class="pill done"></i><span class="nm">补齐单元测试</span><span class="meta">2h</span></div>
+        <div class="srow"><i class="pill"></i><span class="nm">修复 flaky e2e</span><span class="meta">昨天</span></div>
+      </div>
+    </div>
+    <div class="edit">
+      <div class="tabbar"><span class="on" id="edTab2">oco-batch.json</span><span id="edTab2b" style="display:none">Batch: nightly-cleanup</span></div>
+      <div class="c" id="edBody2">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;color:var(--rt-weak)">
+          <span>任务清单文件（你手写或让 agent 生成）</span>
+          <button style="margin-left:auto;background:var(--rt-main);color:#000;border:0;border-radius:4px;padding:3px 12px;font-weight:600" onclick="openQP()">▶ oco: Run batch…</button>
+        </div>
+<div class="code">{
+  <span class="c2">"name"</span>: <span class="c3">"nightly-cleanup"</span>,
+  <span class="c2">"concurrency"</span>: 3,                 <span class="c1">// oco 在本机节流，任意时刻 busy ≤ 3</span>
+  <span class="c2">"defaults"</span>: { <span class="c2">"agent"</span>: <span class="c3">"build"</span>, <span class="c2">"model"</span>: <span class="c3">"anthropic/claude-sonnet-5-5"</span> },
+  <span class="c2">"tasks"</span>: [
+    { <span class="c2">"title"</span>: <span class="c3">"删除 legacy/ 下未引用的模块"</span>,   <span class="c2">"prompt"</span>: <span class="c3">"…"</span> },
+    { <span class="c2">"title"</span>: <span class="c3">"把 utils/date.ts 换成 dayjs"</span>,     <span class="c2">"prompt"</span>: <span class="c3">"…"</span> },
+    { <span class="c2">"title"</span>: <span class="c3">"为 api/orders 补 OpenAPI 注释"</span>,   <span class="c2">"prompt"</span>: <span class="c3">"…"</span>, <span class="c2">"agent"</span>: <span class="c3">"plan"</span> },
+    { <span class="c2">"title"</span>: <span class="c3">"升级 eslint 并修 lint"</span>,            <span class="c2">"prompt"</span>: <span class="c3">"…"</span> },
+    { <span class="c2">"title"</span>: <span class="c3">"扫描过期 feature flag"</span>,            <span class="c2">"prompt"</span>: <span class="c3">"…"</span>, <span class="c2">"directory"</span>: <span class="c3">"packages/flags"</span> },
+    { <span class="c2">"title"</span>: <span class="c3">"重写 README 安装章节"</span>,             <span class="c2">"prompt"</span>: <span class="c3">"…"</span>, <span class="c2">"model"</span>: <span class="c3">"anthropic/claude-haiku-5-5"</span> }
+  ]
+}</div>
+        <p style="color:var(--rt-faint);font-size:12px;margin-top:10px">每一项 = 一个独立的 OpenCode 会话。oco 逐项 <span class="mono">POST /session</span> → <span class="mono">POST /session/:id/prompt_async</span>，打上批次标签（本机视图状态），然后就只看 SSE。</p>
+      </div>
+      <div class="qp hide" id="qp">
+        <div class="qh">oco: Run batch — 确认后开始发起</div>
+        <div class="qr"><label>清单</label><span class="v">oco-batch.json <em>· 6 项</em></span></div>
+        <div class="qr"><label>批次标签</label><span class="v">nightly-cleanup</span></div>
+        <div class="qr"><label>并发上限</label><span class="v">3 <em>（任意时刻 busy 会话 ≤ 3）</em></span></div>
+        <div class="qr"><label>默认 agent</label><span class="v">build <em>· 3 项有覆盖</em></span></div>
+        <div class="qr"><label>默认模型</label><span class="v">anthropic/claude-sonnet-5-5</span></div>
+        <div class="qr"><label>连接</label><span class="v">localhost:4096 <em>· ~/work/payments</em></span></div>
+        <div class="qf"><button onclick="closeQP()">取消</button><button class="go" onclick="runBatch()">发起 6 个会话</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="sbar"><span class="bell" id="sb2" style="color:var(--rt-weak)">🔔 0</span><span>oco: localhost:4096</span><span id="sb2b">3 sessions · 0 busy</span><span class="r" id="sb2c"></span></div>
+</div>
+
+<aside class="note">
+  <h3>这是什么</h3>
+  <p>两件事拼在一起：<b>批量发起</b>把一份任务清单变成 N 个并行跑的 OpenCode 会话；<b>结果卡</b>在它们跑完后给你一屏决策视图，决定哪些合并、哪些重跑、哪些扔掉。</p>
+  <h3>批量发起</h3>
+  <ul>
+    <li><b>输入</b>是一个 JSON 清单：每项有提示词，可选 agent、模型、目录。</li>
+    <li><b>命令</b> <code>oco: Run batch…</code> 弹确认面板，列出批次名、并发上限、默认 agent / 模型、连接。</li>
+    <li><b>发起</b>：逐项 <code>POST /session</code> + <code>prompt_async</code>，发后即忘。并发由 oco 在 Extension Host 内节流，队列只在内存 + memento。</li>
+    <li><b>分组</b>：侧栏多出一个 Batch 分区，按批次标签分组，这顺便落实了一直没做的 T009。</li>
+    <li><b>宿主重启</b>后未发起的项显示「待确认」，不自动续跑。</li>
+  </ul>
+  <h3>结果卡</h3>
+  <p>每个会话一张卡：状态、agent / 模型、改动文件数、耗时、花费、最后一条输出，按钮「打开 diff」「打开会话」「重跑」「中止」。顶部是批次汇总。全部数据来自服务端消息和运行视图已有索引，oco 不重算。</p>
+  <div class="try">试一下：点左边 <b>▶ oco: Run batch…</b>，看并发 3 的节流、侧栏分组、结果卡逐张出现。其中一项会等权限、一项会失败。<br><button onclick="resetBatch()">重置场景</button></div>
+  <h3 class="dont" style="color:var(--rt-err)">oco 不做</h3>
+  <ul class="dont">
+    <li>不做推理循环、不执行工具、不替你批权限（等权限的项会出现在第三步的收件箱）。</li>
+    <li>不做定时器 / cron。夜间跑用一个 shell 脚本包 <code>opencode run</code> 交给 launchd，第二天早上在这里看结果卡。</li>
+    <li>批次标签不写进服务端，换机器就没了。接受这个代价。</li>
+    <li>发送失败不盲目重试：先查会话是否已创建，查不到标「结果未知」。</li>
+  </ul>
+  <h3>验收标准</h3>
+  <p>清单 6 项、并发 3，任意时刻 busy ≤ 3；全部结束后侧栏按批次分组显示 6 个会话，结果卡与服务端数据一致。</p>
+</aside>
+</div>
+</section>
+
+<script>
+/* ---------- 标签页 ---------- */
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id===b.dataset.page));
+});
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- 第三步：收件箱 ---------- */
+const INBOX=[
+  {id:'per_01',kind:'permission',sessionId:'ses_a',pill:'pa',title:'child-alpha (@explore subagent)',parent:'重构 auth 模块',summary:'bash  git push origin feat/auth-*',time:'12s'},
+  {id:'per_02',kind:'permission',sessionId:'ses_b',pill:'pb',title:'child-beta (@build subagent)',parent:'重构 auth 模块',summary:'edit  src/auth/token.ts',time:'9s'},
+  {id:'per_03',kind:'permission',sessionId:'ses_c',pill:'pc',title:'child-gamma (@general subagent)',parent:'重构 auth 模块',summary:'webfetch  https://docs.stripe.com/*',time:'4s'},
+  {id:'que_01',kind:'question',sessionId:'ses_q',pill:'pq',title:'迁移脚本',summary:'目标数据库用 Postgres 15 还是 16？',time:'1m',
+   options:['Postgres 15（当前生产版本）','Postgres 16（staging 已升级）','两个都生成脚本']},
+  {id:'err:ses_e',kind:'error',sessionId:'ses_e',title:'生成 changelog',summary:'ProviderError: rate limited (429), retry after 30s',time:'2m'},
+  {id:'done:ses_d',kind:'done',sessionId:'ses_d',title:'补齐单元测试',summary:'完成 · 改动 7 个文件 · $0.31',time:'3m'},
+];
+const KN={permission:'权限',question:'提问',error:'报错',done:'完成'};
+let inbox=[];
+function renderInbox(){
+  const box=document.getElementById('inboxRows');box.innerHTML='';
+  inbox.forEach(r=>{
+    const d=document.createElement('div');d.className='row';d.dataset.kind=r.kind;d.dataset.inboxId=r.id;
+    d.innerHTML=`<div class="t"><span class="k">${KN[r.kind]}</span><b>${esc(r.title)}</b></div>`+(r.parent?`<div class="p">↳ 父会话：${esc(r.parent)}</div>`:'')+`<div class="s">${esc(r.summary)}  <span style="color:var(--rt-faint)">· ${r.time}</span></div>`;
+    const a=document.createElement('div');a.className='a';
+    const mk=(txt,cls,fn)=>{const b=document.createElement('button');b.textContent=txt;if(cls)b.className=cls;b.onclick=fn;a.appendChild(b)};
+    if(r.kind==='permission'){mk('Allow','ok',()=>reply(r,'once'));mk('Always','ok',()=>reply(r,'always'));mk('Deny','no',()=>reply(r,'reject'))}
+    else if(r.kind==='question'){mk('Answer','',()=>openQuestion(r));mk('Dismiss','no',()=>reply(r,'reject'))}
+    else mk('打开会话','',()=>openPlain(r));
+    d.appendChild(a);box.appendChild(d);
+  });
+  const pend=inbox.filter(r=>r.kind==='permission'||r.kind==='question').length;
+  document.getElementById('inboxN').textContent=inbox.length;
+  document.getElementById('inboxN').classList.toggle('hot',pend>0);
+  document.getElementById('sbN').textContent=pend;document.getElementById('actBadge').textContent=pend;
+  document.getElementById('actBadge').style.display=pend?'':'none';
+  document.getElementById('toastN').textContent=pend;
+  document.getElementById('inboxSec').style.display=inbox.length?'':'none';
+  if(!pend)toastHide();
+}
+function reply(r,kind){
+  const el=document.querySelector(`.row[data-inbox-id="${r.id}"]`);el&&el.classList.add('gone');
+  if(r.pill){const p=document.getElementById(r.pill);p.className='pill '+(kind==='reject'?'':'busy')}
+  setTimeout(()=>{inbox=inbox.filter(x=>x.id!==r.id);renderInbox();
+    if(kind==='always')flash(`已对 ${r.title} 记住「总是允许」（服务端 always）`);
+    if(kind==='reject'&&r.kind==='question')flash('已拒答，会话收到 reject');
+  },300);
+}
+function openQuestion(r){
+  document.getElementById('edTab').textContent=r.title;
+  const b=document.getElementById('edBody');
+  b.innerHTML=`<div class="ans"><div class="bk">（这里是现有的会话面板，Answer 只是跳过来，答题仍走原有流程）</div><div class="q"><b>agent 提问：${esc(r.summary)}</b>${r.options.map((o,i)=>`<button onclick="answer('${r.id}',${i})">${i+1}. ${esc(o)}</button>`).join('')}</div></div>`;
+}
+function answer(id,i){const r=inbox.find(x=>x.id===id);if(!r)return;reply(r,'once');document.getElementById('edBody').innerHTML=`<div class="ans"><div class="bk">已回答：${esc(r.options[i])}。会话继续运行。</div></div>`}
+function openPlain(r){document.getElementById('edTab').textContent=r.title;document.getElementById('edBody').innerHTML=`<div class="empty"><b>${esc(r.title)}</b><span>${esc(r.summary)}</span><span style="font-size:12px">（现有会话面板，模拟稿不展开）</span></div>`;if(r.kind==='done'){inbox=inbox.filter(x=>x.id!==r.id);renderInbox()}}
+function toastHide(){document.getElementById('toast').classList.add('hide')}
+function flash(msg){const t=document.getElementById('toast');t.classList.remove('hide');t.querySelector('.tt span').innerHTML=esc(msg);t.querySelector('.tt i').textContent='ℹ';setTimeout(()=>t.classList.add('hide'),2500)}
+function resetInbox(){inbox=INBOX.map(x=>({...x}));['pa','pb','pc','pq'].forEach(i=>document.getElementById(i).className='pill wait');
+  document.getElementById('edTab').textContent='（没有打开任何会话）';
+  document.getElementById('edBody').innerHTML='<div class="empty"><b>不需要打开会话</b><span>三个子代理同时等授权，在左侧收件箱里直接批完。</span><span>点 Allow / Always / Deny 试试。</span></div>';
+  const t=document.getElementById('toast');t.classList.remove('hide');t.querySelector('.tt i').textContent='⚠';t.querySelector('.tt span').innerHTML='<b id="toastN">4</b> request(s) waiting for approval';
+  renderInbox();}
+resetInbox();
+
+/* ---------- 第四步：批量发起 + 结果卡 ---------- */
+const TASKS=[
+  {t:'删除 legacy/ 下未引用的模块',agent:'build',model:'sonnet-5-5',dur:38,files:11,cost:0.42,end:'done',last:'已删除 legacy/pay-v1、legacy/csv-export 共 11 个文件，tsc 与 bun test 通过。',fl:'legacy/pay-v1/*, legacy/csv-export/*, tsconfig.json'},
+  {t:'把 utils/date.ts 换成 dayjs',agent:'build',model:'sonnet-5-5',dur:52,files:6,cost:0.37,end:'done',last:'替换 23 处调用，补了 2 个时区用例；注意 formatRelative 行为有细微差异，见 diff。',fl:'utils/date.ts, package.json, 4 个调用方'},
+  {t:'为 api/orders 补 OpenAPI 注释',agent:'plan',model:'sonnet-5-5',dur:21,files:0,cost:0.12,end:'done',last:'已输出 14 个端点的注释方案（plan 模式不改文件），建议下一批用 build 执行。',fl:'（无改动）'},
+  {t:'升级 eslint 并修 lint',agent:'build',model:'sonnet-5-5',dur:30,files:0,cost:0.09,end:'wait',last:'请求权限：bash  bun add -d eslint@10',fl:'等待授权中'},
+  {t:'扫描过期 feature flag',agent:'build',model:'sonnet-5-5',dur:44,files:3,cost:0.28,end:'done',last:'找到 5 个 flag 已全量放开超过 90 天，删除了 3 个，另 2 个有外部引用已列在摘要。',fl:'packages/flags/registry.ts, 2 个调用方'},
+  {t:'重写 README 安装章节',agent:'build',model:'haiku-5-5',dur:14,files:0,cost:0.03,end:'err',last:'ProviderError: context window exceeded (README 引用了 2MB 的 CHANGELOG)',fl:'（失败，无改动）'},
+];
+let bt=[],timer=null,clock=0;
+function openQP(){document.getElementById('qp').classList.remove('hide')}
+function closeQP(){document.getElementById('qp').classList.add('hide')}
+function resetBatch(){clearInterval(timer);timer=null;clock=0;bt=[];document.getElementById('batchSec').style.display='none';document.getElementById('edTab2').classList.add('on');document.getElementById('edTab2b').style.display='none';document.getElementById('edTab2b').classList.remove('on');
+  document.getElementById('sb2').textContent='🔔 0';document.getElementById('sb2').style.color='var(--rt-weak)';document.getElementById('sb2b').textContent='3 sessions · 0 busy';document.getElementById('sb2c').textContent='';
+  const b=document.getElementById('edBody2');if(b.dataset.orig)b.innerHTML=b.dataset.orig;}
+function runBatch(){
+  closeQP();const b=document.getElementById('edBody2');if(!b.dataset.orig)b.dataset.orig=b.innerHTML;
+  bt=TASKS.map((x,i)=>({...x,i,st:'queued',p:0}));clock=0;
+  document.getElementById('batchSec').style.display='';
+  document.getElementById('edTab2').classList.remove('on');const t2=document.getElementById('edTab2b');t2.style.display='';t2.classList.add('on');
+  tick();timer=setInterval(tick,700);
+}
+function tick(){
+  clock+=5;
+  const K=3;
+  let busy=bt.filter(x=>x.st==='busy').length;
+  for(const x of bt){if(x.st==='queued'&&busy<K){x.st='busy';x.t0=clock;busy++}}
+  for(const x of bt){if(x.st==='busy'){x.p=Math.min(1,(clock-x.t0)/x.dur);if(x.p>=1){x.st=x.end;}}}
+  renderBatch();
+  if(bt.every(x=>x.st!=='queued'&&x.st!=='busy')){clearInterval(timer);timer=null}
+}
+const SN={queued:'排队',busy:'运行中',done:'完成',err:'失败',wait:'等权限'};
+function renderBatch(){
+  const rows=document.getElementById('batchRows');rows.innerHTML='';
+  bt.forEach(x=>{const d=document.createElement('div');d.className='srow';d.innerHTML=`<i class="pill ${x.st==='queued'?'':x.st}"></i><span class="nm">${esc(x.t)}</span><span class="meta">${x.st==='busy'?Math.round(x.p*100)+'%':SN[x.st]}</span>`;rows.appendChild(d)});
+  const fin=bt.filter(x=>['done','err','wait'].includes(x.st)).length,busy=bt.filter(x=>x.st==='busy').length,wait=bt.filter(x=>x.st==='wait').length;
+  document.getElementById('batchN').textContent=bt.length;document.getElementById('ghPr').textContent=`${fin}/${bt.length}`;
+  document.getElementById('ghState').textContent=timer||busy?`运行中 · busy ${busy}/3`:'已结束';
+  document.getElementById('sb2b').textContent=`${3+bt.length} sessions · ${busy} busy`;
+  document.getElementById('sb2').textContent='🔔 '+wait;document.getElementById('sb2').style.color=wait?'var(--rt-attn)':'var(--rt-weak)';
+  document.getElementById('sb2c').textContent='batch nightly-cleanup '+fin+'/'+bt.length;
+  const done=bt.filter(x=>x.st==='done').length,err=bt.filter(x=>x.st==='err').length;
+  const cost=bt.filter(x=>x.st!=='queued').reduce((s,x)=>s+x.cost*(x.st==='busy'?x.p:1),0);
+  const files=bt.filter(x=>x.st==='done').reduce((s,x)=>s+x.files,0);
+  const b=document.getElementById('edBody2');
+  b.innerHTML=`<div class="sum">
+    <div class="st"><b>${bt.length}</b><span>任务</span></div>
+    <div class="st ok"><b>${done}</b><span>完成</span></div>
+    <div class="st busy"><b>${busy}</b><span>运行中</span></div>
+    <div class="st wait"><b>${wait}</b><span>等权限</span></div>
+    <div class="st err"><b>${err}</b><span>失败</span></div>
+    <div class="st"><b>${files}</b><span>改动文件</span></div>
+    <div class="st"><b>$${cost.toFixed(2)}</b><span>花费（服务端）</span></div>
+    <div class="acts"><button>合并已选 diff</button><button>重跑失败项</button><button>中止全部</button></div>
+  </div>
+  <div class="legend"><span><i style="background:var(--rt-ok)"></i>完成</span><span><i style="background:var(--rt-main)"></i>运行中</span><span><i style="background:var(--rt-attn)"></i>等权限 → 出现在第三步收件箱</span><span><i style="background:var(--rt-err)"></i>失败</span><span><i style="background:var(--rt-line-strong)"></i>排队（并发上限 3）</span></div>
+  <div class="cards">${bt.map(card).join('')}</div>`;
+}
+function card(x){
+  const m=x.st==='queued'?'':`<div class="m"><span>${x.agent} · ${x.model}</span>${x.st==='busy'?`<span>${Math.round(x.p*x.dur)}s</span>`:`<span>${x.dur}s</span><span>文件 <i>${x.files}</i></span><span>$${x.cost.toFixed(2)}</span>`}</div>`;
+  const sp=x.st==='busy'?`<div class="sp"><i style="width:${x.p*100}%"></i></div>`:'';
+  const last=x.st==='queued'?'<div class="last">排队中，等待并发槽位</div>':x.st==='busy'?'<div class="last">正在运行…（最后一条输出会实时更新）</div>':`<div class="last ${x.st==='err'?'err':''}">${esc(x.last)}</div>`;
+  const files=x.st==='queued'||x.st==='busy'?'':`<div class="files">${esc(x.fl)}</div>`;
+  let acts='';
+  if(x.st==='done'&&x.files>0)acts='<button class="pri">打开 diff</button><button>打开会话</button><button>合并</button>';
+  else if(x.st==='done')acts='<button>打开会话</button><button>用 build 重跑</button>';
+  else if(x.st==='err')acts='<button class="pri">重跑</button><button>打开会话</button>';
+  else if(x.st==='wait')acts='<button class="pri">去收件箱批复</button><button>打开会话</button><button>中止</button>';
+  else if(x.st==='busy')acts='<button>打开会话</button><button>中止</button>';
+  return `<div class="card ${x.st}"><div class="ch"><b>${esc(x.t)}</b><span class="tg">#${x.i+1} ${SN[x.st]}</span></div>${m}${sp}${last}${files}<div class="ca">${acts}</div></div>`;
+}
+</script>
+</body>
+</html>
