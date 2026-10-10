@@ -2,6 +2,14 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 多 agent 驾驶舱第二步：每会话结果卡（2026-10-10，分支 claude/cleanup-2026-10-10，本地未推送）
+
+- 侧栏收件箱 done / error 行多一行摘要：`N files · 4m12s · $0.08 · 最后一句`（缺项省略，全缺回退 Finished），hover / 聚焦 / 选中时露出 Open / Diff / Mark read（error 行无 Mark read）。数据全来自上游事件：`session.diff` 文件列表、`session.status/idle` 计时、`message.updated` 花费、`message.part.updated/delta` 最后一句；oco 不重算。已读走现有 UnreadTracker，新增手动 markRead。
+- 运行视图环心卡片 end / abort 终态（live）显示「N files changed · +a −d」与 Open diff；展开后列出文件，每行可点。点击走上游 Review 面板：页面切回 chat 视图 → 打开 Review → 定位文件。侧栏 Diff 通过 `oco.openSessionReview` → `navigate{review}` → `oco:review-intent` 窗口事件 → 页面消费。不做 VS Code 原生 diff（上游只给 patch 文本）。
+- 补丁链新增 0021（5 文件 +165 −1，`regen-patch.sh --check` 复核一致）。契约：`OpenSessionRequest.review`、bridge `Navigate.review`、侧栏页面消息 `openReview` / `markRead`。
+- 验证：typecheck 0；上游 app tsgo 0；单测 213 / 0；webview build 通过；vsix `oco-0.0.4-bb9e90e` 已装本机。E2E c7-result-card（mock）：侧栏三用例 PASS；runtime-result-card FAIL，原因是测试服务器 `session.diff` 恒为空（c2 已记录），复查判定为产品缺陷（嵌入 app 不接收 `session.diff`，store 恒空），数据源已改为用户消息 `summary.diffs` 并重新打包安装；该用例按新数据源 NOT RUN；真实模型目视 NOT RUN。
+- 委派：Gemini 实现 store（结果落盘后包装层报错）；Grok 实现侧栏 4 min；E2E 由 Claude 子代理（Sonnet）21 min。证据 [cockpit-result-card-2026-10-10](evidence/cockpit-result-card-2026-10-10.md)。
+
 ## 多 agent 驾驶舱第一步：ADR-009 + 跨会话「待处理」收件箱（2026-10-10，分支 claude/cleanup-2026-10-10）
 
 - [ADR-009](adr/009-multi-agent-cockpit-boundary.md) 已采纳：oco 只经 OpenCode API 发起会话 / 选 agent 与模型 / 投递提示词 / 批复权限与提问；收件箱是宿主侧对 SessionStore 的投影，不改桥契约；批量发起只做客户端节流；不做 cron、多模型竞赛、RBAC、新调度引擎。

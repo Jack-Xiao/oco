@@ -101,6 +101,14 @@ export class SessionsView implements vscode.Disposable {
     this.refresh()
   }
 
+  /** Drops one unread id. True when it was present; then the memento and the list update. */
+  markRead(id: string): boolean {
+    if (!this.unread.clear(id)) return false
+    void this.memento?.update(UNREAD_KEY, this.unread.ids())
+    this.refresh()
+    return true
+  }
+
   /** Coalesces bursts of events (streaming updates) into one render. */
   refresh() {
     if (this.refreshTimer) return

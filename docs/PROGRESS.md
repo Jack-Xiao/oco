@@ -1004,3 +1004,12 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 
 - 只改 `media/sessions-list/index.js` / `index.css`：`.section-head` 复用 `.chevron` 三角，标签与行标题左缘对齐；SESSIONS 始终渲染、可折叠、搜索强制展开；`collapsed` 并入 `vscode.setState`。
 - 测试：node --check、build PASS；E2E c6-inbox 12.8 s + p1b-sidebar 48.5 s，18 PASS / 0 FAIL。Gemini 实现 10 min。
+
+## 2026-10-10 驾驶舱第二步：每会话结果卡（侧栏摘要行 + 运行视图终态卡 + 一键 Review）
+
+- 侧栏：`session-store.ts` 记录每会话最近一次运行的摘要（`session.diff` / 计时 / 花费 / 最后一句），done / error 行带 `result` 与一行 summary；页面 Open / Diff / Mark read；`sessions-view.markRead`。宿主：`oco.openSessionReview`、`OpenSessionRequest.review`、bridge `navigate.review`、面板 `pendingReview`；chat-webview 以 `oco:review-intent` 事件转交页面。
+- 上游补丁 0021：`context/oco-review-intent.ts`、session.tsx 消费意图并传 `onOpenReview`、运行视图环心卡片终态文件列表 + Open diff、i18n 三语。
+- 测试：typecheck 0、app tsgo 0、单测 213 / 0、webview build 17 s、vsix 已装本机。E2E c7-result-card：3 PASS / 1 FAIL（runtime-result-card，测试服务器空 diff + fixture 路由待查）。
+- 委派：Gemini store 9.9 min（落盘后包装层报错）、Grok 侧栏 4 min、Claude 子代理 E2E 21 min。证据 [cockpit-result-card-2026-10-10](evidence/cockpit-result-card-2026-10-10.md)。
+- 决策：批量发起改为 DEFER（脚本代替，等真实需求）；Agent 定义编辑搁置。
+

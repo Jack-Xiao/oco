@@ -1,9 +1,84 @@
 // SessionsView & PendingNotifier unit tests
-import { describe, expect, test } from "bun:test"
+import { describe, expect, mock, test } from "bun:test"
 import {
   PendingNotifier,
   type PendingNotificationItem,
 } from "../../apps/extension/src/session-groups"
+import { SessionStore } from "../../apps/extension/src/session-store"
+import type { ConnectionSummary } from "@oco/contracts"
+
+mock.module("vscode", () => ({
+  EventEmitter: class {
+    private listeners = new Set<() => void>()
+    event = (listener: () => void) => {
+      this.listeners.add(listener)
+      return { dispose: () => this.listeners.delete(listener) }
+    }
+    fire() {
+      for (const listener of this.listeners) listener()
+    }
+    dispose() {
+      this.listeners.clear()
+    }
+  },
+  StatusBarAlignment: { Left: 1, Right: 2 },
+  ThemeColor: class {
+    constructor(public id: string) {}
+  },
+  window: {
+    createStatusBarItem() {
+      return {
+        name: "",
+        text: "",
+        tooltip: "" as string | undefined,
+        command: undefined as string | undefined,
+        backgroundColor: undefined as unknown,
+        show() {},
+        dispose() {},
+      }
+    },
+    showWarningMessage: () => Promise.resolve(undefined),
+  },
+  commands: {
+    executeCommand: () => Promise.resolve(undefined),
+  },
+  workspace: {
+    isTrusted: true,
+    getConfiguration: () => ({
+      get: (_key: string, fallback?: unknown) => fallback,
+    }),
+  },
+}))
+
+const { SessionsView } = await import("../../apps/extension/src/sessions-view")
+
+const UNREAD_KEY = "oco.unreadSessions"
+
+class MemoryMemento {
+  readonly updates: { key: string; value: unknown }[] = []
+  constructor(private data: Record<string, unknown> = {}) {}
+  get<T>(key: string): T | undefined {
+    return this.data[key] as T | undefined
+  }
+  update(key: string, value: unknown): Thenable<void> {
+    this.data[key] = value
+    this.updates.push({ key, value })
+    return Promise.resolve()
+  }
+  keys(): readonly string[] {
+    return Object.keys(this.data)
+  }
+}
+
+function doneSessionIds(inbox: { kind: string; sessionId?: string; rows?: { kind: string; sessionId: string }[] }[]): string[] {
+  const ids: string[] = []
+  for (const entry of inbox) {
+    if (entry.kind === "group") {
+      for (const row of entry.rows ?? []) if (row.kind === "done") ids.push(row.sessionId)
+    } else if (entry.kind === "done" && entry.sessionId) ids.push(entry.sessionId)
+  }
+  return ids
+}
 
 describe("PendingNotifier throttling and rules", () => {
   test("triggers notification when new non-current pending request appears", async () => {
@@ -124,5 +199,40 @@ describe("PendingNotifier throttling and rules", () => {
     ]
     expect(notifier.check(itemsWithNew, "current-sess")).toBe(true)
     expect(callCount).toBe(2)
+  })
+})
+
+describe("SessionsView markRead", () => {
+  test("clears an unread idle session, writes the memento, and drops its done row", () => {
+    const store = new SessionStore(() => true)
+    store.applySnapshot({
+      sessions: [{ id: "s-done", title: "Finished task", directory: "/work", time: { updated: 1_700_000_000_000 } }],
+      status: { "s-done": { type: "idle" } },
+      permissions: [],
+      questions: [],
+    })
+    const memento = new MemoryMemento({ [UNREAD_KEY]: ["s-done"] })
+    const view = new SessionsView(store, memento)
+    const connected: ConnectionSummary = {
+      connectionId: "c1",
+      label: "local",
+      directory: "/work",
+      state: "connected",
+      attempt: 0,
+      trusted: true,
+    }
+    view.setConnection(connected)
+
+    expect(doneSessionIds(view.webModel().inbox)).toEqual(["s-done"])
+
+    expect(view.markRead("s-done")).toBe(true)
+    expect(memento.get<string[]>(UNREAD_KEY)).toEqual([])
+    expect(memento.updates).toEqual([{ key: UNREAD_KEY, value: [] }])
+    expect(doneSessionIds(view.webModel().inbox)).toEqual([])
+
+    expect(view.markRead("s-done")).toBe(false)
+    expect(memento.updates).toEqual([{ key: UNREAD_KEY, value: [] }])
+
+    view.dispose()
   })
 })

@@ -2,7 +2,7 @@ import * as vscode from "vscode"
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as childProcess from "node:child_process"
-import type { OpenSessionRequest, PanelRole, SessionBinding } from "@oco/contracts"
+import type { OpenSessionRequest, PanelRole, ReviewIntent, SessionBinding } from "@oco/contracts"
 import { Connection, type SessionInfo } from "./connection"
 import { SessionStore } from "./session-store"
 import { SessionFeed } from "./session-feed"
@@ -166,14 +166,22 @@ export function activate(context: vscode.ExtensionContext) {
   const openSession = (req: OpenSessionRequest, newPanel = false) => {
     if (req.connectionId !== conn.id) throw new Error("Connection changed")
     if (!conn.ownsDirectory(req.directory)) throw new Error("Session is not in the current workspace")
-    return panels.open({ connectionId: req.connectionId, directory: req.directory, sessionId: req.sessionId }, req.title, vscode.ViewColumn.Active, req.focus ?? true, newPanel)
+    return panels.open(
+      { connectionId: req.connectionId, directory: req.directory, sessionId: req.sessionId },
+      req.title,
+      vscode.ViewColumn.Active,
+      req.focus ?? true,
+      newPanel,
+      req.review,
+    )
   }
 
-  const openById = async (sessionId: string, newPanel = false) => {
+  const openById = async (sessionId: string, newPanel = false, review?: ReviewIntent) => {
     const known = store.list().find((i) => i.id === sessionId)
-    if (known && feed.state.state === "connected") return openSession({ connectionId: conn.id, directory: known.directory, sessionId, title: known.title }, newPanel)
+    if (known && feed.state.state === "connected")
+      return openSession({ connectionId: conn.id, directory: known.directory, sessionId, title: known.title, review }, newPanel)
     const s = await conn.request<SessionInfo>("GET", `/session/${encodeURIComponent(sessionId)}`)
-    return openSession({ connectionId: conn.id, directory: s.directory, sessionId: s.id, title: s.title || s.id }, newPanel)
+    return openSession({ connectionId: conn.id, directory: s.directory, sessionId: s.id, title: s.title || s.id, review }, newPanel)
   }
 
   // A page asked to show another session (internal tab, child session link, shortcut...): the host
@@ -220,6 +228,16 @@ export function activate(context: vscode.ExtensionContext) {
         if (typeof sessionId === "string") return void (await openById(sessionId))
         const s = await pickSession("Select an OpenCode session to open")
         if (s) panels.open(bindingFor(s), s.title || s.id)
+      } catch (e) {
+        fail("Could not open session", e)
+      }
+    }),
+    // Result card (cockpit step 2): show the session and open the page's review (diff) panel, on `file` when given.
+    vscode.commands.registerCommand("oco.openSessionReview", async (arg?: unknown, file?: unknown) => {
+      try {
+        const sessionId = rowId(arg)
+        if (typeof sessionId !== "string") return
+        await openById(sessionId, false, { file: typeof file === "string" && file ? file : undefined })
       } catch (e) {
         fail("Could not open session", e)
       }

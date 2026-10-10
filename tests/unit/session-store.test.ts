@@ -663,3 +663,502 @@ describe("SessionStore.inbox", () => {
     })
   })
 })
+
+describe("SessionStore run summary and inbox results", () => {
+  test("busy -> message.updated -> part.updated -> delta -> session.diff -> idle produces complete done row with summary, detail, result, and aria", () => {
+    let t = 1000
+    const store = new SessionStore((directory) => directory === WORK, () => t)
+    store.add(session({ id: "s1", title: "Task 1", time: { updated: 1000 } }))
+
+    // 1. busy: starts run at t = 1000
+    t = 1000
+    expect(store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))).toBe(true)
+
+    // 2. message.updated: assistant message, cost = 0.08, tokens total = 31200
+    expect(
+      store.applyEvent(
+        ev("message.updated", {
+          info: {
+            id: "msg-1",
+            sessionID: "s1",
+            role: "assistant",
+            cost: 0.08,
+            tokens: { total: 31200 },
+          },
+        }),
+      ),
+    ).toBe(false)
+
+    // 3. part.updated: text part
+    expect(
+      store.applyEvent(
+        ev("message.part.updated", {
+          part: {
+            id: "p-1",
+            messageID: "msg-1",
+            sessionID: "s1",
+            type: "text",
+            text: "Working on ",
+          },
+        }),
+      ),
+    ).toBe(false)
+
+    // 4. part.delta: text delta
+    expect(
+      store.applyEvent(
+        ev("message.part.delta", {
+          sessionID: "s1",
+          messageID: "msg-1",
+          partID: "p-1",
+          field: "text",
+          delta: "refactor\nSecond line of output",
+        }),
+      ),
+    ).toBe(false)
+
+    // 5. session.diff: 3 files (+41, -8)
+    expect(
+      store.applyEvent(
+        ev("session.diff", {
+          sessionID: "s1",
+          diff: [
+            { file: "a.ts", additions: 20, deletions: 5, status: "modified", patch: "@@ ... @@" },
+            { file: "b.ts", additions: 21, deletions: 3, status: "modified" },
+            { file: "c.ts", additions: 0, deletions: 0, status: "added" },
+            { additions: 99, deletions: 99 }, // missing file -> skipped
+          ],
+        }),
+      ),
+    ).toBe(false)
+
+    // 6. idle at t = 59000 (durMs = 58000ms -> 58s)
+    t = 59000
+    expect(store.applyEvent(ev("session.idle", { sessionID: "s1" }))).toBe(true)
+
+    const unread = new Set(["s1"])
+    const rows = store.inbox(undefined, unread, t)
+    expect(rows).toHaveLength(1)
+    const doneRow = rows[0]
+
+    expect(doneRow.kind).toBe("done")
+    expect(doneRow.result).toEqual({
+      files: [
+        { file: "a.ts", additions: 20, deletions: 5, status: "modified" },
+        { file: "b.ts", additions: 21, deletions: 3, status: "modified" },
+        { file: "c.ts", additions: 0, deletions: 0, status: "added" },
+      ],
+      durMs: 58000,
+      costUsd: 0.08,
+      tokens: 31200,
+      lastText: "Working on refactor\nSecond line of output",
+    })
+
+    expect(doneRow.summary).toBe("3 files · 58s · $0.08 · Working on refactor")
+    expect(doneRow.detail).toBe(
+      `Finished · now\n3 files (+41 −8)\n$0.08 · 31.2k tokens\nWorking on refactor\nSecond line of output`,
+    )
+    expect(doneRow.aria).toBe("Task 1, 3 files · 58s · $0.08 · Working on refactor, now")
+  })
+
+  test("new busy run clears previous run metrics and text while preserving session files diff", () => {
+    let t = 1000
+    const store = new SessionStore((directory) => directory === WORK, () => t)
+    store.add(session({ id: "s1", title: "Task 1", time: { updated: 1000 } }))
+
+    // First run
+    store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))
+    store.applyEvent(
+      ev("session.diff", {
+        sessionID: "s1",
+        diff: [{ file: "x.ts", additions: 1, deletions: 0 }],
+      }),
+    )
+    store.applyEvent(
+      ev("message.updated", {
+        info: { id: "m1", sessionID: "s1", role: "assistant", cost: 0.1, tokens: { total: 500 } },
+      }),
+    )
+    store.applyEvent(
+      ev("message.part.updated", {
+        part: { id: "p1", messageID: "m1", sessionID: "s1", type: "text", text: "Finished run 1" },
+      }),
+    )
+    t = 4000
+    store.applyEvent(ev("session.idle", { sessionID: "s1" }))
+
+    // Second run begins at t = 10000
+    t = 10000
+    expect(store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))).toBe(true)
+
+    // Message in second run with cost 0 and 150 tokens
+    store.applyEvent(
+      ev("message.updated", {
+        info: { id: "m2", sessionID: "s1", role: "assistant", cost: 0, tokens: { total: 150 } },
+      }),
+    )
+
+    t = 15000 // durMs = 5000ms -> 5s
+    expect(store.applyEvent(ev("session.idle", { sessionID: "s1" }))).toBe(true)
+
+    const rows = store.inbox(undefined, new Set(["s1"]), t)
+    expect(rows[0].result).toEqual({
+      files: [{ file: "x.ts", additions: 1, deletions: 0 }],
+      durMs: 5000,
+      costUsd: 0,
+      tokens: 150,
+    })
+    // cost is 0 -> not shown; lastText was cleared and no new part was sent
+    expect(rows[0].summary).toBe("1 file · 5s")
+  })
+
+  test("user message text part and deltas are ignored", () => {
+    let t = 2000
+    const store = new SessionStore((directory) => directory === WORK, () => t)
+    store.add(session({ id: "s1", title: "Task", time: { updated: 10 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))
+
+    // Assistant message registered
+    store.applyEvent(
+      ev("message.updated", {
+        info: { id: "asst-msg", sessionID: "s1", role: "assistant" },
+      }),
+    )
+
+    // User message part.updated - messageID not in assistantMessages
+    expect(
+      store.applyEvent(
+        ev("message.part.updated", {
+          part: {
+            id: "user-part",
+            messageID: "user-msg",
+            sessionID: "s1",
+            type: "text",
+            text: "Hello from user",
+          },
+        }),
+      ),
+    ).toBe(false)
+
+    // User message part.delta - messageID not in assistantMessages
+    expect(
+      store.applyEvent(
+        ev("message.part.delta", {
+          sessionID: "s1",
+          messageID: "user-msg",
+          partID: "user-part",
+          field: "text",
+          delta: " more user words",
+        }),
+      ),
+    ).toBe(false)
+
+    t = 4000
+    store.applyEvent(ev("session.idle", { sessionID: "s1" }))
+
+    const rows = store.inbox(undefined, new Set(["s1"]), t)
+    expect(rows[0].result?.lastText).toBeUndefined()
+    expect(rows[0].summary).toBe("2s")
+  })
+
+  test("delta restarts lastText when partID changes", () => {
+    let t = 1000
+    const store = new SessionStore((directory) => directory === WORK, () => t)
+    store.add(session({ id: "s1", title: "Task", time: { updated: 10 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))
+    store.applyEvent(
+      ev("message.updated", {
+        info: { id: "asst-1", sessionID: "s1", role: "assistant" },
+      }),
+    )
+
+    // Part p1
+    store.applyEvent(
+      ev("message.part.delta", {
+        sessionID: "s1",
+        messageID: "asst-1",
+        partID: "p1",
+        field: "text",
+        delta: "Thinking first step...",
+      }),
+    )
+    store.applyEvent(
+      ev("message.part.delta", {
+        sessionID: "s1",
+        messageID: "asst-1",
+        partID: "p1",
+        field: "text",
+        delta: " done thinking.",
+      }),
+    )
+
+    // Part p2 arrives -> restarts lastText
+    store.applyEvent(
+      ev("message.part.delta", {
+        sessionID: "s1",
+        messageID: "asst-1",
+        partID: "p2",
+        field: "text",
+        delta: "Final answer",
+      }),
+    )
+    store.applyEvent(
+      ev("message.part.delta", {
+        sessionID: "s1",
+        messageID: "asst-1",
+        partID: "p2",
+        field: "text",
+        delta: " completed.",
+      }),
+    )
+
+    t = 2000
+    store.applyEvent(ev("session.idle", { sessionID: "s1" }))
+
+    const rows = store.inbox(undefined, new Set(["s1"]), t)
+    expect(rows[0].result?.lastText).toBe("Final answer completed.")
+  })
+
+  test("message.* and session.diff return false while session.idle returns true", () => {
+    const store = make()
+    store.add(session({ id: "s1", title: "S", time: { updated: 1 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))
+
+    expect(
+      store.applyEvent(
+        ev("message.updated", { info: { id: "m1", sessionID: "s1", role: "assistant" } }),
+      ),
+    ).toBe(false)
+    expect(
+      store.applyEvent(
+        ev("message.part.updated", {
+          part: { id: "p1", messageID: "m1", sessionID: "s1", type: "text", text: "t" },
+        }),
+      ),
+    ).toBe(false)
+    expect(
+      store.applyEvent(
+        ev("message.part.delta", {
+          sessionID: "s1",
+          messageID: "m1",
+          partID: "p1",
+          field: "text",
+          delta: "d",
+        }),
+      ),
+    ).toBe(false)
+    expect(
+      store.applyEvent(
+        ev("session.diff", {
+          sessionID: "s1",
+          diff: [{ file: "x.ts", additions: 1, deletions: 0 }],
+        }),
+      ),
+    ).toBe(false)
+    expect(store.applyEvent(ev("session.idle", { sessionID: "s1" }))).toBe(true)
+  })
+
+  test("applySnapshot preserves existing run summary for surviving rows", () => {
+    let t = 1000
+    const store = new SessionStore((directory) => directory === WORK, () => t)
+    store.add(session({ id: "s1", title: "Session", time: { updated: 50 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s1", status: { type: "busy" } }))
+    store.applyEvent(
+      ev("message.updated", {
+        info: { id: "m1", sessionID: "s1", role: "assistant", cost: 0.05, tokens: { total: 2000 } },
+      }),
+    )
+    store.applyEvent(
+      ev("session.diff", {
+        sessionID: "s1",
+        diff: [{ file: "foo.ts", additions: 5, deletions: 2 }],
+      }),
+    )
+    t = 3000
+    store.applyEvent(ev("session.idle", { sessionID: "s1" }))
+
+    // Snapshot arrives
+    store.applySnapshot({
+      sessions: [session({ id: "s1", title: "Session", time: { updated: 60 } })],
+      status: { s1: { type: "idle" } },
+      permissions: [],
+      questions: [],
+    })
+
+    const rows = store.inbox(undefined, new Set(["s1"]), 3000)
+    expect(rows[0].result).toEqual({
+      files: [{ file: "foo.ts", additions: 5, deletions: 2 }],
+      durMs: 2000,
+      costUsd: 0.05,
+      tokens: 2000,
+    })
+    expect(rows[0].summary).toBe("1 file · 2s · $0.05")
+  })
+
+  test("summary fallback combinations: <$0.01, 1 file, compact time durations, long text ellipsis, Finished fallback", () => {
+    let t = 0
+    const store = new SessionStore((directory) => directory === WORK, () => t)
+
+    // Case A: Everything missing -> "Finished"
+    store.add(session({ id: "s-empty", title: "Empty", time: { updated: 10 } }))
+    let rows = store.inbox(undefined, new Set(["s-empty"]), t)
+    expect(rows[0].summary).toBe("Finished")
+    expect(rows[0].result).toBeUndefined()
+
+    // Case B: Only 1 file
+    store.add(session({ id: "s-file", title: "One File", time: { updated: 10 } }))
+    store.applyEvent(
+      ev("session.diff", {
+        sessionID: "s-file",
+        diff: [{ file: "one.ts", additions: 1, deletions: 0 }],
+      }),
+    )
+    rows = store.inbox(undefined, new Set(["s-file"]), t)
+    expect(rows[0].summary).toBe("1 file")
+
+    // Case C: Cost < $0.01 (0 < value < 0.005)
+    store.add(session({ id: "s-cheap", title: "Cheap", time: { updated: 10 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s-cheap", status: { type: "busy" } }))
+    store.applyEvent(
+      ev("message.updated", {
+        info: { id: "m-c", sessionID: "s-cheap", role: "assistant", cost: 0.002, tokens: { total: 100 } },
+      }),
+    )
+    store.applyEvent(ev("session.idle", { sessionID: "s-cheap" }))
+    rows = store.inbox(undefined, new Set(["s-cheap"]), t)
+    expect(rows[0].summary).toContain("<$0.01")
+
+    // Case D: Compact durations: 4m12s and 1h02m
+    store.add(session({ id: "s-4m", title: "4m", time: { updated: 10 } }))
+    t = 1000
+    store.applyEvent(ev("session.status", { sessionID: "s-4m", status: { type: "busy" } }))
+    t = 1000 + 252000 // 4m 12s
+    store.applyEvent(ev("session.idle", { sessionID: "s-4m" }))
+    rows = store.inbox(undefined, new Set(["s-4m"]), t)
+    expect(rows[0].summary).toBe("4m12s")
+
+    store.add(session({ id: "s-1h", title: "1h", time: { updated: 10 } }))
+    t = 1000
+    store.applyEvent(ev("session.status", { sessionID: "s-1h", status: { type: "busy" } }))
+    t = 1000 + 3720000 // 1h 02m
+    store.applyEvent(ev("session.idle", { sessionID: "s-1h" }))
+    rows = store.inbox(undefined, new Set(["s-1h"]), t)
+    expect(rows[0].summary).toBe("1h02m")
+
+    // Case E: Long text truncated to 80 chars with …
+    store.add(session({ id: "s-long", title: "Long Text", time: { updated: 10 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s-long", status: { type: "busy" } }))
+    store.applyEvent(
+      ev("message.updated", {
+        info: { id: "m-l", sessionID: "s-long", role: "assistant" },
+      }),
+    )
+    const long85 = "A".repeat(85)
+    store.applyEvent(
+      ev("message.part.updated", {
+        part: { id: "p-l", messageID: "m-l", sessionID: "s-long", type: "text", text: `${long85}\nsecond line` },
+      }),
+    )
+    store.applyEvent(ev("session.idle", { sessionID: "s-long" }))
+    rows = store.inbox(undefined, new Set(["s-long"]), t)
+    expect(rows[0].summary).toBe("0s · " + "A".repeat(80) + "…")
+  })
+
+  test("error row preserves summary as error message while appending result", () => {
+    let t = 1000
+    const store = new SessionStore((directory) => directory === WORK, () => t)
+    store.add(session({ id: "s-err", title: "Failed Task", time: { updated: 1000 } }))
+
+    store.applyEvent(ev("session.status", { sessionID: "s-err", status: { type: "busy" } }))
+    store.applyEvent(
+      ev("message.updated", {
+        info: { id: "m1", sessionID: "s-err", role: "assistant", cost: 0.02, tokens: { total: 300 } },
+      }),
+    )
+    store.applyEvent(
+      ev("session.diff", {
+        sessionID: "s-err",
+        diff: [{ file: "fail.ts", additions: 3, deletions: 1 }],
+      }),
+    )
+    store.applyEvent(ev("session.error", { sessionID: "s-err", error: { data: { message: "Network timeout" } } }))
+    t = 6000
+    store.applyEvent(ev("session.idle", { sessionID: "s-err" }))
+
+    const rows = store.inbox(undefined, new Set(), t)
+    const errRow = rows.find((r) => r.sessionId === "s-err")!
+    expect(errRow).toBeDefined()
+    expect(errRow.kind).toBe("error")
+    expect(errRow.summary).toBe("Network timeout")
+    expect(errRow.detail).toBe("Network timeout")
+    expect(errRow.result).toEqual({
+      files: [{ file: "fail.ts", additions: 3, deletions: 1 }],
+      durMs: 5000,
+      costUsd: 0.02,
+      tokens: 300,
+    })
+  })
+
+  test("retry does not start a new run and preserves duration across retry to idle", () => {
+    let t = 1000
+    const store = new SessionStore((directory) => directory === WORK, () => t)
+    store.add(session({ id: "s-ret", title: "Retry Task", time: { updated: 1000 } }))
+
+    // Run starts
+    store.applyEvent(ev("session.status", { sessionID: "s-ret", status: { type: "busy" } }))
+    store.applyEvent(
+      ev("message.updated", {
+        info: { id: "m1", sessionID: "s-ret", role: "assistant", cost: 0.03, tokens: { total: 400 } },
+      }),
+    )
+
+    // Status becomes retry at t = 2000 (does not start a new run)
+    t = 2000
+    store.applyEvent(ev("session.status", { sessionID: "s-ret", status: { type: "retry" } }))
+
+    // Add another message during retry
+    store.applyEvent(
+      ev("message.updated", {
+        info: { id: "m2", sessionID: "s-ret", role: "assistant", cost: 0.01, tokens: { total: 100 } },
+      }),
+    )
+
+    // Finishes to idle at t = 5000
+    t = 5000
+    store.applyEvent(ev("session.status", { sessionID: "s-ret", status: { type: "idle" } }))
+
+    const rows = store.inbox(undefined, new Set(["s-ret"]), t)
+    expect(rows[0].result).toEqual({
+      durMs: 4000,
+      costUsd: 0.04,
+      tokens: 500,
+    })
+    expect(rows[0].summary).toBe("4s · $0.04")
+  })
+
+  test("token breakdown calculation sums input, output, reasoning, cache read, and cache write when total is missing", () => {
+    const store = make()
+    store.add(session({ id: "s-tok", title: "Tokens", time: { updated: 1 } }))
+    store.applyEvent(ev("session.status", { sessionID: "s-tok", status: { type: "busy" } }))
+
+    store.applyEvent(
+      ev("message.updated", {
+        info: {
+          id: "m-tok",
+          sessionID: "s-tok",
+          role: "assistant",
+          tokens: {
+            input: 100,
+            output: 50,
+            reasoning: 20,
+            cache: { read: 10, write: 5 },
+          },
+        },
+      }),
+    )
+    store.applyEvent(ev("session.idle", { sessionID: "s-tok" }))
+
+    const rows = store.inbox(undefined, new Set(["s-tok"]))
+    expect(rows[0].result?.tokens).toBe(185)
+  })
+})

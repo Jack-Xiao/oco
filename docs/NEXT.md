@@ -29,9 +29,9 @@ oco 是 OpenCode 的客户端，不自建调度引擎。上游 1.18.33 已有 `t
 
 - [DONE 2026-10-10] [ADR-009](adr/009-multi-agent-cockpit-boundary.md)：oco 只通过 OpenCode API 发起会话、选择 agent / 模型、投递提示词、批复权限；不做推理循环、不执行工具、不自建权限库、不内置定时器。
 - [DONE 2026-10-10，证据 [cockpit-inbox-2026-10-10](evidence/cockpit-inbox-2026-10-10.md)，E2E c6-inbox] 跨会话「待处理」收件箱：侧栏新分区列出等权限 / 等提问 / 报错 / 完成未读的会话（含子代理），就地批复，状态栏计数 + VS Code 通知。数据源为 session-feed 已接收的 SSE 事件，不改桥契约。验收：三个后台子代理同时等授权，不打开任何会话即可全部批完。
-- [TODO] 批量发起与任务队列：任务清单文件逐项经 `prompt_async` 发成独立会话，打批次标签，侧栏按批次分组（兼做 T009），并发上限可配。
-- [TODO] 每会话结果卡与批次汇总：改动文件、耗时、花费、最后一条输出，一键打开 diff（复用运行视图索引）。
-- [TODO，按需] 最小化恢复 Agent 定义编辑（T013 的权限 / 模型子集），按 ARCHITECTURE §8 的 hash 校验与写回规则。
+- [DONE 2026-10-10，证据 [cockpit-result-card-2026-10-10](evidence/cockpit-result-card-2026-10-10.md)，E2E c7-result-card] 每会话结果卡：侧栏 done / error 行一行摘要（文件数 · 耗时 · 花费 · 最后一句）+ Open / Diff / Mark read；运行视图环心卡片终态列改动文件并一键打开上游 Review 面板；补丁 0021。剩余：runtime-result-card E2E 用例受测试服务器空 diff 限制，待 fixture 复查或真实模型目视。
+- [DEFER] 批量发起与任务队列：先用脚本（循环调 `prompt_async` 并打批次标签）代替；收件箱用一段时间后，若经常一次发起 ≥3 个独立任务再做最小「从清单文件发起」命令。膨胀风险：重试 / 持久化 / 跳过会把 ADR-009 的「内存队列」推向队列系统。批次汇总随之搁置（没有批次标签就没有分组头）。
+- [DEFER] Agent 定义编辑（T013 权限 / 模型子集）：OpenCode 配置本就是仓库内文件，VS Code 直接编辑成本已低；只有无人值守运行反复因权限配置出错才回头做。
 - 不做：oco 内置 cron / 定时器（夜间批量用脚本包 `opencode run` 交给 launchd）；多模型竞赛；团队 RBAC。
 
 ## 2b. 运行视图 M5 设计评审（2026-10-10 第一批已落地；剩余另立项）

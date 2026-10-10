@@ -27,6 +27,8 @@ type FromPage =
   | { type: "command"; command: string }
   | { type: "permissionReply"; id: string; reply: "once" | "always" | "reject" }
   | { type: "questionReject"; id: string }
+  | { type: "openReview"; id: string }
+  | { type: "markRead"; id: string }
 
 /**
  * The sidebar session list as a webview (time column, rounded selection, row height a native tree can't
@@ -119,6 +121,12 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
         })()
         return
       }
+      case "openReview":
+        if (typeof m.id === "string") void vscode.commands.executeCommand("oco.openSessionReview", m.id)
+        return
+      case "markRead":
+        if (typeof m.id === "string") this.list.markRead(m.id)
+        return
       case "questionReject": {
         if (!this.list.sessionStore.hasPending(m.id)) {
           this.list.refresh()

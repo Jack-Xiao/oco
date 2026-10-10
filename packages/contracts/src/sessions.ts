@@ -54,4 +54,8 @@ export type OpenSessionRequest = {
   title?: string
   /** Default true: move keyboard focus to the panel. */
   focus?: boolean
+  /** Result card (cockpit step 2): also open the page's review (diff) panel, focused on `file` when given. */
+  review?: ReviewIntent
 }
+/** "Show me the diff" intent carried by open-session and the bridge's navigate message. Paths are repo-relative. */
+export type ReviewIntent = { file?: string }
