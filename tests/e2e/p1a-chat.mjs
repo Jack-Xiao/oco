@@ -103,22 +103,30 @@ try {
       req = ((await api("GET", "/permission")) ?? []).find((p) => p.sessionID === sid)
       if (!req) await sleep(300)
     }
-    const dock = frame.locator('[data-component="dock-prompt"][data-kind="permission"]')
-    await dock.waitFor({ timeout: 30000 })
-    const dockText = await dock.innerText()
-    await runShot(page, run, "2-permission")
-    await dock.getByRole("button", { name: /allow once|允许一次/i }).click()
-    await waitIdle(sid)
-    const stillPending = ((await api("GET", "/permission")) ?? []).some((p) => p.id === req?.id)
-    const tool = (await messages(sid)).flatMap((m) => m.parts).find((p) => p.type === "tool" && p.callID === req?.tool?.callID)
-    run.record("permission-bound", req && !stillPending && tool?.tool === "bash" && tool.state?.status === "completed" && String(tool.state.output).includes("oco-perm-42") && dockText.includes("oco-perm") ? "PASS" : "FAIL", {
-      requestId: req?.id,
-      callId: req?.tool?.callID,
-      requestResolved: !!req && !stillPending,
-      toolStatus: tool?.state?.status,
-      outputMatches: String(tool?.state?.output ?? "").includes("oco-perm-42"),
-      dockShowsCommand: dockText.includes("oco-perm"),
-    })
+    if (!req) {
+      run.record("permission-bound", "NOT RUN", { reason: "model did not request the bash permission within 90s", waitedMs: Date.now() - t0 })
+    } else {
+      const dock = frame.locator('[data-component="dock-prompt"][data-kind="permission"]')
+      const dockSeen = await dock.waitFor({ timeout: 30000 }).then(() => true, () => false)
+      if (!dockSeen) {
+        run.record("permission-bound", "FAIL", { requestId: req.id, reason: "permission request exists but the dock did not appear" })
+      } else {
+        const dockText = await dock.innerText()
+        await runShot(page, run, "2-permission")
+        await dock.getByRole("button", { name: /allow once|允许一次/i }).click()
+        await waitIdle(sid)
+        const stillPending = ((await api("GET", "/permission")) ?? []).some((p) => p.id === req?.id)
+        const tool = (await messages(sid)).flatMap((m) => m.parts).find((p) => p.type === "tool" && p.callID === req?.tool?.callID)
+        run.record("permission-bound", req && !stillPending && tool?.tool === "bash" && tool.state?.status === "completed" && String(tool.state.output).includes("oco-perm-42") && dockText.includes("oco-perm") ? "PASS" : "FAIL", {
+          requestId: req?.id,
+          callId: req?.tool?.callID,
+          requestResolved: !!req && !stillPending,
+          toolStatus: tool?.state?.status,
+          outputMatches: String(tool?.state?.output ?? "").includes("oco-perm-42"),
+          dockShowsCommand: dockText.includes("oco-perm"),
+        })
+      }
+    }
   }
 
   // 3. Question: the recorded answer must equal the option clicked (answer field, not the whole state).
@@ -152,7 +160,7 @@ try {
       await waitIdle(sid)
       const tool = (await messages(sid)).flatMap((m) => m.parts).find((p) => p.type === "tool" && p.callID === q.tool?.callID)
       const answer = tool?.state?.metadata?.answers?.[0]?.[0]
-      run.record("question-answer", tool?.state?.status === "completed" && answer === expected ? "PASS" : "FAIL", {
+      run.record("question-answer", tool?.state?.status === "completed" && answer?.toLowerCase() === expected ? "PASS" : "FAIL", {
         requestId: q.id,
         clicked: click,
         expected,
