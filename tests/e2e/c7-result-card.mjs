@@ -201,6 +201,12 @@ try {
       return false
     }, 30000, 300)
     const filename = `c7-b-${rand}.txt`
+    // Git review can include many earlier workspace changes; locate this run's file through the native filter.
+    if (f) {
+      const filter = f.locator('[data-slot="session-review-v2-sidebar-filter"] input')
+      await filter.waitFor({ state: "visible", timeout: 15000 })
+      await filter.fill(filename)
+    }
     const reviewFile = f?.locator('[data-component="session-review-v2"]').getByText(filename, { exact: true }).first()
     const hasFile = reviewFile ? await waitUntil(async () => await reviewFile.isVisible(), 15000, 200) : false
     await runShot(page, run, "3-after-diff")

@@ -246,7 +246,7 @@ index 0000000..c03d752
 +  })
 +}
 diff --git a/packages/app/src/pages/session.tsx b/packages/app/src/pages/session.tsx
-index f48a0f0..d485387 100644
+index f48a0f0..e877f22 100644
 --- a/packages/app/src/pages/session.tsx
 +++ b/packages/app/src/pages/session.tsx
 @@ -43,6 +43,7 @@ import { NewSessionView, SessionHeader } from "@/components/session"
@@ -265,7 +265,7 @@ index f48a0f0..d485387 100644
 +  // review panel; the chat view hosts it, so the view switches back first.
 +  const openReview = (path?: string) => {
 +    if (store.view !== "chat") setStore("view", "chat")
-+    view().review.setMode("turn")
++    view().review.setMode("git")
 +    openReviewPanel()
 +    tabs().setActive("review")
 +    if (path) focusReviewDiff(path)

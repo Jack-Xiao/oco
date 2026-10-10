@@ -4,10 +4,10 @@
 
 ## 多 agent 驾驶舱第二步：每会话结果卡（2026-10-10，分支 claude/cleanup-2026-10-10，本地未推送）
 
-- 侧栏 done / error 行提供最近一次运行的摘要（文件数 · 耗时 · 花费 · 最后一句）和 Open / Diff / Mark read（error 无 Mark read）。文件来源为最新 user `message.updated.info.summary.diffs`，不保存 patch；当前上游 `session.diff` 只发空数组。其他字段沿用上游事件与客户端 busy/idle 时间。
-- 运行视图 end / abort 终态在 live 模式显示最近一轮改动文件和增删行；点整张卡展开文件列表。卡片、侧栏 Diff 和单文件动作均切回 chat、显式打开 Review「last turn」；单文件动作定位 diff，不打开源码全文。卡片与 Review 使用同一条 user 消息摘要，不跨轮混合统计。
+- 侧栏 done / error 行提供最近一次运行的摘要（文件数 · 耗时 · 花费 · 最后一句）和 Open / Diff / Mark read（error 无 Mark read）。文件来源为最新 user `message.updated.info.summary.diffs`，不保存 patch；普通轮次汇总的 `session.diff` 发空数组（回退路径可非空）。其他字段沿用上游事件与客户端 busy/idle 时间。
+- 运行视图 end / abort 终态在 live 模式显示最近一轮改动文件和增删行；点整张卡展开文件列表。用户确认 Git 范围后，卡片、侧栏 Diff 和单文件动作均切回 chat、显式打开原生 Review「Git 变更」；单文件动作定位 diff，不打开源码全文。卡片本身仍是本轮摘要，Review 展示工作目录跨轮未提交改动；下拉保留分支 / 上一轮选择，不宣称严格 session 归属。
 - 补丁 0021：5 文件 +168 −1，重生成后 0001–0021 干净重放并与 vendor app 逐文件一致；上游 app tsgo 0、webview build PASS。`navigate.review` / `oco.openSessionReview` 契约不变。c7 已加入默认 23 套件，之前枚举只有 22 项的文档偏差已修正。
-- 接续验证：typecheck 0、上游 app tsgo 0；221 单测 / 0 失败（store 35，含 user 先于 busy 的两条真实顺序回归）；webview / extension build PASS；c7-result-card 6/0（19.25 s）、c6-inbox 5/0（9.06 s）、c2-diff-unavailable 3/0（13.29 s）。这些 E2E 为 mock，c7 的 diff 来自消息摘要 fixture，不证明服务端真实快照生成。已安装 `oco-0.0.4-1803c55.vsix`（基线 1803c55 + 本批代码，SHA 文件名只指基线），扩展 JS 与包内一致：`e14010b3cf287be61af9258b5bd47a2f11aab630391883d6be2b7bcddc0e8e2a`。VS Code 需 Reload Window；真实模型目视仍 NOT RUN。
+- Git 范围本批验证：根 / app typecheck 0；221 单测 / 0 失败；build PASS；0021 重生成后 0001–0021 重放一致。c8-git-review 4/0（16.75 s，两轮真实文件 + 原生 Git diff，最近消息摘要为 fixture），c7-result-card 6/0（22.63 s，使用原生筛选框定位文件）。已装 `oco-0.0.4-2cb3c4c.vsix`（2cb3c4c + 本批 Git 模式改动），安装的 extension.js / chat index 与包内一致；需 Reload Window。记录见 [session-diff-scope](evidence/session-diff-scope-2026-10-10.md)。本轮未跑真实模型目视。
 - 委派：Grok 订阅完成独立审查、单测失败诊断和 store 修复；Gemini 健康探测成功，但原生订阅代理 HTTP 400 `Requests ending with a model turn are not supported`，已记录并换 Grok。Claude 额度及工具不可用，VS Code E2E 由主线程按记录例外接手。证据 [cockpit-result-card-2026-10-10](evidence/cockpit-result-card-2026-10-10.md)。
 
 ## 多 agent 驾驶舱第一步：ADR-009 + 跨会话「待处理」收件箱（2026-10-10，分支 claude/cleanup-2026-10-10）
@@ -45,7 +45,7 @@
 
 - 上游基线：vendor OpenCode v1.18.33（提交 `51ef4be`，浅克隆；旧文档里的补丁基线 `deb241e` 已不存在，补丁再生成改用 `scripts/regen-patch.sh` 在临时 worktree 重建基线）。
 - 补丁链：`patches/opencode/` 0001–0020 全部干净重放通过（`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020）。
-- 本机扩展：已装 `oco-0.0.4-ce17cd8.vsix`（main `ce17cd8` + 2026-10-10 收口批次改动；extension.js sha256 `5fc58a8c…`；位于 `~/.vscode/extensions/oco-local-test.oco-0.0.4`，需 Reload Window）。
+- 本机扩展：已装 `oco-0.0.4-2cb3c4c.vsix`（`2cb3c4c` + 2026-10-10 原生 Git Review 范围改动；extension.js sha256 `e14010b3…`；位于 `~/.vscode/extensions/oco-local-test.oco-0.0.4`，需 Reload Window）。
 
 ## 已合入 main 的能力
 

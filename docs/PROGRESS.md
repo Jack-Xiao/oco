@@ -1021,3 +1021,10 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 验证：221 单测 / 0 失败，根 / app 类型检查 0；构建通过；0021 五文件 +168 −1，0001–0021 重放一致；mock E2E c7 6/0、c6 5/0、c2 3/0，共 14/0。
 - 已装本机包 oco-0.0.4-1803c55（基线 + 本批代码，需 Reload Window），安装哈希一致。真实模型目视仍 NOT RUN，服务端快照生成不由本轮 fixture 证明。
 - 委派：Grok 审查 / 单测诊断 / store 实现；Gemini 探测成功，但原生 subscription_worker HTTP 400，换 Grok。Claude 子代理工具不可用，E2E 按已记录结构性限制由主线程接手。证据 [cockpit-result-card-2026-10-10](evidence/cockpit-result-card-2026-10-10.md)，批量发起等 DEFER 不变。
+
+## 2026-10-10 Diff 入口改用原生 Git 变更
+
+- 用户确认「行 git 变更吧」；补丁 0021 的 openReview 从 turn 改为 git，复用 OpenCode 原生 Git / Branch / Last-turn 下拉，不新增会话 Diff API。卡片仍显示本轮摘要，Review 范围为工作目录未提交改动。
+- 验证：221 单测 / 0 失败，根 / app 类型检查 0，构建及 0001–0021 重放通过；新 c8 4/0（真实两轮文件 + 未拦截 Git API，消息摘要 fixture 只含各轮文件），c7 6/0（Git 文件树改用原生筛选定位）。
+- 安装：oco-0.0.4-2cb3c4c.vsix（HEAD + 本批未提交模式修改），extension.js / index 安装哈希一致；需 Reload Window。用户已有服务未改，原有未提交 fixture / 文档改动保留。
+- 证据 [session-diff-scope-2026-10-10](evidence/session-diff-scope-2026-10-10.md)。Claude/Sonnet 工具不可用且订阅路线 E2E 有已知结构性限制，主线程例外执行定向验收；本轮仅一行紧耦合上游集成。
