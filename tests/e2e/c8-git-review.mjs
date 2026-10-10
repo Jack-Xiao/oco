@@ -1,4 +1,4 @@
-// Regression: both turns remain reviewable through OpenCode's native Git scope.
+// Regression: card lists session-recorded files across turns; Review retains native Git scope.
 // Only user summary.diffs is a fixture; Git files and patches come from the real isolated server.
 import fs from "node:fs"
 import path from "node:path"
@@ -9,10 +9,11 @@ import { sessionsFrame } from "./lib/sessions-web.mjs"
 import { root, launch, command, clearNotifications, waitUntil, chatFrames, frameSession } from "./vscode.mjs"
 import { api, MODEL } from "./server.mjs"
 
-const required = ["two-turn-files", "sidebar-git-review", "runtime-git-review", "runtime-file-git-review"]
+const required = ["two-turn-files", "sidebar-git-review", "session-card-files", "runtime-git-review", "runtime-file-git-review"]
 const run = createRun({ suite: "c8-git-review", required, scriptPath: fileURLToPath(import.meta.url) })
 const prefix = `c8scope-${Date.now().toString(36)}`
-const names = [`${prefix}-first.txt`, `${prefix}-second.txt`]
+const names = [`${prefix}-first.txt`, `${prefix}-second.txt`, `${prefix}-third.txt`]
+const unrelated = `${prefix}-outside-session.txt`
 const workspace = path.join(fs.realpathSync(path.join(root, ".oco-test")), "workspace")
 const proxy = await startProxy({ target: process.env.OCO_TEST_URL ?? "http://127.0.0.1:4517" })
 let session
@@ -63,15 +64,20 @@ try {
   session = await api("POST", "/session", { title: `Git review regression ${prefix}` })
   await turn(0)
   fixtureMessages = await turn(1)
+  // The third path is a second file in the last-turn summary fixture; the outside path is Git-only.
+  fs.writeFileSync(path.join(workspace, names[2]), "hello2\n")
+  fs.writeFileSync(path.join(workspace, unrelated), "outside\n")
   let index = 0
   for (const message of fixtureMessages) {
     if (message.info.role !== "user") continue
     const file = names[index++]
     message.info.summary = { ...message.info.summary, diffs: [{ file, additions: 1, deletions: 0, status: "added", patch: `--- /dev/null\n+++ ${file}\n@@ -0,0 +1 @@\n+hello${index - 1}\n` }] }
+    if (index === 1) message.info.summary.diffs.push({ ...message.info.summary.diffs[0] }) // duplicate must not inflate count
+    if (index === 2) message.info.summary.diffs.push({ file: names[2], additions: 1, deletions: 0, status: "added", patch: `--- /dev/null\n+++ ${names[2]}\n@@ -0,0 +1 @@\n+hello2\n` })
   }
   const actualFiles = names.filter((name) => fs.existsSync(path.join(workspace, name)))
   const lastTurnFiles = fixtureMessages.filter((m) => m.info.role === "user").at(-1).info.summary.diffs.map((d) => d.file)
-  run.record("two-turn-files", actualFiles.length === 2 && lastTurnFiles.length === 1 && lastTurnFiles[0] === names[1] ? "PASS" : "FAIL", { actualFiles, lastTurnFiles })
+  run.record("two-turn-files", actualFiles.length === 3 && lastTurnFiles.length === 2 && !lastTurnFiles.includes(names[0]) ? "PASS" : "FAIL", { actualFiles, lastTurnFiles, unrelated })
 
   let frame
   const gitReview = async () => {
@@ -96,13 +102,27 @@ try {
     }, 30000, 200)
     if (!frame) throw new Error("session frame missing")
     const result = await gitReview()
-    run.record("sidebar-git-review", result.scope && result.files.length === 2 ? "PASS" : "FAIL", result)
+    run.record("sidebar-git-review", result.scope && result.files.length === 3 ? "PASS" : "FAIL", result)
+  })
+  await guard("session-card-files", async () => {
+    await frame.locator('[data-oco-view="runtime"]').first().click()
+    await frame.locator('[data-oco-runtime-card-expand]').first().click()
+    const panel = frame.locator('[data-oco-runtime-card-result-list]')
+    await panel.waitFor({ state: "visible", timeout: 15000 })
+    const text = await panel.innerText()
+    const list = frame.locator('[data-oco-runtime-card-result-list] [data-oco-runtime-card-result-file]')
+    await waitUntil(async () => await list.count() === 3, 10000, 200)
+    const listed = await list.evaluateAll((els) => els.map((el) => el.getAttribute('data-oco-runtime-card-result-file')))
+    const ok = listed.length === 3 && names.every((name) => listed.includes(name)) && !listed.includes(unrelated)
+      && /\b3\b/.test(text) && /session/i.test(text) && !/[+−]\d/.test(text)
+    run.record("session-card-files", ok ? "PASS" : "FAIL", { text, listed, excludesUnrelated: !listed.includes(unrelated), history: await frame.locator('[data-oco-runtime]').getAttribute('data-oco-runtime-history') })
   })
   await guard("runtime-git-review", async () => {
-    await frame.locator('[data-oco-view="runtime"]').first().click()
-    await frame.locator('[data-oco-runtime-card-result-open]').first().click({ timeout: 15000 })
+    if (!await frame.locator('[data-oco-runtime]').count()) await frame.locator('[data-oco-view="runtime"]').first().click()
+    const expanded = frame.locator('[data-oco-runtime-card-result-list] [data-oco-runtime-card-result-open]')
+    await (await expanded.count() ? expanded : frame.locator('[data-oco-runtime-card-result-open]').first()).click({ timeout: 15000 })
     const result = await gitReview()
-    run.record("runtime-git-review", result.scope && result.files.length === 2 ? "PASS" : "FAIL", result)
+    run.record("runtime-git-review", result.scope && result.files.length === 3 ? "PASS" : "FAIL", result)
   })
   await guard("runtime-file-git-review", async () => {
     await frame.locator('[data-oco-view="runtime"]').first().click()
@@ -122,6 +142,6 @@ try {
   await app?.close().catch(() => {})
   await proxy.close().catch(() => {})
   // Only remove the two files this run uniquely created in the isolated test workspace.
-  for (const name of names) fs.rmSync(path.join(workspace, name), { force: true })
+  for (const name of [...names, unrelated]) fs.rmSync(path.join(workspace, name), { force: true })
   process.exit(run.finish())
 }

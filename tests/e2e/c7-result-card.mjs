@@ -257,8 +257,8 @@ try {
     const filename = `c7-b-${rand}.txt`
     const listedFile = f.locator(`[data-oco-runtime-card-result-file="${filename}"]`)
     const matchesFile = await listedFile.count() === 1
-    const counts = /\+1/.test(text) && /−0/.test(text)
-    record("runtime-result-card", shown && /changed/.test(text) && files === 1 && matchesFile && counts ? "PASS" : "FAIL", { shown, modeAfter, text: text.slice(0, 120), files, matchesFile, counts })
+    const sessionScope = /session/i.test(text) && !/[+−]\d/.test(text)
+    record("runtime-result-card", shown && /changed/.test(text) && files === 1 && matchesFile && sessionScope ? "PASS" : "FAIL", { shown, modeAfter, text: text.slice(0, 120), files, matchesFile, sessionScope })
   })
 
   const targetFrame = async () => {

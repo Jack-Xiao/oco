@@ -1,14 +1,14 @@
 diff --git a/packages/app/src/components/session/session-runtime-i18n.ts b/packages/app/src/components/session/session-runtime-i18n.ts
-index 497a963..18535f7 100644
+index 497a963..4f908d1 100644
 --- a/packages/app/src/components/session/session-runtime-i18n.ts
 +++ b/packages/app/src/components/session/session-runtime-i18n.ts
 @@ -186,6 +186,11 @@ const en = {
    "ring.card.dismissed.meta": "The question waited {{dur}} · idle {{idle}}",
    "ring.card.end.meta": "{{at}} · idle {{dur}}",
    "ring.card.end.reason": "Finish reason {{reason}}",
-+  "ring.card.result.files": "{{n}} files changed · +{{add}} −{{del}}",
-+  "ring.card.result.file": "1 file changed · +{{add}} −{{del}}",
-+  "ring.card.result.title": "Changed files",
++  "ring.card.result.files": "{{n}} changed files in this session",
++  "ring.card.result.file": "1 changed file in this session",
++  "ring.card.result.title": "Session changed files",
 +  "ring.card.result.open": "Open diff",
 +  "ring.card.result.open.all": "Open all diffs",
    "ring.card.aborted.body": "Request {{m}} was stopped: {{name}} ({{message}}).",
@@ -18,9 +18,9 @@ index 497a963..18535f7 100644
    "ring.card.dismissed.meta": "提问等了 {{dur}} · 已空闲 {{idle}}",
    "ring.card.end.meta": "{{at}} · 已空闲 {{dur}}",
    "ring.card.end.reason": "结束原因 {{reason}}",
-+  "ring.card.result.files": "{{n}} 个文件改动 · +{{add}} −{{del}}",
-+  "ring.card.result.file": "1 个文件改动 · +{{add}} −{{del}}",
-+  "ring.card.result.title": "改动文件",
++  "ring.card.result.files": "本会话改动 {{n}} 个文件",
++  "ring.card.result.file": "本会话改动 1 个文件",
++  "ring.card.result.title": "本会话改动文件",
 +  "ring.card.result.open": "打开 diff",
 +  "ring.card.result.open.all": "打开全部 diff",
    "ring.card.aborted.body": "第 {{m}} 次请求被中止：{{name}}（{{message}}）。",
@@ -30,16 +30,16 @@ index 497a963..18535f7 100644
    "ring.card.dismissed.meta": "提問等了 {{dur}} · 已閒置 {{idle}}",
    "ring.card.end.meta": "{{at}} · 已閒置 {{dur}}",
    "ring.card.end.reason": "結束原因 {{reason}}",
-+  "ring.card.result.files": "{{n}} 個檔案變更 · +{{add}} −{{del}}",
-+  "ring.card.result.file": "1 個檔案變更 · +{{add}} −{{del}}",
-+  "ring.card.result.title": "變更檔案",
++  "ring.card.result.files": "本會話變更 {{n}} 個檔案",
++  "ring.card.result.file": "本會話變更 1 個檔案",
++  "ring.card.result.title": "本會話變更檔案",
 +  "ring.card.result.open": "開啟 diff",
 +  "ring.card.result.open.all": "開啟全部 diff",
    "ring.card.aborted.body": "第 {{m}} 次請求被中止：{{name}}（{{message}}）。",
    "ring.card.aborted.post": "中止前模型在思考：{{text}}",
    "ring.card.expand.aria": "展開全文",
 diff --git a/packages/app/src/components/session/session-runtime-ring-view.tsx b/packages/app/src/components/session/session-runtime-ring-view.tsx
-index 2158313..e03aecf 100644
+index 2158313..01e6722 100644
 --- a/packages/app/src/components/session/session-runtime-ring-view.tsx
 +++ b/packages/app/src/components/session/session-runtime-ring-view.tsx
 @@ -38,8 +38,14 @@ import type {
@@ -48,7 +48,7 @@ index 2158313..e03aecf 100644
  
 +/** Result card (patches/opencode/0021): the session's changed files and the page's "open review" action. */
 +export type RingResult = {
-+  files: { file: string; additions: number; deletions: number; status?: string }[]
++  files: { file: string }[]
 +  open: (file?: string) => void
 +}
  export type RingViewProps = {
@@ -57,7 +57,7 @@ index 2158313..e03aecf 100644
    mode: Accessor<"live" | "replay">; reduced: Accessor<boolean>; text: RuntimeText
    childLoad: (sessionID: string) => "ready" | "loading" | "failed"
    onLoadChild: (sessionID: string) => void; onRetryChild: (sessionID: string) => void
-@@ -346,6 +352,29 @@ export function RingView(props: RingViewProps): JSX.Element {
+@@ -346,6 +352,22 @@ export function RingView(props: RingViewProps): JSX.Element {
  
    // ---------- card ----------
    const card = () => f().card
@@ -69,17 +69,10 @@ index 2158313..e03aecf 100644
 +    const st = f().stage.st
 +    return st === "end" || st === "abort"
 +  }
-+  const resultSum = () => {
-+    let add = 0, del = 0
-+    for (const x of result()?.files ?? []) (add += x.additions), (del += x.deletions)
-+    return { add, del }
-+  }
 +  const resultLine = () => {
 +    const n = result()?.files.length ?? 0
-+    const { add, del } = resultSum()
-+    return text.t(n === 1 ? "ring.card.result.file" : "ring.card.result.files", { n, add, del })
++    return text.t(n === 1 ? "ring.card.result.file" : "ring.card.result.files", { n })
 +  }
-+  const RESULT_G: Record<string, string> = { added: "A", deleted: "D", modified: "M" }
 +  const resultBtn = {
 +    flex: "none", height: "18px", padding: "0 6px", "border-radius": "4px", cursor: "pointer", "font-size": "11px",
 +    border: "1px solid var(--rt-line-strong)", background: "transparent", color: "var(--rt-main)", "font-family": "inherit",
@@ -87,7 +80,7 @@ index 2158313..e03aecf 100644
    // the whole card opens the full-content overlay whenever it has anything to show (running or not);
    // a streaming part with no text yet (thinking in replay, or before the first delta) still opens to its meta
    const canExpand = createMemo(() => {
-@@ -940,6 +969,25 @@ export function RingView(props: RingViewProps): JSX.Element {
+@@ -940,6 +962,25 @@ export function RingView(props: RingViewProps): JSX.Element {
                  {say(card().post)}
                </span>
              </Show>
@@ -113,7 +106,7 @@ index 2158313..e03aecf 100644
            </div>
  
            {/* ---------- tools ---------- */}
-@@ -1249,6 +1297,44 @@ export function RingView(props: RingViewProps): JSX.Element {
+@@ -1249,6 +1290,40 @@ export function RingView(props: RingViewProps): JSX.Element {
                        {card().meta.map((p) => text.phrase(p)).join(sep())}
                      </div>
                    </Show>
@@ -140,15 +133,11 @@ index 2158313..e03aecf 100644
 +                                result()?.open(x.file)
 +                              }}
 +                              style={{
-+                                display: "grid", "grid-template-columns": "14px minmax(0,1fr) auto", "column-gap": "8px", "align-items": "center",
++                                display: "grid", "grid-template-columns": "minmax(0,1fr)", "align-items": "center",
 +                                padding: "2px 0", cursor: "pointer", "font-family": mono, "font-size": "11.5px",
 +                              }}
 +                            >
-+                              <i style={{ "font-style": "normal", "text-align": "center", "font-size": "10px", color: x.status === "added" ? "var(--rt-ok)" : x.status === "deleted" ? "var(--rt-err)" : "var(--rt-attn)" }}>
-+                                {RESULT_G[x.status ?? ""] ?? "M"}
-+                              </i>
 +                              <span style={{ ...ell, color: "var(--rt-text)" }}>{x.file}</span>
-+                              <span style={{ color: "var(--rt-faint)", "font-size": "10.5px" }}>{`+${x.additions} −${x.deletions}`}</span>
 +                            </li>
 +                          )}
 +                        </For>
@@ -159,20 +148,21 @@ index 2158313..e03aecf 100644
                }
              >
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
-index 4927cc2..1295011 100644
+index 4927cc2..25e42c1 100644
 --- a/packages/app/src/components/session/session-runtime.tsx
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -33,7 +33,8 @@ import { buildRingIndex, frameAt, liveTime, roundAt, trackInputOf } from "./sess
+@@ -33,7 +33,9 @@ import { buildRingIndex, frameAt, liveTime, roundAt, trackInputOf } from "./sess
  import { stepTimesOf } from "./session-runtime-step-times"
  import { navStep, trackMap } from "./session-runtime-ring-track"
  import { RingTrack } from "./session-runtime-ring-track-view"
 -import { RingView } from "./session-runtime-ring-view"
 +import { RingView, type RingResult } from "./session-runtime-ring-view"
 +import { diffs as reviewDiffs } from "@/utils/diffs"
++import { selectVisibleUserMessages } from "@/pages/session/timeline/model"
  import {
    RING,
    type Phrase,
-@@ -117,6 +118,8 @@ export function SessionRuntime(props: {
+@@ -117,6 +119,8 @@ export function SessionRuntime(props: {
    onView: (view: SessionViewMode) => void
    actions?: JSX.Element
    onOpenSession?: (sessionID: string) => void
@@ -181,27 +171,30 @@ index 4927cc2..1295011 100644
  }) {
    const sync = useSync()
    const sdk = useSDK()
-@@ -385,6 +388,19 @@ export function SessionRuntime(props: {
+@@ -385,6 +389,22 @@ export function SessionRuntime(props: {
    for (const k of FRAME_KEYS) Object.defineProperty(frame, k, { enumerable: true, get: () => store[k] })
    Object.defineProperty(frame, "stage", { enumerable: true, get: stage })
    const frameAcc: Accessor<RingFrame> = () => frame
-+  // Result card (patches/opencode/0021): the latest run's files, exactly as the Review panel's "last turn".
-+  // Directory events do not populate session_diff in the embedded app. Do not merge earlier turns: their
-+  // patches cannot be reviewed in "last turn" and their line counts are not a session-wide net diff.
++  // File list from this session's recorded turn summaries. Reuse the existing full-history walk and
++  // revert boundary; do not mix workspace Git files or pretend per-turn patches form a net session diff.
 +  const ringResult = createMemo<RingResult | undefined>(() => {
 +    const open = props.onOpenReview
-+    if (!open) return undefined
-+    const messages = (sync().data.message[shownID()] ?? emptyMessages) as Message[]
-+    const user = messages.findLast((m) => m.role === "user")
-+    const files = reviewDiffs(user?.role === "user" ? user.summary?.diffs : undefined).flatMap((d) =>
-+      typeof d.file === "string" && d.file ? [{ file: d.file, additions: d.additions, deletions: d.deletions, status: d.status }] : [],
-+    )
-+    return { files, open }
++    const sid = shownID()
++    if (!open || walk() !== "done" || sync().session.history.more(sid) || sync().session.history.loading(sid)) return undefined
++    const messages = (sync().data.message[sid] ?? emptyMessages) as Message[]
++    const users = selectVisibleUserMessages(messages.filter((m) => m.role === "user"), sync().session.get(sid)?.revert?.messageID)
++    const files = new Set<string>()
++    for (const user of users) {
++      for (const diff of reviewDiffs(user.summary?.diffs)) {
++        if (typeof diff.file === "string" && diff.file) files.add(diff.file)
++      }
++    }
++    return { files: [...files].map((file) => ({ file })), open }
 +  })
  
    // ---------- playback ----------
    let playV = 0
-@@ -1083,6 +1099,7 @@ export function SessionRuntime(props: {
+@@ -1083,6 +1103,7 @@ export function SessionRuntime(props: {
              onRetryChild={retryChild}
              onEnterChild={onEnterChild}
              onGeo={(g) => setGeoMode(g.mode)}

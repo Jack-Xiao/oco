@@ -1028,3 +1028,9 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 验证：221 单测 / 0 失败，根 / app 类型检查 0，构建及 0001–0021 重放通过；新 c8 4/0（真实两轮文件 + 未拦截 Git API，消息摘要 fixture 只含各轮文件），c7 6/0（Git 文件树改用原生筛选定位）。
 - 安装：oco-0.0.4-2cb3c4c.vsix（HEAD + 本批未提交模式修改），extension.js / index 安装哈希一致；需 Reload Window。用户已有服务未改，原有未提交 fixture / 文档改动保留。
 - 证据 [session-diff-scope-2026-10-10](evidence/session-diff-scope-2026-10-10.md)。Claude/Sonnet 工具不可用且订阅路线 E2E 有已知结构性限制，主线程例外执行定向验收；本轮仅一行紧耦合上游集成。
+
+## 2026-10-10 卡片汇总本会话文件名
+
+- 用户指出旧卡片只列最后一轮两个文件，明确希望复用当前会话记录列出跨轮文件，不直接拿工作区 Git 数据；若需额外系统则倾向删除。最小修正为各轮 user summary.diffs 路径去重，沿用完整历史 walk 和原有回退边界；不新建追踪系统、不合成净 patch。卡片只列文件数 / 文件名，Git Review 入口保持原生行为。
+- 验证：221 单测 / 0 失败、根 / app typecheck 0、build 与 0001–0021 重放通过；c8 5/0（两轮三文件、重复去重、额外 Git 文件排除）、c7 6/0。源数据为摘要 fixture，Git API 未拦截；未新增真实模型验收。
+- 安装 oco-0.0.4-d83978f.vsix（基线 + 本批代码），extension.js / chat index 哈希一致；需 Reload Window。证据 [session-diff-scope](evidence/session-diff-scope-2026-10-10.md)。原有他人未提交改动保留，按已有授权补充提交本批。

@@ -57,7 +57,7 @@ mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为�
 
 `tests/e2e/run.mjs` 的 `DEFAULT_SUITES`，共 23 个：p1a-chat、p1a-identity、p1b-sidebar、p1b-narrow、p1b-theme-load、p1b-ime、p1b-reconnect、p1b-pending-send、p1b-switch-pending、c1-open-file、c1-focus、c2-diff-unavailable、t010-recover、t014-connection、p1b-main-panel、c3-fork、t007-managed、t007-multiroot、t015-diagnostics、c4-trajectory、c5-runtime、c6-inbox、c7-result-card。
 
-不在默认列表中：t004、t005（P0 历史套件）、perf、smoke、c8-git-review（切换 Review 范围时的定向回归，验证跨轮 Git 文件及单文件定位）。p1b-ime 的 `ime-real-macos` 需要真人使用系统输入法，自动运行时恒为 NOT RUN。
+不在默认列表中：t004、t005（P0 历史套件）、perf、smoke、c8-git-review（切换 Review 范围时的定向回归，验证会话文件去重 / 外部 Git 文件排除、Git 入口及单文件定位）。p1b-ime 的 `ime-real-macos` 需要真人使用系统输入法，自动运行时恒为 NOT RUN。
 
 ## 读结果
 
