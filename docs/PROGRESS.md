@@ -999,3 +999,8 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 契约 v2：`InboxRow` 加 parentId / agent / detail / at，`inbox: InboxEntry[]`（行或按父会话归组的 group），分组在宿主 `groupInbox` 纯函数。页面：可折叠 `NEEDS ATTENTION · N` 节头、分隔线、`SESSIONS` 节头（收件箱为空时不渲染，列表同改动前）；组头、引导线、`@agent` 标签；按钮透明底 color-mix 边框。
 - 测试：typecheck 0；单测 202 / 0；E2E c6-inbox（父断言改为 data-parent-id + 组头文字）12.2 s、p1b-sidebar 44.7 s，共 18 PASS / 0 FAIL。
 - 委派：Gemini 实现 16 min（自验 typecheck / build / 单测）；E2E 由主线程后台跑并只看一张截图核对视觉。证据 [cockpit-inbox-2026-10-10](evidence/cockpit-inbox-2026-10-10.md) 第二轮一节。
+
+## 2026-10-10 收件箱第三轮（节头折叠箭头、SESSIONS 可折叠）
+
+- 只改 `media/sessions-list/index.js` / `index.css`：`.section-head` 复用 `.chevron` 三角，标签与行标题左缘对齐；SESSIONS 始终渲染、可折叠、搜索强制展开；`collapsed` 并入 `vscode.setState`。
+- 测试：node --check、build PASS；E2E c6-inbox 12.8 s + p1b-sidebar 48.5 s，18 PASS / 0 FAIL。Gemini 实现 10 min。

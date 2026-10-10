@@ -145,3 +145,22 @@ type InboxEntry = InboxRow | InboxGroup
 | typecheck / 单测 / build | 0 错 / 202 pass 0 fail / PASS（Gemini 自验，主线程未改 src） |
 | E2E `node tests/e2e/run.mjs c6-inbox p1b-sidebar`（mock） | 18 PASS / 0 FAIL；c6-inbox 12.15 s，p1b-sidebar 44.71 s；结果 `docs/evidence/runs/20261010-100808-c6-inbox-e772/results.json` |
 | 视觉核对 | 主线程只看 c6 第 1 张截图：节头计数、父组头、缩进引导线、`@agent` 标签、链接色 Allow、淡色 Deny、分隔线与 SESSIONS 节头均符合规格 |
+
+## 第三轮：节头折叠箭头（2026-10-10，用户反馈）
+
+用户要求：两个节头左侧都加 VS Code 原生式折叠箭头（收起 ›、展开 ⌄），SESSIONS 也可点击展开 / 收起。
+
+### 规格（主线程定）
+
+- 两个节头共用 `.section-head`：左侧 16px 箭头（复用现有 `.chevron` / `.chevron::before` 的三角与旋转），后接大写标签，右侧计数（NEEDS ATTENTION 显示待批行数；SESSIONS 收起时显示会话行数，展开时不显示）。标签文字左缘与会话行标题左缘对齐（约 29px）。
+- `SESSIONS` 节头改为**始终渲染**（收件箱为空时也有），可折叠；收起时隐藏 recent 行、More 头、Load more。搜索框有内容时强制展开并忽略收起状态；清空搜索后恢复记忆的状态。
+- `NEEDS ATTENTION` 节头保持可折叠，收起只剩节头与计数。
+- 折叠状态用 webview 的 `vscode.getState()/setState()` 持久化（每查看者，刷新后保留），键 `collapsed: { inbox: boolean; sessions: boolean }`；没有 state API 时退回页面内存。
+- 节头可 Tab 到，Enter / Space 切换，`role="button"`、`aria-expanded`；箭头 hover 用现有 `.more-head:hover` 的背景。
+- 不改 DOM 契约：`section[data-group="inbox"]`、行与按钮属性不变；SESSIONS 节头 `data-group="sessions"`。
+
+### 第三轮委派记录
+
+| task_id | 唯一写入范围 | requested_route | actual_provider/model | agent_id/run_id | 状态 | 结果路径 | fallback_reason |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| impl-inbox-3 | `apps/extension/media/sessions-list/index.js`、`index.css`、checkpoint | gemini-worker（复用本批 30 分钟前的健康结果） | Gemini 3.8 Flash / Antigravity（自报） | gem-mv28xp8u-usnwr | 已返回（606 s，7 轮；node --check、build PASS；主线程 E2E c6-inbox + p1b-sidebar 18 PASS / 0 FAIL，结果 `docs/evidence/runs/20261010-103415-c6-inbox-2cdf/results.json`） | checkpoint `cockpit-inbox-2026-10-10-impl3-checkpoint.md` | — |

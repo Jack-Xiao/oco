@@ -8,6 +8,7 @@
 - 收件箱已落地：侧栏顶部「Needs attention」分区列出等权限 / 等提问 / 报错 / 完成未读的会话，子代理按自身行出现并带父会话标题。权限行 Allow / Always / Deny 由宿主直接 `POST /permission/:id/reply`（once / always / reject），提问行 Answer 打开会话、Dismiss 走 `POST /question/:id/reject`；宿主发送前核对请求仍在待批集合，过期请求只刷新不重发。状态栏 bell 计数改为含子代理的待批行数；新请求出现且不属于当前会话时弹一条可点 Show 的警告通知（同一时刻只一条），设置 `oco.sessions.notifyPending` 可关。
 - 验证：`bun run typecheck` 0 错；单测 196 / 0（新增 session-store、sessions-view 用例）；新 E2E 套件 c6-inbox（mock）PASS：3 个后台子代理同时等 bash 权限 → 不打开任何面板，在侧栏 3 行逐个 Allow → `GET /permission` 为空、分区消失、状态栏归零，9.7 s；侧栏回归 p1b-sidebar / p1b-reconnect / t014-connection 24 PASS / 0 FAIL。默认套件 22 → 23，[TEST-SCOPE](TEST-SCOPE.md) 已更新。
 - 第二轮（用户真实模型验证后反馈）：收件箱与会话列表分成 `NEEDS ATTENTION · N`（可折叠）/ 分隔线 / `SESSIONS` 两个区块；子代理行按父会话分组（组头点击开父会话，子行缩进带引导线和 `@agent` 标签，去掉服务端的 "(@xxx subagent)" 后缀）；权限行 summary 改为路径模式（如 `/etc/*`），悬停见 `external_directory · /etc/*`；按钮改为透明底细边框的行内样式（Allow / Answer 链接色，Deny / Dismiss 淡色悬停变红）。分组为宿主纯函数 `groupInbox`，单测 202 / 0；E2E c6-inbox + p1b-sidebar 18 PASS / 0 FAIL。
+- 第三轮：两个节头左侧加 VS Code 原生式折叠箭头（› / ⌄），`SESSIONS` 节头始终显示并可折叠（收起时显示会话数，搜索时强制展开），折叠状态随 webview state 记住。E2E c6-inbox + p1b-sidebar 18 PASS / 0 FAIL。
 - 未做 / 限制：提问的就地作答仍要打开会话；通知与收件箱在真实模型、亮色主题下尚未目视；「完成未读」行沿用 UnreadTracker 的判定。
 - 委派：Grok 只读调查（6 问均带行号，5.6 min，2 项未确认其中「等权限时子会话是否 busy」已由主线程 API 实测为 busy）；Gemini 实现（23.5 min，自验 typecheck / build / 单测）；Gemini 写 E2E（7.9 min，其探测 `/config` 把 401 当不可达未跑场景，主线程重启服务器后用 API 代验）。两条路线本批均正常。证据：[cockpit-inbox-2026-10-10](evidence/cockpit-inbox-2026-10-10.md)，E2E 结果 `docs/evidence/runs/20261010-091516-c6-inbox-09cb/results.json`。
 

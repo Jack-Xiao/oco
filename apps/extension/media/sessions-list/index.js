@@ -1,10 +1,13 @@
 "use strict"
 
 const vscode = acquireVsCodeApi()
-const saved = vscode.getState() || {}
+const saved = (typeof vscode !== "undefined" && vscode && typeof vscode.getState === "function" ? vscode.getState() : null) || {}
 const STAT = new Set(["running", "waiting", "unread", "error"])
 
 let moreOpen = !!saved.moreOpen
+const savedCollapsed = saved && typeof saved.collapsed === "object" && saved.collapsed !== null ? saved.collapsed : {}
+let inboxCollapsed = Boolean(savedCollapsed.inbox)
+let sessionsCollapsed = Boolean(savedCollapsed.sessions)
 let state = null
 let searchTimer = 0
 let scrollTimer = 0
@@ -23,31 +26,72 @@ const moreHead = el("div", "more-head")
 const moreCount = el("span", "more-count")
 const loadMore = el("div", "row load-more")
 const pool = new Map()
-let inboxCollapsed = false
 const inboxSection = document.createElement("section")
 inboxSection.dataset.group = "inbox"
 inboxSection.className = "inbox-section"
-const inboxHead = el("div", "inbox-head")
+
+const inboxHead = el("div", "section-head inbox-head")
 inboxHead.tabIndex = 0
 inboxHead.setAttribute("role", "button")
 inboxHead.setAttribute("aria-expanded", "true")
+const inboxChevron = el("span", "chevron")
+inboxChevron.setAttribute("aria-hidden", "true")
+const inboxLabel = el("span", "section-label")
+inboxLabel.textContent = "NEEDS ATTENTION"
+const inboxCount = el("span", "section-count")
+inboxHead.append(inboxChevron, inboxLabel, inboxCount)
+
 const inboxDivider = el("div", "inbox-divider")
-const sessionsHead = el("div", "sessions-head")
-sessionsHead.textContent = "SESSIONS"
+
+const sessionsHead = el("div", "section-head sessions-head")
+sessionsHead.dataset.group = "sessions"
+sessionsHead.tabIndex = 0
+sessionsHead.setAttribute("role", "button")
+sessionsHead.setAttribute("aria-expanded", "true")
+const sessionsChevron = el("span", "chevron")
+sessionsChevron.setAttribute("aria-hidden", "true")
+const sessionsLabel = el("span", "section-label")
+sessionsLabel.textContent = "SESSIONS"
+const sessionsCount = el("span", "section-count")
+sessionsHead.append(sessionsChevron, sessionsLabel, sessionsCount)
+
 const inboxPool = new Map()
 const groupPool = new Map()
 
+function isSessionsCollapsed() {
+  if (search.value && search.value.length > 0) return false
+  return sessionsCollapsed
+}
+
 function toggleInboxCollapse() {
   inboxCollapsed = !inboxCollapsed
+  save()
   renderList()
 }
-inboxHead.addEventListener("click", () => toggleInboxCollapse())
-inboxHead.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" || event.key === " " || event.key === "Spacebar") {
-    event.preventDefault()
-    toggleInboxCollapse()
-  }
-})
+
+function toggleSessionsCollapse() {
+  if (search.value && search.value.length > 0) return
+  sessionsCollapsed = !sessionsCollapsed
+  save()
+  renderList()
+}
+
+function bindSectionHead(node, toggleFn) {
+  node.addEventListener("click", (e) => {
+    e.stopPropagation()
+    focusRow(node)
+    toggleFn()
+  })
+  node.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+      e.preventDefault()
+      e.stopPropagation()
+      toggleFn()
+    }
+  })
+}
+bindSectionHead(inboxHead, toggleInboxCollapse)
+bindSectionHead(sessionsHead, toggleSessionsCollapse)
 
 search.type = "search"
 search.className = "search"
@@ -95,11 +139,20 @@ function post(msg) { vscode.postMessage(msg) }
 
 function save() {
   if (!persistReady) return
-  vscode.setState({ moreOpen: moreOpen, scrollTop: scroll.scrollTop, query: search.value })
+  if (typeof vscode !== "undefined" && vscode && typeof vscode.setState === "function") {
+    try {
+      vscode.setState({
+        moreOpen: moreOpen,
+        scrollTop: scroll.scrollTop,
+        query: search.value,
+        collapsed: { inbox: inboxCollapsed, sessions: sessionsCollapsed }
+      })
+    } catch (_) {}
+  }
 }
 
 function expanded() { return !!(state && (state.moreForcedOpen || moreOpen)) }
-function focusables() { return Array.from(list.querySelectorAll(".row, .more-head, .inbox-group-head")) }
+function focusables() { return Array.from(list.querySelectorAll(".section-head, .row, .more-head, .inbox-group-head")) }
 
 function focusRow(node) {
   if (!node || !node.isConnected) return
@@ -134,7 +187,9 @@ function toggleMore() {
 
 function activate(node) {
   if (!node || !list.contains(node)) return
-  if (node.classList.contains("inbox-group-head")) postOpen(node.dataset.parentId, false)
+  if (node === inboxHead || node.classList.contains("inbox-head")) toggleInboxCollapse()
+  else if (node === sessionsHead || node.classList.contains("sessions-head")) toggleSessionsCollapse()
+  else if (node.classList.contains("inbox-group-head")) postOpen(node.dataset.parentId, false)
   else if (node.dataset.kind === "more") toggleMore()
   else if (node.dataset.kind === "load") post({ type: "loadMore" })
   else postOpen(node.dataset.sessionId || node.dataset.id, false)
@@ -364,6 +419,40 @@ function updateInboxRow(node, row) {
       })
 
       actions.append(bAnswer, bDismiss)
+    } else if (kind === "done" || kind === "error") {
+      const bOpen = document.createElement("button")
+      bOpen.type = "button"
+      bOpen.className = "inbox-btn"
+      bOpen.dataset.action = "open"
+      bOpen.textContent = "Open"
+      bOpen.addEventListener("click", (e) => {
+        e.stopPropagation()
+        postOpen(sessionId, false)
+      })
+
+      const bDiff = document.createElement("button")
+      bDiff.type = "button"
+      bDiff.className = "inbox-btn"
+      bDiff.dataset.action = "diff"
+      bDiff.textContent = "Diff"
+      bDiff.addEventListener("click", (e) => {
+        e.stopPropagation()
+        post({ type: "openReview", id: sessionId })
+      })
+
+      actions.append(bOpen, bDiff)
+      if (kind === "done") {
+        const bRead = document.createElement("button")
+        bRead.type = "button"
+        bRead.className = "inbox-btn inbox-btn-secondary"
+        bRead.dataset.action = "markRead"
+        bRead.textContent = "Mark read"
+        bRead.addEventListener("click", (e) => {
+          e.stopPropagation()
+          post({ type: "markRead", id: sessionId })
+        })
+        actions.append(bRead)
+      }
     }
   }
 }
@@ -448,24 +537,50 @@ function countPendingRows(entries) {
   return count
 }
 
+function syncInboxHead(collapsed, pendingCount) {
+  const open = !collapsed
+  const exp = open ? "true" : "false"
+  const countText = String(pendingCount)
+  const aria = "NEEDS ATTENTION, " + countText
+  if (inboxCount.textContent !== countText) inboxCount.textContent = countText
+  if (inboxHead.getAttribute("aria-expanded") !== exp) inboxHead.setAttribute("aria-expanded", exp)
+  if (inboxHead.getAttribute("aria-label") !== aria) inboxHead.setAttribute("aria-label", aria)
+  if (inboxHead.classList.contains("open") !== open) inboxHead.classList.toggle("open", open)
+}
+
+function countSessions(recent, more) {
+  const set = new Set()
+  for (const r of recent) if (r && r.id != null) set.add(String(r.id))
+  for (const r of more) if (r && r.id != null) set.add(String(r.id))
+  return set.size
+}
+
+function syncSessionsHead(collapsed, sessionCount) {
+  const open = !collapsed
+  const exp = open ? "true" : "false"
+  const countText = collapsed ? String(sessionCount) : ""
+  const aria = collapsed ? "SESSIONS, " + sessionCount : "SESSIONS"
+  if (sessionsCount.textContent !== countText) sessionsCount.textContent = countText
+  if (sessionsHead.getAttribute("aria-expanded") !== exp) sessionsHead.setAttribute("aria-expanded", exp)
+  if (sessionsHead.getAttribute("aria-label") !== aria) sessionsHead.setAttribute("aria-label", aria)
+  if (sessionsHead.classList.contains("open") !== open) sessionsHead.classList.toggle("open", open)
+}
+
 function syncInbox(inboxEntries) {
   const pendingCount = countPendingRows(inboxEntries)
-  const headText = "NEEDS ATTENTION · " + pendingCount
-  if (inboxHead.textContent !== headText) inboxHead.textContent = headText
-  const exp = inboxCollapsed ? "false" : "true"
-  if (inboxHead.getAttribute("aria-expanded") !== exp) inboxHead.setAttribute("aria-expanded", exp)
+  syncInboxHead(inboxCollapsed, pendingCount)
 
   const activeRowIds = new Set()
   const activeGroupIds = new Set()
 
   const nodes = [inboxHead]
-  if (!inboxCollapsed) {
-    for (const entry of inboxEntries) {
-      if (!entry) continue
-      if (entry.kind === "group") {
-        const key = String(entry.parentId)
-        activeGroupIds.add(key)
-        for (const r of (entry.rows || [])) if (r && r.id != null) activeRowIds.add(String(r.id))
+  for (const entry of inboxEntries) {
+    if (!entry) continue
+    if (entry.kind === "group") {
+      const key = String(entry.parentId)
+      activeGroupIds.add(key)
+      for (const r of (entry.rows || [])) if (r && r.id != null) activeRowIds.add(String(r.id))
+      if (!inboxCollapsed) {
         let groupNode = groupPool.get(key)
         if (!groupNode) {
           groupNode = createInboxGroup(entry)
@@ -474,9 +589,11 @@ function syncInbox(inboxEntries) {
           updateInboxGroup(groupNode, entry)
         }
         nodes.push(groupNode)
-      } else {
-        const key = String(entry.id)
-        activeRowIds.add(key)
+      }
+    } else {
+      const key = String(entry.id)
+      activeRowIds.add(key)
+      if (!inboxCollapsed) {
         let rowNode = inboxPool.get(key)
         if (!rowNode) {
           rowNode = createInboxRow(entry)
@@ -512,35 +629,45 @@ function renderList() {
   if (inbox.length) {
     nodes.push(syncInbox(inbox))
     nodes.push(inboxDivider)
-    nodes.push(sessionsHead)
   } else {
     inboxPool.clear()
     groupPool.clear()
   }
 
-  const pushRow = (row) => {
-    if (!row || row.id == null) return
-    const id = String(row.id)
-    if (seen.has(id)) return
-    seen.add(id)
-    nodes.push(syncSession(row))
-  }
-  recent.forEach(pushRow)
-  if (more.length) {
-    const open = expanded()
-    syncMore(more.length, open)
-    nodes.push(moreHead)
-    if (open) {
-      more.forEach(pushRow)
-      if (state.loadMore) nodes.push(loadMore)
-    } else {
-      for (const row of more) if (row && row.id != null) seen.add(String(row.id))
+  const sCollapsed = isSessionsCollapsed()
+  const totalSessions = countSessions(recent, more)
+  syncSessionsHead(sCollapsed, totalSessions)
+  nodes.push(sessionsHead)
+
+  if (!sCollapsed) {
+    const pushRow = (row) => {
+      if (!row || row.id == null) return
+      const id = String(row.id)
+      if (seen.has(id)) return
+      seen.add(id)
+      nodes.push(syncSession(row))
     }
-  } else if (state.loadMore) nodes.push(loadMore)
+    recent.forEach(pushRow)
+    if (more.length) {
+      const open = expanded()
+      syncMore(more.length, open)
+      nodes.push(moreHead)
+      if (open) {
+        more.forEach(pushRow)
+        if (state.loadMore) nodes.push(loadMore)
+      } else {
+        for (const row of more) if (row && row.id != null) seen.add(String(row.id))
+      }
+    } else if (state.loadMore) nodes.push(loadMore)
+  } else {
+    for (const row of recent) if (row && row.id != null) seen.add(String(row.id))
+    for (const row of more) if (row && row.id != null) seen.add(String(row.id))
+  }
+
   reconcile(list, nodes)
   for (const id of pool.keys()) if (!seen.has(id)) pool.delete(id)
-  if (active && (active.classList.contains("row") || active.classList.contains("more-head") || active.classList.contains("inbox-group-head")) && !active.isConnected) {
-    const fallback = moreHead.isConnected ? moreHead : list.querySelector(".row, .inbox-group-head")
+  if (active && (active.classList.contains("row") || active.classList.contains("more-head") || active.classList.contains("inbox-group-head") || active.classList.contains("section-head")) && !active.isConnected) {
+    const fallback = moreHead.isConnected ? moreHead : list.querySelector(".section-head, .row, .inbox-group-head")
     if (fallback) focusRow(fallback)
   }
   ensureTabStop()
@@ -624,6 +751,7 @@ search.addEventListener("input", () => {
   const query = search.value
   save()
   layout()
+  renderList()
   searchTimer = setTimeout(() => {
     searchTimer = 0
     post({ type: "search", query: query })
@@ -638,6 +766,7 @@ search.addEventListener("keydown", (event) => {
     if (search.value !== "") search.value = ""
     post({ type: "search", query: "" })
     save()
+    renderList()
     // Closing the search returns focus to the list, which hides the empty box.
     const first = focusables()[0]
     if (first && !list.hidden) focusRow(first)
@@ -658,7 +787,7 @@ search.addEventListener("blur", () => layout())
 list.addEventListener("mousedown", (event) => { if (event.button === 1) event.preventDefault() })
 
 list.addEventListener("click", (event) => {
-  if (event.target.closest("button")) return
+  if (event.target.closest("button, .section-head")) return
   const groupHead = event.target.closest(".inbox-group-head")
   if (groupHead && list.contains(groupHead) && event.button === 0) {
     focusRow(groupHead)
@@ -723,6 +852,7 @@ function boot() {
   if (typeof saved.query === "string" && saved.query !== search.value) {
     search.value = saved.query
     layout()
+    renderList()
   }
   persistReady = true
   maybeRestoreScroll()
