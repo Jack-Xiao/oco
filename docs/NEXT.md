@@ -4,7 +4,7 @@
 
 当前基线：main `ce17cd8`。运行视图 M1–M5（补丁 0020）已随 PR #4 / #5 合入 main；补丁 0001–0020 干净重放；vendor OpenCode v1.18.33。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
 
-## 0. 本批：收口（2026-10-10，进行中，证据见 [cleanup-2026-10-10](evidence/cleanup-2026-10-10.md)）
+## 0. 本批：收口（2026-10-10，已完成，证据见 [cleanup-2026-10-10](evidence/cleanup-2026-10-10.md)）
 
 - [DONE] `.gitignore` 忽略 `.oco-e2e-*.log`；根目录只留最新 vsix；删除已合并且 worktree 干净的 `claude/*` 分支。保留 4 个有未提交改动的 worktree：`first-session-slow-open-c83e72`、`musing-solomon-847dba`、`nostalgic-gates-ef74ca`、`practical-shamir-62b821`，由各自会话处理。`.codex/`、`.kilo/` 下的 worktree 属于其他工具，不动。
 - [DONE] STATUS 瘦身为当前事实，批次历史整段搬到 PROGRESS。
@@ -17,9 +17,9 @@
 - [DONE 一轮] 真实模型全量 E2E：21 套件，首轮 16 套件无 FAIL；修测试后重跑 p1a-chat、p1a-identity 通过。见 [fail-diag](evidence/cleanup-2026-10-10-fail-diag.md)。
 - [TODO] p1b-narrow「新面板未出现」：两次落在不同宽度（320、260），先用 mock 模式循环复现，判定是否为产品侧打开新面板的竞态。
 - [TODO，测试侧] c4 live-update / subagent-row、c5 tool-turn / tool-fail / retry：按 `modelMode` 把依赖 mock 口令或模型时序的断言改判 N/A 或放宽采样；c5 真实模式外层超时调到 ≥ 30 分钟。
-- [TODO] 真实模型新对话下的运行视图：fly / 模型思考阶段 / 流式文字跟随（至今只有 mock E2E 与回放）。
-- [TODO] 嵌套 ≥2 层子代理：真实模型下用提示词诱发 task → task（best effort）；或给 mock 补孙会话后加 E2E。
-- [TODO] 亮色主题下运行视图与轨迹视图各一次目视。
+- [DONE 2026-10-10] 真实模型新对话运行视图：阶段序列与流式递增正常；轮末 tools-k 复核见第 3 节。
+- [NOT RUN] 嵌套 ≥2 层子代理：big-pickle 两次提示都只派一层；要验证得给 mock 补孙会话再加 E2E，或换会递归派发的模型。
+- [DONE 2026-10-10] 亮色主题目视：仅轨迹时间线圆点对比度偏低（第 3 节小项）。
 - [TODO，长期] 数小时运行与长会话内存趋势；数千行长会话滚动（工作站上最长只有 12 次请求）。
 - [BLOCKED，无主机] Remote 断网恢复、Remote 窗口查看轨迹与运行视图；本机粘贴图片（A11 剩余）仍 NOT RUN。
 
@@ -42,6 +42,9 @@ oco 是 OpenCode 的客户端，不自建调度引擎。上游 1.18.33 已有 `t
 
 ## 3. 小项（按需）
 
+- 轮末工具台 tools-k：在 end 后 ≥2 s 再采样确认收到 0（2026-10-10 探查只采到 end 瞬间的 0.380，`dk` 为逐帧过渡值）。
+- 亮色主题下轨迹时间线圆点 rgb(205,214,228) 对比度偏低。
+- c4 / c5 在真实模型模式下跳过或分支 mock 专属断言（live-update、subagent-row、tool-turn、tool-fail、retry）；与另一会话的 fail-diag 协调，不要同时改 tests/e2e。
 - 轨迹页子智能体行跳转子会话（对话卡片已走宿主 `openSession`，轨迹行复用同一路径）。
 - 轨迹页「子智能体」标签改用子代理蓝；矮航道作业区标签隐藏。
 - 切换大会话时新数据到达前没有加载提示；首开后第一次点击仍可能等一次 `/provider`。

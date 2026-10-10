@@ -968,3 +968,12 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 结果：0001–0020 干净重放；typecheck 0、unit 190/0、session 单测 427/0、build PASS。真实模型 E2E 21 套件首轮 16 无 FAIL；重跑后 p1a-chat 8/0、p1a-identity 14/0、p1b-narrow 8/1、c4 15/2、c5 24/4。
 - 教训：外部代理不能自己起常驻服务再等待“后台任务结束”；grok-subagent 的 wait 没有总时长上限；子代理报告的 files changed 是整个工作区 diff，同目录有别的会话并发时不能直接用来验收。
 - 证据：[cleanup-2026-10-10](evidence/cleanup-2026-10-10.md)、[fail-diag](evidence/cleanup-2026-10-10-fail-diag.md)、[real-model](evidence/cleanup-2026-10-10-real-model.md)。
+
+## 2026-10-10 收口批次（仓库卫生、文档瘦身、M5 遗留、补丁再生成脚本、真实模型回归）
+
+- 仓库：忽略 `.oco-e2e-*.log`；删 15 个历史 vsix；删 14 个已合并 `claude/*` 分支（11 个连同干净 worktree）。
+- 文档：STATUS 412 → 59 行，47 个小节原文迁入本文件上一节；NEXT 重写（收口、真实模型回归、多 agent 驾驶舱、小项、v0.1 剩余）。
+- 代码（补丁 0020，58 文件）：子会话 `syncChildHistory` 翻完历史；`dropStepTimes` 随 `dropSessionCaches`；`snapshotAt` / `requestOf` 不再泄漏 t 时刻之后的 cost / tokens。session 单测 427/0，app typecheck 0，根 typecheck 0 / unit 190/0，build PASS，本机装 `oco-0.0.4-ce17cd8.vsix`。
+- 新增 `scripts/regen-patch.sh`（临时 worktree 重建基线 + 干净重放 + `diff -r` 校验）；伪 source 自测与现有 0020 字节相同。
+- 真实模型 E2E（big-pickle）：20 套件全量；首轮 5 套件有失败，重跑后 p1a-chat、t007-managed、c4 rows-match-server、c5 plan-chip 通过，其余为 mock 专属断言 / 非确定性 / 连锁，无产品缺陷。探查：新对话阶段序列与流式递增正常；嵌套 ≥2 层 NOT RUN（模型不派孙代理）；亮色主题仅一处圆点对比度偏低。
+- 委派：Gemini A（STATUS 瘦身）、B（M5 修复）验收通过；Grok C（regen 脚本）验收通过；D 真实模型三程（Gemini 中断 → Grok 沙箱不能开 VS Code → Gemini 再中断）但产物齐全。证据：[cleanup-2026-10-10](evidence/cleanup-2026-10-10.md) 及同前缀四个文件。

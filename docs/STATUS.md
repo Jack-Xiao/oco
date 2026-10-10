@@ -48,20 +48,18 @@
 
 ## 已知限制与 NOT RUN
 
-- 真实模型新对话：fly 阶段与流式思考跟随仅在 mock E2E 与历史回放中验证，真实模型新对话下的实时动画与思考跟随为 NOT RUN。
-- 子代理嵌套：嵌套 ≥2 层（孙会话）未实测（mock 不产生孙会话）。
-- 主题支持：只在暗色主题下验证过，亮色主题 NOT RUN。
+- 真实模型新对话：2026-10-10 实测一次，阶段序列与流式递增正常；轮末工具台收起只差一次 end 后 ≥2 s 的采样复核（见 NEXT 小项）。
+- 子代理嵌套：嵌套 ≥2 层（孙会话）仍 NOT RUN：mock 不产生孙会话，真实模型 big-pickle 2026-10-10 两次提示都只派一层子代理。
+- 主题支持：主要在暗色主题下验证；亮色主题 2026-10-10 目视一次（运行视图 + 轨迹视图），仅轨迹时间线圆点对比度偏低。
 - 远程环境：Remote / Remote-SSH（gcp-workstation 已不存在）相关交互为 NOT RUN / BLOCKED。
 - 长会话与内存：数千行长会话的滚动性能与长时间常驻内存测量为 NOT RUN。
 - 单元测试已知环境问题：`apps/extension/src/i18n/desktop-native.test.ts` 期望 "pa" 得 "en"，受主机 ICU 影响失败 1 项，上游补丁未触及。
 - 平台与输入法：真实 macOS 中文输入法、系统剪贴板图片、Windows 环境 NOT RUN。
 - 基准测试：`bun run test:bench` 因 Playwright 占用 4096 / 3000 端口仍处于 BLOCKED。
 
-## M5 已知遗留
+## M5 遗留
 
-- 子会话翻页：子会话 `childSync` 仍只同步最近 20 条消息（`initialMessagePageSize`），超过 20 条的子会话内容会被截断（主会话已实现循环 `loadMore`）。
-- 旁表生命周期：`session-runtime-step-times.ts` 时间旁表记录发送时刻，缺乏随会话淘汰的清理机制（约每请求 0.5 KB）。
-- 状态泄漏：`snapshotAt` 仍存在 token / 花费泄漏，M5 界面不读该字段故无视觉影响。
+- 子会话翻页、step 旁表清理、`snapshotAt` 泄漏三项已在 2026-10-10 收口批次修复（见顶部）；无新遗留。
 
 ## 委派路线现状
 

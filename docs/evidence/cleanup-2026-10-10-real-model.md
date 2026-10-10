@@ -128,3 +128,56 @@
 测试侧改动：无。
 
 未解决：c4、c5 在真实模型下各重跑一次；第 2–4 项的属性序列和截图；4517（pid 64206）等外部 p1b-narrow 结束后再停。停的时候只杀 64206，不要杀 60614。
+
+## 第三程（Gemini，2026-10-10）
+
+- 状态：任务 1（三个套件重跑）已完成，进入任务 2–4 探查。
+- 目标：重跑三个套件（c4-trajectory, c5-runtime, t007-managed）并完成运行视图三项真实模型探查。
+
+### 1. 三个套件重跑结果（真实模型 opencode/big-pickle）
+
+| 套件 | 结果路径 (results.json) | 通过/失败 | 失败用例 | 分类与分析 |
+|---|---|---|---|---|
+| `c4-trajectory` | `docs/evidence/runs/20261010-051822-c4-trajectory-0ea6/results.json` | 14 PASS / 3 FAIL | `live-update`, `subagent-row`, `subagent-link` | `live-update` 与 `subagent-row` 均为 mock 专属断言（分别断言正文含 "40. Mock line 40." 与 "subagent-ok"）；`subagent-link` 属连锁（子会话未结束返回导致 back 为 false）。首轮失败的 `rows-match-server`（reasoning 为 0）本次通过（reasoning=2），无未捕获异常退出。 |
+| `c5-runtime` | `docs/evidence/runs/20261010-052240-c5-runtime-09c2/results.json` | 22 PASS / 5 FAIL | `tool-turn`, `tool-fail`, `retry`, `subagent`, `run` | `tool-turn` 属 mock 专属断言/时序依赖（真实模型无 mock 的 WITH-SLOW-SIBLING 维持 ~9s，毫秒级结束致未采样到 resultRows）；`tool-fail` 属 mock 专属断言（真实模型返回 round-end 卡片）；`retry` 属真实模型非确定性（未触发 429）；`subagent` 属真实模型耗时较长（30s 未 done）；`run` 为连锁（subagent 阻塞导致 prompt-input 等待超时）。首轮失败的 `plan-chip`（Plan 1/3）本次通过。 |
+| `t007-managed` | `docs/evidence/runs/20261010-053218-t007-managed-26a1/results.json` | 7 PASS / 0 FAIL | 无 | 全部通过（exit code 0）。 |
+
+### 2. 真实模型新对话运行视图探查（任务 2）
+
+- 结论：**缺陷**（观测到 fly / call 阶段，流式文本出现 2 次不同长度递增，但会话结束后工具台未收起：tools-k 停留在 0.380）。
+- 提示语：「请使用 read 工具读取 README.md 文件，并用两句话总结其内容。」
+- 采样序列（去重关键采样点）：
+  1. `0.0s`: stage=`pre`, cardKind=`idle`, tools-k=`0.000`, cardLen=`13` ("Standing by →")
+  2. `0.6s–2.7s`: stage=`asm`, cardKind=`request`, tools-k=`0.000`, cardLen=`81`
+  3. `3.2s`: stage=`call`, cardKind=`call`, tools-k=`0.679`, cardLen=`79`（调用 read `/Users/xiaojiang/Ai-Project/oco/.oco-test/workspace/README.md`）
+  4. `3.9s`: stage=`asm`, cardKind=`request`, tools-k=`1.000`, cardLen=`50`（结果带回）
+  5. `5.0s`: stage=`fly`, cardKind=`request`, tools-k=`1.000`, cardLen=`50`（模型传输/思考中）
+  6. `5.5s`: stage=`end`, cardKind=`round-end`, tools-k=`0.380`, cardLen=`84`（Round finished，总结完成）
+- 产物截图：`docs/evidence/runs/probe-real-model-20261010053701/2-thinking.png`、`2-finished.png`
+
+### 3. 嵌套 ≥2 层子代理探查（任务 3，best effort）
+
+- 结论：**NOT RUN**（模型调用了 [read, task] 并生成一层子代理 `ses_edbaf28cdffeQ3cjSAmNLqk1RT`，但模型与子代理均未生成孙会话）。
+- 提示语：「用 task 工具把下面任务交给一个子代理，并要求该子代理必须再用 task 工具交给另一个子代理去执行：列出当前目录文件并报告数量」（重试换英文措辞一次相同）。
+- 实际行为：模型生成了一级子代理卡片并调用 task 工具，子代理执行完毕后直接返回，未递归调用 task 工具派生孙代理。
+- 产物截图：`docs/evidence/runs/probe-real-model-20261010053701/3-nested-subagents.png`
+
+### 4. Default Light Modern 亮色主题目视（任务 4）
+
+- 结论：**未见严重文字缺失；轨迹时间线圆点存在 1 处浅色圆点对比度过低 (rgb(205, 214, 228))，主体文字与卡片可正常辨识**。
+- 产物截图：`docs/evidence/runs/probe-real-model-20261010053701/4-light-runtime.png`、`4-light-trajectory.png`
+- 检查项：无纯黑块或正文缺失；运行视图与轨迹视图文本、按钮、卡片在亮色下均清晰可见；仅轨迹视图步骤连线圆点元素 (`DIV.absolute top-[5px] w-3 h-3 -ml-1.5 rounded-full`) 与背景同色浅灰，对比度偏低。
+
+### 5. 探查产物与清理确认
+
+- 探查产物目录：`docs/evidence/runs/probe-real-model-20261010053701/`
+  - `probe-summary.json`
+  - `2-thinking.png`
+  - `2-finished.png`
+  - `3-nested-subagents.png`
+  - `4-light-runtime.png`
+  - `4-light-trajectory.png`
+- 结束清理与 pgrep 确认：
+  - 本轮启动的 4517 独立测试服务（PID 90235）已正常终止，`lsof -i :4517` 为空。
+  - `pgrep -fl 'tests/e2e/run.mjs|test-server.sh|mock-llm'` 确认无任何残留进程。
+  - 用户已有服务 PID 60614（`opencode serve --hostname 127.0.0.1 --port 0`）完全保留且正常运行。
