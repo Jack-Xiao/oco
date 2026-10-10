@@ -21,3 +21,4 @@ docs/evidence/runs/*
 
 # look-local real-session reports hold session text
 .oco-look-local/
+.oco-e2e-*.log

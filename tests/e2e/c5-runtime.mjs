@@ -458,7 +458,10 @@ try {
   const resultSamples = log2.filter((s) => s.kind === "result")
   const resultTone = resultSamples.every((s) => s.tone === "ok")
   const resultStageWait = resultSamples.every((s) => s.stage === "wait")
-  const resultRows = resultSamples.some((s) => s.tools.some((x) => x.startsWith("ok")) && s.cells.includes("run"))
+  // WITH-SLOW-SIBLING is a mock-model token. A real model that never calls `task` has no "run" subagent cell;
+  // the ok tool row on the result card is still required.
+  const siblingTask = (await messages(A)).some((m) => (m.parts ?? []).some((p) => p.type === "tool" && p.tool === "task"))
+  const resultRows = resultSamples.some((s) => s.tools.some((x) => x.startsWith("ok")) && (!siblingTask || s.cells.includes("run")))
   await waitUntil(async () => (await stageOf()) === "end", 15000, 100)
 
   run.record(
@@ -467,7 +470,7 @@ try {
       ttEnded && ttFocusEnd === "end" && ttStatusEnd.includes(L.standing) && callOk && bashRowOk && ttResultSeen && resultTone && resultStageWait && resultRows
       ? "PASS"
       : "FAIL",
-    { ttPermSeen, ttAskStage, ttPendingBadge, ttYouButtons, ttRunWhilePending, ttStatusWhilePending, ttEnded, ttFocusEnd, ttStatusEnd, callDet, callOk, bashRowOk, ttResultSeen, resultSamples: resultSamples.length, resultTone, resultStageWait, resultRows },
+    { ttPermSeen, ttAskStage, ttPendingBadge, ttYouButtons, ttRunWhilePending, ttStatusWhilePending, ttEnded, ttFocusEnd, ttStatusEnd, callDet, callOk, bashRowOk, ttResultSeen, resultSamples: resultSamples.length, resultTone, resultStageWait, resultRows, siblingTask, resultTools: resultSamples.slice(0, 2).map((s) => s.tools), resultCells: resultSamples.slice(0, 2).map((s) => s.cells) },
   )
 
   // 4. context-known: after the first receipt the status bar shows the context size (digits); token in/out now live in the model box receipt.
@@ -596,7 +599,7 @@ try {
 
   // 11. plan-chip: no chip until a todowrite has been written; "a; b; c" (first done, second in progress) reads 1/3.
   const planBefore = await count(fA, "[data-oco-runtime-plan]")
-  await send(fA, "Use the todowrite tool to plan: alpha; beta; gamma")
+  await send(fA, "Use the todowrite tool to plan: alpha; beta; gamma. Mark the first completed, the second in_progress, and the third pending.")
   await waitReply(A)
   const planShown = await until(async () => (await attrOf("[data-oco-runtime-plan]", "data-oco-runtime-plan")) === "1/3", 10000, 100)
   const planText = await textOf("[data-oco-runtime-plan]")
@@ -738,10 +741,17 @@ try {
   // 15. question-route: the question stays in the composer dock; the runtime view shows card "ask" with the question text
   // and the options in the You dock as list items (not buttons). Answering clears pending and the server queue.
   const QUESTION_PROMPT = "Use the question tool (not plain text) to ask which color I prefer, with exactly two options: red and blue. After my answer reply with the color only."
+  const qDock = fA.locator('[data-component="dock-prompt"][data-kind="question"]')
+  const questionDockUp = () => qDock.isVisible().catch(() => false)
   let questionPendingSeen = false
   for (let attempt = 0; attempt < 2 && !questionPendingSeen; attempt++) {
+    // A late tool call replaces prompt-input with the question dock. Do not send again over that dock.
+    if (await questionDockUp()) {
+      questionPendingSeen = true
+      break
+    }
     await send(fA, QUESTION_PROMPT)
-    questionPendingSeen = await until(async () => (await count(fA, "[data-oco-runtime-pending]")) >= 1, 15000, 100)
+    questionPendingSeen = await until(async () => (await count(fA, "[data-oco-runtime-pending]")) >= 1 || (await questionDockUp()), 90000, 200)
     if (!questionPendingSeen) await waitIdle(A)
   }
   const qCardAsk = await until(async () => (await cardKindOf()) === "ask", 10000, 100)
@@ -756,7 +766,6 @@ try {
   )
   const qOptionsOk = qOpts.length >= 2 && qOpts.every((o) => o.tag !== "BUTTON" && o.role !== "button" && !o.buttonInside)
   const qYouButtons = await count(fA, "[data-oco-runtime-you] button")
-  const qDock = fA.locator('[data-component="dock-prompt"][data-kind="question"]')
   const qDockVisible = await qDock.waitFor({ state: "visible", timeout: 15000 }).then(() => true, () => false)
   if (qDockVisible) {
     const option = qDock.locator('[data-slot="question-option"]').filter({ has: fA.locator('[data-slot="option-label"]', { hasText: /^blue$/i }) }).first()

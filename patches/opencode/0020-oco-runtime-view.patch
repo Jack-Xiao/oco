@@ -1534,12 +1534,198 @@ index 0000000..08842fb
 +    sessionID,
 +  }
 +}
+diff --git a/packages/app/src/components/session/session-runtime-child-sync.test.ts b/packages/app/src/components/session/session-runtime-child-sync.test.ts
+new file mode 100644
+index 0000000..8897097
+--- /dev/null
++++ b/packages/app/src/components/session/session-runtime-child-sync.test.ts
+@@ -0,0 +1,180 @@
++// oco (patches/opencode/0019/0020): unit tests for child session history pagination and sync.
++import { describe, expect, test } from "bun:test"
++import { syncChildHistory } from "./session-runtime-child-sync"
++import { SessionBuilder } from "./session-runtime-ring-perf.fixture"
++import { buildRingIndex } from "./session-runtime-ring"
++import type { Message, Part } from "@opencode-ai/sdk/v2/client"
++import type { RingIndexInput, RingSource } from "./session-runtime-ring-types"
++
++const T0 = 1_800_000_000_000
++const at = (ms: number) => T0 + ms
++
++describe("child session history pagination (syncChildHistory)", () => {
++  test("a child session with > 20 messages is fully paged and ring index includes all messages", async () => {
++    // 1. Build root session with a subagent task tool pointing to ses_child
++    const rootBuilder = new SessionBuilder("ses_root")
++    rootBuilder.user(at(1000), "start work")
++    rootBuilder
++      .assistant(at(2000))
++      .tool(at(2500), "task", {
++        start: at(2600),
++        end: at(30000),
++        metadata: { sessionId: "ses_child", description: "Worker child", agent: "worker" },
++      })
++      .stepFinish(at(31000), "stop")
++      .complete(at(31100))
++
++    // 2. Build child session with 1 user + 25 assistant messages (> 20 messages)
++    const childBuilder = new SessionBuilder("ses_child")
++    childBuilder.user(at(3000), "start child work")
++    for (let i = 0; i < 25; i++) {
++      childBuilder
++        .assistant(at(3500 + i * 1000))
++        .stepStart(at(3550 + i * 1000))
++        .stepFinish(at(3800 + i * 1000), "tool-calls")
++        .complete(at(3850 + i * 1000))
++    }
++    expect(childBuilder.messages.length).toBe(26)
++
++    // 3. Mock data store where sync() only returns the newest 20 messages,
++    // and loadMore() retrieves the remaining older messages.
++    const allChildMessages = [...childBuilder.messages]
++    const newest20 = allChildMessages.slice(-20)
++    const olderRemaining = allChildMessages.slice(0, -20)
++    expect(newest20.length).toBe(20)
++    expect(olderRemaining.length).toBe(6)
++
++    const store: Record<string, Message[]> = {}
++    let more = true
++    let loading = false
++    const loadCalls: string[] = []
++
++    const mockSession = {
++      sync: async (id: string) => {
++        store[id] = [...newest20]
++      },
++    }
++
++    const mockHistory = {
++      more: (id: string) => id === "ses_child" && more,
++      loading: (id: string) => id === "ses_child" && loading,
++      loadMore: async (id: string) => {
++        loadCalls.push(id)
++        // Prepend older page into store array
++        store[id] = [...olderRemaining, ...store[id]]
++        more = false
++      },
++    }
++
++    // 4. Initial partial build (before pagination) only indexes the newest 20 messages
++    await mockSession.sync("ses_child")
++    const partsRaw = (id: string) => rootBuilder.parts.get(id) ?? childBuilder.parts.get(id) ?? []
++    const sourceOf = (id: string): RingSource | undefined => {
++      if (id === "ses_root") {
++        return { messages: rootBuilder.messages, parts: partsRaw }
++      }
++      if (id === "ses_child") {
++        return { messages: store[id] ?? [], parts: partsRaw }
++      }
++      return undefined
++    }
++
++    const ringInput: RingIndexInput = {
++      sessionID: "ses_root",
++      messages: rootBuilder.messages,
++      parts: partsRaw,
++      child: sourceOf,
++    }
++
++    const indexBefore = buildRingIndex(ringInput)
++    const subBefore = indexBefore.subs.find((s) => s.sessionID === "ses_child")
++    expect(subBefore).toBeDefined()
++    expect(subBefore!.child!.messages.length).toBe(20)
++
++    // 5. Run syncChildHistory: pages back until complete and marks dirty
++    const dirty = new Set<string>()
++    await syncChildHistory("ses_child", mockSession, mockHistory, (id) => dirty.add(id))
++
++    expect(loadCalls).toEqual(["ses_child"])
++    expect(dirty.has("ses_child")).toBe(true)
++    expect(store["ses_child"].length).toBe(26)
++
++    // 6. Rebuild ring index: child now contains all 25 assistant messages
++    const indexAfter = buildRingIndex({ ...ringInput, dirty }, indexBefore)
++    const subAfter = indexAfter.subs.find((s) => s.sessionID === "ses_child")
++    expect(subAfter).toBeDefined()
++    expect(subAfter!.child!.messages.length).toBe(25)
++    const expectedAssistantCreated = allChildMessages
++      .filter((m) => m.role === "assistant")
++      .map((m) => m.time.created)
++    expect(subAfter!.child!.messages.map((m) => m.created)).toEqual(expectedAssistantCreated)
++  })
++
++  test("syncChildHistory waits out an in-progress load before calling loadMore", async () => {
++    let callOrder: string[] = []
++    let inProgress = true
++
++    const mockSession = {
++      sync: async (id: string) => {
++        callOrder.push("sync")
++      },
++    }
++
++    let more = true
++    const mockHistory = {
++      more: () => more,
++      loading: () => inProgress,
++      loadMore: async () => {
++        callOrder.push("loadMore")
++        more = false
++      },
++    }
++
++    // After 60ms simulate previous in-progress load completion
++    setTimeout(() => {
++      inProgress = false
++    }, 60)
++
++    const dirty: string[] = []
++    await syncChildHistory("c1", mockSession, mockHistory, (id) => dirty.push(id))
++
++    expect(callOrder).toEqual(["sync", "loadMore"])
++    expect(dirty).toContain("c1")
++  })
++
++  test("syncChildHistory swallows loadMore errors as best-effort and still marks dirty", async () => {
++    const mockSession = {
++      sync: async () => {},
++    }
++    const mockHistory = {
++      more: () => true,
++      loading: () => false,
++      loadMore: async () => {
++        throw new Error("network failed on older page")
++      },
++    }
++
++    const dirty: string[] = []
++    // Should not throw
++    await syncChildHistory("c_err", mockSession, mockHistory, (id) => dirty.push(id))
++    expect(dirty).toEqual(["c_err", "c_err"])
++  })
++
++  test("root history report remains accurate and available during child operations", () => {
++    const rootState = {
++      state: "done" as const,
++      more: false,
++      loading: false,
++      stored: 50,
++      indexed: 50,
++    }
++    const report = () => rootState
++    expect(report()).toEqual({
++      state: "done",
++      more: false,
++      loading: false,
++      stored: 50,
++      indexed: 50,
++    })
++  })
++})
 diff --git a/packages/app/src/components/session/session-runtime-child-sync.ts b/packages/app/src/components/session/session-runtime-child-sync.ts
 new file mode 100644
-index 0000000..93e625a
+index 0000000..d984fa6
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-child-sync.ts
-@@ -0,0 +1,164 @@
+@@ -0,0 +1,195 @@
 +// oco (patches/opencode/0019): reactive wiring for whole-tree child auto-sync and pinning.
 +import type { Accessor } from "solid-js"
 +import { createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js"
@@ -1702,6 +1888,37 @@ index 0000000..93e625a
 +    failed,
 +    failedVersion,
 +    pinned,
++  }
++}
++
++/** Paginates backwards through a child session's entire history until complete (D11/M5).
++ *  Mirrors the root session walk: awaits in-progress loads, loops loadMore up to 100 times
++ *  until no more older pages exist, swallows errors (best effort), and notifies on each new page. */
++export async function syncChildHistory(
++  sessionID: string,
++  session: { sync: (id: string) => Promise<unknown> },
++  history: {
++    more: (id: string) => boolean
++    loading: (id: string) => boolean
++    loadMore: (id: string) => Promise<unknown>
++  },
++  markDirty?: (id: string) => void,
++): Promise<void> {
++  try {
++    await session.sync(sessionID)
++    markDirty?.(sessionID)
++    for (let i = 0; i < 100 && history.more(sessionID); i++) {
++      if (history.loading(sessionID)) {
++        await new Promise((resolve) => setTimeout(resolve, 50))
++      } else {
++        await history.loadMore(sessionID)
++        markDirty?.(sessionID)
++      }
++    }
++  } catch {
++    // swallow error (best effort)
++  } finally {
++    markDirty?.(sessionID)
 +  }
 +}
 diff --git a/packages/app/src/components/session/session-runtime-events.test.ts b/packages/app/src/components/session/session-runtime-events.test.ts
@@ -5198,10 +5415,10 @@ index 0000000..2fdc997
 +})
 diff --git a/packages/app/src/components/session/session-runtime-model.test.ts b/packages/app/src/components/session/session-runtime-model.test.ts
 new file mode 100644
-index 0000000..f5ea3f3
+index 0000000..8691d75
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-model.test.ts
-@@ -0,0 +1,1524 @@
+@@ -0,0 +1,1561 @@
 +// oco (patches/opencode/0019): runtime view data model.
 +import { describe, expect, test } from "bun:test"
 +import { buildTrajectory } from "./session-trajectory-model"
@@ -5896,6 +6113,43 @@ index 0000000..f5ea3f3
 +    const m = snap.messages[1] as any
 +    expect(m.time.completed).toBeUndefined()
 +    expect(m.error).toBeUndefined()
++  })
++
++  test("snapshotAt rewinds tokens and cost to zero / unknown when assistant completes after cursor", () => {
++    const aWithCost = assistant(u, T0 + 100, {
++      time: { created: T0 + 100, completed: T0 + 2000 },
++      cost: 0.042,
++      tokens: { input: 1200, output: 800, reasoning: 150, cache: { read: 200, write: 100 } },
++    })
++    const midSnap = snapshotAt([u, aWithCost], () => [], T0 + 1000)
++    const midMsg = midSnap.messages[1] as any
++    expect(midMsg.cost).toBe(0)
++    expect(midMsg.tokens).toEqual({ input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } })
++    const midRuntime = runtime({
++      messages: midSnap.messages,
++      parts: {},
++      input: { mode: "replay" },
++      busy: midSnap.busy,
++      now: T0 + 1000,
++    })
++    expect(midRuntime.requests[0].cost).toBeUndefined()
++    expect(midRuntime.requests[0].tokens).toBeUndefined()
++    expect(midRuntime.requests[0].known).toBe(false)
++
++    const endSnap = snapshotAt([u, aWithCost], () => [], T0 + 2500)
++    const endMsg = endSnap.messages[1] as any
++    expect(endMsg.cost).toBe(0.042)
++    expect(endMsg.tokens.input).toBe(1200)
++    const endRuntime = runtime({
++      messages: endSnap.messages,
++      parts: {},
++      input: { mode: "replay" },
++      busy: endSnap.busy,
++      now: T0 + 2500,
++    })
++    expect(endRuntime.requests[0].cost).toBe(0.042)
++    expect(endRuntime.requests[0].tokens?.input).toBe(1200)
++    expect(endRuntime.requests[0].known).toBe(true)
 +  })
 +
 +  test("a cursor before every message gives an empty snapshot that still builds", () => {
@@ -6728,13 +6982,13 @@ index 0000000..f5ea3f3
 +})
 diff --git a/packages/app/src/components/session/session-runtime-model.ts b/packages/app/src/components/session/session-runtime-model.ts
 new file mode 100644
-index 0000000..0444ede
+index 0000000..bdfd2ab
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-model.ts
-@@ -0,0 +1,921 @@
+@@ -0,0 +1,930 @@
 +// oco (patches/opencode/0019): runtime view data model. Pure functions over the sync store's data; no network,
 +// no Solid. Contract and rules: docs/superpowers/specs/2026-10-02-runtime-dashboard-design.md (sections 1, 4).
-+import type { Message, Part, PermissionRequest, QuestionRequest, Session, SessionStatus, ToolPart } from "@opencode-ai/sdk/v2/client"
++import type { AssistantMessage, Message, Part, PermissionRequest, QuestionRequest, Session, SessionStatus, ToolPart } from "@opencode-ai/sdk/v2/client"
 +import { idTime, oneLine, subagentOf, type TrajectoryRequest } from "./session-trajectory-model"
 +
 +export type Evidence = "event" | "inferred"
@@ -7338,7 +7592,7 @@ index 0000000..0444ede
 +    r.message.providerID && r.message.modelID
 +      ? { providerID: r.message.providerID, modelID: r.message.modelID }
 +      : undefined
-+  const cost = typeof r.message.cost === "number" && r.message.cost > 0 ? r.message.cost : undefined
++  const cost = settled && typeof r.message.cost === "number" && r.message.cost > 0 ? r.message.cost : undefined
 +  return {
 +    index: r.index,
 +    messageID: r.message.id,
@@ -7602,6 +7856,8 @@ index 0000000..0444ede
 +  return part
 +}
 +
++const ZERO_TOKENS: AssistantMessage["tokens"] = { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } }
++
 +/** The session as it was at `cursor`: nothing created after it is visible, and anything that finished after it is
 + *  shown still running. Items without a start time use the id's embedded time, then their message's.
 + *  inFlightMessageID: optional ID of a live in-flight assistant message. When present in the snapshot (created <= cursor)
@@ -7618,7 +7874,14 @@ index 0000000..0444ede
 +  for (const m of messages) {
 +    if (m.time.created > cursor) continue
 +    if (m.role === "assistant" && m.time.completed !== undefined && m.time.completed > cursor) {
-+      kept.push({ ...m, time: { created: m.time.created }, finish: undefined, error: undefined } as Message)
++      kept.push({
++        ...m,
++        time: { created: m.time.created },
++        finish: undefined,
++        error: undefined,
++        cost: 0,
++        tokens: ZERO_TOKENS,
++      } as Message)
 +      busy = true
 +    } else {
 +      kept.push(m)
@@ -17779,21 +18042,23 @@ index 0000000..54bd979
 +}
 diff --git a/packages/app/src/components/session/session-runtime-step-times.test.ts b/packages/app/src/components/session/session-runtime-step-times.test.ts
 new file mode 100644
-index 0000000..9e7f438
+index 0000000..6ca4af3
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-step-times.test.ts
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,116 @@
 +// oco (patches/opencode/0019): M5 ring — step times side table (D21).
 +import { afterEach, describe, expect, test } from "bun:test"
 +import {
 +  addStepPart,
 +  clearStepTimes,
++  dropStepTimes,
 +  lastStepFinish,
 +  recordStepPart,
 +  snapStepTime,
 +  stepCount,
 +  stepTimesOf,
 +} from "./session-runtime-step-times"
++import { dropSessionCaches } from "../../context/global-sync/session-cache"
 +import type { RingStepTimes } from "./session-runtime-ring-types"
 +import { idTime } from "./session-trajectory-model"
 +
@@ -17856,6 +18121,38 @@ index 0000000..9e7f438
 +    expect(stepTimesOf("ses_b")).toBeUndefined()
 +  })
 +
++  test("dropStepTimes drops specified sessions and preserves others", () => {
++    recordStepPart(start(T0, 0, "msg_a", "ses_a"), T0)
++    recordStepPart(start(T0, 0, "msg_b", "ses_b"), T0)
++    expect(stepTimesOf("ses_a")).toBeDefined()
++    expect(stepTimesOf("ses_b")).toBeDefined()
++    dropStepTimes(["ses_a"])
++    expect(stepTimesOf("ses_a")).toBeUndefined()
++    expect(stepTimesOf("ses_b")).toBeDefined()
++  })
++
++  test("dropSessionCaches evicts side table entries for evicted sessions", () => {
++    recordStepPart(start(T0, 0, "msg_a", "ses_a"), T0)
++    recordStepPart(start(T0, 0, "msg_b", "ses_b"), T0)
++    expect(stepTimesOf("ses_a")).toBeDefined()
++    expect(stepTimesOf("ses_b")).toBeDefined()
++
++    const store = {
++      session_status: {},
++      session_diff: {},
++      todo: {},
++      message: {},
++      session_message: {},
++      part: {},
++      permission: {},
++      question: {},
++      part_text_accum_delta: {},
++    }
++    dropSessionCaches(store, ["ses_a"])
++    expect(stepTimesOf("ses_a")).toBeUndefined()
++    expect(stepTimesOf("ses_b")).toBeDefined()
++  })
++
 +  test("snapStepTime: a time recorded near any clock re-reads as idTime(id, created)", () => {
 +    const id = idAt(T0 + 777)
 +    for (const near of [T0, T0 + 2 ** 35 - 1, T0 - 2 ** 35 + 1, T0 + 3 * 2 ** 36, Date.now()]) {
@@ -17867,10 +18164,10 @@ index 0000000..9e7f438
 +})
 diff --git a/packages/app/src/components/session/session-runtime-step-times.ts b/packages/app/src/components/session/session-runtime-step-times.ts
 new file mode 100644
-index 0000000..3008106
+index 0000000..012860f
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-step-times.ts
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,84 @@
 +// oco (patches/opencode/0019): M5 ring — step times side table (D21). The app's sync layer drops step-start /
 +// step-finish parts (SKIP_PARTS in context/global-sync/event-reducer.ts and context/server-session.ts). At those 4 drop
 +// points the part is first handed to recordStepPart, which keeps its time (and the step-finish receipt) here, keyed
@@ -17928,6 +18225,11 @@ index 0000000..3008106
 +  else TABLES.delete(sessionID)
 +}
 +
++/** Drops tables for the given session IDs (called by dropSessionCaches). */
++export function dropStepTimes(sessionIDs: Iterable<string>): void {
++  for (const id of sessionIDs) TABLES.delete(id)
++}
++
 +/** Re-reads a recorded time near `near` (message.time.created): equals idTime(part.id, near) for the part it came
 + *  from, whatever `near` was used when it was recorded. */
 +export function snapStepTime(at: number, near: number): number {
@@ -17952,10 +18254,10 @@ index 0000000..3008106
 +}
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
 new file mode 100644
-index 0000000..b09e1f0
+index 0000000..8e25612
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -0,0 +1,1203 @@
+@@ -0,0 +1,1201 @@
 +// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view.
 +// M5 (2026-10-08): top bar / stage (ring) / status bar (the caption line was dropped 2026-10-09: it repeated the model box). The ring index is rebuilt at most every
 +// RING.REBUILD_MS from a dirty-session set (D11); the frame at the visual t is recomputed per animation frame into a
@@ -17986,7 +18288,7 @@ index 0000000..b09e1f0
 +} from "./session-runtime-model"
 +import { nextSpeed, playAdvance, playbackKey, playStartV, type PlaybackSpeed } from "./session-runtime-playback"
 +import { FOCUS } from "./session-runtime-actions"
-+import { createChildSync } from "./session-runtime-child-sync"
++import { createChildSync, syncChildHistory } from "./session-runtime-child-sync"
 +import { buildRingIndex, frameAt, liveTime, roundAt, trackInputOf } from "./session-runtime-ring"
 +import { stepTimesOf } from "./session-runtime-step-times"
 +import { navStep, trackMap } from "./session-runtime-ring-track"
@@ -18230,9 +18532,10 @@ index 0000000..b09e1f0
 +  // the list: an older page (history.loadMore) is reconciled into the same store array, which leaves the list
 +  // reference unchanged and fires no SDK event.
 +  createEffect(() => {
-+    const sid = shownID()
-+    void sync().data.message[sid]?.length
-+    markDirty(sid)
++    for (const sid of treeIds()) {
++      void sync().data.message[sid]?.length
++      markDirty(sid)
++    }
 +  })
 +
 +  // A reopened session starts with only its newest page of messages, but the ring and the replay read the whole
@@ -18461,11 +18764,8 @@ index 0000000..b09e1f0
 +  )
 +  const childSync = createChildSync({
 +    // A finished sync marks the child dirty so the next rebuild picks it up (D11).
-+    sync: (id) =>
-+      Promise.resolve(sync().session.sync(id)).then((r) => {
-+        markDirty(id)
-+        return r
-+      }),
++    // Subagent sessions page back through their whole history so ring isn't truncated.
++    sync: (id) => syncChildHistory(id, sync().session, sync().session.history, markDirty),
 +    pin: (id) => serverSync().session.pin(id),
 +    unpin: (id) => serverSync().session.unpin(id),
 +    childModel: (id) => (childMessagesOf(id) ? assembleChild(id) : undefined),
@@ -19246,6 +19546,27 @@ index b84d520..d065e83 100644
        if (SKIP_PARTS.has(part.type)) break
        input.setStore(
          produce((draft) => {
+diff --git a/packages/app/src/context/global-sync/session-cache.ts b/packages/app/src/context/global-sync/session-cache.ts
+index 7d684a5..3daec32 100644
+--- a/packages/app/src/context/global-sync/session-cache.ts
++++ b/packages/app/src/context/global-sync/session-cache.ts
+@@ -1,6 +1,7 @@
+ import type { Message, Part, PermissionRequest, QuestionRequest, SessionStatus, Todo } from "@opencode-ai/sdk/v2/client"
+ import type { FileDiffInfo } from "@opencode-ai/client/promise"
+ import type { SessionMessageInfo } from "@opencode-ai/client/promise"
++import { dropStepTimes } from "@/components/session/session-runtime-step-times"
+ 
+ export const SESSION_CACHE_LIMIT = 40
+ 
+@@ -38,6 +39,8 @@ export function dropSessionCaches(store: SessionCache, sessionIDs: Iterable<stri
+     delete store.permission[sessionID]
+     delete store.question[sessionID]
+   }
++
++  dropStepTimes(stale)
+ }
+ 
+ export function pickSessionCacheEvictions(input: {
 diff --git a/packages/app/src/context/server-session.test.ts b/packages/app/src/context/server-session.test.ts
 index 2ebf5f8..f99c52a 100644
 --- a/packages/app/src/context/server-session.test.ts

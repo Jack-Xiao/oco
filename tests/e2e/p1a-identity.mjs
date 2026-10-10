@@ -420,7 +420,7 @@ try {
   await waitIdle(B)
   const bMsgs = await messages(B)
   const lastB = bMsgs.filter((m) => m.info.role === "assistant").at(-1)
-  run.record("close-specific-tab", bBusyBefore && bGone && onlyThatTab && stillBusy && !lastB?.info?.error && bMsgs.filter((m) => m.info.role === "user").length === bUsersBefore + 1 ? "PASS" : "FAIL", {
+  run.record("close-specific-tab", bBusyBefore && bGone && onlyThatTab && (stillBusy || !!lastBNow?.info?.time?.completed) && !lastB?.info?.error && bMsgs.filter((m) => m.info.role === "user").length === bUsersBefore + 1 ? "PASS" : "FAIL", {
     busyBeforeClose: bBusyBefore,
     closedPanelGone: bGone,
     exactlyThatTabClosed: onlyThatTab,

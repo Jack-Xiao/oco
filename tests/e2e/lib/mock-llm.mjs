@@ -100,7 +100,7 @@ function planBase(body) {
   if (tools.has("write") && (m = /Use the write tool to create the file (\S+) containing the single line (\S+?)\./i.exec(prompt)))
     return { tool: "write", args: { filePath: abs(m[1]), content: m[2] + "\n" } }
   // "Use the todowrite tool to plan: a; b; c" → the first item done, the second in progress, the rest pending.
-  if (tools.has("todowrite") && (m = /Use the todowrite tool to plan: (.+)$/im.exec(prompt))) {
+  if (tools.has("todowrite") && (m = /Use the todowrite tool to plan: ([^.\n]+)/i.exec(prompt))) {
     const items = m[1].split(";").map((s) => s.trim()).filter(Boolean)
     const status = (i) => (i === 0 ? "completed" : i === 1 ? "in_progress" : "pending")
     return { tool: "todowrite", args: { todos: items.map((content, i) => ({ id: String(i + 1), content, status: status(i), priority: "medium" })) } }

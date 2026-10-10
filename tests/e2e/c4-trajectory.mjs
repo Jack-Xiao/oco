@@ -262,8 +262,10 @@ try {
     detail: toolDetail.slice(0, 400),
   })
 
-  // 4. Request overview: tokens and timings of the request that produced the reasoning.
-  await fA.locator(`${rowsSel} [data-kind="reasoning"]`).first().click()
+  // 4. Request overview. A reasoning row is the preferred opener; big-pickle sometimes emits no
+  // reasoning part (think tags stay in the assistant text). The tool detail already on screen has the same fields.
+  const reasoningRow = fA.locator(`${rowsSel} [data-kind="reasoning"]`).first()
+  if (await reasoningRow.count()) await reasoningRow.click()
   const timing = {
     ttft: await field(fA, L.ttft),
     generation: await field(fA, L.generation),

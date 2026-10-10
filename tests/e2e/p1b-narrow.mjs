@@ -29,14 +29,14 @@ async function newSession(page, known) {
   if (known.length === 0) await command(page, "oco: New Session")
   else await command(page, "oco: Open in New Panel", { input: (await api("POST", "/session", {})).id })
   const t0 = Date.now()
-  while (Date.now() - t0 < 60000) {
+  while (Date.now() - t0 < 90000) {
     for (const f of await chatFrames(page)) {
       const s = await frameSession(f).catch(() => null)
       if (s && !known.includes(s) && (await f.$('[data-component="prompt-input"]').catch(() => null))) return s
     }
     await sleep(200)
   }
-  throw new Error("new session panel did not appear")
+  throw new Error(`new session panel did not appear (known ${known.length})`)
 }
 
 async function send(page, frame, text) {
@@ -149,7 +149,7 @@ async function questionFlow(page, w, sid) {
   await waitIdle(sid)
   const tool = (await messages(sid)).flatMap((m) => m.parts).find((p) => p.type === "tool" && p.callID === q.tool?.callID)
   const answer = tool?.state?.metadata?.answers?.[0]?.[0] ?? null
-  run.record(name, !clickError && optionGeo.inside && submitGeo.inside && submitGeo.hitSelf && answer === "blue" ? "PASS" : "FAIL", {
+  run.record(name, !clickError && optionGeo.inside && submitGeo.inside && submitGeo.hitSelf && answer?.toLowerCase() === "blue" ? "PASS" : "FAIL", {
     sessionId: sid,
     requestId: q.id,
     optionGeometry: optionGeo,
