@@ -3,7 +3,7 @@
 - 对象：[runtime-m5-animated-mockup](../superpowers/specs/runtime-m5-animated-mockup.html)（已同步 2026-10-09 产品行为；已发布页面 https://claude.ai/artifact/EhkZr1fkh2L2VsXqUb3btR ，私有）。
 - 方法：用户点名「Claude Design」给意见；内置浏览器打开 claude.ai/design 跳到登录页且未登录，主线程不能替用户登录，改由 Claude 评审子代理（新上下文，只看截图、不读源码）评审 15 张关键帧截图（1100 宽 9 张、560 窄 3 张、浮层 3 张）。截图与提示词见 [证据](../evidence/runtime-m5-mockup-sync-2026-10-10.md)。用户登录内置浏览器后，可把上面的页面链接直接交给 Claude Design 再要一轮意见。
 - 主线程核对：第 3 条前半（已忽略提问仍红色）是样稿落后于产品——产品 `ring-view` 的已忽略卡片已是 `faint`、图例已拆「忽略 / 拒绝」，本批已把样稿改成 ⊘ 淡色并拆图例；后半（本轮结束后忽略态收敛为一行）仍是有效建议。其余各条未在产品里核过，按截图所见记录。
-- 状态：**未实施**，待用户圈选。主线程建议的先后见 [NEXT 2b](../NEXT.md)。
+- 状态：2026-10-10 落地批见 [runtime-m5-review-2026-10-10](../evidence/runtime-m5-review-2026-10-10.md)。P1-1、P1-3 后半、P2-5、P2-6、P2-8、P3-9（只改文案）、P3-10（只加图例）已进样稿与补丁 0020；P2-4、P2-7 不采用；P1-2、窄布局 N2 / N3 另立项；N1 在产品里不成立。
 
 ---
 

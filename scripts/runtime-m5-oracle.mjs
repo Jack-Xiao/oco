@@ -73,7 +73,7 @@ try {
       const F = facts(t, S)
       const P = payload(t, S, F)
       const pl = planAt(t)
-      const [word, tone] = statusWord(S)
+      const [word, tone] = statusWord(S, F, t)   // 2026-10-10: the mockup's status also returns [detail, slow]
       const ask = F.ask && ["ask", "end", "call", "wait", "next"].includes(S.st) ? F.ask : null   // renderYou's rule
       const you =
         ask && ask.state === "pending" ? "need"

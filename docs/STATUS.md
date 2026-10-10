@@ -17,11 +17,19 @@
 - 真实模型下的运行视图观察、嵌套 ≥2 层子代理、亮色主题目视：NOT RUN。
 - 委派：Gemini 跑全量 E2E 时等待自己起的 4517 服务而挂起约 1.5 小时，经用户同意后中止；Grok 诊断返回，但沙箱启动不了 VS Code，重跑由主线程接手。
 
+## 运行视图 M5 评审落地（2026-10-10，补丁 0020 + 样稿，本地未提交）
+
+- 来源：Claude Design 第一批交接包（`~/Downloads/handoff`，样稿改 P1-1 / P1-3 后半 / P2-5 / P2-6）+ [critique](design/runtime-m5-critique-2026-10-10.md) 剩余 8 条。逐条判断、委派记录与验证见 [runtime-m5-review-2026-10-10](evidence/runtime-m5-review-2026-10-10.md)，剩余 8 条的产品现状见 [investigation](evidence/runtime-m5-review-2026-10-10-investigation.md)。
+- 进产品（补丁 0020，12 文件改动）：顶栏「运行中」后写阶段 · 对象 · 已等时长，同一请求里超过 `SLOW_MS`=10 s 未回的调用顶栏后半与工具行时长变琥珀（P1-1）；忽略提问后「你」卡片收成一行 ⊘ + 悬停看选项、状态回「此刻不需要你」，环心卡片「第 N 轮已结束 · 等你下一条消息」+ 一行 ⊘ 脚注、门口 ⊘ 记号 30 s 后不带标签（P1-3）；环上「等 N（工具 a · 子代理 b）· 回来 M」、子代理头「a 在跑 · d/n 已回」、「派出 → / ← 回来」、泊位小点只画有结果停着的（P2-5）；「第 N 次请求」只留环标题、模型框去序号与上下文、工具台头只写状态（P2-6）；同一命令第 3 次起小签琥珀 + 环上「同一命令 ×n 疑似循环」（P2-8）；浮层文案「回放中 · 文本按时间比例展开」（P3-9）；底栏图例加「刻度：轮次 / 失败 / 提问」（P3-10）。
+- 与 Claude Design 样稿不同的两处：请求点阵不改成悬停才显示（失败请求的红点是环内唯一标记，产品按文字宽度取舍变体、本就不裁标题）；忽略态卡片种类仍是「已忽略」、状态与空闲态同口径（样稿原为「本轮结束」/「待命」）。样稿已按产品口径改回并重建。
+- 不采用：P2-4「带回结果」站（真实但很短的闭环阶段，改小签落点要动几何）、P2-7、P3-10 标签统一成「≈10m17s」（长短两式是按宽度取舍的既定规则）。另立项：P1-2 提问态（要接宿主回答通道）、窄布局 N2 / N3；N1 在产品里不成立（阈值 980，不重叠）。
+- 验证：session 单测 428/0（含新增 7b）；app typecheck 0；`bun run build` PASS；oracle 14 帧重生成，仅 k09 / k10 的 tone err→faint、你卡片状态改空闲文案（预期）；mockup `--check` 通过；0020 用 `regen-patch.sh` 再生成（58 文件，+20336 −8），新旧补丁逐文件比对只含本批 12 文件；本机装 `oco-0.0.4-7d71662.vsix`（需 Reload Window）。NOT RUN：mock / 真实模型 E2E（c5 的忽略断言按新文案核过：卡片正文含「已忽略」/「dismissed」、`data-oco-runtime-you-state` 仍为 dismissed）、亮色主题目视。
+
 ## 运行视图 M5 样稿同步产品 + 独立设计评审（2026-10-10；只改设计文档与脚本，产品代码未动）
 
 - 样稿 [runtime-m5-animated-mockup](superpowers/specs/runtime-m5-animated-mockup.html) 已同步 2026-10-09 三轮反馈 + D2 + D18：`|◀`、删「此刻」字幕、卡片去时长与 meta、整卡可点开浮层（流式显「生成中…」、回放显「回放：按时间估算的进度」）、「计划 n/m」按钮浮层、工具台按轮收缩（`data-oco-runtime-tools-k`，仅宽布局）、底栏去「已空闲」、已忽略提问改 ⊘ 淡色、图例拆「失败」「忽略 / 拒绝 ⊘」。生成管线固化为 `scripts/runtime-m5-mockup-build.mjs`（模板 + `runtime-m5-timeline.json` + `runtime-m5-now-shot.webp`，`--check` 校验）。已发布私有页面 https://claude.ai/artifact/EhkZr1fkh2L2VsXqUb3btR 。
 - 验证（本机）：build `--check` 通过；oracle 14 帧与 `vendor/opencode/packages/app/src/components/session/fixtures/runtime-m5-oracle.json` 一致，仅 k09 / k10 卡片 tone err→faint（D18 预期；fixture 单测不比 tone，fixture 随下次 0020 再生成更新）；Playwright 截图 1100 / 560 × 14 帧页面错误 0、横向滚动 0；浮层、计划按钮、工具台 30 px 收缩逐项核过。证据：[runtime-m5-mockup-sync-2026-10-10](evidence/runtime-m5-mockup-sync-2026-10-10.md)。
-- 设计评审：用户点名 Claude Design；内置浏览器 claude.ai 未登录，改由 Claude 评审子代理只看 15 张截图给出 3 P1 / 5 P2 / 2 P3 + 3 条窄布局建议，见 [runtime-m5-critique-2026-10-10](design/runtime-m5-critique-2026-10-10.md)。未实施，待用户圈选；主线程建议顺序见 NEXT 2b。
+- 设计评审：用户点名 Claude Design；内置浏览器 claude.ai 未登录，改由 Claude 评审子代理只看 15 张截图给出 3 P1 / 5 P2 / 2 P3 + 3 条窄布局建议，见 [runtime-m5-critique-2026-10-10](design/runtime-m5-critique-2026-10-10.md)。落地情况见下一节。
 
 ## 基线与版本
 
