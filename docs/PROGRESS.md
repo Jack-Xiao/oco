@@ -993,3 +993,9 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 收件箱：`session-store.ts` 保留权限 / 提问字段并产出 `inbox()`、`removePending()`；`sessions-view.ts` 状态栏计数与通知节流（`oco.sessions.notifyPending`）；`sessions-webview.ts` 新消息 permissionReply / questionReject 由宿主核对后直接 POST；`media/sessions-list/` 新分区 `section[data-group="inbox"]` 与行内 createElement 按钮，CSP 不变。
 - 测试：单测 196 / 0；新 E2E c6-inbox（mock-llm 新 token `THREE-SUBAGENTS-NEED-PERMISSION`，3 个后台子代理各挂一条 bash 权限）PASS 9.7 s；侧栏回归 p1b-sidebar / p1b-reconnect / t014-connection 24 PASS / 0 FAIL；默认套件 23。
 - 委派：Grok 只读调查 5.6 min；Gemini 实现 23.5 min + Gemini 写 E2E 7.9 min（mock 场景由主线程 API 代验）。证据 [cockpit-inbox-2026-10-10](evidence/cockpit-inbox-2026-10-10.md)。
+
+## 2026-10-10 收件箱第二轮（用户反馈：分组布局、按父会话归组、路径模式、行内按钮）
+
+- 契约 v2：`InboxRow` 加 parentId / agent / detail / at，`inbox: InboxEntry[]`（行或按父会话归组的 group），分组在宿主 `groupInbox` 纯函数。页面：可折叠 `NEEDS ATTENTION · N` 节头、分隔线、`SESSIONS` 节头（收件箱为空时不渲染，列表同改动前）；组头、引导线、`@agent` 标签；按钮透明底 color-mix 边框。
+- 测试：typecheck 0；单测 202 / 0；E2E c6-inbox（父断言改为 data-parent-id + 组头文字）12.2 s、p1b-sidebar 44.7 s，共 18 PASS / 0 FAIL。
+- 委派：Gemini 实现 16 min（自验 typecheck / build / 单测）；E2E 由主线程后台跑并只看一张截图核对视觉。证据 [cockpit-inbox-2026-10-10](evidence/cockpit-inbox-2026-10-10.md) 第二轮一节。

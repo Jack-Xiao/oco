@@ -23,12 +23,31 @@ const moreHead = el("div", "more-head")
 const moreCount = el("span", "more-count")
 const loadMore = el("div", "row load-more")
 const pool = new Map()
+let inboxCollapsed = false
 const inboxSection = document.createElement("section")
 inboxSection.dataset.group = "inbox"
 inboxSection.className = "inbox-section"
 const inboxHead = el("div", "inbox-head")
-inboxHead.textContent = "Needs attention"
+inboxHead.tabIndex = 0
+inboxHead.setAttribute("role", "button")
+inboxHead.setAttribute("aria-expanded", "true")
+const inboxDivider = el("div", "inbox-divider")
+const sessionsHead = el("div", "sessions-head")
+sessionsHead.textContent = "SESSIONS"
 const inboxPool = new Map()
+const groupPool = new Map()
+
+function toggleInboxCollapse() {
+  inboxCollapsed = !inboxCollapsed
+  renderList()
+}
+inboxHead.addEventListener("click", () => toggleInboxCollapse())
+inboxHead.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " " || event.key === "Spacebar") {
+    event.preventDefault()
+    toggleInboxCollapse()
+  }
+})
 
 search.type = "search"
 search.className = "search"
@@ -80,7 +99,7 @@ function save() {
 }
 
 function expanded() { return !!(state && (state.moreForcedOpen || moreOpen)) }
-function focusables() { return Array.from(list.querySelectorAll(".row, .more-head")) }
+function focusables() { return Array.from(list.querySelectorAll(".row, .more-head, .inbox-group-head")) }
 
 function focusRow(node) {
   if (!node || !node.isConnected) return
@@ -115,7 +134,8 @@ function toggleMore() {
 
 function activate(node) {
   if (!node || !list.contains(node)) return
-  if (node.dataset.kind === "more") toggleMore()
+  if (node.classList.contains("inbox-group-head")) postOpen(node.dataset.parentId, false)
+  else if (node.dataset.kind === "more") toggleMore()
   else if (node.dataset.kind === "load") post({ type: "loadMore" })
   else postOpen(node.dataset.sessionId || node.dataset.id, false)
 }
@@ -202,6 +222,7 @@ function createInboxRow(row) {
   node.dataset.inboxId = String(row.id)
   node.dataset.sessionId = String(row.sessionId)
   node.dataset.kind = String(row.kind)
+  if (row.parentId) node.dataset.parentId = String(row.parentId)
   node.tabIndex = -1
   node.setAttribute("role", "option")
   node.setAttribute("data-vscode-context", JSON.stringify({
@@ -213,9 +234,10 @@ function createInboxRow(row) {
   const top = el("div", "inbox-row-top")
   const dot = el("span", "dot")
   const title = el("span", "title")
+  const agent = el("span", "inbox-agent")
   const parent = el("span", "inbox-parent")
   const time = el("span", "time")
-  top.append(dot, title, parent, time)
+  top.append(dot, title, agent, parent, time)
 
   const bottom = el("div", "inbox-row-bottom")
   const summary = el("span", "inbox-summary")
@@ -234,9 +256,13 @@ function updateInboxRow(node, row) {
   node.dataset.inboxId = id
   node.dataset.sessionId = sessionId
   node.dataset.kind = kind
+  if (row.parentId) node.dataset.parentId = String(row.parentId)
+  else delete node.dataset.parentId
+
   const aria = row.aria == null ? "" : String(row.aria)
+  const detail = row.detail == null ? (row.summary == null ? "" : String(row.summary)) : String(row.detail)
   if (node.getAttribute("aria-label") !== aria) node.setAttribute("aria-label", aria)
-  if (node.getAttribute("title") !== aria) node.setAttribute("title", aria)
+  if (node.getAttribute("title") !== detail) node.setAttribute("title", detail)
 
   const selected = !!(state && state.current != null && String(state.current) === sessionId)
   if ((node.getAttribute("aria-selected") === "true") !== selected) node.setAttribute("aria-selected", selected ? "true" : "false")
@@ -246,8 +272,9 @@ function updateInboxRow(node, row) {
   const bottom = node.children[1]
   const dot = top.children[0]
   const title = top.children[1]
-  const parent = top.children[2]
-  const time = top.children[3]
+  const agent = top.children[2]
+  const parent = top.children[3]
+  const time = top.children[4]
   const summary = bottom.children[0]
   const actions = bottom.children[1]
 
@@ -260,16 +287,24 @@ function updateInboxRow(node, row) {
   const titleText = row.title == null ? "" : String(row.title)
   if (title.textContent !== titleText) title.textContent = titleText
 
-  const parentText = row.parent ? "(" + String(row.parent) + ")" : ""
+  if (row.agent) {
+    const agentText = "@" + String(row.agent)
+    if (agent.textContent !== agentText) agent.textContent = agentText
+    agent.hidden = false
+  } else {
+    agent.hidden = true
+  }
+
+  const parentText = !row.parentId && row.parent ? "(" + String(row.parent) + ")" : ""
   if (parent.textContent !== parentText) parent.textContent = parentText
-  parent.hidden = !row.parent
+  parent.hidden = !parentText
 
   const timeText = row.time == null ? "" : String(row.time)
   if (time.textContent !== timeText) time.textContent = timeText
 
   const summaryText = row.summary == null ? "" : String(row.summary)
   if (summary.textContent !== summaryText) summary.textContent = summaryText
-  if (summary.getAttribute("title") !== summaryText) summary.setAttribute("title", summaryText)
+  if (summary.getAttribute("title") !== detail) summary.setAttribute("title", detail)
 
   const actionKey = kind + ":" + id
   if (actions.dataset.key !== actionKey) {
@@ -333,25 +368,136 @@ function updateInboxRow(node, row) {
   }
 }
 
-function syncInbox(inboxItems) {
-  const nodes = [inboxHead]
-  for (const item of inboxItems) {
-    if (!item || item.id == null) continue
-    const key = String(item.id)
-    let node = inboxPool.get(key)
-    if (!node) {
-      node = createInboxRow(item)
-      inboxPool.set(key, node)
-    } else {
-      updateInboxRow(node, item)
+function createInboxGroup(group) {
+  const node = el("div", "inbox-group")
+  node.dataset.parentId = String(group.parentId)
+
+  const head = el("div", "inbox-group-head")
+  head.dataset.parentId = String(group.parentId)
+  head.tabIndex = 0
+  head.setAttribute("role", "button")
+
+  const title = el("span", "inbox-group-title")
+  const count = el("span", "more-count")
+  head.append(title, count)
+
+  head.addEventListener("click", (e) => {
+    e.stopPropagation()
+    postOpen(group.parentId, e.metaKey || e.ctrlKey)
+  })
+  head.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+      e.preventDefault()
+      postOpen(group.parentId, false)
     }
-    nodes.push(node)
+  })
+
+  const children = el("div", "inbox-group-children")
+  node.append(head, children)
+
+  updateInboxGroup(node, group)
+  return node
+}
+
+function updateInboxGroup(node, group) {
+  const parentId = String(group.parentId)
+  node.dataset.parentId = parentId
+  const head = node.children[0]
+  const children = node.children[1]
+  head.dataset.parentId = parentId
+
+  const titleText = group.title == null ? "" : String(group.title)
+  const countText = String(group.rows ? group.rows.length : 0)
+  const aria = titleText + ", " + countText + " pending items"
+
+  const titleEl = head.children[0]
+  const countEl = head.children[1]
+  if (titleEl.textContent !== titleText) titleEl.textContent = titleText
+  if (countEl.textContent !== countText) countEl.textContent = countText
+  if (head.getAttribute("aria-label") !== aria) head.setAttribute("aria-label", aria)
+  if (head.getAttribute("title") !== titleText) head.setAttribute("title", titleText)
+
+  const childNodes = []
+  for (const r of (group.rows || [])) {
+    if (!r || r.id == null) continue
+    const key = String(r.id)
+    let rowNode = inboxPool.get(key)
+    if (!rowNode) {
+      rowNode = createInboxRow(r)
+      inboxPool.set(key, rowNode)
+    } else {
+      updateInboxRow(rowNode, r)
+    }
+    childNodes.push(rowNode)
   }
+  reconcile(children, childNodes)
+}
+
+function countPendingRows(entries) {
+  let count = 0
+  for (const entry of entries) {
+    if (!entry) continue
+    if (entry.kind === "group") {
+      for (const r of (entry.rows || [])) {
+        if (r && (r.kind === "permission" || r.kind === "question")) count++
+      }
+    } else if (entry.kind === "permission" || entry.kind === "question") {
+      count++
+    }
+  }
+  return count
+}
+
+function syncInbox(inboxEntries) {
+  const pendingCount = countPendingRows(inboxEntries)
+  const headText = "NEEDS ATTENTION · " + pendingCount
+  if (inboxHead.textContent !== headText) inboxHead.textContent = headText
+  const exp = inboxCollapsed ? "false" : "true"
+  if (inboxHead.getAttribute("aria-expanded") !== exp) inboxHead.setAttribute("aria-expanded", exp)
+
+  const activeRowIds = new Set()
+  const activeGroupIds = new Set()
+
+  const nodes = [inboxHead]
+  if (!inboxCollapsed) {
+    for (const entry of inboxEntries) {
+      if (!entry) continue
+      if (entry.kind === "group") {
+        const key = String(entry.parentId)
+        activeGroupIds.add(key)
+        for (const r of (entry.rows || [])) if (r && r.id != null) activeRowIds.add(String(r.id))
+        let groupNode = groupPool.get(key)
+        if (!groupNode) {
+          groupNode = createInboxGroup(entry)
+          groupPool.set(key, groupNode)
+        } else {
+          updateInboxGroup(groupNode, entry)
+        }
+        nodes.push(groupNode)
+      } else {
+        const key = String(entry.id)
+        activeRowIds.add(key)
+        let rowNode = inboxPool.get(key)
+        if (!rowNode) {
+          rowNode = createInboxRow(entry)
+          inboxPool.set(key, rowNode)
+        } else {
+          updateInboxRow(rowNode, entry)
+        }
+        nodes.push(rowNode)
+      }
+    }
+  }
+
   reconcile(inboxSection, nodes)
-  const currentIds = new Set(inboxItems.map((i) => String(i.id)))
+
   for (const key of inboxPool.keys()) {
-    if (!currentIds.has(key)) inboxPool.delete(key)
+    if (!activeRowIds.has(key)) inboxPool.delete(key)
   }
+  for (const key of groupPool.keys()) {
+    if (!activeGroupIds.has(key)) groupPool.delete(key)
+  }
+
   return inboxSection
 }
 
@@ -365,8 +511,11 @@ function renderList() {
 
   if (inbox.length) {
     nodes.push(syncInbox(inbox))
+    nodes.push(inboxDivider)
+    nodes.push(sessionsHead)
   } else {
     inboxPool.clear()
+    groupPool.clear()
   }
 
   const pushRow = (row) => {
@@ -390,8 +539,8 @@ function renderList() {
   } else if (state.loadMore) nodes.push(loadMore)
   reconcile(list, nodes)
   for (const id of pool.keys()) if (!seen.has(id)) pool.delete(id)
-  if (active && (active.classList.contains("row") || active.classList.contains("more-head")) && !active.isConnected) {
-    const fallback = moreHead.isConnected ? moreHead : list.querySelector(".row")
+  if (active && (active.classList.contains("row") || active.classList.contains("more-head") || active.classList.contains("inbox-group-head")) && !active.isConnected) {
+    const fallback = moreHead.isConnected ? moreHead : list.querySelector(".row, .inbox-group-head")
     if (fallback) focusRow(fallback)
   }
   ensureTabStop()
@@ -510,6 +659,12 @@ list.addEventListener("mousedown", (event) => { if (event.button === 1) event.pr
 
 list.addEventListener("click", (event) => {
   if (event.target.closest("button")) return
+  const groupHead = event.target.closest(".inbox-group-head")
+  if (groupHead && list.contains(groupHead) && event.button === 0) {
+    focusRow(groupHead)
+    postOpen(groupHead.dataset.parentId, event.metaKey || event.ctrlKey)
+    return
+  }
   const node = event.target.closest(".row, .more-head")
   if (!node || !list.contains(node) || event.button !== 0) return
   focusRow(node)

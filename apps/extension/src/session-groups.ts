@@ -1,6 +1,9 @@
 // Pure helpers for the sessions sidebar: day groups, compact times, unread dots, state messages.
 // No vscode dependency. The host passes `now` and the id of the open session.
 import type { ConnectionSummary, SessionActivity, SessionListItem } from "@oco/contracts"
+import type { InboxEntry, InboxGroup, InboxRow } from "./session-store"
+
+export type { InboxEntry, InboxGroup, InboxRow }
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -225,5 +228,67 @@ export class PendingNotifier {
     this.seenIds.clear()
     this.notifying = false
   }
+}
+
+/**
+ * Groups inbox rows by parent session:
+ * - Rows with a parentId and known parent title are grouped under InboxGroup.
+ * - Rows without parentId or with unknown parent title remain top-level InboxRow.
+ * - Top-level entries sorted by earliest `at` ascending (group takes its child rows' earliest `at`).
+ * - Child rows inside a group sorted by `at` ascending.
+ */
+export function groupInbox(
+  rows: InboxRow[],
+  getParentTitle?: (parentId: string) => string | undefined,
+): InboxEntry[] {
+  const groupsByParentId = new Map<string, { parentId: string; title: string; rows: InboxRow[] }>()
+  const standaloneRows: InboxRow[] = []
+
+  for (const row of rows) {
+    const parentTitle = row.parent ?? (row.parentId ? getParentTitle?.(row.parentId) : undefined)
+    if (row.parentId && parentTitle) {
+      let grp = groupsByParentId.get(row.parentId)
+      if (!grp) {
+        grp = { parentId: row.parentId, title: parentTitle, rows: [] }
+        groupsByParentId.set(row.parentId, grp)
+      }
+      grp.rows.push(row)
+    } else {
+      standaloneRows.push(row)
+    }
+  }
+
+  const groups: InboxGroup[] = []
+  for (const grp of groupsByParentId.values()) {
+    grp.rows.sort((a, b) => a.at - b.at || a.id.localeCompare(b.id))
+    groups.push({
+      kind: "group",
+      parentId: grp.parentId,
+      title: grp.title,
+      rows: grp.rows,
+    })
+  }
+
+  const entries: InboxEntry[] = [...standaloneRows, ...groups]
+
+  const earliestAt = (entry: InboxEntry): number => {
+    if (entry.kind === "group") {
+      return entry.rows.length > 0 ? entry.rows[0].at : Infinity
+    }
+    return entry.at
+  }
+
+  const entryKey = (entry: InboxEntry): string => {
+    return entry.kind === "group" ? entry.parentId : entry.id
+  }
+
+  entries.sort((a, b) => {
+    const atA = earliestAt(a)
+    const atB = earliestAt(b)
+    if (atA !== atB) return atA - atB
+    return entryKey(a).localeCompare(entryKey(b))
+  })
+
+  return entries
 }
 

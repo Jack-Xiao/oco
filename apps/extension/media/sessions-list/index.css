@@ -180,10 +180,10 @@ body.still .dot.running { animation: none; opacity: 1; }
 }
 
 .inbox-section {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
-.inbox-head {
+.inbox-head, .sessions-head {
   padding: 6px 14px 4px;
   font-size: 11px;
   font-weight: 600;
@@ -191,6 +191,63 @@ body.still .dot.running { animation: none; opacity: 1; }
   letter-spacing: 0.5px;
   color: var(--vscode-sideBarSectionHeader-foreground, var(--vscode-descriptionForeground));
   user-select: none;
+}
+
+.inbox-head {
+  cursor: pointer;
+}
+.inbox-head:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.inbox-divider {
+  height: 0;
+  margin: 6px 14px;
+  border: none;
+  border-top: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-widget-border));
+}
+
+.inbox-group {
+  margin-bottom: 2px;
+}
+
+.inbox-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  margin: 0 6px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.inbox-group-head:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+.inbox-group-head:focus {
+  outline: none;
+}
+.inbox-group-head:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.inbox-group-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.inbox-group-children {
+  margin-left: 14px;
+  border-left: 1px solid var(--vscode-tree-indentGuidesStroke);
 }
 
 .inbox-row {
@@ -206,6 +263,12 @@ body.still .dot.running { animation: none; opacity: 1; }
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.inbox-agent {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
 }
 
 .inbox-parent {
@@ -240,24 +303,30 @@ body.still .dot.running { animation: none; opacity: 1; }
   align-items: center;
   gap: 4px;
   flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .inbox-btn {
+  height: 20px;
   margin: 0;
-  padding: 2px 8px;
+  padding: 0 8px;
   font: inherit;
   font-size: 11px;
-  line-height: 16px;
-  color: var(--vscode-button-foreground);
-  background: var(--vscode-button-background);
-  border: 1px solid transparent;
-  border-radius: 2px;
+  line-height: 18px;
+  border-radius: 3px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
+  color: var(--vscode-foreground);
   cursor: pointer;
   user-select: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .inbox-btn:hover {
-  background: var(--vscode-button-hoverBackground);
+  background: var(--vscode-toolbar-hoverBackground);
 }
 
 .inbox-btn:focus {
@@ -266,14 +335,44 @@ body.still .dot.running { animation: none; opacity: 1; }
 
 .inbox-btn:focus-visible {
   outline: 1px solid var(--vscode-focusBorder);
-  outline-offset: 1px;
+  outline-offset: -1px;
 }
 
-.inbox-btn-secondary {
-  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
-  background: var(--vscode-button-secondaryBackground, rgba(128, 128, 128, 0.2));
+.inbox-btn[data-reply="once"],
+.inbox-btn[data-action="answer"] {
+  color: var(--vscode-textLink-foreground);
 }
 
-.inbox-btn-secondary:hover {
-  background: var(--vscode-button-secondaryHoverBackground, rgba(128, 128, 128, 0.3));
+.inbox-btn[data-reply="always"] {
+  color: var(--vscode-foreground);
+}
+
+.inbox-btn[data-reply="reject"],
+.inbox-btn.inbox-btn-secondary {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+}
+
+.inbox-btn[data-reply="reject"]:hover,
+.inbox-btn.inbox-btn-secondary:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-errorForeground);
+}
+
+.vscode-high-contrast .inbox-btn,
+body.vscode-high-contrast .inbox-btn {
+  border-color: var(--vscode-contrastBorder);
+}
+
+.vscode-high-contrast .inbox-btn[data-reply="reject"],
+body.vscode-high-contrast .inbox-btn[data-reply="reject"],
+.vscode-high-contrast .inbox-btn.inbox-btn-secondary,
+body.vscode-high-contrast .inbox-btn.inbox-btn-secondary {
+  border-color: transparent;
+}
+
+.vscode-high-contrast .inbox-group-head:hover,
+body.vscode-high-contrast .inbox-group-head:hover {
+  border-color: var(--vscode-contrastActiveBorder);
 }

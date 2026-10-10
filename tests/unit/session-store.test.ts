@@ -533,19 +533,25 @@ describe("SessionStore.inbox", () => {
       id: "per-1",
       kind: "permission",
       sessionId: "child",
+      parentId: "parent",
       title: "Worker 1",
       parent: "Parent Task",
-      summary: "bash npm test git status",
+      summary: "npm test git status",
+      detail: "bash · npm test git status",
+      at: 20,
     })
 
-    // Check question row (orphan's parent is unknown -> parent omitted)
+    // Check question row (orphan's parent is unknown -> parent omitted, but parentId preserved)
     const queRow = rows[1]
     expect(queRow).toMatchObject({
       id: "que-1",
       kind: "question",
       sessionId: "orphan",
+      parentId: "unknown-parent",
       title: "Solo Worker",
       summary: "Which color?",
+      detail: "Which color?",
+      at: 30,
     })
     expect(queRow.parent).toBeUndefined()
 
@@ -557,6 +563,8 @@ describe("SessionStore.inbox", () => {
       sessionId: "err-sess",
       title: "Broken Session",
       summary: "Compilation failed",
+      detail: "Compilation failed",
+      at: 40,
     })
 
     // Check done row (curr-sess is current -> omitted from done)
@@ -566,6 +574,8 @@ describe("SessionStore.inbox", () => {
       kind: "done",
       sessionId: "done-sess",
       title: "Finished Session",
+      summary: "Finished",
+      at: 50,
     })
 
     // removePending
@@ -611,5 +621,45 @@ describe("SessionStore.inbox", () => {
     // Error: newest updated first (90 -> 10)
     // Done: newest updated first (70 -> 30)
     expect(rows.map((r) => r.id)).toEqual(["per-early", "que-mid", "per-late", "err:e2", "err:e1", "done:d2", "done:d1"])
+  })
+
+  test("strips subagent title suffix, sets agent, and formats permission without patterns", () => {
+    const store = make()
+    store.applySnapshot({
+      sessions: [
+        session({ id: "p1", title: "Parent Root" }),
+        session({ id: "c1", parentID: "p1", title: "Child Alpha (@explore subagent)", time: { updated: 100 } }),
+        session({ id: "c2", parentID: "p1", title: "Regular Child", time: { updated: 120 } }),
+      ],
+      status: {},
+      permissions: [
+        { id: "per-1", sessionID: "c1", permission: "bash", patterns: ["ls", "pwd"] },
+        { id: "per-2", sessionID: "c2", permission: "read" },
+      ],
+      questions: [],
+    })
+
+    const rows = store.inbox(undefined, new Set(), 200)
+    expect(rows).toHaveLength(2)
+
+    expect(rows[0]).toMatchObject({
+      id: "per-1",
+      title: "Child Alpha",
+      agent: "explore",
+      parentId: "p1",
+      parent: "Parent Root",
+      summary: "ls pwd",
+      detail: "bash · ls pwd",
+    })
+
+    expect(rows[1]).toMatchObject({
+      id: "per-2",
+      title: "Regular Child",
+      agent: undefined,
+      parentId: "p1",
+      parent: "Parent Root",
+      summary: "read",
+      detail: "read",
+    })
   })
 })

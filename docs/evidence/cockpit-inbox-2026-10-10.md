@@ -85,3 +85,63 @@ type InboxRow = {
 | 侧栏回归 | `node tests/e2e/run.mjs p1b-sidebar p1b-reconnect t014-connection`（mock） | 24 PASS / 0 FAIL，三套件 exit 0 |
 
 主线程接手记录（AGENTS.md 规则 3）：两次 E2E 运行由主线程后台执行而非委派。依据：同日 [cleanup-2026-10-10](cleanup-2026-10-10.md) 两程 Gemini 包装层对长命令空等 30 分钟的失败证据；本批 e2e-inbox 代理又把 `/config` 的 401 当作不可达。主线程只读 results.json 与日志摘要，不看截图。
+
+## 第二轮：用户反馈（2026-10-10，`1e69688` 之后）
+
+用户在真实模型（DeepSeek）下验证通过：权限行、子代理行（带父标题）、提问行均出现。反馈三点：收件箱与会话列表没有视觉分组；按钮是默认蓝色块，与现有设计不符；`external_dir...` 没有信息量，应显示路径模式，并按父会话分组子代理行。
+
+### 契约 v2（主线程定；替代上文 `inbox: InboxRow[]`）
+
+```ts
+type InboxRow = {
+  id: string; kind: "permission" | "question" | "error" | "done"
+  sessionId: string; parentId?: string
+  title: string          // 子代理：去掉服务端追加的 " (@xxx subagent)" 后缀
+  agent?: string         // 从后缀解析出的 agent 名，如 "general"
+  summary: string        // permission：patterns.join(" ")，无 patterns 时用 permission 名；question：第一条问题；error：错误文本；done："Finished"
+  detail: string         // 完整提示文本，放 title 属性：permission 为 `${permission} · ${patterns.join(" ")}`
+  time: string; at: number; aria: string
+}
+type InboxGroup = { kind: "group"; parentId: string; title: string; rows: InboxRow[] }
+type InboxEntry = InboxRow | InboxGroup
+// state.inbox: InboxEntry[]；有 parentId 且父会话已知的行归入同一 group，其余为顶层行；
+// 顶层按最早的 at 升序（group 取其子行最早的 at），组内同样升序。分组在宿主算（纯函数，单测）。
+```
+
+页 → 宿主消息不变（permissionReply / questionReject / open）。
+
+### 布局
+
+- 两个区块都用同一种小节头样式（现有 `.inbox-head`：11px 大写）：`NEEDS ATTENTION · N`（N = permission + question 行数）和 `SESSIONS`。收件箱为空时不渲染节头、分隔线和 `SESSIONS` 头，列表与改动前完全一致。
+- 收件箱节头可点击折叠，折叠后只剩节头与计数；折叠状态只存页面内存。
+- 收件箱与会话列表之间一条分隔线：`1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-widget-border))`，左右缩进 14px，上下各 6px。
+- 父会话分组：组头是一行 24px 高的元素 `.inbox-group-head[data-parent-id]`，内容为父会话标题（省略号）+ 右侧子行计数（`.more-count` 样式），点击打开父会话（走 `open`）。子行缩进 14px，左侧一条 `1px solid var(--vscode-tree-indentGuidesStroke)` 引导线。子行标题后跟一个淡色 `@agent` 标签（10px，`--vscode-descriptionForeground`），有 agent 时才显示。
+- 行保持两行结构：第一行 点 + 标题 + 时间；第二行 summary（flex:1，省略号）+ 按钮组。行与组头都带 `title` 属性显示 `detail`。
+
+### 按钮（去掉填充蓝块，贴近 VS Code 行内操作）
+
+- 共同：高 20px，`padding: 0 8px`，11px，圆角 3px，`background: transparent`，`border: 1px solid color-mix(in srgb, var(--vscode-foreground) 22%, transparent)`；hover `background: var(--vscode-toolbar-hoverBackground)`；focus-visible `outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px`；高对比主题边框改用 `--vscode-contrastBorder`。
+- Allow / Answer（主操作）：文字色 `var(--vscode-textLink-foreground)`。
+- Always：默认前景色。
+- Deny / Dismiss：无边框纯文字，`--vscode-descriptionForeground`，hover 文字变 `--vscode-errorForeground`。
+- 按钮间距 4px，按钮组靠右。
+
+### DOM 兼容
+
+保留 `section[data-group="inbox"]`、`.row[data-inbox-id][data-session-id][data-kind]`、`button[data-reply]`、`button[data-action="answer"]`；子行加 `data-parent-id`。E2E c6-inbox 的 `allHaveParent` 改为检查子行 `data-parent-id` 等于父会话 id 且所在组头文字为父标题。
+
+### 第二轮委派记录
+
+| task_id | 唯一写入范围 | requested_route | actual_provider/model | agent_id/run_id | 状态 | 结果路径 | fallback_reason / 接手理由 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| health-gemini-2 | 无 | gemini-worker | google / gemini-3.8-flash（自报） | gem-mv27qkju-9728s | 已返回（OK, antigravity, 35 s） | — | — |
+| impl-inbox-2 | `apps/extension/src/{session-store,session-groups,sessions-view,sessions-webview}.ts`、`apps/extension/media/sessions-list/*`、`tests/unit/{session-store,sessions-view,session-groups}.test.ts`、`tests/e2e/c6-inbox.mjs`（仅父断言） | gemini-worker | Gemini 3.8 Flash / google（自报） | gem-mv27shgh-lh67i | 已返回（968 s，10 轮；typecheck 0、单测 202/0、build PASS；验收通过） | checkpoint `cockpit-inbox-2026-10-10-impl2-checkpoint.md` | — |
+| test-server-2 | `.oco-test/` | 主线程（后台进程） | — | — | 已停止 | scratchpad/test-server2.log | 长驻进程由主线程管理 |
+
+### 第二轮验证（主线程）
+
+| 项 | 结果 |
+| --- | --- |
+| typecheck / 单测 / build | 0 错 / 202 pass 0 fail / PASS（Gemini 自验，主线程未改 src） |
+| E2E `node tests/e2e/run.mjs c6-inbox p1b-sidebar`（mock） | 18 PASS / 0 FAIL；c6-inbox 12.15 s，p1b-sidebar 44.71 s；结果 `docs/evidence/runs/20261010-100808-c6-inbox-e772/results.json` |
+| 视觉核对 | 主线程只看 c6 第 1 张截图：节头计数、父组头、缩进引导线、`@agent` 标签、链接色 Allow、淡色 Deny、分隔线与 SESSIONS 节头均符合规格 |

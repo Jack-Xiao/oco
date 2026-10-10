@@ -127,12 +127,15 @@ try {
     const aria = (await row.getAttribute("aria-label").catch(() => "")) ?? ""
     const inboxId = (await row.getAttribute("data-inbox-id").catch(() => "")) ?? ""
     const sessionId = (await row.getAttribute("data-session-id").catch(() => "")) ?? ""
+    const rowParentId = (await row.getAttribute("data-parent-id").catch(() => "")) ?? ""
 
-    const hasParent =
-      text.includes(parentTitle) ||
-      aria.includes(parentTitle) ||
-      text.includes(parentId) ||
-      aria.includes(parentId)
+    const group = row.locator('xpath=ancestor::*[contains(@class, "inbox-group")]')
+    const groupHead = (await group.locator('.inbox-group-head').count()) > 0
+      ? group.locator('.inbox-group-head')
+      : row.locator('xpath=preceding::*[contains(@class, "inbox-group-head")][1]')
+    const headText = (await groupHead.innerText().catch(() => "")) ?? ""
+
+    const hasParent = rowParentId === parentId && headText.includes(parentTitle)
 
     if (!hasParent) allHaveParent = false
 
@@ -140,7 +143,9 @@ try {
       index: i,
       inboxId,
       sessionId,
+      rowParentId,
       hasParent,
+      headText: headText.replace(/\s+/g, " ").trim(),
       textHead: text.replace(/\s+/g, " ").trim().slice(0, 60),
     })
   }

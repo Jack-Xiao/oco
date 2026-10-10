@@ -1,9 +1,10 @@
 import * as vscode from "vscode"
 import type { ConnectionSummary, SessionActivity, SessionListItem } from "@oco/contracts"
-import type { InboxRow, SessionStore } from "./session-store"
+import type { InboxEntry, InboxRow, SessionStore } from "./session-store"
 import { serverInfoLines, versionNote, type ServerInfo } from "./diagnostics"
 import {
   compactTime,
+  groupInbox,
   listMessage,
   splitSessions,
   UnreadTracker,
@@ -34,7 +35,7 @@ export type WebListModel = {
   actions?: { label: string; command: string }[]
   query: string
   current?: string
-  inbox: InboxRow[]
+  inbox: InboxEntry[]
   recent: WebRow[]
   more: WebRow[]
   moreForcedOpen: boolean
@@ -126,18 +127,23 @@ export class SessionsView implements vscode.Disposable {
     const s = this.summary
     const still = vscode.workspace.getConfiguration("workbench").get("reduceMotion") === "on"
     const inbox = g.connected ? this.store.inbox(this.current, (id) => this.unread.has(id)) : []
-    const filteredInbox = this.query
+    const q = this.query.trim().toLowerCase()
+    const filteredRows = q
       ? inbox.filter(
           (r) =>
-            r.title.toLowerCase().includes(this.query.toLowerCase()) ||
-            r.sessionId.toLowerCase().includes(this.query.toLowerCase()) ||
-            r.summary.toLowerCase().includes(this.query.toLowerCase()),
+            r.title.toLowerCase().includes(q) ||
+            (r.agent && r.agent.toLowerCase().includes(q)) ||
+            (r.parent && r.parent.toLowerCase().includes(q)) ||
+            r.sessionId.toLowerCase().includes(q) ||
+            r.summary.toLowerCase().includes(q) ||
+            r.detail.toLowerCase().includes(q),
         )
       : inbox
+    const groupedInbox = groupInbox(filteredRows)
     const base = {
       query: this.query,
       current: this.current,
-      inbox: filteredInbox,
+      inbox: groupedInbox,
       recent: [] as WebRow[],
       more: [] as WebRow[],
       moreForcedOpen: false,
@@ -149,7 +155,7 @@ export class SessionsView implements vscode.Disposable {
     const msg = listMessage({
       summary: s,
       connected: g.connected,
-      hasRows: filteredInbox.length > 0 || recent.length > 0 || more.length > 0 || g.loadMore,
+      hasRows: groupedInbox.length > 0 || recent.length > 0 || more.length > 0 || g.loadMore,
       query: this.query,
       loading: this.store.size === 0 && !this.empty,
       trusted: vscode.workspace.isTrusted,

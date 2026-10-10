@@ -3,10 +3,12 @@ import type { SessionActivity, SessionListItem } from "@oco/contracts"
 import {
   UnreadTracker,
   compactTime,
+  groupInbox,
   listMessage,
   splitSessions,
   startOfDay,
   startOfYesterday,
+  type InboxRow,
 } from "../../apps/extension/src/session-groups"
 
 /** Local calendar time, so assertions do not depend on the machine's UTC offset. */
@@ -229,5 +231,120 @@ describe("list state messages", () => {
   test("connecting with nothing cached shows no buttons; an error carries its cause", () => {
     expect(listMessage({ ...base, summary: { state: "connecting" } as any, connected: false })).toEqual({ text: "Connecting to the OpenCode server…", actions: [] })
     expect(listMessage({ ...base, summary: { state: "error", error: "ECONNREFUSED" } as any, connected: false })?.text).toContain("ECONNREFUSED")
+  })
+})
+
+describe("groupInbox", () => {
+  function makeRow(partial: Partial<InboxRow> & { id: string }): InboxRow {
+    return {
+      id: partial.id,
+      kind: "permission",
+      sessionId: partial.sessionId ?? partial.id,
+      title: partial.title ?? partial.id,
+      summary: partial.summary ?? "test",
+      detail: partial.detail ?? "test",
+      time: partial.time ?? "1m",
+      at: partial.at ?? 100,
+      aria: partial.aria ?? partial.id,
+      ...partial,
+    }
+  }
+
+  test("无父 (no parentId): stays top-level row", () => {
+    const rows = [makeRow({ id: "r1", at: 100 }), makeRow({ id: "r2", at: 50 })]
+    const entries = groupInbox(rows)
+    expect(entries).toEqual([
+      expect.objectContaining({ id: "r2", at: 50 }),
+      expect.objectContaining({ id: "r1", at: 100 }),
+    ])
+  })
+
+  test("有父 (has parentId and known parent): grouped by parentId", () => {
+    const rows = [
+      makeRow({ id: "c1", parentId: "p1", parent: "Parent Task", at: 120 }),
+      makeRow({ id: "c2", parentId: "p1", parent: "Parent Task", at: 80 }),
+    ]
+    const entries = groupInbox(rows)
+    expect(entries).toHaveLength(1)
+    expect(entries[0]).toEqual({
+      kind: "group",
+      parentId: "p1",
+      title: "Parent Task",
+      rows: [
+        expect.objectContaining({ id: "c2", at: 80 }),
+        expect.objectContaining({ id: "c1", at: 120 }),
+      ],
+    })
+  })
+
+  test("父未知 (has parentId but parent unknown): remains top-level row", () => {
+    const rows = [
+      makeRow({ id: "c1", parentId: "unknown-p", parent: undefined, at: 90 }),
+      makeRow({ id: "r1", at: 70 }),
+    ]
+    const entries = groupInbox(rows)
+    expect(entries).toEqual([
+      expect.objectContaining({ id: "r1", at: 70 }),
+      expect.objectContaining({ id: "c1", parentId: "unknown-p", at: 90 }),
+    ])
+  })
+
+  test("排序 (sorting): top-level by earliest at ascending; in-group by at ascending", () => {
+    const rows = [
+      makeRow({ id: "g1-late", parentId: "p1", parent: "P1", at: 200 }),
+      makeRow({ id: "g1-early", parentId: "p1", parent: "P1", at: 80 }),
+      makeRow({ id: "g2-late", parentId: "p2", parent: "P2", at: 90 }),
+      makeRow({ id: "g2-early", parentId: "p2", parent: "P2", at: 30 }),
+      makeRow({ id: "solo", at: 50 }),
+    ]
+    const entries = groupInbox(rows)
+    expect(entries).toHaveLength(3)
+
+    // Earliest at:
+    // P2: 30
+    // solo: 50
+    // P1: 80
+    expect(entries[0]).toMatchObject({
+      kind: "group",
+      parentId: "p2",
+      title: "P2",
+      rows: [expect.objectContaining({ id: "g2-early", at: 30 }), expect.objectContaining({ id: "g2-late", at: 90 })],
+    })
+    expect(entries[1]).toMatchObject({
+      id: "solo",
+      at: 50,
+    })
+    expect(entries[2]).toMatchObject({
+      kind: "group",
+      parentId: "p1",
+      title: "P1",
+      rows: [expect.objectContaining({ id: "g1-early", at: 80 }), expect.objectContaining({ id: "g1-late", at: 200 })],
+    })
+  })
+
+  test("混合 (mixed): includes standalone, grouped, unknown parent, with tie-breaking", () => {
+    const rows = [
+      makeRow({ id: "solo-1", at: 100 }),
+      makeRow({ id: "orphan", parentId: "nonexistent", parent: undefined, at: 40 }),
+      makeRow({ id: "child-a", parentId: "p-alpha", parent: "Alpha", at: 150 }),
+      makeRow({ id: "child-b", parentId: "p-alpha", parent: "Alpha", at: 60 }),
+      makeRow({ id: "solo-2", at: 200 }),
+    ]
+    const entries = groupInbox(rows)
+    // Earliest at:
+    // orphan: 40
+    // Alpha: min(150, 60) = 60
+    // solo-1: 100
+    // solo-2: 200
+    expect(entries).toHaveLength(4)
+    expect(entries[0]).toMatchObject({ id: "orphan", at: 40 })
+    expect(entries[1]).toMatchObject({
+      kind: "group",
+      parentId: "p-alpha",
+      title: "Alpha",
+      rows: [expect.objectContaining({ id: "child-b", at: 60 }), expect.objectContaining({ id: "child-a", at: 150 })],
+    })
+    expect(entries[2]).toMatchObject({ id: "solo-1", at: 100 })
+    expect(entries[3]).toMatchObject({ id: "solo-2", at: 200 })
   })
 })

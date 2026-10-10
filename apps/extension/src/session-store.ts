@@ -35,12 +35,23 @@ export type InboxRow = {
   id: string
   kind: "permission" | "question" | "error" | "done"
   sessionId: string
+  parentId?: string
   title: string
+  agent?: string
   parent?: string
   summary: string
+  detail: string
   time: string
+  at: number
   aria: string
 }
+export type InboxGroup = {
+  kind: "group"
+  parentId: string
+  title: string
+  rows: InboxRow[]
+}
+export type InboxEntry = InboxRow | InboxGroup
 export type Snapshot = {
   sessions: ServerSession[]
   status: Record<string, ServerStatus>
@@ -288,20 +299,30 @@ export class SessionStore {
     return true
   }
 
+  private parseSubagentTitle(rawTitle: string): { title: string; agent?: string } {
+    const match = rawTitle.match(/^(.*?)\s*\(@([^\s)]+)\s+subagent\)$/)
+    if (match) {
+      return { title: match[1].trim() || rawTitle, agent: match[2] }
+    }
+    return { title: rawTitle }
+  }
+
   private sessionMeta(sid: string, now: number) {
     const row = this.rows.get(sid)
     if (!row) return undefined
-    const title = row.session.title?.trim() || row.session.id
+    const rawTitle = row.session.title?.trim() || row.session.id
+    const { title, agent } = this.parseSubagentTitle(rawTitle)
     let parent: string | undefined
-    if (row.session.parentID) {
-      const parentRow = this.rows.get(row.session.parentID)
+    const parentId = row.session.parentID
+    if (parentId) {
+      const parentRow = this.rows.get(parentId)
       if (parentRow) {
         parent = parentRow.session.title?.trim() || parentRow.session.id
       }
     }
     const updated = row.session.time?.updated ?? row.session.time?.created ?? 0
     const time = compactTime(updated, now)
-    return { title, parent, updated, time, error: row.error, status: row.status }
+    return { title, agent, parent, parentId, updated, time, error: row.error, status: row.status }
   }
 
   /**
@@ -321,26 +342,30 @@ export class SessionStore {
             return (id: string) => set.has(id)
           })()
 
-    type RankedRow = InboxRow & { _updated: number }
-    const permQuesRows: RankedRow[] = []
+    const permQuesRows: InboxRow[] = []
 
     for (const req of this.permissions.values()) {
       const info = this.sessionMeta(req.sessionID, now)
       if (!info) continue
       const perm = req.permission ?? ""
-      const pats = (req.patterns ?? []).join(" ").trim()
-      const summary = [perm, pats].filter(Boolean).join(" ") || "Permission"
-      const aria = [info.title, info.parent ? `(${info.parent})` : "", summary, info.time].filter(Boolean).join(", ")
+      const patterns = req.patterns ?? []
+      const patStr = patterns.join(" ").trim()
+      const summary = patStr || perm || "Permission"
+      const detail = perm && patStr ? `${perm} · ${patStr}` : perm || patStr || "Permission"
+      const aria = [info.title, info.agent ? `@${info.agent}` : "", info.parent ? `(${info.parent})` : "", summary, info.time].filter(Boolean).join(", ")
       permQuesRows.push({
         id: req.id,
         kind: "permission",
         sessionId: req.sessionID,
+        parentId: info.parentId,
         title: info.title,
+        agent: info.agent,
         parent: info.parent,
         summary,
+        detail,
         time: info.time,
+        at: info.updated,
         aria,
-        _updated: info.updated,
       })
     }
 
@@ -348,25 +373,29 @@ export class SessionStore {
       const info = this.sessionMeta(req.sessionID, now)
       if (!info) continue
       const summary = req.questions?.[0]?.question || "Question"
-      const aria = [info.title, info.parent ? `(${info.parent})` : "", summary, info.time].filter(Boolean).join(", ")
+      const detail = summary
+      const aria = [info.title, info.agent ? `@${info.agent}` : "", info.parent ? `(${info.parent})` : "", summary, info.time].filter(Boolean).join(", ")
       permQuesRows.push({
         id: req.id,
         kind: "question",
         sessionId: req.sessionID,
+        parentId: info.parentId,
         title: info.title,
+        agent: info.agent,
         parent: info.parent,
         summary,
+        detail,
         time: info.time,
+        at: info.updated,
         aria,
-        _updated: info.updated,
       })
     }
 
     // Permission and question: oldest first (time 旧→新)
-    permQuesRows.sort((a, b) => a._updated - b._updated || a.id.localeCompare(b.id))
+    permQuesRows.sort((a, b) => a.at - b.at || a.id.localeCompare(b.id))
 
-    const errorRows: RankedRow[] = []
-    const doneRows: RankedRow[] = []
+    const errorRows: InboxRow[] = []
+    const doneRows: InboxRow[] = []
 
     for (const [sid, row] of this.rows) {
       const info = this.sessionMeta(sid, now)
@@ -374,39 +403,47 @@ export class SessionStore {
 
       if (info.error) {
         const summary = info.error
-        const aria = [info.title, info.parent ? `(${info.parent})` : "", summary, info.time].filter(Boolean).join(", ")
+        const detail = info.error
+        const aria = [info.title, info.agent ? `@${info.agent}` : "", info.parent ? `(${info.parent})` : "", summary, info.time].filter(Boolean).join(", ")
         errorRows.push({
           id: `err:${sid}`,
           kind: "error",
           sessionId: sid,
+          parentId: info.parentId,
           title: info.title,
+          agent: info.agent,
           parent: info.parent,
           summary,
+          detail,
           time: info.time,
+          at: info.updated,
           aria,
-          _updated: info.updated,
         })
       } else if (info.status === "idle" && sid !== currentSessionId && isUnread(sid)) {
-        const summary = info.time || "Completed"
-        const aria = [info.title, info.parent ? `(${info.parent})` : "", "Completed", info.time].filter(Boolean).join(", ")
+        const summary = "Finished"
+        const detail = info.time ? `Finished · ${info.time}` : "Finished"
+        const aria = [info.title, info.agent ? `@${info.agent}` : "", info.parent ? `(${info.parent})` : "", "Finished", info.time].filter(Boolean).join(", ")
         doneRows.push({
           id: `done:${sid}`,
           kind: "done",
           sessionId: sid,
+          parentId: info.parentId,
           title: info.title,
+          agent: info.agent,
           parent: info.parent,
           summary,
+          detail,
           time: info.time,
+          at: info.updated,
           aria,
-          _updated: info.updated,
         })
       }
     }
 
-    errorRows.sort((a, b) => b._updated - a._updated || a.id.localeCompare(b.id))
-    doneRows.sort((a, b) => b._updated - a._updated || a.id.localeCompare(b.id))
+    errorRows.sort((a, b) => b.at - a.at || a.id.localeCompare(b.id))
+    doneRows.sort((a, b) => b.at - a.at || a.id.localeCompare(b.id))
 
-    return [...permQuesRows, ...errorRows, ...doneRows].map(({ _updated, ...row }) => row)
+    return [...permQuesRows, ...errorRows, ...doneRows]
   }
 
   private ignore() {
