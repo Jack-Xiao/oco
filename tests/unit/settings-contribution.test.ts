@@ -25,7 +25,7 @@ describe("connection settings contribution", () => {
   test("unauthorized offers the password command; password is not a setting", () => {
     expect(commands(welcome("unauthorized"))).toContain("oco.setServerPassword")
     const props = Object.keys(c.configuration.properties)
-    expect(props.sort()).toEqual(["oco.opencodePath", "oco.serverMode", "oco.serverUrl", "oco.serverUsername"])
+    expect(props.sort()).toEqual(["oco.opencodePath", "oco.serverMode", "oco.serverUrl", "oco.serverUsername", "oco.sessions.notifyPending"])
     expect(props.some((k) => /pass|secret|token/i.test(k))).toBe(false)
   })
   test("all settings stay machine scoped and are documented in English", () => {

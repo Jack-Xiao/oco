@@ -977,3 +977,30 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 新增 `scripts/regen-patch.sh`（临时 worktree 重建基线 + 干净重放 + `diff -r` 校验）；伪 source 自测与现有 0020 字节相同。
 - 真实模型 E2E（big-pickle）：20 套件全量；首轮 5 套件有失败，重跑后 p1a-chat、t007-managed、c4 rows-match-server、c5 plan-chip 通过，其余为 mock 专属断言 / 非确定性 / 连锁，无产品缺陷。探查：新对话阶段序列与流式递增正常；嵌套 ≥2 层 NOT RUN（模型不派孙代理）；亮色主题仅一处圆点对比度偏低。
 - 委派：Gemini A（STATUS 瘦身）、B（M5 修复）验收通过；Grok C（regen 脚本）验收通过；D 真实模型三程（Gemini 中断 → Grok 沙箱不能开 VS Code → Gemini 再中断）但产物齐全。证据：[cleanup-2026-10-10](evidence/cleanup-2026-10-10.md) 及同前缀四个文件。
+
+## 2026-10-10 运行视图 M5 评审落地批（Claude Design 交接包 → 样稿 + 补丁 0020）
+
+- 输入：`~/Downloads/handoff`（改后样稿、12 帧对照、README）+ critique 10 条 + 窄布局 3 条。按用户要求逐条判断是否合理，不照单全收。
+- 样稿：交接包模板覆盖仓库并重建；两处按产品口径改回（点阵不做悬停才显示；忽略态卡片种类仍「已忽略」、状态同空闲态）；补 P2-8 / P3-9 / P3-10 与「不采用」说明；oracle 脚本改为 `statusWord(S, F, t)`。
+- 产品（0020，12 文件）：`RingStatus.detail/slow`、`SLOW_MS`、`runningOf`；pill `flow.mix`；模型框去 ctx / 序号；忽略态 you / card 收敛、packet ⊘ 与 30 s 标签；泊位小点只画 docked；`LOOP_SAME`=3 疑似循环；i18n 三语 +10 −5 +3 键（256 个 ring 键）；单测 7b。
+- 结果：session 单测 428/0、app typecheck 0、build PASS、oracle 14 帧一致（k09 / k10 预期差异）、0020 再生成 58 文件、本机装 `oco-0.0.4-7d71662.vsix`。E2E NOT RUN。
+- 委派：Grok 只读调查剩余 8 条（9 m 26 s，6 轮，沙箱不能写 docs，主线程代存）；第一批实现与样稿回调由主线程做（同一文件内三层联动）。
+- 证据：[runtime-m5-review-2026-10-10](evidence/runtime-m5-review-2026-10-10.md)、[investigation](evidence/runtime-m5-review-2026-10-10-investigation.md)。
+
+## 2026-10-10 多 agent 驾驶舱第一步（ADR-009 + 跨会话「待处理」收件箱）
+
+- ADR-009 划界：oco 只经 OpenCode API；收件箱不改桥契约；批量发起只做客户端节流；不做 cron / 多模型竞赛 / RBAC。
+- 收件箱：`session-store.ts` 保留权限 / 提问字段并产出 `inbox()`、`removePending()`；`sessions-view.ts` 状态栏计数与通知节流（`oco.sessions.notifyPending`）；`sessions-webview.ts` 新消息 permissionReply / questionReject 由宿主核对后直接 POST；`media/sessions-list/` 新分区 `section[data-group="inbox"]` 与行内 createElement 按钮，CSP 不变。
+- 测试：单测 196 / 0；新 E2E c6-inbox（mock-llm 新 token `THREE-SUBAGENTS-NEED-PERMISSION`，3 个后台子代理各挂一条 bash 权限）PASS 9.7 s；侧栏回归 p1b-sidebar / p1b-reconnect / t014-connection 24 PASS / 0 FAIL；默认套件 23。
+- 委派：Grok 只读调查 5.6 min；Gemini 实现 23.5 min + Gemini 写 E2E 7.9 min（mock 场景由主线程 API 代验）。证据 [cockpit-inbox-2026-10-10](evidence/cockpit-inbox-2026-10-10.md)。
+
+## 2026-10-10 收件箱第二轮（用户反馈：分组布局、按父会话归组、路径模式、行内按钮）
+
+- 契约 v2：`InboxRow` 加 parentId / agent / detail / at，`inbox: InboxEntry[]`（行或按父会话归组的 group），分组在宿主 `groupInbox` 纯函数。页面：可折叠 `NEEDS ATTENTION · N` 节头、分隔线、`SESSIONS` 节头（收件箱为空时不渲染，列表同改动前）；组头、引导线、`@agent` 标签；按钮透明底 color-mix 边框。
+- 测试：typecheck 0；单测 202 / 0；E2E c6-inbox（父断言改为 data-parent-id + 组头文字）12.2 s、p1b-sidebar 44.7 s，共 18 PASS / 0 FAIL。
+- 委派：Gemini 实现 16 min（自验 typecheck / build / 单测）；E2E 由主线程后台跑并只看一张截图核对视觉。证据 [cockpit-inbox-2026-10-10](evidence/cockpit-inbox-2026-10-10.md) 第二轮一节。
+
+## 2026-10-10 收件箱第三轮（节头折叠箭头、SESSIONS 可折叠）
+
+- 只改 `media/sessions-list/index.js` / `index.css`：`.section-head` 复用 `.chevron` 三角，标签与行标题左缘对齐；SESSIONS 始终渲染、可折叠、搜索强制展开；`collapsed` 并入 `vscode.setState`。
+- 测试：node --check、build PASS；E2E c6-inbox 12.8 s + p1b-sidebar 48.5 s，18 PASS / 0 FAIL。Gemini 实现 10 min。

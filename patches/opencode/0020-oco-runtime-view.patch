@@ -13,7 +13,7 @@ index 109f928..24f60c3 100644
      "test:e2e:local": "playwright test",
 diff --git a/packages/app/src/components/session/fixtures/runtime-m5-oracle.json b/packages/app/src/components/session/fixtures/runtime-m5-oracle.json
 new file mode 100644
-index 0000000..6fa56af
+index 0000000..4cb3750
 --- /dev/null
 +++ b/packages/app/src/components/session/fixtures/runtime-m5-oracle.json
 @@ -0,0 +1,660 @@
@@ -620,7 +620,7 @@ index 0000000..6fa56af
 +      "card": {
 +        "title": "已忽略",
 +        "kind": "dismissed",
-+        "tone": "err"
++        "tone": "faint"
 +      },
 +      "round": 4,
 +      "m": 3,
@@ -634,8 +634,8 @@ index 0000000..6fa56af
 +      "subs": [],
 +      "you": {
 +        "state": "dismissed",
-+        "cls": "dism",
-+        "status": "你忽略了提问 · 21:10:27"
++        "cls": "idle",
++        "status": "此刻不需要你"
 +      },
 +      "status": {
 +        "word": "本轮结束 · 待命",
@@ -652,7 +652,7 @@ index 0000000..6fa56af
 +      "card": {
 +        "title": "已忽略",
 +        "kind": "dismissed",
-+        "tone": "err"
++        "tone": "faint"
 +      },
 +      "round": 4,
 +      "m": 3,
@@ -666,8 +666,8 @@ index 0000000..6fa56af
 +      "subs": [],
 +      "you": {
 +        "state": "dismissed",
-+        "cls": "dism",
-+        "status": "你忽略了提问 · 21:10:27"
++        "cls": "idle",
++        "status": "此刻不需要你"
 +      },
 +      "status": {
 +        "word": "本轮结束 · 待命",
@@ -2328,7 +2328,7 @@ index 0000000..78e0b0b
 +})
 diff --git a/packages/app/src/components/session/session-runtime-i18n.test.ts b/packages/app/src/components/session/session-runtime-i18n.test.ts
 new file mode 100644
-index 0000000..3cfe88f
+index 0000000..c20dbd6
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-i18n.test.ts
 @@ -0,0 +1,106 @@
@@ -2366,7 +2366,7 @@ index 0000000..3cfe88f
 +  const zh = runtimeText({ locale: () => "zh", intl: () => "zh-CN" })
 +
 +  test("the three dictionaries add the same ring keys", () => {
-+    expect(ring(d.en).length).toBe(246)
++    expect(ring(d.en).length).toBe(256)
 +    expect(ring(d.zh).sort()).toEqual(ring(d.en).sort())
 +    expect(ring(d.zht).sort()).toEqual(ring(d.en).sort())
 +  })
@@ -2440,10 +2440,10 @@ index 0000000..3cfe88f
 +})
 diff --git a/packages/app/src/components/session/session-runtime-i18n.ts b/packages/app/src/components/session/session-runtime-i18n.ts
 new file mode 100644
-index 0000000..41c88c3
+index 0000000..497a963
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-i18n.ts
-@@ -0,0 +1,978 @@
+@@ -0,0 +1,1008 @@
 +// oco (patches/opencode/0019): copy for the runtime view. Same arrangement as session-trajectory-i18n.ts
 +// (patch 0013): upstream's locale-parity test would require every locale, and oco maintains en / zh / zht.
 +import type { useLanguage } from "@/context/language"
@@ -2509,6 +2509,15 @@ index 0000000..41c88c3
 +  "ring.status.permission": "Waiting for your approval",
 +  "ring.status.end": "Round finished · Standing by",
 +  "ring.status.abort": "Stopped · Standing by",
++  "ring.status.detail.asm": "Assembling request {{m}}",
++  "ring.status.detail.fly": "Waiting for the first reply {{dur}}",
++  "ring.status.detail.think": "Thinking {{dur}}",
++  "ring.status.detail.out": "Writing {{dur}}",
++  "ring.status.detail.call": "Writing calls",
++  "ring.status.detail.wait": "Waiting for results",
++  "ring.status.detail.wait.one": "Waiting {{dur}} · {{name}} running",
++  "ring.status.detail.wait.many": "Waiting {{dur}} · {{n}} running, {{name}} the longest",
++  "ring.status.detail.next": "Results in · sending the next request",
 +  "ring.fmt.s": "{{n}}s",
 +  "ring.fmt.ms": "{{m}}m {{s}}s",
 +  "ring.fmt.long.s": "{{n}} s",
@@ -2525,20 +2534,22 @@ index 0000000..41c88c3
 +  "ring.pill.sub.chars": "{{n}} chars",
 +  "ring.pill.sub.calls": "{{n}} calls",
 +  "ring.pill.sub.mixed": "{{calls}} calls + {{asks}} questions",
++  "ring.pill.sub.loop": "{{made}} · same command ×{{n}}, loop?",
 +  "ring.pill.sub.asks": "{{n}} questions → you",
 +  "ring.pill.sub.waited": "Waited {{dur}}",
-+  "ring.pill.sub.flow": "{{run}} running · {{back}} back",
++  "ring.pill.sub.flow": "Waiting on {{run}} · {{back}} back",
++  "ring.pill.sub.flow.mix": "Waiting on {{run}} ({{tools}} tools · {{subs}} sub-agents) · {{back}} back",
 +  "ring.next.req": "Request {{m}} → model",
 +  "ring.aborted": "■ Stopped",
-+  "ring.lane.out": "Dispatch lane →",
-+  "ring.lane.back": "← Return lane",
++  "ring.lane.out": "Dispatched →",
++  "ring.lane.back": "← Back",
 +  "ring.pkt.you": "Your message",
 +  "ring.pkt.handoff": "#{{n}} handoff",
 +  "ring.pkt.return": "#{{n}} returned",
 +  "ring.pkt.return.long": "#{{n}} returned {{text}}",
 +  "ring.pkt.ask": "Question “{{header}}”",
-+  "ring.pkt.dismissed": "✕ You dismissed the question",
-+  "ring.pkt.dismissed.mark": "✕ Dismissed",
++  "ring.pkt.dismissed": "⊘ You dismissed the question",
++  "ring.pkt.dismissed.mark": "⊘ Dismissed",
 +  "ring.ctr.round": "Round {{n}}",
 +  "ring.ctr.request": "Request {{m}}",
 +  "ring.ctr.request.short": "Req {{m}}",
@@ -2560,10 +2571,8 @@ index 0000000..41c88c3
 +  "ring.model.receipt": "Receipt {{total}} total (in {{in}} · out {{out}}) · {{cost}}",
 +  "ring.model.done": "Reply written",
 +  "ring.model.aborted": "Request {{m}} stopped",
-+  "ring.model.carry": "This request: {{carry}} · {{ctx}}",
 +  "ring.model.ctx": "Context ≈ {{tok}} (last receipt)",
 +  "ring.model.ctx.unknown": "Context: known after this receipt",
-+  "ring.model.ctx.above": "Receipt shown above",
 +  "ring.card.kind.idle": "Standing by",
 +  "ring.card.kind.message": "Message",
 +  "ring.card.kind.request": "Request",
@@ -2601,7 +2610,7 @@ index 0000000..41c88c3
 +  "ring.card.out.meta": "{{n}} chars",
 +  "ring.card.out.meta.dur": "Writing {{dur}}",
 +  "ring.card.streaming": "Streaming…",
-+  "ring.card.estimated": "Replay: progress estimated from elapsed time",
++  "ring.card.estimated": "Replaying · text unfolds in proportion to elapsed time",
 +  "ring.card.call.ask": "Writing a question for you…",
 +  "ring.card.call.task": "Writing the task for the subagent…",
 +  "ring.card.call.tool": "Writing the arguments for {{tool}}…",
@@ -2618,8 +2627,9 @@ index 0000000..41c88c3
 +  "ring.card.receipt.body": "Request {{m}} done: receipt {{total}} total (in {{in}} · out {{out}}) · {{cost}}",
 +  "ring.card.receipt.post": "Sends request {{next}} with {{n}} results",
 +  "ring.card.receipt.meta": "Context {{tok}} (= this receipt's total)",
-+  "ring.card.dismissed.body": "You dismissed “{{header}}”; round {{n}} ends here.",
-+  "ring.card.dismissed.meta": "{{at}} · the question waited {{dur}} · idle {{idle}}",
++  "ring.card.dismissed.body": "Round {{n}} has ended · waiting for your next message",
++  "ring.card.dismissed.post": "⊘ “{{header}}” dismissed · {{at}}",
++  "ring.card.dismissed.meta": "The question waited {{dur}} · idle {{idle}}",
 +  "ring.card.end.meta": "{{at}} · idle {{dur}}",
 +  "ring.card.end.reason": "Finish reason {{reason}}",
 +  "ring.card.aborted.body": "Request {{m}} was stopped: {{name}} ({{message}}).",
@@ -2637,7 +2647,6 @@ index 0000000..41c88c3
 +  "ring.you.title": "You",
 +  "ring.you.idle": "Nothing needed from you",
 +  "ring.you.need": "Waiting for your answer · {{dur}}",
-+  "ring.you.dismissed": "You dismissed the question · {{at}}",
 +  "ring.you.writing": "{{agent}} is writing a question…",
 +  "ring.you.sent": "You just sent a message · {{dur}} ago",
 +  "ring.you.permission": "Waiting for your approval · {{permission}}",
@@ -2646,9 +2655,9 @@ index 0000000..41c88c3
 +  "ring.you.ask.head": "Question · {{header}} · {{n}} options",
 +  "ring.you.ask.narrow": "Question · {{header}}",
 +  "ring.you.ask.hint": "Full question in the centre card · answer in the input box below (display only)",
-+  "ring.you.dismissed.head": "✕ You dismissed “{{header}}”",
-+  "ring.you.dismissed.hint": "The question waited {{dur}} · round {{n}} ends here",
-+  "ring.you.dismissed.narrow": "✕ You dismissed “{{header}}” · waited {{dur}}",
++  "ring.you.dismissed.line": "⊘ Last question dismissed {{at}} · waited {{dur}} ▸",
++  "ring.you.dismissed.hint": "Round {{n}} ends here · waiting for your next message",
++  "ring.you.dismissed.title": "Question “{{header}}” · options: {{options}}",
 +  "ring.you.pre": "Replay starts at round {{n}}",
 +  "ring.you.permission.hint": "Approve or reject below the input box (display only)",
 +  "ring.tools.title": "Tools",
@@ -2674,8 +2683,8 @@ index 0000000..41c88c3
 +  "ring.sub.state.docked": "Awaiting pickup",
 +  "ring.sub.state.done": "Collected",
 +  "ring.sub.state.err": "Failed",
-+  "ring.sub.counts": "Working {{run}} · awaiting pickup {{docked}} · collected {{done}}/{{total}}",
-+  "ring.sub.counts.narrow": "Working {{run}} · collected {{done}}/{{total}}",
++  "ring.sub.counts": "{{run}} running · {{docked}} awaiting pickup · {{done}}/{{total}} back",
++  "ring.sub.counts.narrow": "{{run}} running · {{done}}/{{total}} back",
 +  "ring.sub.empty.yet": "No subagents yet in round {{n}}",
 +  "ring.sub.empty.none": "No subagents in round {{n}}",
 +  "ring.sub.empty.pre": "No subagents",
@@ -2712,7 +2721,7 @@ index 0000000..41c88c3
 +  "ring.sub.acts.none": "No tool calls or text",
 +  "ring.sub.h.result": "Returned result (verbatim)",
 +  "ring.sub.result.wait": "Not returned yet",
-+  "ring.sub.result.docked": "Finished; the result is waiting at the pickup berth for {{agent}}",
++  "ring.sub.result.docked": "Finished; waiting for {{agent}} to pick up the result",
 +  "ring.sub.open": "Open child session ↗",
 +  "ring.sub.open.disabled": "Child session not created yet",
 +  "ring.sub.open.note": "child session {{id}}",
@@ -2744,6 +2753,7 @@ index 0000000..41c88c3
 +  "ring.legend.err": "Failed",
 +  "ring.legend.declined": "Dismissed / rejected",
 +  "ring.legend.attn": "Needs you",
++  "ring.legend.ticks": "ticks: round / failed / question",
 +  "ring.live.run": "{{agent}} running · round {{n}}, request {{m}}",
 +  "ring.live.ask": "{{agent}} is waiting for your answer",
 +  "ring.live.permission": "{{agent}} is waiting for your approval",
@@ -2815,6 +2825,15 @@ index 0000000..41c88c3
 +  "ring.status.permission": "等你授权",
 +  "ring.status.end": "本轮结束 · 待命",
 +  "ring.status.abort": "已中止 · 待命",
++  "ring.status.detail.asm": "组装第 {{m}} 次请求",
++  "ring.status.detail.fly": "等首个回复 {{dur}}",
++  "ring.status.detail.think": "思考 {{dur}}",
++  "ring.status.detail.out": "输出 {{dur}}",
++  "ring.status.detail.call": "写调用",
++  "ring.status.detail.wait": "等结果",
++  "ring.status.detail.wait.one": "等结果 {{dur}} · {{name}} 在跑",
++  "ring.status.detail.wait.many": "等结果 {{dur}} · {{name}} 等 {{n}} 个在跑",
++  "ring.status.detail.next": "结果已齐 · 发下一次",
 +  "ring.fmt.s": "{{n}}秒",
 +  "ring.fmt.ms": "{{m}}分{{s}}秒",
 +  "ring.fmt.long.s": "{{n}} 秒",
@@ -2831,20 +2850,22 @@ index 0000000..41c88c3
 +  "ring.pill.sub.chars": "{{n}} 字",
 +  "ring.pill.sub.calls": "{{n}} 个调用",
 +  "ring.pill.sub.mixed": "{{calls}} 个调用 + {{asks}} 个提问",
++  "ring.pill.sub.loop": "{{made}} · 同一命令 ×{{n}} 疑似循环",
 +  "ring.pill.sub.asks": "{{n}} 个提问 → 你",
 +  "ring.pill.sub.waited": "已等 {{dur}}",
-+  "ring.pill.sub.flow": "在跑 {{run}} · 回来 {{back}}",
++  "ring.pill.sub.flow": "等 {{run}} · 回来 {{back}}",
++  "ring.pill.sub.flow.mix": "等 {{run}}（工具 {{tools}} · 子代理 {{subs}}）· 回来 {{back}}",
 +  "ring.next.req": "第 {{m}} 次请求 → 模型",
 +  "ring.aborted": "■ 已中止",
-+  "ring.lane.out": "派发航道 →",
-+  "ring.lane.back": "← 回传航道",
++  "ring.lane.out": "派出 →",
++  "ring.lane.back": "← 回来",
 +  "ring.pkt.you": "你的消息",
 +  "ring.pkt.handoff": "#{{n}} 交接",
 +  "ring.pkt.return": "#{{n}} 返回",
 +  "ring.pkt.return.long": "#{{n}} 返回 {{text}}",
 +  "ring.pkt.ask": "提问「{{header}}」",
-+  "ring.pkt.dismissed": "✕ 你忽略了提问",
-+  "ring.pkt.dismissed.mark": "✕ 已忽略",
++  "ring.pkt.dismissed": "⊘ 你忽略了提问",
++  "ring.pkt.dismissed.mark": "⊘ 已忽略",
 +  "ring.ctr.round": "第 {{n}} 轮",
 +  "ring.ctr.request": "第 {{m}} 次请求",
 +  "ring.ctr.request.short": "请求 {{m}}",
@@ -2866,10 +2887,8 @@ index 0000000..41c88c3
 +  "ring.model.receipt": "回执 合计 {{total}}（入 {{in}} · 出 {{out}}）· {{cost}}",
 +  "ring.model.done": "这次回复已写完",
 +  "ring.model.aborted": "第 {{m}} 次请求已中止",
-+  "ring.model.carry": "这次请求：{{carry}} · {{ctx}}",
 +  "ring.model.ctx": "上下文 ≈ {{tok}}（上次回执）",
 +  "ring.model.ctx.unknown": "上下文：这次回执后可知",
-+  "ring.model.ctx.above": "回执见上一行",
 +  "ring.card.kind.idle": "待命",
 +  "ring.card.kind.message": "消息",
 +  "ring.card.kind.request": "请求",
@@ -2907,7 +2926,7 @@ index 0000000..41c88c3
 +  "ring.card.out.meta": "已 {{n}} 字",
 +  "ring.card.out.meta.dur": "输出 {{dur}}",
 +  "ring.card.streaming": "生成中…",
-+  "ring.card.estimated": "回放：按时间估算的进度",
++  "ring.card.estimated": "回放中 · 文本按时间比例展开",
 +  "ring.card.call.ask": "正在写一个给你的提问…",
 +  "ring.card.call.task": "正在写交给子代理的任务…",
 +  "ring.card.call.tool": "正在写 {{tool}} 调用的参数…",
@@ -2924,8 +2943,9 @@ index 0000000..41c88c3
 +  "ring.card.receipt.body": "第 {{m}} 次请求完成：回执 合计 {{total}}（入 {{in}} · 出 {{out}}）· {{cost}}",
 +  "ring.card.receipt.post": "带上 {{n}} 个结果，发第 {{next}} 次请求",
 +  "ring.card.receipt.meta": "上下文 {{tok}}（= 这次回执合计）",
-+  "ring.card.dismissed.body": "你忽略了提问「{{header}}」，第 {{n}} 轮到此结束。",
-+  "ring.card.dismissed.meta": "{{at}} · 提问等了 {{dur}} · 已空闲 {{idle}}",
++  "ring.card.dismissed.body": "第 {{n}} 轮已结束 · 等你下一条消息",
++  "ring.card.dismissed.post": "⊘ 提问「{{header}}」已忽略 · {{at}}",
++  "ring.card.dismissed.meta": "提问等了 {{dur}} · 已空闲 {{idle}}",
 +  "ring.card.end.meta": "{{at}} · 已空闲 {{dur}}",
 +  "ring.card.end.reason": "结束原因 {{reason}}",
 +  "ring.card.aborted.body": "第 {{m}} 次请求被中止：{{name}}（{{message}}）。",
@@ -2943,7 +2963,6 @@ index 0000000..41c88c3
 +  "ring.you.title": "你",
 +  "ring.you.idle": "此刻不需要你",
 +  "ring.you.need": "等你回答 · 已等 {{dur}}",
-+  "ring.you.dismissed": "你忽略了提问 · {{at}}",
 +  "ring.you.writing": "{{agent}} 正在写一个提问…",
 +  "ring.you.sent": "你刚发出消息 · {{dur}}前",
 +  "ring.you.permission": "等你授权 · {{permission}}",
@@ -2952,9 +2971,9 @@ index 0000000..41c88c3
 +  "ring.you.ask.head": "提问 · {{header}} · {{n}} 个选项",
 +  "ring.you.ask.narrow": "提问 · {{header}}",
 +  "ring.you.ask.hint": "问题全文见中间卡片 · 在下方输入框回答（此处只显示）",
-+  "ring.you.dismissed.head": "✕ 你忽略了提问「{{header}}」",
-+  "ring.you.dismissed.hint": "提问等了 {{dur}} · 第 {{n}} 轮到此结束",
-+  "ring.you.dismissed.narrow": "✕ 你忽略了提问「{{header}}」· 提问等了 {{dur}}",
++  "ring.you.dismissed.line": "⊘ 上次提问已忽略 {{at}} · 等了 {{dur}} ▸",
++  "ring.you.dismissed.hint": "第 {{n}} 轮到此结束 · 等你下一条消息",
++  "ring.you.dismissed.title": "提问「{{header}}」· 选项：{{options}}",
 +  "ring.you.pre": "回放从第 {{n}} 轮开始",
 +  "ring.you.permission.hint": "在下方输入框批准或拒绝（此处只显示）",
 +  "ring.tools.title": "工具台",
@@ -2980,8 +2999,8 @@ index 0000000..41c88c3
 +  "ring.sub.state.docked": "待取回",
 +  "ring.sub.state.done": "已取回",
 +  "ring.sub.state.err": "失败",
-+  "ring.sub.counts": "作业 {{run}} · 待取回 {{docked}} · 已取回 {{done}}/{{total}}",
-+  "ring.sub.counts.narrow": "作业 {{run}} · 已取回 {{done}}/{{total}}",
++  "ring.sub.counts": "{{run}} 在跑 · {{docked}} 待取回 · {{done}}/{{total}} 已回",
++  "ring.sub.counts.narrow": "{{run}} 在跑 · {{done}}/{{total}} 已回",
 +  "ring.sub.empty.yet": "第 {{n}} 轮还没派子代理",
 +  "ring.sub.empty.none": "第 {{n}} 轮没派子代理",
 +  "ring.sub.empty.pre": "没有子代理",
@@ -3018,7 +3037,7 @@ index 0000000..41c88c3
 +  "ring.sub.acts.none": "没有工具调用或文字",
 +  "ring.sub.h.result": "返回结果（原文）",
 +  "ring.sub.result.wait": "还没返回",
-+  "ring.sub.result.docked": "子代理已做完，结果停在待取回泊位，等 {{agent}} 取回",
++  "ring.sub.result.docked": "子代理已做完，等 {{agent}} 取回",
 +  "ring.sub.open": "打开子会话 ↗",
 +  "ring.sub.open.disabled": "子会话还没建立",
 +  "ring.sub.open.note": "子会话 {{id}}",
@@ -3050,6 +3069,7 @@ index 0000000..41c88c3
 +  "ring.legend.err": "失败",
 +  "ring.legend.declined": "忽略 / 拒绝",
 +  "ring.legend.attn": "需要你",
++  "ring.legend.ticks": "刻度：轮次 / 失败 / 提问",
 +  "ring.live.run": "{{agent}} 运行中 · 第 {{n}} 轮第 {{m}} 次请求",
 +  "ring.live.ask": "{{agent}} 等你回答",
 +  "ring.live.permission": "{{agent}} 等你授权",
@@ -3117,6 +3137,15 @@ index 0000000..41c88c3
 +  "ring.status.permission": "等你授權",
 +  "ring.status.end": "本輪結束 · 待命",
 +  "ring.status.abort": "已中止 · 待命",
++  "ring.status.detail.asm": "組裝第 {{m}} 次請求",
++  "ring.status.detail.fly": "等首個回覆 {{dur}}",
++  "ring.status.detail.think": "思考 {{dur}}",
++  "ring.status.detail.out": "輸出 {{dur}}",
++  "ring.status.detail.call": "寫調用",
++  "ring.status.detail.wait": "等結果",
++  "ring.status.detail.wait.one": "等結果 {{dur}} · {{name}} 在跑",
++  "ring.status.detail.wait.many": "等結果 {{dur}} · {{name}} 等 {{n}} 個在跑",
++  "ring.status.detail.next": "結果已齊 · 發下一次",
 +  "ring.fmt.s": "{{n}}秒",
 +  "ring.fmt.ms": "{{m}}分{{s}}秒",
 +  "ring.fmt.long.s": "{{n}} 秒",
@@ -3133,20 +3162,22 @@ index 0000000..41c88c3
 +  "ring.pill.sub.chars": "{{n}} 字",
 +  "ring.pill.sub.calls": "{{n}} 個呼叫",
 +  "ring.pill.sub.mixed": "{{calls}} 個呼叫 + {{asks}} 個提問",
++  "ring.pill.sub.loop": "{{made}} · 同一命令 ×{{n}} 疑似循環",
 +  "ring.pill.sub.asks": "{{n}} 個提問 → 你",
 +  "ring.pill.sub.waited": "已等 {{dur}}",
-+  "ring.pill.sub.flow": "在跑 {{run}} · 回來 {{back}}",
++  "ring.pill.sub.flow": "等 {{run}} · 回來 {{back}}",
++  "ring.pill.sub.flow.mix": "等 {{run}}（工具 {{tools}} · 子代理 {{subs}}）· 回來 {{back}}",
 +  "ring.next.req": "第 {{m}} 次請求 → 模型",
 +  "ring.aborted": "■ 已中止",
-+  "ring.lane.out": "派發航道 →",
-+  "ring.lane.back": "← 回傳航道",
++  "ring.lane.out": "派出 →",
++  "ring.lane.back": "← 回來",
 +  "ring.pkt.you": "你的訊息",
 +  "ring.pkt.handoff": "#{{n}} 交接",
 +  "ring.pkt.return": "#{{n}} 回傳",
 +  "ring.pkt.return.long": "#{{n}} 回傳 {{text}}",
 +  "ring.pkt.ask": "提問「{{header}}」",
-+  "ring.pkt.dismissed": "✕ 你忽略了提問",
-+  "ring.pkt.dismissed.mark": "✕ 已忽略",
++  "ring.pkt.dismissed": "⊘ 你忽略了提問",
++  "ring.pkt.dismissed.mark": "⊘ 已忽略",
 +  "ring.ctr.round": "第 {{n}} 輪",
 +  "ring.ctr.request": "第 {{m}} 次請求",
 +  "ring.ctr.request.short": "請求 {{m}}",
@@ -3168,10 +3199,8 @@ index 0000000..41c88c3
 +  "ring.model.receipt": "回執 合計 {{total}}（入 {{in}} · 出 {{out}}）· {{cost}}",
 +  "ring.model.done": "這次回覆已寫完",
 +  "ring.model.aborted": "第 {{m}} 次請求已中止",
-+  "ring.model.carry": "這次請求：{{carry}} · {{ctx}}",
 +  "ring.model.ctx": "上下文 ≈ {{tok}}（上次回執）",
 +  "ring.model.ctx.unknown": "上下文：這次回執後可知",
-+  "ring.model.ctx.above": "回執見上一行",
 +  "ring.card.kind.idle": "待命",
 +  "ring.card.kind.message": "訊息",
 +  "ring.card.kind.request": "請求",
@@ -3209,7 +3238,7 @@ index 0000000..41c88c3
 +  "ring.card.out.meta": "已 {{n}} 字",
 +  "ring.card.out.meta.dur": "輸出 {{dur}}",
 +  "ring.card.streaming": "生成中…",
-+  "ring.card.estimated": "回放：按時間估算的進度",
++  "ring.card.estimated": "回放中 · 文字按時間比例展開",
 +  "ring.card.call.ask": "正在寫一個給你的提問…",
 +  "ring.card.call.task": "正在寫交給子代理的任務…",
 +  "ring.card.call.tool": "正在寫 {{tool}} 呼叫的參數…",
@@ -3226,8 +3255,9 @@ index 0000000..41c88c3
 +  "ring.card.receipt.body": "第 {{m}} 次請求完成：回執 合計 {{total}}（入 {{in}} · 出 {{out}}）· {{cost}}",
 +  "ring.card.receipt.post": "帶上 {{n}} 個結果，發第 {{next}} 次請求",
 +  "ring.card.receipt.meta": "上下文 {{tok}}（= 這次回執合計）",
-+  "ring.card.dismissed.body": "你忽略了提問「{{header}}」，第 {{n}} 輪到此結束。",
-+  "ring.card.dismissed.meta": "{{at}} · 提問等了 {{dur}} · 已閒置 {{idle}}",
++  "ring.card.dismissed.body": "第 {{n}} 輪已結束 · 等你下一條訊息",
++  "ring.card.dismissed.post": "⊘ 提問「{{header}}」已忽略 · {{at}}",
++  "ring.card.dismissed.meta": "提問等了 {{dur}} · 已閒置 {{idle}}",
 +  "ring.card.end.meta": "{{at}} · 已閒置 {{dur}}",
 +  "ring.card.end.reason": "結束原因 {{reason}}",
 +  "ring.card.aborted.body": "第 {{m}} 次請求被中止：{{name}}（{{message}}）。",
@@ -3245,7 +3275,6 @@ index 0000000..41c88c3
 +  "ring.you.title": "你",
 +  "ring.you.idle": "此刻不需要你",
 +  "ring.you.need": "等你回答 · 已等 {{dur}}",
-+  "ring.you.dismissed": "你忽略了提問 · {{at}}",
 +  "ring.you.writing": "{{agent}} 正在寫一個提問…",
 +  "ring.you.sent": "你剛發出訊息 · {{dur}}前",
 +  "ring.you.permission": "等你授權 · {{permission}}",
@@ -3254,9 +3283,9 @@ index 0000000..41c88c3
 +  "ring.you.ask.head": "提問 · {{header}} · {{n}} 個選項",
 +  "ring.you.ask.narrow": "提問 · {{header}}",
 +  "ring.you.ask.hint": "問題全文見中間卡片 · 在下方輸入框回答（此處只顯示）",
-+  "ring.you.dismissed.head": "✕ 你忽略了提問「{{header}}」",
-+  "ring.you.dismissed.hint": "提問等了 {{dur}} · 第 {{n}} 輪到此結束",
-+  "ring.you.dismissed.narrow": "✕ 你忽略了提問「{{header}}」· 提問等了 {{dur}}",
++  "ring.you.dismissed.line": "⊘ 上次提問已忽略 {{at}} · 等了 {{dur}} ▸",
++  "ring.you.dismissed.hint": "第 {{n}} 輪到此結束 · 等你下一條訊息",
++  "ring.you.dismissed.title": "提問「{{header}}」· 選項：{{options}}",
 +  "ring.you.pre": "回放從第 {{n}} 輪開始",
 +  "ring.you.permission.hint": "在下方輸入框批准或拒絕（此處只顯示）",
 +  "ring.tools.title": "工具台",
@@ -3282,8 +3311,8 @@ index 0000000..41c88c3
 +  "ring.sub.state.docked": "待取回",
 +  "ring.sub.state.done": "已取回",
 +  "ring.sub.state.err": "失敗",
-+  "ring.sub.counts": "作業 {{run}} · 待取回 {{docked}} · 已取回 {{done}}/{{total}}",
-+  "ring.sub.counts.narrow": "作業 {{run}} · 已取回 {{done}}/{{total}}",
++  "ring.sub.counts": "{{run}} 在跑 · {{docked}} 待取回 · {{done}}/{{total}} 已回",
++  "ring.sub.counts.narrow": "{{run}} 在跑 · {{done}}/{{total}} 已回",
 +  "ring.sub.empty.yet": "第 {{n}} 輪還沒派子代理",
 +  "ring.sub.empty.none": "第 {{n}} 輪沒派子代理",
 +  "ring.sub.empty.pre": "沒有子代理",
@@ -3320,7 +3349,7 @@ index 0000000..41c88c3
 +  "ring.sub.acts.none": "沒有工具呼叫或文字",
 +  "ring.sub.h.result": "回傳結果（原文）",
 +  "ring.sub.result.wait": "還沒回傳",
-+  "ring.sub.result.docked": "子代理已完成，結果停在待取回泊位，等 {{agent}} 取回",
++  "ring.sub.result.docked": "子代理已完成，等 {{agent}} 取回",
 +  "ring.sub.open": "開啟子會話 ↗",
 +  "ring.sub.open.disabled": "子會話尚未建立",
 +  "ring.sub.open.note": "子會話 {{id}}",
@@ -3352,6 +3381,7 @@ index 0000000..41c88c3
 +  "ring.legend.err": "失敗",
 +  "ring.legend.declined": "忽略 / 拒絕",
 +  "ring.legend.attn": "需要你",
++  "ring.legend.ticks": "刻度：輪次 / 失敗 / 提問",
 +  "ring.live.run": "{{agent}} 執行中 · 第 {{n}} 輪第 {{m}} 次請求",
 +  "ring.live.ask": "{{agent}} 等你回答",
 +  "ring.live.permission": "{{agent}} 等你授權",
@@ -8856,7 +8886,7 @@ index 0000000..e8db865
 +})
 diff --git a/packages/app/src/components/session/session-runtime-ring-geo.test.ts b/packages/app/src/components/session/session-runtime-ring-geo.test.ts
 new file mode 100644
-index 0000000..fb9e1be
+index 0000000..1cfdb3b
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-geo.test.ts
 @@ -0,0 +1,745 @@
@@ -8982,7 +9012,7 @@ index 0000000..fb9e1be
 +    stage: { st: over.st ?? "call", round: over.round, request: over.request, why: over.why },
 +    status: { word: ph("ring.status.running"), tone: "sub", state: "working" },
 +    counter: { agent: "build", ended: false, requests: [] },
-+    model: { model: "p/m", line: ph("ring.model.waiting"), tone: "faint", ctx: ph("ring.model.waiting"), lit: false },
++    model: { model: "p/m", line: ph("ring.model.waiting"), tone: "faint", lit: false },
 +    card: {
 +      kind: "idle", tone: "faint", from: "", to: "", body: "", bodyMode: "head", mono: false, streaming: false, meta: [],
 +    },
@@ -9607,10 +9637,10 @@ index 0000000..fb9e1be
 +})
 diff --git a/packages/app/src/components/session/session-runtime-ring-geo.ts b/packages/app/src/components/session/session-runtime-ring-geo.ts
 new file mode 100644
-index 0000000..0f78cea
+index 0000000..dd324b1
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-geo.ts
-@@ -0,0 +1,838 @@
+@@ -0,0 +1,843 @@
 +// oco (patches/opencode/0019): M5 runtime ring — geometry, bus wires, packets and the token as pure functions of
 +// (stage width, height, k, t). Ported from the approved mockup (L686-832 geometry, L868-890 token, L1364-1555 wires,
 +// packets, labels). No DOM access; no copy except i18n Phrase keys (`ring.pkt.*`) and raw glyph + tool name labels.
@@ -9636,6 +9666,9 @@ index 0000000..0f78cea
 +
 +// ---------- extensions (all optional or additive; every RingGeo / Wire / Packet consumer keeps working) ----------
 +/** `dock(k)` is the k-th "awaiting pickup" berth on the return lane edge; the view draws a dot there. */
++/** After a dismissed question's marker parks at the door, its label stays this long; then only the ⊘ glyph (P1-3). */
++const DISMISS_MARK_MS = 30_000
++
 +export type RingGeoX = RingGeo & {
 +  dock(k: number): Pt
 +  /** Where each station sits on the ring. `pill[id].cx` is the box centre, which differs when a wide label pushes the pill sideways. */
@@ -10277,9 +10310,11 @@ index 0000000..0f78cea
 +        }
 +        if (at(x.end, t) && x.declined === "dismissed") {
 +          // D18: dismissed is neutral grey, not the failure colour
++          // the parked marker keeps its label for DISMISS_MARK_MS, then only the glyph stays (P1-3)
 +          plans.push({
-+            id: `askback:${x.id}`, path: g.pAskBack, t0: x.end, tone: "faint", park: true, glyph: "✕",
-+            label: ph("ring.pkt.dismissed"), mark: ph("ring.pkt.dismissed.mark"),
++            id: `askback:${x.id}`, path: g.pAskBack, t0: x.end, tone: "faint", park: true, glyph: "⊘",
++            label: ph("ring.pkt.dismissed"),
++            ...(t - x.end! < DISMISS_MARK_MS ? { mark: ph("ring.pkt.dismissed.mark") } : {}),
 +          })
 +        }
 +      }
@@ -10451,10 +10486,10 @@ index 0000000..0f78cea
 +}
 diff --git a/packages/app/src/components/session/session-runtime-ring-keyframes.test.ts b/packages/app/src/components/session/session-runtime-ring-keyframes.test.ts
 new file mode 100644
-index 0000000..8263072
+index 0000000..694ba06
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-keyframes.test.ts
-@@ -0,0 +1,294 @@
+@@ -0,0 +1,291 @@
 +// oco (patches/opencode/0019): M5 runtime ring — keyframe acceptance (Task 11). Each of the real fixture's 14 keyframes
 +// is asserted against the mockup's own verdicts (fixtures/runtime-m5-oracle.json) over frameAt(buildRingIndex(fixture), t).
 +// The mockup is the oracle except where the plan decided otherwise: D5 (any non-continue finish reason ends a round),
@@ -10502,7 +10537,6 @@ index 0000000..8263072
 +}
 +// the mockup writes seconds as "0.7 秒" and a clock in the machine's zone (UTC+8 when the fixture was captured)
 +const squash = (s: string) => s.replace(/\s+/g, "").replace(/\d{2}:\d{2}:\d{2}/g, "HH:MM:SS")
-+const utc8Clock = (at: number) => new Date(at + 8 * 3600_000).toISOString().slice(11, 19)
 +const STATUS_KEY = new Map(
 +  (["running", "ask", "permission", "end", "abort"] as const).map((k) => [zh.t(`ring.status.${k}`), `ring.status.${k}`] as const),
 +)
@@ -10579,10 +10613,8 @@ index 0000000..8263072
 +      // you dock
 +      expect(f.you.state).toBe(o.you.state)
 +      expect(squash(zh.phrase(f.you.status))).toBe(squash(o.you.status))
-+      if (o.you.state === "dismissed") {
-+        expect(f.you.dismissed?.at).toBeDefined()
-+        expect(o.you.status).toContain(utc8Clock(f.you.dismissed?.at ?? 0))
-+      }
++      // P1-3 (2026-10-10): the dismissal clock moved from the status line into the one-line body; the status reads idle
++      if (o.you.state === "dismissed") expect(f.you.dismissed?.at).toBeDefined()
 +
 +      // status word key and tone
 +      if (!d5) {
@@ -11084,10 +11116,10 @@ index 0000000..31101e5
 +})
 diff --git a/packages/app/src/components/session/session-runtime-ring-sub-view.tsx b/packages/app/src/components/session/session-runtime-ring-sub-view.tsx
 new file mode 100644
-index 0000000..a5638b2
+index 0000000..53bf816
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-sub-view.tsx
-@@ -0,0 +1,825 @@
+@@ -0,0 +1,826 @@
 +// oco (patches/opencode/0019): M5 runtime ring — subagent dock (strip / cells), probe hit layer, detail and list panel.
 +// View only: every fact comes from the frame or from subDetailAt / subListAt at t (session-runtime-ring-sub.ts), so the
 +// panel never shows anything later than t. Look and navigate only: no reply, stop or cancel control (plan section
@@ -11317,7 +11349,8 @@ index 0000000..a5638b2
 +    const s = props.frame().subs
 +    const total = s.cells.length
 +    const done = s.counts.done + s.counts.err
-+    return narrow() && !s.counts.docked
++    // P2-5: "awaiting pickup" only when there is one, in both layouts
++    return !s.counts.docked
 +      ? text.t("ring.sub.counts.narrow", { run: s.counts.run, done, total })
 +      : text.t("ring.sub.counts", { run: s.counts.run, docked: s.counts.docked, done, total })
 +  }
@@ -13613,10 +13646,10 @@ index 0000000..ac7355b
 +}
 diff --git a/packages/app/src/components/session/session-runtime-ring-types.ts b/packages/app/src/components/session/session-runtime-ring-types.ts
 new file mode 100644
-index 0000000..3043d59
+index 0000000..b566af5
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-types.ts
-@@ -0,0 +1,243 @@
+@@ -0,0 +1,250 @@
 +// oco (patches/opencode/0019): M5 runtime ring — shared contract. Types and constants only; no logic.
 +import type { RuntimeKey } from "./session-runtime-i18n"
 +import type { Message, Part } from "@opencode-ai/sdk/v2/client"
@@ -13631,6 +13664,8 @@ index 0000000..3043d59
 +} as const
 +// finish reasons that keep the agent loop going (opencode session/prompt.ts); any other reason ends the loop (D5)
 +export const LOOP_CONTINUE: readonly string[] = ["tool-calls", "unknown"]
++/** The same command issued this many times in one request reads as a suspected loop (2026-10-10 review P2-8). */
++export const LOOP_SAME = 3
 +
 +// ---------- copy ----------
 +export type PhraseParam =
@@ -13764,6 +13799,7 @@ index 0000000..3043d59
 +  id: string; name: string; state: ToolRowState
 +  arg: string                      // "" while pend (view shows ring.tools.args.pending)
 +  durMs?: number; same?: [number, number]
++  slow?: true                      // still running after SLOW_MS (P1-1): the row's duration turns amber
 +  chars?: number; head?: string; error?: string; rejected?: boolean
 +}
 +export type RingToolsDock = { m?: number; rows: RingToolRow[]; counts: Record<ToolRowState, number>; empty?: Phrase; emptyNote?: Phrase }
@@ -13783,10 +13819,14 @@ index 0000000..3043d59
 +  requests: { m: number; state: "done" | "cur" | "bad" }[]
 +  plan?: { done: number; inProgress: number; total: number; items: { text: string; status: RingTodo["status"] }[] }
 +}
-+export type RingModelBox = { model: string; m?: number; line: Phrase; tone: Tone; carry?: Phrase; ctx: Phrase; lit: boolean }
++export type RingModelBox = { model: string; m?: number; line: Phrase; tone: Tone; carry?: Phrase; lit: boolean }   // context lives in the status bar only (P2-6)
 +export type RingPills = Record<PillId, { lit: boolean; sub?: Phrase }>
 +export type RingBar = { round?: number; durMs?: number; waitMs: number; idleMs?: number; ctx?: number; costUsd?: number }
-+export type RingStatus = { word: Phrase; tone: Tone; state: RunState }
++export type RingStatus = {
++  word: Phrase; tone: Tone; state: RunState
++  detail?: Phrase                  // running / ask: phase · object · waited (2026-10-10 review P1-1); the view draws it after the word
++  slow?: boolean                   // a call of this request has been out longer than SLOW_MS: the detail turns amber
++}
 +export type RingFrame = {
 +  t: number; stage: RingStage; status: RingStatus; counter: RingCounter; model: RingModelBox
 +  card: RingCard; pills: RingPills; you: RingYou; tools: RingToolsDock; subs: RingSubsDock
@@ -13862,7 +13902,7 @@ index 0000000..3043d59
 +}
 diff --git a/packages/app/src/components/session/session-runtime-ring-view.tsx b/packages/app/src/components/session/session-runtime-ring-view.tsx
 new file mode 100644
-index 0000000..4fb687f
+index 0000000..2158313
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring-view.tsx
 @@ -0,0 +1,1285 @@
@@ -13891,7 +13931,7 @@ index 0000000..4fb687f
 +  type RingWire,
 +} from "./session-runtime-ring-geo"
 +import { RingSubView } from "./session-runtime-ring-sub-view"
-+import { RING } from "./session-runtime-ring-types"
++import { LOOP_SAME, RING } from "./session-runtime-ring-types"
 +import type {
 +  Box,
 +  Phrase,
@@ -14302,13 +14342,13 @@ index 0000000..4fb687f
 +
 +  // ---------- you ----------
 +  const you = () => f().you
-+  const youCls = () => (you().state === "need" || you().state === "permission" ? "need" : you().state === "dismissed" ? "dism" : "idle")
++  const youCls = () => (you().state === "need" || you().state === "permission" ? "need" : "idle") // dismissed looks idle (P1-3)
 +  const firstRound = () => props.index().rounds[0]?.n
 +
 +  const model = () => f().model
 +  const modelCarry = () => {
 +    const mb = model()
-+    return mb.carry ? text.t("ring.model.carry", { carry: say(mb.carry), ctx: say(mb.ctx) }) : say(mb.ctx)
++    return mb.carry ? say(mb.carry) : "" // the context figure is in the status bar only (P2-6)
 +  }
 +
 +  const mono = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
@@ -14464,7 +14504,7 @@ index 0000000..4fb687f
 +              gap: wide() ? "6px" : "3px",
 +              padding: wide() ? "10px 12px" : "7px 10px",
 +              "border-radius": "8px",
-+              border: `1px solid ${youCls() === "need" ? "var(--rt-attn)" : youCls() === "dism" ? "var(--rt-faint)" : "var(--rt-line)"}`,
++              border: `1px solid ${youCls() === "need" ? "var(--rt-attn)" : "var(--rt-line)"}`,
 +              background: youCls() === "need" ? "var(--rt-attn-deep)" : "var(--rt-bg)",
 +              color: "var(--rt-text)",
 +            }}
@@ -14528,28 +14568,20 @@ index 0000000..4fb687f
 +              </Match>
 +              <Match when={you().dismissed}>
 +                {(d) => {
++                  // P1-3: after the round ended, the dismissal is one faint line (options on hover), not a struck-out list
 +                  const n = () => you().round?.n ?? f().counter.round ?? 0
++                  const title = () =>
++                    text.t("ring.you.dismissed.title", {
++                      header: d().header,
++                      options: d().options.map((o, i) => `${NUM[i] ?? String(i + 1)} ${o}`).join("  "),
++                    })
 +                  return (
 +                    <>
-+                      <div style={{ "font-size": "12.5px", "font-weight": 700, color: "var(--rt-weak)" }}>
-+                        {wide()
-+                          ? text.t("ring.you.dismissed.head", { header: d().header })
-+                          : text.t("ring.you.dismissed.narrow", { header: d().header, dur: text.dur(d().waitedMs, true) })}
++                      <div data-oco-runtime-you-dismissed title={title()} style={{ ...ell, "font-size": "12px", color: "var(--rt-faint)" }}>
++                        {text.t("ring.you.dismissed.line", { at: text.clock(d().at), dur: text.dur(d().waitedMs, true) })}
 +                      </div>
 +                      <Show when={wide()}>
-+                        <ol style={{ margin: "0", padding: "0", "list-style": "none", "font-size": "12px", display: "flex", "flex-direction": "column", gap: "5px" }}>
-+                          <Index each={d().options}>
-+                            {(o, i) => (
-+                              <li data-oco-runtime-you-option={i + 1} style={{ display: "grid", "grid-template-columns": "16px minmax(0,1fr)", "column-gap": "4px" }}>
-+                                <i style={{ "font-style": "normal", color: "var(--rt-faint)" }}>{NUM[i] ?? String(i + 1)}</i>
-+                                <b style={{ "font-weight": 400, color: "var(--rt-faint)", "text-decoration": "line-through" }}>{o()}</b>
-+                              </li>
-+                            )}
-+                          </Index>
-+                        </ol>
-+                        <div style={{ "font-size": "11px", color: "var(--rt-faint)" }}>
-+                          {text.t("ring.you.dismissed.hint", { dur: text.dur(d().waitedMs, true), n: n() })}
-+                        </div>
++                        <div style={{ "font-size": "11px", color: "var(--rt-faint)" }}>{text.t("ring.you.dismissed.hint", { n: n() })}</div>
 +                      </Show>
 +                    </>
 +                  )
@@ -14611,9 +14643,6 @@ index 0000000..4fb687f
 +                fallback={<span style={{ ...ell, "font-weight": 700, color: TONE[model().tone] }}>{say(model().line)}</span>}
 +              >
 +                <span style={{ ...ell, "font-family": mono, color: "var(--rt-faint)" }}>{model().model || "—"}</span>
-+                <span style={{ "margin-left": "auto", color: "var(--rt-faint)", "font-size": "11px", "white-space": "nowrap" }}>
-+                  {model().m !== undefined ? text.t("ring.ctr.request", { m: model().m! }) : ""}
-+                </span>
 +              </Show>
 +            </div>
 +            <Show when={wide()}>
@@ -14832,7 +14861,6 @@ index 0000000..4fb687f
 +          >
 +            <div style={{ display: "flex", "align-items": "baseline", gap: "6px", "font-size": "12px", height: "20px", "white-space": "nowrap", overflow: "hidden" }}>
 +              <b style={{ color: "var(--rt-tool)" }}>{text.t("ring.tools.title")}</b>
-+              <span>{tools().m !== undefined ? text.t("ring.ctr.request", { m: tools().m! }) : ""}</span>
 +              <span style={{ "margin-left": "auto", "min-width": "0", overflow: "hidden", "text-overflow": "ellipsis", color: "var(--rt-weak)", "font-size": "11.5px" }}>
 +                {tools().rows.length
 +                  ? text.t("ring.tools.counts", { run: tools().counts.run, ok: tools().counts.ok, err: tools().counts.err }) +
@@ -14892,11 +14920,22 @@ index 0000000..4fb687f
 +                        <span style={{ flex: "none", "font-family": mono, "font-size": "11px", color: "var(--rt-weak)" }}>{rowZ(r())}</span>
 +                      </Show>
 +                      <Show when={same()}>
-+                        <span style={{ flex: "none", "font-size": "10.5px", color: "var(--rt-weak)", border: "1px solid var(--rt-line-strong)", "border-radius": "3px", padding: "0 3px" }}>
++                        {/* P2-8: from the LOOP_SAME-th identical command the chip turns amber */}
++                        <span
++                          data-oco-runtime-tool-loop={same()![1] >= LOOP_SAME ? "" : undefined}
++                          style={{
++                            flex: "none", "font-size": "10.5px", "border-radius": "3px", padding: "0 3px",
++                            color: same()![1] >= LOOP_SAME ? "var(--rt-attn)" : "var(--rt-weak)",
++                            border: `1px solid ${same()![1] >= LOOP_SAME ? "var(--rt-attn)" : "var(--rt-line-strong)"}`,
++                          }}
++                        >
 +                          {chip() ? `${same()![0]}/${same()![1]}` : text.t("ring.tools.same", { i: same()![0], n: same()![1] })}
 +                        </span>
 +                      </Show>
-+                      <span style={{ "margin-left": "auto", flex: "none", "font-family": mono, "font-size": "11px", color: "var(--rt-weak)" }}>
++                      <span
++                        data-oco-runtime-tool-slow={r().slow ? "" : undefined}
++                        style={{ "margin-left": "auto", flex: "none", "font-family": mono, "font-size": "11px", color: r().slow ? "var(--rt-attn)" : "var(--rt-weak)", "font-weight": r().slow ? 700 : 400 }}
++                      >
 +                        {r().state === "pend" ? "" : text.dur(r().durMs ?? 0)}
 +                      </span>
 +                    </div>
@@ -14962,17 +15001,18 @@ index 0000000..4fb687f
 +              <text x={geo().sx1 - 6} y={geo().botY + 12} font-size="10.5" fill="var(--rt-faint)" fill-opacity={geo().k.toFixed(3)} text-anchor="end">
 +                {text.t("ring.lane.back")}
 +              </text>
-+              <Index each={[0, 1, 2, 3, 4, 5]}>
-+                {(k) => (
++              {/* P2-5: a berth dot only where a finished result waits to be picked up; empty berths are not drawn */}
++              <For each={f().subs.cells.filter((c) => c.state === "docked")}>
++                {(c) => (
 +                  <circle
-+                    cx={geo().dock(k()).x}
-+                    cy={geo().dock(k()).y}
++                    cx={geo().dock(Math.min(c.slot, 5)).x}
++                    cy={geo().dock(Math.min(c.slot, 5)).y}
 +                    r="2.5"
-+                    fill="var(--rt-faint)"
-+                    fill-opacity={(0.6 * geo().k).toFixed(3)}
++                    fill="var(--rt-attn)"
++                    fill-opacity={(0.8 * geo().k).toFixed(3)}
 +                  />
 +                )}
-+              </Index>
++              </For>
 +            </Show>
 +            <For each={pk.ids()}>{(id) => <PacketEl packet={() => pk.get(id)} reduced={reduced} t={props.t} />}</For>
 +            <Index each={labels()}>
@@ -15427,16 +15467,17 @@ index 0000000..80429e8
 +}
 diff --git a/packages/app/src/components/session/session-runtime-ring.test.ts b/packages/app/src/components/session/session-runtime-ring.test.ts
 new file mode 100644
-index 0000000..4febc3c
+index 0000000..694a6a3
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring.test.ts
-@@ -0,0 +1,784 @@
+@@ -0,0 +1,818 @@
 +// oco (patches/opencode/0019): unit tests for the M5 ring pure module (Task 5): stage, frame, no-leak property.
 +import { describe, expect, test } from "bun:test"
 +import { backgroundNoticesOf } from "./session-runtime-model"
 +import {
 +  buildRingIndex,
 +  frameAt,
++  SLOW_MS,
 +  laneOpen,
 +  liveTime,
 +  roundAt,
@@ -15739,6 +15780,40 @@ index 0000000..4febc3c
 +  expect(fd.card.kind).toBe("dismissed")
 +  expect(fd.card.tone).toBe("faint") // D18: not red
 +  expect(fd.you.state).toBe("dismissed")
++  // P1-3 (2026-10-10): the You dock reads idle with the dismissal as one line; the card says the round ended, dismissal as a footnote
++  expect(fd.you.status.key).toBe("ring.you.idle")
++  expect(fd.you.dismissed).toEqual({ header: "Pick", options: ["A", "B"], waitedMs: 2900, at: at(6000) })
++  expect(fd.card.pre).toEqual({ key: "ring.card.dismissed.body", params: { n: 1 } })
++  expect(fd.card.post).toEqual({ key: "ring.card.dismissed.post", params: { header: "Pick", at: { at: at(6000) } } })
++})
++
++test("7b status detail (2026-10-10 review P1-1): phase · object · waited; amber after SLOW_MS on the status and the tool row", () => {
++  const b = new SessionBuilder("ses_slow")
++  b.user(at(1000), "go")
++  b.assistant(at(2000)).stepStart(at(2100)).call(at(3000), "bash", { start: at(3100), input: { command: "sleep 30" } })
++  const index = buildRingIndex(b.input())
++  const early = frame(index, 5000)
++  expect(early.status.word.key).toBe("ring.status.running")
++  expect(early.status.detail).toEqual({ key: "ring.status.detail.wait.one", params: { dur: { ms: 1900 }, name: "bash" } })
++  expect(early.status.slow).toBeUndefined()
++  expect(early.tools.rows[0]!.slow).toBeUndefined()
++  const late = frame(index, 3100 + SLOW_MS + 500)
++  expect(late.status.slow).toBe(true)
++  expect(late.tools.rows[0]!.slow).toBe(true)
++  const loop = buildRingIndex(loopSession().input())
++  expect(frame(loop, 2300).status.detail).toEqual({ key: "ring.status.detail.think", params: { dur: { ms: 100 } } })
++  expect(frame(loop, 4600).status.detail).toEqual({ key: "ring.pill.sub.waited", params: { dur: { ms: 100 } } })
++  // P2-5: one waiting count; the pill splits it only when both tools and sub-agents are out
++  expect(frame(loop, 3500).pills.wait.sub).toEqual({ key: "ring.pill.sub.flow", params: { run: 1, back: 0 } })
++  // P2-8: the third identical command in one request flags a suspected loop on the call pill (the row chip reads same[1])
++  const l = new SessionBuilder("ses_loop3")
++  l.user(at(1000), "go")
++  const a = l.assistant(at(2000)).stepStart(at(2100))
++  for (const k of [0, 1, 2]) a.tool(at(3000 + k * 1000), "bash", { start: at(3100 + k * 1000), end: at(3500 + k * 1000), input: { command: "echo probe" }, output: "probe" })
++  const lf = frame(buildRingIndex(l.input()), 6000)
++  expect(lf.tools.rows.map((r) => r.same)).toEqual([[1, 3], [2, 3], [3, 3]])
++  expect(lf.pills.call.sub).toEqual({ key: "ring.pill.sub.loop", params: { made: { key: "ring.pill.sub.calls", params: { n: 3 } }, n: 3 } })
++  expect(frame(buildRingIndex(l.input()), 4200).pills.call.sub).toEqual({ key: "ring.pill.sub.calls", params: { n: 2 } })
 +})
 +
 +test("8 live permission on a running tool: stage ask, permission card, you permission", () => {
@@ -15858,7 +15933,6 @@ index 0000000..4febc3c
 +  const bar = frame(index, 4600).bar
 +  expect(bar.ctx).toBe(1000)
 +  expect(bar.costUsd).toBeCloseTo(0.01, 10)
-+  expect(frame(index, 4600).model.ctx).toEqual({ key: "ring.model.ctx", params: { tok: { tok: 1000 } } })
 +})
 +
 +/** Sync child in 3 steps, a background task with notice and retrieval, streaming reasoning and text at the end. */
@@ -16217,10 +16291,10 @@ index 0000000..4febc3c
 +})
 diff --git a/packages/app/src/components/session/session-runtime-ring.ts b/packages/app/src/components/session/session-runtime-ring.ts
 new file mode 100644
-index 0000000..54bd979
+index 0000000..45cc373
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime-ring.ts
-@@ -0,0 +1,1819 @@
+@@ -0,0 +1,1887 @@
 +// oco (patches/opencode/0019): M5 runtime ring — index, stage and frame as pure functions of t (Task 5).
 +// buildRingIndex reads the full data once; every query below (roundAt, stageAt, laneOpen, planAt, frameAt,
 +// trackInputOf) reads only facts whose time is at or before t (D1, D2), so a frame equals the frame computed from
@@ -16237,7 +16311,7 @@ index 0000000..54bd979
 +  type BackgroundNotice,
 +} from "./session-runtime-model"
 +import { revealAt, subStateAt } from "./session-runtime-ring-sub"
-+import { LOOP_CONTINUE, RING } from "./session-runtime-ring-types"
++import { LOOP_CONTINUE, LOOP_SAME, RING } from "./session-runtime-ring-types"
 +import type {
 +  Phrase,
 +  PhraseParam,
@@ -17382,17 +17456,78 @@ index 0000000..54bd979
 +  next: "next",
 +}
 +
-+function statusOf(S: RingStage, live?: RingLiveInput): RingFrame["status"] {
++/** Largest same-command group among this request's calls whose arguments are written at t; 0 below LOOP_SAME. */
++function loopSuspectOf(F: Facts, t: number): number {
++  const n = new Map<string, number>()
++  for (const x of F.own) if (at(x.start, t)) n.set(x.key, (n.get(x.key) ?? 0) + 1)
++  const max = Math.max(0, ...n.values())
++  return max >= LOOP_SAME ? max : 0
++}
++
++/** A call of the current request still out after this long: the top-bar detail and its tool row turn amber (2026-10-10 review P1-1). */
++export const SLOW_MS = 10_000
++
++/** Calls of the current request still out at t (own tools running, task calls queued or running as `#N`), oldest first. */
++function runningOf(F: Facts, t: number): { name: string; start: number }[] {
++  const own = F.own.filter((x) => toolStateAt(x, t) === "run").map((x) => ({ name: x.name, start: x.start! }))
++  const subs = F.qsubs
++    .filter((x) => {
++      const s = subStateAt(x.sub!, t)
++      return s === "run" || s === "queued"
++    })
++    .map((x) => ({ name: `#${x.sub!.num}`, start: x.start ?? x.created }))
++  return own.concat(subs).sort((a, b) => a.start - b.start)
++}
++
++function statusOf(S: RingStage, F: Facts, t: number, live?: RingLiveInput): RingFrame["status"] {
 +  const derived =
 +    S.st === "pre" || S.st === "end" || S.st === "abort" ? "idle" : S.st === "ask" ? "waiting-user" : "working"
 +  const state = live ? live.run : derived
 +  if (live?.permissions.length) return { word: ph("ring.status.permission"), tone: "attn", state }
 +  if (live?.run === "retrying") return { word: ph("state.retrying"), tone: "attn", state }
 +  if (S.st === "pre") return { word: ph("state.idle"), tone: "faint", state }
-+  if (S.st === "ask") return { word: ph("ring.status.ask"), tone: "attn", state }
++  if (S.st === "ask")
++    return { word: ph("ring.status.ask"), tone: "attn", state, detail: ph("ring.pill.sub.waited", { dur: ms(t - (S.ask?.start ?? t)) }) }
 +  if (S.st === "end") return { word: ph("ring.status.end"), tone: "ok", state }
 +  if (S.st === "abort") return { word: ph("ring.status.abort"), tone: "err", state }
-+  return { word: ph("ring.status.running"), tone: "sub", state }
++  // running: say which phase, on what, and for how long (P1-1); "needs you" stays the permission / ask path above
++  const out: RingFrame["status"] = { word: ph("ring.status.running"), tone: "sub", state }
++  const q = F.q
++  switch (S.st) {
++    case "say":
++    case "asm":
++      out.detail = ph("ring.status.detail.asm", { m: q?.m ?? 1 })
++      break
++    case "fly":
++      out.detail = ph("ring.status.detail.fly", { dur: ms(t - (q?.stepStart ?? t)) })
++      break
++    case "think":
++      out.detail = ph("ring.status.detail.think", { dur: ms(t - (F.think?.start ?? t)) })
++      break
++    case "out":
++      out.detail = ph("ring.status.detail.out", { dur: ms(t - (F.text?.start ?? t)) })
++      break
++    case "call":
++      out.detail = ph("ring.status.detail.call")
++      break
++    case "wait":
++    case "next": {
++      const runs = runningOf(F, t)
++      if (!runs.length) {
++        out.detail = ph(S.st === "next" ? "ring.status.detail.next" : "ring.status.detail.wait")
++        break
++      }
++      const oldest = runs[0]!
++      const waited = t - oldest.start
++      if (waited > SLOW_MS) out.slow = true
++      out.detail =
++        runs.length > 1
++          ? ph("ring.status.detail.wait.many", { dur: ms(waited), name: oldest.name, n: runs.length })
++          : ph("ring.status.detail.wait.one", { dur: ms(waited), name: oldest.name })
++      break
++    }
++  }
++  return out
 +}
 +
 +function pillsOf(S: RingStage, F: Facts, t: number, live: boolean): RingPills {
@@ -17413,13 +17548,22 @@ index 0000000..54bd979
 +    const s = shownSpan(F.text, t, live)
 +    if (s.ended || live) pills.out.sub = ph("ring.pill.sub.chars", { n: codePoints(s.text) })
 +  }
-+  if (F.made.length) pills.call.sub = F.nCall ? madeOf(F) : ph("ring.pill.sub.asks", { n: F.nQ })
++  if (F.made.length) {
++    const made = F.nCall ? madeOf(F) : ph("ring.pill.sub.asks", { n: F.nQ })
++    const loop = loopSuspectOf(F, t)
++    pills.call.sub = loop ? ph("ring.pill.sub.loop", { made, n: loop }) : made
++  }
 +  if (S.st === "ask" && S.ask) pills.wait.sub = ph("ring.pill.sub.waited", { dur: ms(t - S.ask.start!) })
-+  else if (F.made.length && (S.st === "wait" || S.st === "call" || S.st === "next"))
-+    pills.wait.sub = ph("ring.pill.sub.flow", {
-+      run: F.tc.run + F.qsc.run + F.qsc.docked,
-+      back: F.tc.ok + F.tc.err + F.rejected + F.qsc.done + F.qsc.err,
-+    })
++  else if (F.made.length && (S.st === "wait" || S.st === "call" || S.st === "next")) {
++    // P2-5: one count the user does not have to reconcile with the tools dock and the sub-agent header
++    const tools = F.tc.run
++    const subs = F.qsc.run + F.qsc.docked
++    const back = F.tc.ok + F.tc.err + F.rejected + F.qsc.done + F.qsc.err
++    pills.wait.sub =
++      tools && subs
++        ? ph("ring.pill.sub.flow.mix", { run: tools + subs, tools, subs, back })
++        : ph("ring.pill.sub.flow", { run: tools + subs, back })
++  }
 +  return pills
 +}
 +
@@ -17446,19 +17590,16 @@ index 0000000..54bd979
 +
 +function modelOf(S: RingStage, F: Facts, t: number, live: boolean): RingModelBox {
 +  const q = F.q
-+  const got = !!q?.finish && q.finish.at <= t
-+  const ctx = got ? ph("ring.model.ctx.above") : ctxPhrase(F)
 +  const box = (line: Phrase, tone: Tone): RingModelBox => {
 +    const out: RingModelBox = {
 +      model: q?.model ?? "",
 +      line,
 +      tone,
-+      ctx,
 +      lit: S.st === "fly" || S.st === "think" || S.st === "out" || S.st === "call",
 +    }
 +    if (q) {
 +      out.m = q.m
-+      out.carry = carriedOf(F, t).phrase // the view composes ring.model.carry with ctx
++      out.carry = carriedOf(F, t).phrase // third line of the box; the context figure stays in the status bar (P2-6)
 +    }
 +    return out
 +  }
@@ -17704,12 +17845,12 @@ index 0000000..54bd979
 +    }
 +    case "end": {
 +      if (S.why === "dismiss" && S.dismissed) {
++        // P1-3: the card says the round is over and what comes next; the dismissal itself is a one-line footnote
 +        const x = S.dismissed
-+        return card("dismissed", "faint", who("ring.card.who.you"), ag, {
-+          pre: ph("ring.card.dismissed.body", { header: x.question?.header ?? "", n: r!.n }),
-+          meta: [
-+            ph("ring.card.dismissed.meta", { at: { at: x.end! }, dur: ms(x.end! - (x.start ?? x.end!)), idle: ms(F.idle) }),
-+          ],
++        return card("dismissed", "faint", ag, who("ring.card.who.you"), {
++          pre: ph("ring.card.dismissed.body", { n: r!.n }),
++          post: ph("ring.card.dismissed.post", { header: x.question?.header ?? "", at: { at: x.end! } }),
++          meta: [ph("ring.card.dismissed.meta", { dur: ms(x.end! - (x.start ?? x.end!)), idle: ms(F.idle) })],
 +        })
 +      }
 +      const tx = q!.texts.filter((s) => s.start <= t).pop()
@@ -17769,7 +17910,7 @@ index 0000000..54bd979
 +    const x = ask.x
 +    return {
 +      state: "dismissed",
-+      status: ph("ring.you.dismissed", { at: { at: x.end! } }),
++      status: ph("ring.you.idle"), // P1-3: the round is over and nothing is pending; the dismissal is one line in the body
 +      ...round,
 +      dismissed: {
 +        header: x.question?.header ?? "",
@@ -17791,6 +17932,7 @@ index 0000000..54bd979
 +    const state = toolStateAt(x, t)!
 +    const row: RingToolRow = { id: x.id, name: x.name, state, arg: state === "pend" ? "" : x.arg }
 +    if (state === "run") row.durMs = t - x.start!
++    if (state === "run" && t - x.start! > SLOW_MS) row.slow = true
 +    if (state === "ok" || state === "err") row.durMs = x.end! - x.start!
 +    if (state !== "pend") {
 +      // same command: only calls whose arguments are written at t (the key comes from the arguments)
@@ -17913,7 +18055,7 @@ index 0000000..54bd979
 +  return {
 +    t,
 +    stage,
-+    status: statusOf(stage, opts.live),
++    status: statusOf(stage, F, t, opts.live),
 +    counter: counterOf(index, stage, F, t),
 +    model: modelOf(stage, F, t, live),
 +    card: cardOf(stage, F, t, opts),
@@ -18254,10 +18396,10 @@ index 0000000..012860f
 +}
 diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
 new file mode 100644
-index 0000000..8e25612
+index 0000000..4927cc2
 --- /dev/null
 +++ b/packages/app/src/components/session/session-runtime.tsx
-@@ -0,0 +1,1201 @@
+@@ -0,0 +1,1216 @@
 +// oco (patches/opencode/0019): 对话 / 轨迹 / 运行 — the runtime view.
 +// M5 (2026-10-08): top bar / stage (ring) / status bar (the caption line was dropped 2026-10-09: it repeated the model box). The ring index is rebuilt at most every
 +// RING.REBUILD_MS from a dirty-session set (D11); the frame at the visual t is recomputed per animation frame into a
@@ -18328,6 +18470,7 @@ index 0000000..8e25612
 +  { key: "ring.legend.err", glyph: "✗", color: "var(--rt-err)" },
 +  { key: "ring.legend.declined", glyph: "⊘", color: "var(--rt-weak)" },
 +  { key: "ring.legend.attn", glyph: "●", color: "var(--rt-attn)" },
++  { key: "ring.legend.ticks", glyph: "│", color: "var(--rt-weak)" }, // P3-10: the track's round / red / amber ticks
 +]
 +
 +// Frame fields kept in the reconciled store; `stage` holds index objects (round / request) and lives in a signal.
@@ -18809,6 +18952,9 @@ index 0000000..8e25612
 +    return mode() === "live" && (s === "retrying" || s === "error") ? t(`state.${s}`) : copy.phrase(frame.status.word)
 +  }
 +  const evidence = () => (mode() === "live" ? shownModel().run.evidence : "inferred")
++  // P1-1 (2026-10-10 review): phase · object · waited after the word; amber once a call has been out longer than SLOW_MS.
++  // Amber text here is "look at this", not the "needs you" state (that one colours the dot, the word and the You dock).
++  const stateDetail = () => (mode() === "live" && (runState() === "retrying" || runState() === "error") ? undefined : frame.status.detail)
 +  const retryFocus = () => {
 +    const f = live().focus
 +    return mode() === "live" && f.kind === "retry" ? f : undefined
@@ -19153,6 +19299,17 @@ index 0000000..8e25612
 +            >
 +              {stateWord()}
 +            </span>
++            <Show when={stateDetail()}>
++              {(d) => (
++                <span
++                  data-oco-runtime-state-detail
++                  class="ell"
++                  style={{ "min-width": "0", "max-width": rootW() >= 980 ? "300px" : "180px", "font-weight": 400, color: frame.status.slow ? "var(--rt-attn)" : "var(--rt-weak)" }}
++                >
++                  {"· " + copy.phrase(d())}
++                </span>
++              )}
++            </Show>
 +          </div>
 +
 +          <Show when={retryFocus()}>

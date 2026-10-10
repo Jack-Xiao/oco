@@ -1,0 +1,26 @@
+# Cockpit Inbox v2 改造 Checkpoint
+
+- **日期**：2026-10-10
+- **范围**：
+  - `apps/extension/src/session-store.ts`
+  - `apps/extension/src/session-groups.ts`
+  - `apps/extension/src/sessions-view.ts`
+  - `apps/extension/src/sessions-webview.ts`
+  - `apps/extension/media/sessions-list/index.js`
+  - `apps/extension/media/sessions-list/index.css`
+  - `tests/unit/session-store.test.ts`
+  - `tests/unit/sessions-view.test.ts`
+  - `tests/unit/session-groups.test.ts`
+  - `tests/e2e/c6-inbox.mjs`
+  - `docs/evidence/cockpit-inbox-2026-10-10-impl2-checkpoint.md`
+- **进度**：
+  - [x] Checkpoint 初始化
+  - [x] 1. 阅读需求文档及相关源文件定位
+  - [x] 2. `session-store.ts` 改造 InboxRow（parentId, agent, detail, at, title 清洗, permission summary/detail）
+  - [x] 3. `session-groups.ts` 实现 `groupInbox(rows)` 纯函数
+  - [x] 4. `sessions-view.ts` 输出 `inbox: InboxEntry[]`
+  - [x] 5. `index.js` 渲染改造（节头、组头、引导线、键盘无障碍、折叠）
+  - [x] 6. `index.css` 样式改造（VS Code 行内按钮、组头、引导线、高对比度）
+  - [x] 7. `tests/e2e/c6-inbox.mjs` 断言与选择器更新
+  - [x] 8. 完善单测并执行全量验收（typecheck 0 错、unit test 202 pass、build:extension 通过、node --check 通过）
+- **当前步骤**：所有要点已完成，全量验收通过，准备交付报告

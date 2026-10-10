@@ -145,7 +145,7 @@ export function activate(context: vscode.ExtensionContext) {
     if (q.trim()) void feed.search(q.trim())
   }
   // The sidebar list is a webview; retained while hidden so reopening the sidebar never rebuilds it.
-  const webList = new SessionsWebview(view, context.extensionUri, searchSessions)
+  const webList = new SessionsWebview(view, context.extensionUri, searchSessions, conn)
   context.subscriptions.push(webList, vscode.window.registerWebviewViewProvider(SESSIONS_VIEW, webList, { webviewOptions: { retainContextWhenHidden: true } }))
 
   const fail = (what: string, e: unknown) => void vscode.window.showErrorMessage(`oco: ${what} (${(e as Error).message})`)

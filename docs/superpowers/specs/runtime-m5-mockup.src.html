@@ -33,7 +33,9 @@ button,select{font:inherit;color:inherit}
 /* ---------- 运行视图（固定框架） ---------- */
 .frame{height:calc(100vh - 30px);min-height:430px;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:6px;padding:8px 16px;background:var(--rt-bg);position:relative}
 .top{display:grid;grid-template-columns:auto auto auto minmax(120px,1fr) auto auto;grid-template-areas:"state mode ctl track clock spd";align-items:center;column-gap:10px;padding-bottom:6px;border-bottom:1px solid var(--rt-line-strong);min-width:0}
-.state{grid-area:state;display:flex;align-items:center;gap:7px;font-weight:700;white-space:nowrap;width:128px;overflow:hidden}
+.state{grid-area:state;display:flex;align-items:center;gap:7px;font-weight:700;white-space:nowrap;min-width:128px;max-width:300px;overflow:hidden}
+.state .sd2{font-weight:400;color:var(--rt-weak);overflow:hidden;text-overflow:ellipsis}
+.state .sd2.slow{color:var(--rt-attn)}
 .state i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--c)}
 .state b{color:var(--c)}
 .seg{display:flex;border:1px solid var(--rt-line-strong);border-radius:6px;overflow:hidden;flex:none}
@@ -163,7 +165,9 @@ button.pchip{font-family:inherit}
 .trow .tn{flex:none;font:700 11.5px var(--mono)}
 .trow .ar{font:11.5px var(--mono);color:var(--rt-text);overflow:hidden;text-overflow:ellipsis;min-width:0}
 .trow .dup{flex:none;font-size:10.5px;color:var(--rt-weak);border:1px solid var(--rt-line-strong);border-radius:3px;padding:0 3px}
+.trow .dup.loop{color:var(--rt-attn);border-color:var(--rt-attn)}   /* P2-8：同一命令第 3 次起疑似循环 */
 .trow .du{margin-left:auto;flex:none;font:11px var(--mono);color:var(--rt-weak)}
+.trow.run .du.slow{color:var(--rt-attn);font-weight:700}
 .trow .z{font:11px var(--mono);color:var(--rt-weak);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:18px}
 .trow.pend{border-left-color:var(--rt-line-strong)} .trow.pend .g,.trow.pend .tn{color:var(--rt-faint)}
 .trow.run{border-left-color:var(--rt-sub);border-color:#3c4f78;border-left-color:var(--rt-sub)} .trow.run .g,.trow.run .tn{color:var(--rt-sub)}
@@ -297,7 +301,7 @@ button.pchip{font-family:inherit}
 </head>
 <body>
 <div class="mock" id="mock">
-  <b>样稿</b><span class="ell" id="mockTitle">M5 运行视图 · 真实数据第 1–4 轮 · 已同步 2026-10-09 产品</span>
+  <b>样稿</b><span class="ell" id="mockTitle">M5 运行视图 · 真实数据第 1–4 轮 · 2026-10-10 评审第一批（P1-1 / P1-3 后半 / P2-5 / P2-6，已进产品）</span>
   <div class="seg" id="cmpSeg"><button data-v="now">M4（旧）</button><button data-v="new" class="on">改后</button></div>
   <select id="kf" aria-label="关键帧"></select>
   <button class="how" id="howBtn">怎么看</button>
@@ -306,7 +310,7 @@ button.pchip{font-family:inherit}
 </div>
 <div class="frame" id="frame">
   <header class="top" id="top">
-    <div class="state" id="state"><i></i><b>运行中</b></div>
+    <div class="state" id="state"><i></i><b>运行中</b><span class="sd2"></span></div>
     <div class="seg mode" id="modeSeg"><button data-v="live">● 实时</button><button data-v="replay" class="on">回放</button></div>
     <div class="ctl">
       <button id="bStart" title="回到开头">⏮</button><button id="bPrev" title="上一个事件">|◀</button><button id="bPlay" title="播放 / 暂停">▶</button><button id="bNext" title="下一个事件">▶|</button>
@@ -322,7 +326,7 @@ button.pchip{font-family:inherit}
     <ol>
       <li><b>中间的环 = 当前代理（第 1 轮 Sisyphus，之后 build）的一次循环</b>：组装请求 → 模型思考 → 模型输出 → 调工具 → 等结果 → 带回结果，再发下一次请求。<b>亮的站 = 此刻阶段</b>，亮的弧 = 这次请求走到哪了。卡片上方一行是轮次 / 请求计数；会话里有过执行计划时，旁边多一个“计划 完成数/总数”。</li>
       <li><b>环心卡片 = 此刻在发的东西</b>：左上角是种类，后面是“谁 → 谁”，正文是原样摘录。代理写 / 更新执行计划时，卡片种类是“计划”，逐项照录内容和状态。点卡片看全文。</li>
-      <li><b>位置固定</b>：左边是“你”，环上方是“模型”，右边是“工具台”和“子代理航道”。本轮还没派子代理时，航道收成一条（本轮情况 + 本会话共几个子代理），腾出的地方给环；派出第一个时展开。<b>移动的小点</b>就是正在路上的请求、调用、结果或提问；在哪里停着，哪里就在干活（工具停在那一行门口，子代理停在格子右上角）。子代理航道沿用 M4：上沿派发 → 格子里作业 → 下沿回传 → 左下泊位待取回 → 取回。</li>
+      <li><b>位置固定</b>：左边是“你”，环上方是“模型”，右边是“工具台”和“子代理”。本轮还没派子代理时，子代理区收成一条（本轮情况 + 本会话共几个子代理），腾出的地方给环；派出第一个时展开。<b>移动的小点</b>就是正在路上的请求、调用、结果或提问；在哪里停着，哪里就在干活（工具停在那一行门口，子代理停在格子右上角）。子代理区：上沿派出 → 格子里作业 → 下沿回来 → 左下小点 = 做完等取回 → 取回。</li>
       <li><b>点子代理看它此刻的状态</b>：格子、路上 / 停着的小点、收起时那一条都能点（键盘 Tab + 回车也行）。详情盖在环上：名字和类型、状态（派发中 / 运行中 / 待取回 / 已取回 / 失败）和用时、交接内容、它自己的工具调用和文字、返回结果，以及“打开子会话”（跳转，不是操作）。收起那一条点开是本会话到此刻派过的全部子代理。Esc 或 ✕ 关闭；只用 ≤ 此刻的事件。</li>
       <li>颜色：<span class="sw" style="--c:var(--rt-main)"></span>build <span class="sw" style="--c:var(--rt-accent)"></span>思考 <span class="sw" style="--c:var(--rt-sub)"></span>运行 / 子代理 <span class="sw" style="--c:var(--rt-ok)"></span>完成 <span class="sw" style="--c:var(--rt-err)"></span>失败 / 忽略 <span class="sw" style="--c:var(--rt-attn)"></span>需要你</li>
     </ol>
@@ -348,11 +352,23 @@ button.pchip{font-family:inherit}
     <li><b>上一步图标。</b> <span class="now">回放「上一步」由 ◀ 改为 |◀，与「下一步」▶| 对称。</span></li>
     <li><b>去掉「此刻」字幕。</b> <span class="now">底部那一行删掉，舞台高度顺延，不留空行。</span></li>
     <li><b>环心卡片。</b> <span class="now">去掉右上角时长和卡片内的 meta 行，正文占满可用高度。整卡可点（有文字、流式中或有 meta 即可，运行中也可），浮层显示种类、谁 → 谁、全文、附注和 meta。没有「全文」按钮。</span></li>
-    <li><b>回放估算。</b> <span class="now">尚未结束的思考 / 输出仍按已过时间显示前缀，浮层多一行「回放：按时间估算的进度」。字数只在该段结束后出现。流式且正文为空时显示「生成中…」。</span></li>
+    <li><b>回放估算。</b> <span class="now">尚未结束的思考 / 输出仍按已过时间显示前缀，浮层多一行「回放中 · 文本按时间比例展开」。字数只在该段结束后出现。流式且正文为空时显示「生成中…」。</span></li>
     <li><b>状态栏与结束卡片。</b> <span class="now">结束卡片的 meta 和底部状态栏都不再附空闲时长；空闲超过 2 秒环仍降频。</span></li>
     <li><b>计数行与计划。</b> <span class="now">safe center，超长从右侧省略，代理名保留。「计划 n/m」是按钮（查看计划），浮层列出全部计划项：✓ 完成 · ● 进行中 · ○ 待办 · 取消划线。</span></li>
     <li><b>工具台按轮收缩。</b> <span class="now">仅宽布局：本轮到此刻还没调工具，或最后一次请求结束时没调工具，收成 30px 标题条（data-oco-runtime-tools-k=0）；本轮首次调工具展开。收起时去程 / 回程总线仍接到工具台边缘。窄布局不收。</span></li>
     <li><b>拒绝 / 忽略不用红色。</b> <span class="now">被拒绝或被忽略的工具行和子代理动作行用 ⊘ 和淡边框，不用红色。</span></li>
+  </ol>
+  <h3>2026-10-10 评审第一批（样稿与产品补丁 0020 同步）</h3>
+  <ol>
+    <li><b>P1-1 顶栏状态。</b> <span class="now">「运行中」后面写阶段、对象和已等时长：「· 等结果 15 秒 · write 在跑」「· 思考 3.1 秒」「· 等首个回复 1.2 秒」。同一请求里跑了超过 10 秒还没回来的调用：顶栏后半与工具台该行时长变琥珀；环上「等结果」下仍是计数。授权事件数据里没有，仍走「需要你」黄色的既定设计。</span></li>
+    <li><b>P1-3 后半 忽略态收敛。</b> <span class="now">你忽略提问、本轮结束后，「你」卡片收成一行「⊘ 上次提问已忽略 21:10:27 · 等了 N 秒 ▸」（悬停看原选项），状态与空闲态同为「此刻不需要你」；环心卡片种类仍是「已忽略」（原因），正文改「第 N 轮已结束 · 等你下一条消息」（状态），服务端英文原文只进浮层；门口的 ⊘ 记号 30 秒后不再带标签。</span></li>
+    <li><b>P2-5 计数合并。</b> <span class="now">环上「等结果」下写「等 2（工具 1 · 子代理 1）· 回来 2」，只有一种时不带括号；子代理头改「1 在跑 · 0/1 已回」；去掉「派发航道 / 回传航道 / 待取回泊位」字样，改「派出 → / ← 回来」；泊位小点只在有结果停着时画。</span></li>
+    <li><b>P2-6 去重。</b> <span class="now">「第 N 次请求」只留在环标题；模型框头只写模型名，第三行只写「带上你的消息 / 带回 N 个结果」；工具台头只写状态；上下文只留状态栏；标题按未裁剪宽度量，不再为点阵裁标题。点阵保留常显：失败请求的红点是环内唯一标记，产品按文字宽度取舍变体、本就不裁标题，悬停才显示的方案不采用。</span></li>
+    <li><b>P2-7 不改。</b> 环心卡片随阶段换内容，组装 / 发出阶段显示正在发的东西是对的，不是重复。</li>
+    <li><b>P2-8 疑似循环。</b> <span class="now">同一请求里同一命令第 3 次起，工具行的「同一命令 i/n」小签变琥珀，环上「调工具」下加「同一命令 ×n 疑似循环」。只是提示，不拦截。</span></li>
+    <li><b>P3-9 只改文案。</b> <span class="now">浮层「回放：按时间估算的进度」改「回放中 · 文本按时间比例展开」。产品的卡片浮层本就铺满舞台，不是样稿的固定 520×430；结果浮层翻页未做。</span></li>
+    <li><b>P3-10 只加图例。</b> <span class="now">底栏图例加「刻度：轮次 / 失败 / 提问」。空闲标签长短两式是按宽度取舍的既定规则，不改成「≈10m17s」；标签压刻度未做。</span></li>
+    <li><b>不采用。</b> P2-4 「带回结果」站是环闭合的真实阶段（回执到 → 带上结果发下一次），只是很短；结果小签停在「等结果」是因为代理在那里等，改落点要动几何，不做。P1-2 提问态要接宿主的回答通道，单独立项。窄布局三条：N1 在产品里不成立（阈值 980，模型框与站牌不重叠）；N2 / N3 合成窄布局一轮。</li>
   </ol>
   <h3>仍待定</h3>
   <ol>
@@ -890,12 +906,31 @@ function layout() {
 let T = KEYS.find(k => k.id.startsWith('k08')).t;
 const STC = { pre: 'faint', say: 'main', asm: 'main', fly: 'main', think: 'acc', out: 'text', call: 'tool', wait: 'sub', ask: 'attn', next: 'main', end: 'ok', abort: 'err' };
 const STATIONOF = { say: 'asm', asm: 'asm', think: 'think', out: 'out', call: 'call', wait: 'wait', ask: 'wait', next: 'next' };
-function statusWord(S) {
-  if (S.st === 'pre') return ['待命', 'faint'];
-  if (S.st === 'ask') return ['等你回答', 'attn'];
-  if (S.st === 'end') return ['本轮结束 · 待命', 'ok'];
-  if (S.st === 'abort') return ['已中止 · 待命', 'err'];
-  return ['运行中', 'sub'];
+const SLOW_MS = 10000;   // 同一请求里跑了超过 10 秒还没回来的调用：顶栏 / 工具台变琥珀
+function statusWord(S, F, t) {
+  if (S.st === 'pre') return ['待命', 'faint', ''];
+  if (S.st === 'ask') return ['等你回答', 'attn', '已等 ' + sCN(t - S.ask.start)];
+  if (S.st === 'end') return ['本轮结束 · 待命', 'ok', ''];
+  if (S.st === 'abort') return ['已中止 · 待命', 'err', ''];
+  // 运行中：说清阶段、对象、已等多久
+  const q = S.q; let d = '', slow = false;
+  switch (S.st) {
+    case 'say': case 'asm': d = q ? '组装第 ' + q.m + ' 次请求' : '组装请求'; break;
+    case 'fly': d = '等首个回复 ' + sCN(t - q.stepStart); break;
+    case 'think': d = '思考 ' + sCN(t - F.think.start); break;
+    case 'out': d = '输出 ' + sCN(t - F.text.start); break;
+    case 'call': d = '写调用'; break;
+    case 'wait': case 'next': {
+      const runs = (F.own || []).filter(x => toolSt(x, t) === 'run').map(x => ({ n: x.tool, s: x.start }))
+        .concat((F.qsubs || []).filter(x => subSt(x, t) === 'run' || subSt(x, t) === 'queued').map(x => ({ n: '#' + x.num, s: x.start ?? x.created })));
+      if (!runs.length) { d = S.st === 'next' ? '结果已齐 · 发下一次' : '等结果'; break; }
+      const old = runs.reduce((a, b) => a.s < b.s ? a : b), w = t - old.s;
+      slow = w > SLOW_MS;
+      d = '等结果 ' + sCN(w) + ' · ' + (runs.length > 1 ? old.n + ' 等 ' + runs.length + ' 个' : old.n) + ' 在跑';
+      break;
+    }
+  }
+  return ['运行中', 'sub', d, slow];
 }
 const SIDE = { asm: 1, think: 1, out: -1, call: -1, wait: -1, next: 1 };
 function parkOff(st) {   // 令牌停在站牌旁（避开站下的小字）：组装/思考停在出口侧，其余停在入口侧
@@ -927,8 +962,9 @@ function render(t) {
   const k = laneOpen(t), dk = SW >= 980 ? dockOpen(t) : 1;
   if (!G || Math.abs(G.k - k) > 1e-4 || Math.abs((G.dk ?? 1) - dk) > 1e-4) applyGeo(k, dk);
   const S = stageAt(t), F = facts(t, S);
-  const [word, wc] = statusWord(S);
+  const [word, wc, detail, slow] = statusWord(S, F, t);
   const se = $('state'); se.style.setProperty('--c', CV[wc]); se.querySelector('b').textContent = word;
+  const sd2 = se.querySelector('.sd2'); sd2.textContent = detail ? '· ' + detail : ''; sd2.className = 'sd2' + (slow ? ' slow' : '');
   $('clock').textContent = clock(t);
   renderYou(t, S, F); renderModel(t, S, F); renderCtr(t, S, F); renderPay(t, S, F); renderTools(t, S, F); renderLane(t, S, F);
   renderSvg(t, S, F);
@@ -955,10 +991,11 @@ function renderYou(t, S, F) {
       ? `<div class="optl"><b style="color:var(--rt-attn)">提问 · ${esc(x.header)}</b>　${x.options.map((o, i) => `${NUM[i]} ${esc(o.label)}`).join('　')}</div>`
       : `<div class="yq">提问 · ${esc(x.header)} · ${x.options.length} 个选项</div><ol class="opts">${x.options.map((o, i) => `<li><i>${NUM[i]}</i><b>${esc(o.label)}</b><span>${esc(o.desc)}</span></li>`).join('')}</ol><div class="hint">问题全文见中间卡片 · 在下方输入框回答（此处只显示）</div>`;
   } else if (ask && ask.state === 'dismissed') {
+    // 本轮已结束：收成一行，不再占满卡片；原选项只在悬停提示里
     const x = ask.x;
-    body = narrow
-      ? `<div class="ytxt" style="color:var(--rt-faint)">⊘ 你忽略了提问「${esc(x.header)}」· 提问等了 ${sCN(x.end - x.start)}</div>`
-      : `<div class="yq dim">⊘ 你忽略了提问「${esc(x.header)}」</div><ol class="opts struck">${x.options.map((o, i) => `<li><i style="color:var(--rt-faint)">${NUM[i]}</i><b>${esc(o.label)}</b></li>`).join('')}</ol><div class="hint">提问等了 ${sCN(x.end - x.start)} · 第 ${r.n} 轮到此结束</div>`;
+    cls = 'idle'; st = '此刻不需要你';   // 与空闲态同一口径；忽略一事写在下面那一行
+    body = `<div class="yl" title="${esc(x.options.map((o, i) => NUM[i] + ' ' + o.label).join('  '))}">⊘ 上次提问已忽略 ${clock(x.end)} · 等了 ${sCN(x.end - x.start)} ▸</div>`
+      + (narrow ? '' : `<div class="hint">第 ${r.n} 轮到此结束 · 等你下一条消息</div>`);
   } else if (r) {
     body = narrow
       ? `<div class="ytxt">第 ${r.n} 轮你说：${esc(flat(r.text))}</div>`
@@ -986,13 +1023,11 @@ function renderModel(t, S, F) {
   const el = $('cModel'), q = S.q;
   const [line, c] = modelLine(t, S, F);
   const lit = ['fly', 'think', 'out', 'call'].includes(S.st);
-  const got = q && q.finish && q.finish.at <= t;
-  const ctx = got ? '回执见上一行' : F.ctx != null ? `上下文 ≈ ${tokn(F.ctx)}（上次回执）` : '上下文：这次回执后可知';
-  const carry = q ? `${F.carry.text} · ${ctx}` : '';
+  const carry = q ? F.carry.text : '';   // 上下文只留状态栏（P2-6）
   el.className = 'bx model' + (lit ? ' lit' : '');
   el.style.setProperty('--c', CV[c]);
   if (G.mode === 'narrow') el.innerHTML = `<div class="l1"><b>模型</b><span class="st ell">${esc(line)}</span></div><div class="cr ell">${esc(carry)}</div>`;
-  else el.innerHTML = `<div class="l1"><b>模型</b><span class="mono" style="color:var(--rt-faint)">${esc(q ? q.model : '—')}</span><span class="r">${q ? '第 ' + q.m + ' 次请求' : ''}</span></div><div class="st ell">${esc(line)}</div><div class="cr ell">这次请求：${esc(carry)}</div>`;
+  else el.innerHTML = `<div class="l1"><b>模型</b><span class="mono ell" style="color:var(--rt-faint)">${esc(q ? q.model : '—')}</span></div><div class="st ell">${esc(line)}</div><div class="cr ell">${esc(carry)}</div>`;
 }
 function planChip(t) {   // 会话里有过计划才出现；按钮，点开浮层（没有计划的对话什么都不画）
   const p = planAt(t);
@@ -1013,8 +1048,8 @@ function renderCtr(t, S, F) {
     const main = F.ended ? `第 ${r.n} 轮 · 已结束 · 共 ${reqs.length} 次请求` : `第 ${r.n} 轮 · <em>第 ${m || 1} 次请求</em>`;
     const short = F.ended ? `第 ${r.n} 轮 · 已结束` : `第 ${r.n} 轮 · <em>请求 ${m || 1}</em>`;
     const mk = (np, txt, who) => `${who ? `<span class="who">${esc(ag)}</span>` : ''}<span class="n">${txt}</span>${np ? `<span class="pips">${pipsHtml(reqs, m, S, t, np)}</span>` : ''}${chip}`;
-    const need = () => [...el.children].reduce((s, c) => s + c.offsetWidth + 7, -7);
-    for (const [np, txt, who] of [[10, main, 1], [6, main, 1], [0, main, 1], [6, short, 1], [0, short, 1]]) { el.innerHTML = mk(np, txt, who); if (need() <= el.clientWidth) break; }
+    const need = () => [...el.children].reduce((s, c) => s + Math.max(c.offsetWidth, c.scrollWidth) + 7, -7);   // 按未裁剪宽度量，标题不被省略
+    for (const [np, txt, who] of [[10, main, 1], [6, main, 1], [0, main, 1], [0, short, 1]]) { el.innerHTML = mk(np, txt, who); if (need() <= el.clientWidth) break; }
     return;
   }
   const n = F.ended ? `<div class="n">第 ${r.n} 轮</div><div class="n" style="font-size:12.5px;color:var(--rt-weak)">已结束</div>` : `<div class="n">第 ${r.n} 轮</div><div class="n" style="font-size:13px"><em>第 ${m || 1} 次请求</em></div>`;
@@ -1068,7 +1103,7 @@ function payload(t, S, F) {
     case 'ask': { const x = S.ask; return C('提问', 'attn', `${ag} → 你`, Bd('', x.question, '', 'mid'), G.mode === 'wide' ? `${x.options.length} 个选项见左侧「你」· 在输入框回答` : `${x.options.length} 个选项见上方「你」`, '已等 ' + sK(t - x.start)); }
     case 'next': { const f = q.finish; return C('回执', 'main', `模型 → ${ag}`, Bd('', `第 ${q.m} 次请求完成：回执 合计 ${tokn(f.tokens.total)}（入 ${tokn(f.tokens.input + f.tokens.cache.read + f.tokens.cache.write)} · 出 ${tokn(f.tokens.output + f.tokens.reasoning)}）· ${usd(f.cost)}`, `<span class="small">带上 ${q.tools.length} 个结果，发第 ${q.m + 1} 次请求</span>`), `上下文 ${tokn(f.tokens.total)}（= 这次回执合计）`, sK(t - f.at)); }
     case 'end': {
-      if (S.why === 'dismiss') { const x = S.x; return C('已忽略', 'faint', `你 → ${ag}`, Bd('', `你忽略了提问「${x.header}」，第 ${r.n} 轮到此结束。`, `<span class="small">${esc(x.error)}</span>`), `${clock(x.end)} · 提问等了 ${sCN(x.end - x.start)}`, '', false, { note: x.error || '', fullText: `你忽略了提问「${x.header}」，第 ${r.n} 轮到此结束。` }); }
+      if (S.why === 'dismiss') { const x = S.x; return C('已忽略', 'faint', `${ag} → 你`, Bd('', `第 ${r.n} 轮已结束 · 等你下一条消息`, `<span class="small">⊘ 提问「${esc(x.header)}」已忽略 · ${clock(x.end)}</span>`), `提问等了 ${sCN(x.end - x.start)}`, '', false, { note: x.error || '', fullText: `第 ${r.n} 轮已结束 · 等你下一条消息。提问「${x.header}」已忽略（${clock(x.end)}，等了 ${sCN(x.end - x.start)}）。` }); }
       const tx = q.texts[q.texts.length - 1];
       const open = tx ? spanOpen(tx) : false, rv = tx ? reveal(tx, t) : { s: '' };
       return C('本轮结束', 'ok', `${ag} → 你`, Bd('', rv.s, open ? caret : '', 'tail'), clock(S.endAt), '', false, { streaming: open, estimated: open && tx.end != null, fullText: rv.s });
@@ -1199,7 +1234,7 @@ function renderCd(t) {
   // 思考/输出的 post 只是卡片光标；浮层正文已自带一个，不再重复
   if (b.post && !b.post.includes('class="caret"')) html += `<div class="st">${b.post}</div>`;
   else if (p.note) html += `<div class="st">${esc(p.note)}</div>`;
-  if (p.estimated) html += '<div class="est" data-oco-runtime-card-estimated>回放：按时间估算的进度</div>';
+  if (p.estimated) html += '<div class="est" data-oco-runtime-card-estimated>回放中 · 文本按时间比例展开</div>';
   if (p.meta) html += `<div class="om" data-oco-runtime-card-meta>${esc(p.meta)}</div>`;
   setH('cdB', html);
 }
@@ -1211,7 +1246,7 @@ function renderTools(t, S, F) {
   const prev = q && q.m > 1 ? q.r.reqs[q.m - 2].tools.length : 0;
   const emptyMain = !q ? `${agOf(S.r)} 待命` : F.nQ ? `第 ${q.m} 次请求只发了一个提问（给你）` : q.finish && q.finish.at <= t || F.ended ? `第 ${q.m} 次请求没有调工具` : `第 ${q.m} 次请求还没调工具`;
   const errN = own.filter(x => toolSt(x, t) === 'err' && !x.declined).length;
-  let h = `<div class="dh"><b>工具台</b><span>${q ? '第 ' + q.m + ' 次请求' : ''}</span><span class="r">${own.length ? `在跑 ${tc.run} · <b>✓${tc.ok}</b> · <span style="color:${errN ? 'var(--rt-err)' : 'inherit'}">✗${errN}</span>${tc.pend ? ' · 写参数 ' + tc.pend : ''}` : (shut ? esc(emptyMain) : '')}</span></div>`;
+  let h = `<div class="dh"><b>工具台</b><span class="r">${own.length ? `在跑 ${tc.run} · <b>✓${tc.ok}</b> · <span style="color:${errN ? 'var(--rt-err)' : 'inherit'}">✗${errN}</span>${tc.pend ? ' · 写参数 ' + tc.pend : ''}` : (shut ? esc(emptyMain) : '')}</span></div>`;
   if (!own.length) {
     // 与环上“调工具”站的小字同一口径：提问不算工具。收起时标题条装不下居中空态
     const sub = q && !F.nQ && prev && !F.ended ? `<small>上一次的 ${prev} 个结果已随这次请求带回模型</small>` : '';
@@ -1227,7 +1262,7 @@ function renderTools(t, S, F) {
       const arg = s === 'pend' ? '（参数生成中）' : x.arg;
       const cls = declined ? 'rej' : s;
       const lr = { x: rw.x - G.tools.x - 1, y: rw.y - G.tools.y - 1 };
-      h += `<div class="trow ${cls}${narrow || rw.h < 28 ? ' chip' : ''}" style="left:${lr.x}px;top:${lr.y}px;width:${rw.w}px;height:${rw.h}px"><div class="a"><span class="g">${g}</span><span class="tn">${esc(x.tool)}</span><span class="ar">${esc(arg)}</span>${d ? `<span class="dup">${narrow ? '' : '同一命令 '}${d[0]}/${d[1]}</span>` : ''}<span class="du">${du}</span></div>${narrow || rw.h < 28 ? '' : `<div class="z">${esc(z)}</div>`}</div>`;
+      h += `<div class="trow ${cls}${narrow || rw.h < 28 ? ' chip' : ''}" style="left:${lr.x}px;top:${lr.y}px;width:${rw.w}px;height:${rw.h}px"><div class="a"><span class="g">${g}</span><span class="tn">${esc(x.tool)}</span><span class="ar">${esc(arg)}</span>${d ? `<span class="dup${d[1] >= 3 ? ' loop' : ''}">${narrow ? '' : '同一命令 '}${d[0]}/${d[1]}</span>` : ''}<span class="du${s === 'run' && t - x.start > SLOW_MS ? ' slow' : ''}">${du}</span></div>${narrow || rw.h < 28 ? '' : `<div class="z">${esc(z)}</div>`}</div>`;
     });
     if (over) { const rw = G.rows[cap - 1]; h += `<div class="trow more" style="left:${rw.x - G.tools.x - 1}px;top:${rw.y - G.tools.y - 1}px;width:${rw.w}px;height:${rw.h}px">+${over} 个调用</div>`; }
   }
@@ -1283,7 +1318,7 @@ function renderLane(t, S, F) {
     return;
   }
   if (el._mode !== 'open') { el._mode = 'open'; el.className = 'bx lane'; setBtn(el, false); el.innerHTML = '<div class="lh"></div>'; el._k = null; el._h = null; }
-  let h = `<div class="dh"><b>子代理</b><span>${r && !(narrow && subs.length) ? '第 ' + r.n + ' 轮' : ''}</span><span class="r">${subs.length ? `作业 ${sc.run}${narrow && !sc.docked ? '' : ` · 待取回 ${sc.docked}`} · <b>已取回 ${done}/${subs.length}</b>` : ''}</span></div>`;
+  let h = `<div class="dh"><b>子代理</b><span>${r && !(narrow && subs.length) ? '第 ' + r.n + ' 轮' : ''}</span><span class="r">${subs.length ? `${sc.run + sc.queued} 在跑${sc.docked ? ` · ${sc.docked} 待取回` : ''} · <b>${done}/${subs.length} 已回</b>` : ''}</span></div>`;
   if (!subs.length) h += `<div class="empty" style="top:${(G.topY + G.botY) / 2 - G.lane.y - 10}px;">${r ? `第 ${r.n} 轮${F.ended ? '' : '还'}没派子代理` : '没有子代理'}</div>`;
   const lh = el.firstChild; if (lh._h !== h) { lh.innerHTML = h; lh._h = h; }
   syncKeyed(el, subs.slice(0, 6).map((x, k) => {
@@ -1383,11 +1418,11 @@ function sdDetail(t, x) {
   const th = s === 'run' ? x.thinks.find(k => k.start <= t && t < k.end) : null;
   if (th) li += `<li class="none">在思考 ${sK(t - th.start)}</li>`;
   if (!acts.length && !th) li += `<li class="none">${s === 'queued' ? '子会话还没开始' : s === 'run' ? '还没有工具调用或文字' : '没有工具调用或文字'}</li>`;
-  if (subEst) li += '<li class="none">回放：按时间估算的进度</li>';
+  if (subEst) li += '<li class="none">回放中 · 文本按时间比例展开</li>';
   setH('sdA', `<h5>它的动态 · 工具调用和文字（新的在下）</h5><ul class="act">${li}</ul>`);
   // 返回结果：task 收尾（end）之后才有原文；子代理做完但还没取回时只说停在泊位
   const z = s === 'done' ? `<div class="tx">${esc(x.result) || '（空）'}</div>` : s === 'err' ? `<div class="tx err">${esc(x.error) || '失败'}</div>`
-    : s === 'docked' ? `<div class="tx wait">子代理已做完，结果停在待取回泊位，等 ${esc(ag)} 取回</div>` : '<div class="tx wait">还没返回</div>';
+    : s === 'docked' ? `<div class="tx wait">子代理已做完，等 ${esc(ag)} 取回</div>` : '<div class="tx wait">还没返回</div>';
   setH('sdZ', `<h5>返回结果</h5>${z}`);
   // 跳转（导航，不是操作）：子会话建立（task 开始）之后才可用
   const can = !!x.child && ain;
@@ -1451,7 +1486,7 @@ function renderStatus(t, S, F) {
     bits.push(`<span class="wide">上下文 <span class="sv">${F.ctx != null ? tokn(F.ctx) : '—'}</span>（上次回执）</span>`);
     bits.push(`本轮花费 <span class="sv">${F.cost ? usd(F.cost) : '—'}</span><span class="wide">（含子代理）</span>`);
   }
-  $('status').innerHTML = bits.map(b => `<span>${b}</span>`).join('') + `<span class="legend"><span><i style="--c:var(--rt-accent)"></i>思考</span><span><i style="--c:var(--rt-sub)"></i>运行</span><span><i style="--c:var(--rt-ok)"></i>完成</span><span><i style="--c:var(--rt-err)"></i>失败</span><span><i style="--c:var(--rt-faint)"></i>忽略 / 拒绝 ⊘</span><span><i style="--c:var(--rt-attn)"></i>需要你</span></span>`;
+  $('status').innerHTML = bits.map(b => `<span>${b}</span>`).join('') + `<span class="legend"><span><i style="--c:var(--rt-accent)"></i>思考</span><span><i style="--c:var(--rt-sub)"></i>运行</span><span><i style="--c:var(--rt-ok)"></i>完成</span><span><i style="--c:var(--rt-err)"></i>失败</span><span><i style="--c:var(--rt-faint)"></i>忽略 / 拒绝 ⊘</span><span><i style="--c:var(--rt-attn)"></i>需要你</span><span><i style="--c:var(--rt-weak);width:2px;border-radius:0;height:10px"></i>刻度：轮次 / 失败 / 提问</span></span>`;
 }
 
 /* ---------- SVG：环、通道、包（包只是装饰，文字一律来自数据） ---------- */
@@ -1519,9 +1554,10 @@ function renderSvg(t, S, F) {
   f += `<rect x="${g.sx0}" y="${g.topY}" width="${g.sx1 - g.sx0}" height="${g.botY - g.topY}" rx="${rx}" fill="none" stroke="${CV.sub}" stroke-opacity="${lo * 0.6}" stroke-width="1.2" stroke-dasharray="${laneLit ? '5 5' : '3 6'}"${laneLit ? flowDash(t) : ''}/>`;
   f += pl([P(g.busO, g.topY), P(g.sx0 + rx, g.topY)], CV.sub, 1.2, lo * 0.7, '');
   f += pl([P(g.sx0 + rx, g.botY), P(g.busB, g.botY)], CV.ok, 1.2, lo * 0.6, '');
-  f += `<text x="${g.sx0 + 22}" y="${g.topY - 4}" font-size="10.5" fill="${CV.faint}" fill-opacity="${lk.toFixed(3)}">派发航道 →</text>`;
-  f += `<text x="${g.sx1 - 6}" y="${g.botY + 12}" font-size="10.5" fill="${CV.faint}" fill-opacity="${lk.toFixed(3)}" text-anchor="end">← 回传航道 · 待取回泊位</text>`;
-  for (let k = 0; k < 6; k++) { const d = g.dock(k); f += `<circle cx="${d.x}" cy="${d.y}" r="2.5" fill="${CV.faint}" fill-opacity="${(0.6 * lk).toFixed(3)}"/>`; }
+  f += `<text x="${g.sx0 + 22}" y="${g.topY - 4}" font-size="10.5" fill="${CV.faint}" fill-opacity="${lk.toFixed(3)}">派出 →</text>`;
+  f += `<text x="${g.sx1 - 6}" y="${g.botY + 12}" font-size="10.5" fill="${CV.faint}" fill-opacity="${lk.toFixed(3)}" text-anchor="end">← 回来</text>`;
+  // 泊位小圆只画此刻停着结果的（子代理做完、还没取回），不画空位
+  for (const x of (F.subs || [])) if (subSt(x, t) === 'docked') { const d = g.dock(Math.min(x.slot, 5)); f += `<circle cx="${d.x}" cy="${d.y}" r="2.5" fill="${CV.attn}" fill-opacity="${(0.8 * lk).toFixed(3)}"/>`; }
   }
   // 你 ↔ build、build ↔ 模型
   const askLit = S.st === 'ask', youLit = S.st === 'say' || (S.st === 'asm' && S.q && S.q.m === 1 && t - S.r.start < 3000);
@@ -1615,9 +1651,13 @@ function stationSubs(t, S, F) {
   o.asm = q.m === 1 ? '带上你的消息' : `带回 ${F.carry.n} 个结果`;
   if (F.think) o.think = sK(Math.min(t, F.think.end) - F.think.start);
   if (F.text && F.text.end != null && t >= F.text.end) o.out = reveal(F.text, t).n + ' 字';
-  if (F.made.length) o.call = F.nCall ? madeTxt(F) : `${F.nQ} 个提问 → 你`;
+  if (F.made.length) { o.call = F.nCall ? madeTxt(F) : `${F.nQ} 个提问 → 你`; const lp = Math.max(0, ...(F.own || []).filter(x => x.start != null && t >= x.start).map(x => sameSoFar(x, t)?.[1] ?? 0)); if (lp >= 3) o.call += ` · 同一命令 ×${lp} 疑似循环`; }   // P2-8
   if (S.st === 'ask') o.wait = '已等 ' + sK(t - S.ask.start);
-  else if (F.made.length && (S.st === 'wait' || S.st === 'call' || S.st === 'next')) { const run = F.tc.run + F.qsc.run + F.qsc.docked, back = F.tc.ok + F.tc.err + F.qsc.done + F.qsc.err; o.wait = `在跑 ${run} · 回来 ${back}`; }
+  else if (F.made.length && (S.st === 'wait' || S.st === 'call' || S.st === 'next')) {
+    const tr = F.tc.run, sr = F.qsc.run + F.qsc.docked, run = tr + sr, back = F.tc.ok + F.tc.err + F.qsc.done + F.qsc.err;
+    const mix = tr && sr ? `（工具 ${tr} · 子代理 ${sr}）` : '';
+    o.wait = `等 ${run}${mix} · 回来 ${back}`;
+  }
   return o;
 }
 function packetsAt(t, S) {
@@ -1655,7 +1695,7 @@ function packetsAt(t, S) {
       } else if (x.kind === 'question') {
         const pending = x.start != null && !(x.end != null && t >= x.end);
         if (pending) add(G.pAsk, x.start, { c: 'attn', label: `提问「${x.header}」`, glyph: '?', park: true });
-        if (x.end != null && t >= x.end && x.dismissed) add(G.pAskBack, x.end, { c: 'faint', label: '✕ 你忽略了提问', glyph: '✕', park: true, marker: '✕ 已忽略' });
+        if (x.end != null && t >= x.end && x.dismissed) add(G.pAskBack, x.end, { c: 'faint', label: '⊘ 你忽略了提问', glyph: '⊘', park: true, marker: t - x.end < 30000 ? '⊘ 已忽略' : null });
       }
     }
   }

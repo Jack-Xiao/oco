@@ -1,6 +1,9 @@
 // Pure helpers for the sessions sidebar: day groups, compact times, unread dots, state messages.
 // No vscode dependency. The host passes `now` and the id of the open session.
 import type { ConnectionSummary, SessionActivity, SessionListItem } from "@oco/contracts"
+import type { InboxEntry, InboxGroup, InboxRow } from "./session-store"
+
+export type { InboxEntry, InboxGroup, InboxRow }
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -164,3 +167,128 @@ export function listMessage(o: {
     ? { text: "This workspace has no OpenCode sessions yet.", actions: [{ label: "New Session", command: "oco.newSession" }] }
     : { text: "This workspace has no sessions yet. Restricted Mode cannot create a session.", actions: [] }
 }
+
+export type PendingNotificationItem = {
+  id: string
+  sessionId: string
+  rootSessionId: string
+}
+
+export type NotifierDeps = {
+  notify: (count: number) => Promise<"Show" | undefined> | { then: (cb: (choice: "Show" | undefined) => void) => unknown }
+  focus: () => void | Promise<void>
+  isEnabled: () => boolean
+}
+
+export class PendingNotifier {
+  private seenIds = new Set<string>()
+  private notifying = false
+
+  constructor(private readonly deps: NotifierDeps) {}
+
+  check(items: PendingNotificationItem[], currentSessionId?: string): boolean {
+    const currentIds = new Set(items.map((i) => i.id))
+    for (const id of this.seenIds) {
+      if (!currentIds.has(id)) this.seenIds.delete(id)
+    }
+
+    let hasNewNonCurrent = false
+    for (const item of items) {
+      if (!this.seenIds.has(item.id)) {
+        this.seenIds.add(item.id)
+        const isCurrent =
+          !!currentSessionId &&
+          (item.sessionId === currentSessionId || item.rootSessionId === currentSessionId)
+        if (!isCurrent) {
+          hasNewNonCurrent = true
+        }
+      }
+    }
+
+    if (!hasNewNonCurrent) return false
+    if (!this.deps.isEnabled()) return false
+    if (this.notifying) return false
+
+    this.notifying = true
+    const count = items.length
+    Promise.resolve(this.deps.notify(count))
+      .then((choice) => {
+        if (choice === "Show") {
+          void this.deps.focus()
+        }
+      })
+      .finally(() => {
+        this.notifying = false
+      })
+
+    return true
+  }
+
+  reset() {
+    this.seenIds.clear()
+    this.notifying = false
+  }
+}
+
+/**
+ * Groups inbox rows by parent session:
+ * - Rows with a parentId and known parent title are grouped under InboxGroup.
+ * - Rows without parentId or with unknown parent title remain top-level InboxRow.
+ * - Top-level entries sorted by earliest `at` ascending (group takes its child rows' earliest `at`).
+ * - Child rows inside a group sorted by `at` ascending.
+ */
+export function groupInbox(
+  rows: InboxRow[],
+  getParentTitle?: (parentId: string) => string | undefined,
+): InboxEntry[] {
+  const groupsByParentId = new Map<string, { parentId: string; title: string; rows: InboxRow[] }>()
+  const standaloneRows: InboxRow[] = []
+
+  for (const row of rows) {
+    const parentTitle = row.parent ?? (row.parentId ? getParentTitle?.(row.parentId) : undefined)
+    if (row.parentId && parentTitle) {
+      let grp = groupsByParentId.get(row.parentId)
+      if (!grp) {
+        grp = { parentId: row.parentId, title: parentTitle, rows: [] }
+        groupsByParentId.set(row.parentId, grp)
+      }
+      grp.rows.push(row)
+    } else {
+      standaloneRows.push(row)
+    }
+  }
+
+  const groups: InboxGroup[] = []
+  for (const grp of groupsByParentId.values()) {
+    grp.rows.sort((a, b) => a.at - b.at || a.id.localeCompare(b.id))
+    groups.push({
+      kind: "group",
+      parentId: grp.parentId,
+      title: grp.title,
+      rows: grp.rows,
+    })
+  }
+
+  const entries: InboxEntry[] = [...standaloneRows, ...groups]
+
+  const earliestAt = (entry: InboxEntry): number => {
+    if (entry.kind === "group") {
+      return entry.rows.length > 0 ? entry.rows[0].at : Infinity
+    }
+    return entry.at
+  }
+
+  const entryKey = (entry: InboxEntry): string => {
+    return entry.kind === "group" ? entry.parentId : entry.id
+  }
+
+  entries.sort((a, b) => {
+    const atA = earliestAt(a)
+    const atB = earliestAt(b)
+    if (atA !== atB) return atA - atB
+    return entryKey(a).localeCompare(entryKey(b))
+  })
+
+  return entries
+}
+
