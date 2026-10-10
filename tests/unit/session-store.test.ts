@@ -486,3 +486,130 @@ describe("SessionStore.mergeRoots", () => {
     expect(store.size).toBe(2)
   })
 })
+
+describe("SessionStore.inbox", () => {
+  test("outputs permission, question, error and done rows with correct fields and parent", () => {
+    const store = make()
+    const now = 100_000
+    store.applySnapshot({
+      sessions: [
+        session({ id: "parent", title: "Parent Task", time: { updated: 10 } }),
+        session({ id: "child", parentID: "parent", title: "Worker 1", time: { updated: 20 } }),
+        session({ id: "orphan", parentID: "unknown-parent", title: "Solo Worker", time: { updated: 30 } }),
+        session({ id: "err-sess", title: "Broken Session", time: { updated: 40 } }),
+        session({ id: "done-sess", title: "Finished Session", time: { updated: 50 } }),
+        session({ id: "curr-sess", title: "Current Session", time: { updated: 60 } }),
+      ],
+      status: {},
+      permissions: [
+        {
+          id: "per-1",
+          sessionID: "child",
+          permission: "bash",
+          patterns: ["npm test", "git status"],
+        },
+      ],
+      questions: [
+        {
+          id: "que-1",
+          sessionID: "orphan",
+          questions: [{ question: "Which color?", options: [{ label: "red" }, { label: "blue" }] }],
+        },
+      ],
+    })
+
+    // Add error to err-sess
+    store.applyEvent(ev("session.error", { sessionID: "err-sess", error: { data: { message: "Compilation failed" } } }))
+
+    const unread = new Set(["done-sess", "curr-sess"])
+    const rows = store.inbox("curr-sess", unread, now)
+
+    // Verify ordering: permission/question first (oldest first: child=20, orphan=30), then error (err-sess), then done (done-sess)
+    expect(rows.map((r) => r.id)).toEqual(["per-1", "que-1", "err:err-sess", "done:done-sess"])
+
+    // Check permission row
+    const perRow = rows[0]
+    expect(perRow).toMatchObject({
+      id: "per-1",
+      kind: "permission",
+      sessionId: "child",
+      title: "Worker 1",
+      parent: "Parent Task",
+      summary: "bash npm test git status",
+    })
+
+    // Check question row (orphan's parent is unknown -> parent omitted)
+    const queRow = rows[1]
+    expect(queRow).toMatchObject({
+      id: "que-1",
+      kind: "question",
+      sessionId: "orphan",
+      title: "Solo Worker",
+      summary: "Which color?",
+    })
+    expect(queRow.parent).toBeUndefined()
+
+    // Check error row
+    const errRow = rows[2]
+    expect(errRow).toMatchObject({
+      id: "err:err-sess",
+      kind: "error",
+      sessionId: "err-sess",
+      title: "Broken Session",
+      summary: "Compilation failed",
+    })
+
+    // Check done row (curr-sess is current -> omitted from done)
+    const doneRow = rows[3]
+    expect(doneRow).toMatchObject({
+      id: "done:done-sess",
+      kind: "done",
+      sessionId: "done-sess",
+      title: "Finished Session",
+    })
+
+    // removePending
+    expect(store.hasPending("per-1")).toBe(true)
+    expect(store.removePending("per-1")).toBe(true)
+    expect(store.hasPending("per-1")).toBe(false)
+    expect(store.removePending("per-1")).toBe(false)
+
+    const rowsAfter = store.inbox("curr-sess", unread, now)
+    expect(rowsAfter.map((r) => r.id)).toEqual(["que-1", "err:err-sess", "done:done-sess"])
+  })
+
+  test("permission and question rows sort oldest first, while error and done sort newest first", () => {
+    const store = make()
+    const now = 200_000
+    store.applySnapshot({
+      sessions: [
+        session({ id: "s1", time: { updated: 100 } }),
+        session({ id: "s2", time: { updated: 50 } }),
+        session({ id: "s3", time: { updated: 80 } }),
+        session({ id: "e1", time: { updated: 10 } }),
+        session({ id: "e2", time: { updated: 90 } }),
+        session({ id: "d1", time: { updated: 30 } }),
+        session({ id: "d2", time: { updated: 70 } }),
+      ],
+      status: {},
+      permissions: [
+        { id: "per-late", sessionID: "s1", permission: "write" },
+        { id: "per-early", sessionID: "s2", permission: "read" },
+      ],
+      questions: [
+        { id: "que-mid", sessionID: "s3", questions: [{ question: "Confirm?" }] },
+      ],
+    })
+
+    store.applyEvent(ev("session.error", { sessionID: "e1", error: { name: "OlderError" } }))
+    store.applyEvent(ev("session.error", { sessionID: "e2", error: { name: "NewerError" } }))
+
+    const unread = new Set(["d1", "d2"])
+    const rows = store.inbox(undefined, unread, now)
+
+    // Permission and question: oldest updated first (50 -> 80 -> 100)
+    // Error: newest updated first (90 -> 10)
+    // Done: newest updated first (70 -> 30)
+    expect(rows.map((r) => r.id)).toEqual(["per-early", "que-mid", "per-late", "err:e2", "err:e1", "done:d2", "done:d1"])
+  })
+})

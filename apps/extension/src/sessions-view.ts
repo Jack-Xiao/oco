@@ -1,8 +1,18 @@
 import * as vscode from "vscode"
 import type { ConnectionSummary, SessionActivity, SessionListItem } from "@oco/contracts"
-import type { SessionStore } from "./session-store"
+import type { InboxRow, SessionStore } from "./session-store"
 import { serverInfoLines, versionNote, type ServerInfo } from "./diagnostics"
-import { compactTime, listMessage, splitSessions, UnreadTracker } from "./session-groups"
+import {
+  compactTime,
+  listMessage,
+  splitSessions,
+  UnreadTracker,
+  PendingNotifier,
+  type NotifierDeps,
+  type PendingNotificationItem,
+} from "./session-groups"
+
+export { PendingNotifier, type NotifierDeps, type PendingNotificationItem }
 
 const UNREAD_KEY = "oco.unreadSessions"
 
@@ -24,6 +34,7 @@ export type WebListModel = {
   actions?: { label: string; command: string }[]
   query: string
   current?: string
+  inbox: InboxRow[]
   recent: WebRow[]
   more: WebRow[]
   moreForcedOpen: boolean
@@ -48,6 +59,7 @@ export class SessionsView implements vscode.Disposable {
   private readonly status: vscode.StatusBarItem
   private readonly unread: UnreadTracker
   private readonly clock: ReturnType<typeof setInterval>
+  readonly notifier: PendingNotifier
   /** Title-row text and badge, applied by the webview view. */
   chrome: { description?: string; badge?: { value: number; tooltip: string } } = {}
   readonly stats = { renders: 0 }
@@ -55,13 +67,30 @@ export class SessionsView implements vscode.Disposable {
   constructor(
     private readonly store: SessionStore,
     private readonly memento?: vscode.Memento,
+    notifier?: PendingNotifier,
   ) {
     this.unread = new UnreadTracker(memento?.get<string[]>(UNREAD_KEY) ?? [])
+    this.notifier =
+      notifier ??
+      new PendingNotifier({
+        notify: (count) => {
+          const msg = `${count} request${count === 1 ? "" : "s"} waiting for approval`
+          return vscode.window.showWarningMessage(msg, "Show") as Thenable<"Show" | undefined>
+        },
+        focus: () => {
+          void vscode.commands.executeCommand("oco.sessions.focus")
+        },
+        isEnabled: () => vscode.workspace.getConfiguration("oco.sessions").get<boolean>("notifyPending", true),
+      })
     // Time labels and the "since yesterday" boundary age without events.
     this.clock = setInterval(() => this.refresh(), 60_000)
     this.status = vscode.window.createStatusBarItem("oco.connection", vscode.StatusBarAlignment.Left, 10)
     this.status.name = "oco Connection"
     void vscode.commands.executeCommand("setContext", "oco.searchActive", false)
+  }
+
+  get sessionStore(): SessionStore {
+    return this.store
   }
 
   /** The session shown in the active panel (fork, new session, another tab); its row is the selected one. */
@@ -96,13 +125,31 @@ export class SessionsView implements vscode.Disposable {
     const g = this.groups()
     const s = this.summary
     const still = vscode.workspace.getConfiguration("workbench").get("reduceMotion") === "on"
-    const base = { query: this.query, current: this.current, recent: [] as WebRow[], more: [] as WebRow[], moreForcedOpen: false, loadMore: false, still }
+    const inbox = g.connected ? this.store.inbox(this.current, (id) => this.unread.has(id)) : []
+    const filteredInbox = this.query
+      ? inbox.filter(
+          (r) =>
+            r.title.toLowerCase().includes(this.query.toLowerCase()) ||
+            r.sessionId.toLowerCase().includes(this.query.toLowerCase()) ||
+            r.summary.toLowerCase().includes(this.query.toLowerCase()),
+        )
+      : inbox
+    const base = {
+      query: this.query,
+      current: this.current,
+      inbox: filteredInbox,
+      recent: [] as WebRow[],
+      more: [] as WebRow[],
+      moreForcedOpen: false,
+      loadMore: false,
+      still,
+    }
     const recent = g.connected ? g.recent.map((i) => this.webRow(i, g.now)) : []
     const more = g.connected ? g.more.map((i) => this.webRow(i, g.now)) : []
     const msg = listMessage({
       summary: s,
       connected: g.connected,
-      hasRows: recent.length > 0 || more.length > 0 || g.loadMore,
+      hasRows: filteredInbox.length > 0 || recent.length > 0 || more.length > 0 || g.loadMore,
       query: this.query,
       loading: this.store.size === 0 && !this.empty,
       trusted: vscode.workspace.isTrusted,
@@ -160,12 +207,24 @@ export class SessionsView implements vscode.Disposable {
   private updateChrome() {
     const s = this.summary
     const all = this.items()
-    const waiting = all.filter((i) => i.activity === "permission" || i.activity === "question").length
+    const inbox = this.store.inbox(this.current, (id) => this.unread.has(id))
+    const waitingRows = inbox.filter((i) => i.kind === "permission" || i.kind === "question")
+    const waiting = waitingRows.length
+
+    if (s?.state === "connected") {
+      const pendingItems: PendingNotificationItem[] = waitingRows.map((r) => ({
+        id: r.id,
+        sessionId: r.sessionId,
+        rootSessionId: this.store.rootOf(r.sessionId),
+      }))
+      this.notifier.check(pendingItems, this.current)
+    }
+
     // Set on render, so "no sessions" never shows while the rows of a new snapshot are on their way.
-    this.empty = s?.state === "connected" && all.length === 0
+    this.empty = s?.state === "connected" && all.length === 0 && inbox.length === 0
     this.chrome = {
       description: [this.folderLabel, this.query ? `Search: ${this.query}` : ""].filter(Boolean).join(" · ") || undefined,
-      badge: waiting ? { value: waiting, tooltip: `${waiting} session${waiting === 1 ? "" : "s"} waiting` } : undefined,
+      badge: waiting ? { value: waiting, tooltip: `${waiting} request${waiting === 1 ? "" : "s"} waiting for approval` } : undefined,
     }
 
     const st = this.status

@@ -2,6 +2,14 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 多 agent 驾驶舱第一步：ADR-009 + 跨会话「待处理」收件箱（2026-10-10，分支 claude/cleanup-2026-10-10）
+
+- [ADR-009](adr/009-multi-agent-cockpit-boundary.md) 已采纳：oco 只经 OpenCode API 发起会话 / 选 agent 与模型 / 投递提示词 / 批复权限与提问；收件箱是宿主侧对 SessionStore 的投影，不改桥契约；批量发起只做客户端节流；不做 cron、多模型竞赛、RBAC、新调度引擎。
+- 收件箱已落地：侧栏顶部「Needs attention」分区列出等权限 / 等提问 / 报错 / 完成未读的会话，子代理按自身行出现并带父会话标题。权限行 Allow / Always / Deny 由宿主直接 `POST /permission/:id/reply`（once / always / reject），提问行 Answer 打开会话、Dismiss 走 `POST /question/:id/reject`；宿主发送前核对请求仍在待批集合，过期请求只刷新不重发。状态栏 bell 计数改为含子代理的待批行数；新请求出现且不属于当前会话时弹一条可点 Show 的警告通知（同一时刻只一条），设置 `oco.sessions.notifyPending` 可关。
+- 验证：`bun run typecheck` 0 错；单测 196 / 0（新增 session-store、sessions-view 用例）；新 E2E 套件 c6-inbox（mock）PASS：3 个后台子代理同时等 bash 权限 → 不打开任何面板，在侧栏 3 行逐个 Allow → `GET /permission` 为空、分区消失、状态栏归零，9.7 s；侧栏回归 p1b-sidebar / p1b-reconnect / t014-connection 24 PASS / 0 FAIL。默认套件 22 → 23，[TEST-SCOPE](TEST-SCOPE.md) 已更新。
+- 未做 / 限制：提问的就地作答仍要打开会话；通知与收件箱在真实模型、亮色主题下尚未目视；「完成未读」行沿用 UnreadTracker 的判定。
+- 委派：Grok 只读调查（6 问均带行号，5.6 min，2 项未确认其中「等权限时子会话是否 busy」已由主线程 API 实测为 busy）；Gemini 实现（23.5 min，自验 typecheck / build / 单测）；Gemini 写 E2E（7.9 min，其探测 `/config` 把 401 当不可达未跑场景，主线程重启服务器后用 API 代验）。两条路线本批均正常。证据：[cockpit-inbox-2026-10-10](evidence/cockpit-inbox-2026-10-10.md)，E2E 结果 `docs/evidence/runs/20261010-091516-c6-inbox-09cb/results.json`。
+
 ## 收口批次（2026-10-10，本地未提交）
 
 - 已落地：NEXT 重写为真实队列；STATUS 瘦身（412 → 59 行，历史搬入 PROGRESS）；仓库卫生（忽略 E2E 日志、删已合并分支、清 11 个干净 worktree）；M5 三个小坑修复；`scripts/regen-patch.sh`；0020 再生成且 0001–0020 干净重放；typecheck 0、unit 190/0、session 单测 427/0、build PASS；本机装 `oco-0.0.4-ce17cd8.vsix`。证据 [cleanup-2026-10-10](evidence/cleanup-2026-10-10.md)。

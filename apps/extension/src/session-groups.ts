@@ -164,3 +164,66 @@ export function listMessage(o: {
     ? { text: "This workspace has no OpenCode sessions yet.", actions: [{ label: "New Session", command: "oco.newSession" }] }
     : { text: "This workspace has no sessions yet. Restricted Mode cannot create a session.", actions: [] }
 }
+
+export type PendingNotificationItem = {
+  id: string
+  sessionId: string
+  rootSessionId: string
+}
+
+export type NotifierDeps = {
+  notify: (count: number) => Promise<"Show" | undefined> | { then: (cb: (choice: "Show" | undefined) => void) => unknown }
+  focus: () => void | Promise<void>
+  isEnabled: () => boolean
+}
+
+export class PendingNotifier {
+  private seenIds = new Set<string>()
+  private notifying = false
+
+  constructor(private readonly deps: NotifierDeps) {}
+
+  check(items: PendingNotificationItem[], currentSessionId?: string): boolean {
+    const currentIds = new Set(items.map((i) => i.id))
+    for (const id of this.seenIds) {
+      if (!currentIds.has(id)) this.seenIds.delete(id)
+    }
+
+    let hasNewNonCurrent = false
+    for (const item of items) {
+      if (!this.seenIds.has(item.id)) {
+        this.seenIds.add(item.id)
+        const isCurrent =
+          !!currentSessionId &&
+          (item.sessionId === currentSessionId || item.rootSessionId === currentSessionId)
+        if (!isCurrent) {
+          hasNewNonCurrent = true
+        }
+      }
+    }
+
+    if (!hasNewNonCurrent) return false
+    if (!this.deps.isEnabled()) return false
+    if (this.notifying) return false
+
+    this.notifying = true
+    const count = items.length
+    Promise.resolve(this.deps.notify(count))
+      .then((choice) => {
+        if (choice === "Show") {
+          void this.deps.focus()
+        }
+      })
+      .finally(() => {
+        this.notifying = false
+      })
+
+    return true
+  }
+
+  reset() {
+    this.seenIds.clear()
+    this.notifying = false
+  }
+}
+

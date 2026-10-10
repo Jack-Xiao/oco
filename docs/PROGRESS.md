@@ -977,3 +977,10 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 新增 `scripts/regen-patch.sh`（临时 worktree 重建基线 + 干净重放 + `diff -r` 校验）；伪 source 自测与现有 0020 字节相同。
 - 真实模型 E2E（big-pickle）：20 套件全量；首轮 5 套件有失败，重跑后 p1a-chat、t007-managed、c4 rows-match-server、c5 plan-chip 通过，其余为 mock 专属断言 / 非确定性 / 连锁，无产品缺陷。探查：新对话阶段序列与流式递增正常；嵌套 ≥2 层 NOT RUN（模型不派孙代理）；亮色主题仅一处圆点对比度偏低。
 - 委派：Gemini A（STATUS 瘦身）、B（M5 修复）验收通过；Grok C（regen 脚本）验收通过；D 真实模型三程（Gemini 中断 → Grok 沙箱不能开 VS Code → Gemini 再中断）但产物齐全。证据：[cleanup-2026-10-10](evidence/cleanup-2026-10-10.md) 及同前缀四个文件。
+
+## 2026-10-10 多 agent 驾驶舱第一步（ADR-009 + 跨会话「待处理」收件箱）
+
+- ADR-009 划界：oco 只经 OpenCode API；收件箱不改桥契约；批量发起只做客户端节流；不做 cron / 多模型竞赛 / RBAC。
+- 收件箱：`session-store.ts` 保留权限 / 提问字段并产出 `inbox()`、`removePending()`；`sessions-view.ts` 状态栏计数与通知节流（`oco.sessions.notifyPending`）；`sessions-webview.ts` 新消息 permissionReply / questionReject 由宿主核对后直接 POST；`media/sessions-list/` 新分区 `section[data-group="inbox"]` 与行内 createElement 按钮，CSP 不变。
+- 测试：单测 196 / 0；新 E2E c6-inbox（mock-llm 新 token `THREE-SUBAGENTS-NEED-PERMISSION`，3 个后台子代理各挂一条 bash 权限）PASS 9.7 s；侧栏回归 p1b-sidebar / p1b-reconnect / t014-connection 24 PASS / 0 FAIL；默认套件 23。
+- 委派：Grok 只读调查 5.6 min；Gemini 实现 23.5 min + Gemini 写 E2E 7.9 min（mock 场景由主线程 API 代验）。证据 [cockpit-inbox-2026-10-10](evidence/cockpit-inbox-2026-10-10.md)。

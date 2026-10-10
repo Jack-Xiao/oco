@@ -23,6 +23,12 @@ const moreHead = el("div", "more-head")
 const moreCount = el("span", "more-count")
 const loadMore = el("div", "row load-more")
 const pool = new Map()
+const inboxSection = document.createElement("section")
+inboxSection.dataset.group = "inbox"
+inboxSection.className = "inbox-section"
+const inboxHead = el("div", "inbox-head")
+inboxHead.textContent = "Needs attention"
+const inboxPool = new Map()
 
 search.type = "search"
 search.className = "search"
@@ -111,7 +117,7 @@ function activate(node) {
   if (!node || !list.contains(node)) return
   if (node.dataset.kind === "more") toggleMore()
   else if (node.dataset.kind === "load") post({ type: "loadMore" })
-  else postOpen(node.dataset.id, false)
+  else postOpen(node.dataset.sessionId || node.dataset.id, false)
 }
 
 function layout() {
@@ -191,12 +197,178 @@ function reconcile(parent, nodes) {
   while (parent.children.length > nodes.length) parent.removeChild(parent.lastElementChild)
 }
 
+function createInboxRow(row) {
+  const node = el("div", "row inbox-row")
+  node.dataset.inboxId = String(row.id)
+  node.dataset.sessionId = String(row.sessionId)
+  node.dataset.kind = String(row.kind)
+  node.tabIndex = -1
+  node.setAttribute("role", "option")
+  node.setAttribute("data-vscode-context", JSON.stringify({
+    webviewSection: "session",
+    sessionId: String(row.sessionId),
+    preventDefaultContextMenuItems: true,
+  }))
+
+  const top = el("div", "inbox-row-top")
+  const dot = el("span", "dot")
+  const title = el("span", "title")
+  const parent = el("span", "inbox-parent")
+  const time = el("span", "time")
+  top.append(dot, title, parent, time)
+
+  const bottom = el("div", "inbox-row-bottom")
+  const summary = el("span", "inbox-summary")
+  const actions = el("div", "inbox-actions")
+  bottom.append(summary, actions)
+
+  node.append(top, bottom)
+  updateInboxRow(node, row)
+  return node
+}
+
+function updateInboxRow(node, row) {
+  const id = String(row.id)
+  const sessionId = String(row.sessionId)
+  const kind = String(row.kind)
+  node.dataset.inboxId = id
+  node.dataset.sessionId = sessionId
+  node.dataset.kind = kind
+  const aria = row.aria == null ? "" : String(row.aria)
+  if (node.getAttribute("aria-label") !== aria) node.setAttribute("aria-label", aria)
+  if (node.getAttribute("title") !== aria) node.setAttribute("title", aria)
+
+  const selected = !!(state && state.current != null && String(state.current) === sessionId)
+  if ((node.getAttribute("aria-selected") === "true") !== selected) node.setAttribute("aria-selected", selected ? "true" : "false")
+  if (node.classList.contains("current") !== selected) node.classList.toggle("current", selected)
+
+  const top = node.children[0]
+  const bottom = node.children[1]
+  const dot = top.children[0]
+  const title = top.children[1]
+  const parent = top.children[2]
+  const time = top.children[3]
+  const summary = bottom.children[0]
+  const actions = bottom.children[1]
+
+  const dotStatus = kind === "permission" || kind === "question" ? "waiting" : kind === "error" ? "error" : kind === "done" ? "unread" : ""
+  if (dot.dataset.status !== dotStatus) {
+    dot.dataset.status = dotStatus
+    dot.className = dotStatus ? "dot " + dotStatus : "dot"
+  }
+
+  const titleText = row.title == null ? "" : String(row.title)
+  if (title.textContent !== titleText) title.textContent = titleText
+
+  const parentText = row.parent ? "(" + String(row.parent) + ")" : ""
+  if (parent.textContent !== parentText) parent.textContent = parentText
+  parent.hidden = !row.parent
+
+  const timeText = row.time == null ? "" : String(row.time)
+  if (time.textContent !== timeText) time.textContent = timeText
+
+  const summaryText = row.summary == null ? "" : String(row.summary)
+  if (summary.textContent !== summaryText) summary.textContent = summaryText
+  if (summary.getAttribute("title") !== summaryText) summary.setAttribute("title", summaryText)
+
+  const actionKey = kind + ":" + id
+  if (actions.dataset.key !== actionKey) {
+    actions.dataset.key = actionKey
+    while (actions.firstChild) actions.removeChild(actions.firstChild)
+    if (kind === "permission") {
+      const bOnce = document.createElement("button")
+      bOnce.type = "button"
+      bOnce.className = "inbox-btn"
+      bOnce.dataset.reply = "once"
+      bOnce.textContent = "Allow"
+      bOnce.addEventListener("click", (e) => {
+        e.stopPropagation()
+        post({ type: "permissionReply", id: id, reply: "once" })
+      })
+
+      const bAlways = document.createElement("button")
+      bAlways.type = "button"
+      bAlways.className = "inbox-btn"
+      bAlways.dataset.reply = "always"
+      bAlways.textContent = "Always"
+      bAlways.addEventListener("click", (e) => {
+        e.stopPropagation()
+        post({ type: "permissionReply", id: id, reply: "always" })
+      })
+
+      const bReject = document.createElement("button")
+      bReject.type = "button"
+      bReject.className = "inbox-btn inbox-btn-secondary"
+      bReject.dataset.reply = "reject"
+      bReject.textContent = "Deny"
+      bReject.addEventListener("click", (e) => {
+        e.stopPropagation()
+        post({ type: "permissionReply", id: id, reply: "reject" })
+      })
+
+      actions.append(bOnce, bAlways, bReject)
+    } else if (kind === "question") {
+      const bAnswer = document.createElement("button")
+      bAnswer.type = "button"
+      bAnswer.className = "inbox-btn"
+      bAnswer.dataset.action = "answer"
+      bAnswer.textContent = "Answer"
+      bAnswer.addEventListener("click", (e) => {
+        e.stopPropagation()
+        postOpen(sessionId, false)
+      })
+
+      const bDismiss = document.createElement("button")
+      bDismiss.type = "button"
+      bDismiss.className = "inbox-btn inbox-btn-secondary"
+      bDismiss.dataset.reply = "reject"
+      bDismiss.textContent = "Dismiss"
+      bDismiss.addEventListener("click", (e) => {
+        e.stopPropagation()
+        post({ type: "questionReject", id: id })
+      })
+
+      actions.append(bAnswer, bDismiss)
+    }
+  }
+}
+
+function syncInbox(inboxItems) {
+  const nodes = [inboxHead]
+  for (const item of inboxItems) {
+    if (!item || item.id == null) continue
+    const key = String(item.id)
+    let node = inboxPool.get(key)
+    if (!node) {
+      node = createInboxRow(item)
+      inboxPool.set(key, node)
+    } else {
+      updateInboxRow(node, item)
+    }
+    nodes.push(node)
+  }
+  reconcile(inboxSection, nodes)
+  const currentIds = new Set(inboxItems.map((i) => String(i.id)))
+  for (const key of inboxPool.keys()) {
+    if (!currentIds.has(key)) inboxPool.delete(key)
+  }
+  return inboxSection
+}
+
 function renderList() {
   const active = document.activeElement
+  const inbox = Array.isArray(state.inbox) ? state.inbox : []
   const recent = Array.isArray(state.recent) ? state.recent : []
   const more = Array.isArray(state.more) ? state.more : []
   const seen = new Set()
   const nodes = []
+
+  if (inbox.length) {
+    nodes.push(syncInbox(inbox))
+  } else {
+    inboxPool.clear()
+  }
+
   const pushRow = (row) => {
     if (!row || row.id == null) return
     const id = String(row.id)
@@ -337,19 +509,21 @@ search.addEventListener("blur", () => layout())
 list.addEventListener("mousedown", (event) => { if (event.button === 1) event.preventDefault() })
 
 list.addEventListener("click", (event) => {
+  if (event.target.closest("button")) return
   const node = event.target.closest(".row, .more-head")
   if (!node || !list.contains(node) || event.button !== 0) return
   focusRow(node)
   if (node.dataset.kind === "more") toggleMore()
   else if (node.dataset.kind === "load") post({ type: "loadMore" })
-  else postOpen(node.dataset.id, event.metaKey || event.ctrlKey)
+  else postOpen(node.dataset.sessionId || node.dataset.id, event.metaKey || event.ctrlKey)
 })
 
 list.addEventListener("auxclick", (event) => {
+  if (event.target.closest("button")) return
   const node = event.target.closest(".row")
   if (!node || !list.contains(node) || node.dataset.kind === "load" || event.button !== 1) return
   event.preventDefault()
-  postOpen(node.dataset.id, true)
+  postOpen(node.dataset.sessionId || node.dataset.id, true)
 })
 
 list.addEventListener("keydown", (event) => {
@@ -389,7 +563,7 @@ window.addEventListener("message", (event) => {
 function boot() {
   document.body.appendChild(scroll)
   const initial = readInitial()
-  applyState(initial || { view: "list", query: "", recent: [], more: [], moreForcedOpen: false, loadMore: false, still: false })
+  applyState(initial || { view: "list", query: "", inbox: [], recent: [], more: [], moreForcedOpen: false, loadMore: false, still: false })
   const hostQuery = initial && initial.query != null ? String(initial.query) : ""
   if (typeof saved.query === "string" && saved.query !== search.value) {
     search.value = saved.query

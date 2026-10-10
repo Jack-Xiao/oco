@@ -14,12 +14,19 @@ const COMMANDS = new Set([
   "workbench.action.files.openFolder",
 ])
 
+export type WebviewClient = {
+  request: <T>(method: string, path: string, body?: unknown, directory?: string) => Promise<T>
+  directory?: string
+}
+
 type FromPage =
   | { type: "ready" }
   | { type: "open"; id: string; newPanel?: boolean }
   | { type: "search"; query: string }
   | { type: "loadMore" }
   | { type: "command"; command: string }
+  | { type: "permissionReply"; id: string; reply: "once" | "always" | "reject" }
+  | { type: "questionReject"; id: string }
 
 /**
  * The sidebar session list as a webview (time column, rounded selection, row height a native tree can't
@@ -36,6 +43,7 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
     private readonly list: SessionsView,
     private readonly extensionUri: vscode.Uri,
     private readonly search: (q: string) => void,
+    private readonly client?: WebviewClient,
   ) {
     this.subs.push(list.onDidRender(() => this.post()))
   }
@@ -90,6 +98,47 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
         return
       case "command":
         if (COMMANDS.has(m.command)) void vscode.commands.executeCommand(m.command)
+        return
+      case "permissionReply": {
+        if (!this.list.sessionStore.hasPending(m.id)) {
+          this.list.refresh()
+          return
+        }
+        if (!this.client) return
+        const dir = this.client.directory
+        const q = dir ? `?directory=${encodeURIComponent(dir)}` : ""
+        void (async () => {
+          try {
+            await this.client!.request("POST", `/permission/${encodeURIComponent(m.id)}/reply${q}`, { reply: m.reply })
+            this.list.sessionStore.removePending(m.id)
+            this.list.refresh()
+          } catch (e) {
+            void vscode.window.showErrorMessage(`oco: Permission reply failed (${(e as Error).message})`)
+            this.list.refresh()
+          }
+        })()
+        return
+      }
+      case "questionReject": {
+        if (!this.list.sessionStore.hasPending(m.id)) {
+          this.list.refresh()
+          return
+        }
+        if (!this.client) return
+        const dir = this.client.directory
+        const q = dir ? `?directory=${encodeURIComponent(dir)}` : ""
+        void (async () => {
+          try {
+            await this.client!.request("POST", `/question/${encodeURIComponent(m.id)}/reject${q}`)
+            this.list.sessionStore.removePending(m.id)
+            this.list.refresh()
+          } catch (e) {
+            void vscode.window.showErrorMessage(`oco: Question reject failed (${(e as Error).message})`)
+            this.list.refresh()
+          }
+        })()
+        return
+      }
     }
   }
 

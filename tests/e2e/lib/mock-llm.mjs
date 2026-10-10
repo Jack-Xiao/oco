@@ -66,6 +66,21 @@ function planBase(body) {
     return { tool: "task", args: { subagent_type: m[1], description: m[2].trim(), prompt: "Reply with exactly this line and nothing else: subagent-ok", run_in_background: true } }
   if (tools.has("task") && (m = /use the task tool in the background with the (\S+) agent:\s*(.+)$/im.exec(prompt)))
     return { tool: "task", args: { subagent_type: m[1], description: m[2].trim(), prompt: "Reply with exactly this line and nothing else: subagent-ok", run_in_background: true } }
+  if (tools.has("task") && /THREE-SUBAGENTS-NEED-PERMISSION/i.test(prompt)) {
+    const agents = ["explore", "general"]
+    const descriptions = ["child-alpha", "child-beta", "child-gamma"]
+    return {
+      tools: descriptions.map((description, i) => ({
+        tool: "task",
+        args: {
+          subagent_type: agents[i % agents.length],
+          description,
+          prompt: `Use the bash tool to run exactly: echo perm-sub-${i + 1}`,
+          run_in_background: true,
+        },
+      })),
+    }
+  }
   // "Use the task tool 3 times in parallel: a; b; c" starts several subagents from one assistant message.
   // Each child streams 30 numbered sentences (~4.5 s) so the runtime view shows them running side by side.
   if (tools.has("task") && (m = /use the task tool (\d+) times in parallel:\s*(.+)$/im.exec(prompt))) {

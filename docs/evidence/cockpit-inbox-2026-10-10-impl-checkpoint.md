@@ -1,0 +1,25 @@
+# Cockpit Inbox 实现 Checkpoint
+
+- 状态：已完成
+- 范围：
+  - apps/extension/src/session-store.ts
+  - apps/extension/src/session-groups.ts
+  - apps/extension/src/sessions-view.ts
+  - apps/extension/src/sessions-webview.ts
+  - apps/extension/src/session-feed.ts
+  - apps/extension/src/extension.ts
+  - apps/extension/package.json
+  - apps/extension/media/sessions-list/index.js
+  - apps/extension/media/sessions-list/index.css
+  - tests/unit/session-store.test.ts
+  - tests/unit/session-groups.test.ts
+  - tests/unit/sessions-view.test.ts
+- 进度：
+  - [x] Checkpoint 初始化
+  - [x] 阅读契约与现状代码，确认接口设计与字段规范
+  - [x] SessionStore / SessionGroups: PendingRequest 扩展、inbox()、removePending()
+  - [x] sessions-webview / session-feed: permissionReply / questionReject 请求与处理
+  - [x] sessions-view / package.json / extension.ts: webModel inbox 传递、通知与节流、设置
+  - [x] index.js / index.css: Needs attention 分区渲染与样式
+  - [x] 单测与回归验证
+- 下一步：准备交付报告。

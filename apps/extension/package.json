@@ -249,6 +249,12 @@
           "default": "",
           "scope": "machine",
           "markdownDescription": "Full path to the OpenCode executable used in managed mode, for example `/usr/local/bin/opencode`. Leave empty to look up `opencode` on the extension host `PATH` (on a remote window, the remote machine's PATH). oco does not install or upgrade OpenCode. User settings only (machine scope)."
+        },
+        "oco.sessions.notifyPending": {
+          "type": "boolean",
+          "default": true,
+          "scope": "machine",
+          "markdownDescription": "Show a desktop warning notification when background sessions or subagents are waiting for permission or an answer."
         }
       }
     },
