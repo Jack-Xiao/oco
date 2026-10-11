@@ -12,7 +12,7 @@ import { BlobStore } from "./bridge-host"
 import { KvStore } from "./host-store"
 import { PanelRegistry, VIEW_TYPE, type Entry } from "./panels"
 import { ManagedServer } from "./managed-server"
-import { redactValue, VERIFIED_SERVER } from "./diagnostics"
+import { redactValue, VERIFIED_SERVERS } from "./diagnostics"
 
 let managedServer: ManagedServer | undefined
 
@@ -120,7 +120,7 @@ export function activate(context: vscode.ExtensionContext) {
     } catch {
       serverVersion = undefined
     }
-    log.info(`server version ${serverVersion ?? "unknown"} (verified ${VERIFIED_SERVER})`)
+    log.info(`server version ${serverVersion ?? "unknown"} (verified ${VERIFIED_SERVERS.join(", ")})`)
     pushInfo()
   }
 
@@ -449,7 +449,7 @@ export function activate(context: vscode.ExtensionContext) {
       settings: { serverMode: conn.mode(), serverUrl: cfg.get("serverUrl"), serverUsernameCustom: cfg.get("serverUsername", "opencode") !== "opencode", opencodePath: cfg.get("opencodePath") || "(PATH)" },
       endpoint,
       passwordStored,
-      server: { version: serverVersion ?? null, verified: VERIFIED_SERVER },
+      server: { version: serverVersion ?? null, verified: VERIFIED_SERVERS },
       managed: managedServer?.state ?? null,
       workspace: { folders: (vscode.workspace.workspaceFolders ?? []).length, trusted: vscode.workspace.isTrusted },
       connection: feed.state,

@@ -1034,3 +1034,9 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 用户指出旧卡片只列最后一轮两个文件，明确希望复用当前会话记录列出跨轮文件，不直接拿工作区 Git 数据；若需额外系统则倾向删除。最小修正为各轮 user summary.diffs 路径去重，沿用完整历史 walk 和原有回退边界；不新建追踪系统、不合成净 patch。卡片只列文件数 / 文件名，Git Review 入口保持原生行为。
 - 验证：221 单测 / 0 失败、根 / app typecheck 0、build 与 0001–0021 重放通过；c8 5/0（两轮三文件、重复去重、额外 Git 文件排除）、c7 6/0。源数据为摘要 fixture，Git API 未拦截；未新增真实模型验收。
 - 安装 oco-0.0.4-d83978f.vsix（基线 + 本批代码），extension.js / chat index 哈希一致；需 Reload Window。证据 [session-diff-scope](evidence/session-diff-scope-2026-10-10.md)。原有他人未提交改动保留，按已有授权补充提交本批。
+
+## 2026-10-11 前端保持 v1.18.33，对 1.18.13 服务端验收
+
+- 评估切到 v1.18.13 前端（补丁移植、E2E 见 `docs/evidence/baseline-1.18.13-2026-10-11.md`，在本地分支 `claude/opencode-1.18.13-baseline` 的 `bab44bf`）后决定不切：1.18.14–1.18.33 的前端差异约 1100 行实际代码，接口几乎不变，10-06 已验证 1.18.33 前端可连 1.18.13 服务端。
+- `VERIFIED_SERVER` 改为 `VERIFIED_SERVERS = ["1.18.33", "1.18.13"]`，连接企业 1.18.13 服务不再提示未验证。typecheck 0 errors，unit 221 pass / 0 fail；E2E NOT RUN。
+- `scripts/package-vsix.sh` 与 `docs/remote-install.md` 的 vsce 改用 `npx -y @vscode/vsce@4.0.0`：`bunx --bun` 两次在写 VSIX 时停住（CPU 0，>10 分钟，产物不是完整 zip），改 node 后正常产出 12.8MB VSIX。

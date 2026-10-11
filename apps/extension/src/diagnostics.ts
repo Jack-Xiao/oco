@@ -2,13 +2,14 @@
 // an authorization header or message text: the export is meant to be pasted into an issue.
 import type { ManagedState } from "./managed-server"
 
-/** Server versions this build was verified against (T001 baseline). Others work but are flagged. */
-export const VERIFIED_SERVER = "1.18.33"
+/** Server versions this build was verified against: the vendored v1.18.33 baseline and the enterprise
+ * v1.18.13 service (E2E 2026-10-06 / 2026-10-11). Others work but are flagged. */
+export const VERIFIED_SERVERS = ["1.18.33", "1.18.13"]
 
 export function versionNote(version: string | undefined): string | undefined {
   if (!version) return undefined
   if (!/^1\./.test(version)) return `Server ${version} is not OpenCode v1. oco has not verified it; some features may be unavailable`
-  if (version !== VERIFIED_SERVER) return `Server ${version} is not verified by oco (verified: ${VERIFIED_SERVER})`
+  if (!VERIFIED_SERVERS.includes(version)) return `Server ${version} is not verified by oco (verified: ${VERIFIED_SERVERS.join(", ")})`
   return undefined
 }
 

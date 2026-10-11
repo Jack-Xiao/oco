@@ -47,7 +47,7 @@ EOF
 printf '%s\n' '**/*.map' '**/.DS_Store' 'src/**' 'tsconfig.json' > "$STAGE/.vscodeignore"
 VER="$(node -p "require('./apps/extension/package.json').version")"
 OUT="$PWD/oco-${VER}-${SHA}.vsix"
-(cd "$STAGE" && bunx --bun @vscode/vsce package \
+(cd "$STAGE" && npx -y @vscode/vsce@4.0.0 package \
   --no-dependencies \
   --allow-missing-repository \
   --no-rewrite-relative-links \
