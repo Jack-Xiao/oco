@@ -1,6 +1,6 @@
 // T015 diagnostics redaction and version notes.
 import { describe, expect, test } from "bun:test"
-import { redactText, redactValue, serverInfoLines, versionNote, VERIFIED_SERVER } from "../../apps/extension/src/diagnostics"
+import { redactText, redactValue, serverInfoLines, versionNote, VERIFIED_SERVERS } from "../../apps/extension/src/diagnostics"
 
 describe("diagnostics redaction", () => {
   test("secrets, auth headers, URL credentials and home paths are removed", () => {
@@ -22,7 +22,8 @@ describe("diagnostics redaction", () => {
 
 describe("server version notes", () => {
   test("verified version has no note; other v1 and non-v1 are flagged", () => {
-    expect(versionNote(VERIFIED_SERVER)).toBeUndefined()
+    for (const v of VERIFIED_SERVERS) expect(versionNote(v)).toBeUndefined()
+    expect(versionNote("1.18.13")).toBeUndefined()
     expect(versionNote("1.19.0")).toMatch(/not verified by oco/)
     expect(versionNote("2.0.0")).toMatch(/not OpenCode v1/)
     expect(versionNote(undefined)).toBeUndefined()
