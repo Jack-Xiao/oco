@@ -1,0 +1,508 @@
+diff --git a/packages/session-ui/src/components/markdown-mermaid.test.ts b/packages/session-ui/src/components/markdown-mermaid.test.ts
+new file mode 100644
+index 0000000..2470fca
+--- /dev/null
++++ b/packages/session-ui/src/components/markdown-mermaid.test.ts
+@@ -0,0 +1,290 @@
++import "../../../app/happydom"
++import { beforeEach, describe, expect, test } from "bun:test"
++import {
++  mermaidIdle,
++  setMermaidLoader,
++  syncMermaidBlocks,
++} from "./markdown-mermaid"
++
++function createMarkdownTree(options: {
++  codeText?: string
++  language?: string
++  complete?: boolean
++} = {}) {
++  const {
++    codeText = "graph TD; A-->B",
++    language = "mermaid",
++    complete = true,
++  } = options
++
++  const root = document.createElement("div")
++  root.setAttribute("data-component", "markdown")
++
++  const block = document.createElement("div")
++  block.setAttribute("data-markdown-block", "")
++  block.setAttribute("data-markdown-complete", complete ? "true" : "false")
++
++  const wrapper = document.createElement("div")
++  wrapper.setAttribute("data-component", "markdown-code")
++
++  const pre = document.createElement("pre")
++  const code = document.createElement("code")
++  if (language) {
++    code.className = `language-${language}`
++  }
++  code.textContent = codeText
++
++  pre.appendChild(code)
++  wrapper.appendChild(pre)
++  block.appendChild(wrapper)
++  root.appendChild(block)
++  document.body.appendChild(root)
++
++  return { root, block, wrapper, pre, code }
++}
++
++describe("markdown-mermaid", () => {
++  beforeEach(() => {
++    document.body.innerHTML = ""
++    delete document.documentElement.dataset.colorScheme
++    delete document.documentElement.dataset.theme
++  })
++
++  test("1) completed mermaid block renders [data-slot='markdown-mermaid'] and wrapper data-mermaid='rendered', pre remains", async () => {
++    let renderCalled = false
++    setMermaidLoader(async () => ({
++      initialize: () => {},
++      parse: async () => {},
++      render: async (id) => {
++        renderCalled = true
++        return { svg: `<svg id="${id}"><text>mock-diagram</text></svg>` }
++      },
++    }))
++
++    const { root, wrapper, pre } = createMarkdownTree({
++      codeText: "graph TD; A-->B",
++      complete: true,
++    })
++
++    syncMermaidBlocks(root)
++    await mermaidIdle()
++
++    expect(renderCalled).toBe(true)
++    const slot = wrapper.querySelector(':scope > [data-slot="markdown-mermaid"]')
++    expect(slot).not.toBeNull()
++    expect(slot?.getAttribute("role")).toBe("img")
++    expect(slot?.getAttribute("aria-label")).toBe("Mermaid diagram")
++    expect(slot?.innerHTML).toContain("mock-diagram")
++    expect(wrapper.dataset.mermaid).toBe("rendered")
++    expect(wrapper.contains(pre)).toBe(true)
++  })
++
++  test("2) outer [data-markdown-block] with data-markdown-complete='false' is not rendered", async () => {
++    let renderCalled = false
++    setMermaidLoader(async () => ({
++      initialize: () => {},
++      parse: async () => {},
++      render: async () => {
++        renderCalled = true
++        return { svg: "<svg></svg>" }
++      },
++    }))
++
++    const { root, wrapper } = createMarkdownTree({
++      codeText: "graph TD; A-->B",
++      complete: false,
++    })
++
++    syncMermaidBlocks(root)
++    await mermaidIdle()
++
++    expect(renderCalled).toBe(false)
++    expect(wrapper.querySelector('[data-slot="markdown-mermaid"]')).toBeNull()
++    expect(wrapper.dataset.mermaid).toBeUndefined()
++  })
++
++  test("3) non-mermaid language is not handled", async () => {
++    let renderCalled = false
++    setMermaidLoader(async () => ({
++      initialize: () => {},
++      parse: async () => {},
++      render: async () => {
++        renderCalled = true
++        return { svg: "<svg></svg>" }
++      },
++    }))
++
++    const { root, wrapper } = createMarkdownTree({
++      codeText: "console.log('hello')",
++      language: "typescript",
++      complete: true,
++    })
++
++    syncMermaidBlocks(root)
++    await mermaidIdle()
++
++    expect(renderCalled).toBe(false)
++    expect(wrapper.querySelector('[data-slot="markdown-mermaid"]')).toBeNull()
++    expect(wrapper.dataset.mermaid).toBeUndefined()
++  })
++
++  test("4) parse error results in data-mermaid='error' and error text starting with 'Mermaid: '", async () => {
++    setMermaidLoader(async () => ({
++      initialize: () => {},
++      parse: async () => {
++        throw new Error("Syntax error in graph description\nextra line")
++      },
++      render: async () => ({ svg: "<svg></svg>" }),
++    }))
++
++    const { root, wrapper } = createMarkdownTree({
++      codeText: "invalid mermaid syntax",
++      complete: true,
++    })
++
++    syncMermaidBlocks(root)
++    await mermaidIdle()
++
++    expect(wrapper.dataset.mermaid).toBe("error")
++    const slot = wrapper.querySelector(':scope > [data-slot="markdown-mermaid"]')
++    expect(slot).not.toBeNull()
++    expect(slot?.hasAttribute("data-error")).toBe(true)
++    expect(slot?.textContent?.startsWith("Mermaid: ")).toBe(true)
++    expect(slot?.textContent).toBe("Mermaid: Syntax error in graph description")
++  })
++
++  test("5) same source second sync does not call render again", async () => {
++    let renderCount = 0
++    setMermaidLoader(async () => ({
++      initialize: () => {},
++      parse: async () => {},
++      render: async () => {
++        renderCount++
++        return { svg: "<svg></svg>" }
++      },
++    }))
++
++    const { root } = createMarkdownTree({
++      codeText: "graph TD; A-->B",
++      complete: true,
++    })
++
++    syncMermaidBlocks(root)
++    await mermaidIdle()
++    expect(renderCount).toBe(1)
++
++    syncMermaidBlocks(root)
++    await mermaidIdle()
++    expect(renderCount).toBe(1)
++  })
++
++  test("6) source code change triggers re-render", async () => {
++    let renderCount = 0
++    setMermaidLoader(async () => ({
++      initialize: () => {},
++      parse: async () => {},
++      render: async (_id, text) => {
++        renderCount++
++        return { svg: `<svg><text>${renderCount}:${text.length}</text></svg>` }
++      },
++    }))
++
++    const { root, wrapper, code } = createMarkdownTree({
++      codeText: "graph TD; A-->B",
++      complete: true,
++    })
++
++    syncMermaidBlocks(root)
++    await mermaidIdle()
++    expect(renderCount).toBe(1)
++    let slot = wrapper.querySelector(':scope > [data-slot="markdown-mermaid"]')
++    expect(slot?.innerHTML).toContain("1:15")
++
++    code.textContent = "graph LR; C-->D; E-->F"
++    syncMermaidBlocks(root)
++    await mermaidIdle()
++
++    expect(renderCount).toBe(2)
++    slot = wrapper.querySelector(':scope > [data-slot="markdown-mermaid"]')
++    expect(slot?.innerHTML).toContain("2:22")
++  })
++
++  test("7) multiple blocks render serially with max concurrency of 1", async () => {
++    let activeRenders = 0
++    let maxConcurrency = 0
++
++    setMermaidLoader(async () => ({
++      initialize: () => {},
++      parse: async () => {},
++      render: async (id) => {
++        activeRenders++
++        if (activeRenders > maxConcurrency) {
++          maxConcurrency = activeRenders
++        }
++        await new Promise((resolve) => setTimeout(resolve, 20))
++        activeRenders--
++        return { svg: `<svg id="${id}"></svg>` }
++      },
++    }))
++
++    const root = document.createElement("div")
++    root.setAttribute("data-component", "markdown")
++
++    for (const text of ["graph TD; A-->B", "graph TD; C-->D", "graph TD; E-->F"]) {
++      const block = document.createElement("div")
++      block.setAttribute("data-markdown-block", "")
++      block.setAttribute("data-markdown-complete", "true")
++
++      const wrapper = document.createElement("div")
++      wrapper.setAttribute("data-component", "markdown-code")
++
++      const pre = document.createElement("pre")
++      const code = document.createElement("code")
++      code.className = "language-mermaid"
++      code.textContent = text
++
++      pre.appendChild(code)
++      wrapper.appendChild(pre)
++      block.appendChild(wrapper)
++      root.appendChild(block)
++    }
++
++    document.body.appendChild(root)
++
++    syncMermaidBlocks(root)
++    await mermaidIdle()
++
++    expect(maxConcurrency).toBe(1)
++    const slots = root.querySelectorAll('[data-slot="markdown-mermaid"]')
++    expect(slots.length).toBe(3)
++  })
++
++  test("8) documentElement.dataset.colorScheme change from light to dark re-initializes with theme 'dark'", async () => {
++    const initializedThemes: string[] = []
++
++    setMermaidLoader(async () => ({
++      initialize: (config: Record<string, unknown>) => {
++        initializedThemes.push(String(config.theme))
++      },
++      parse: async () => {},
++      render: async () => ({ svg: "<svg></svg>" }),
++    }))
++
++    document.documentElement.dataset.colorScheme = "light"
++    const { root } = createMarkdownTree({
++      codeText: "graph TD; A-->B",
++      complete: true,
++    })
++
++    syncMermaidBlocks(root)
++    await mermaidIdle()
++
++    expect(initializedThemes).toEqual(["default"])
++
++    document.documentElement.dataset.colorScheme = "dark"
++    syncMermaidBlocks(root)
++    await mermaidIdle()
++
++    expect(initializedThemes).toEqual(["default", "dark"])
++  })
++})
+diff --git a/packages/session-ui/src/components/markdown-mermaid.ts b/packages/session-ui/src/components/markdown-mermaid.ts
+new file mode 100644
+index 0000000..a129ab7
+--- /dev/null
++++ b/packages/session-ui/src/components/markdown-mermaid.ts
+@@ -0,0 +1,146 @@
++/** oco (patches/opencode/0022): render completed ```mermaid code blocks as diagrams.
++ * mermaid is not an upstream dependency: apps/chat-webview/vite.config.ts aliases it to oco's own copy,
++ * and the import is lazy, so the library loads only when the first diagram appears.
++ * The diagram is a sibling of the block's <pre>; the <pre> stays in the DOM (hidden) so streaming token
++ * updates, morphdom and the copy button keep working on the source text. */
++
++type MermaidApi = {
++  initialize(config: Record<string, unknown>): void
++  parse(text: string): Promise<unknown>
++  render(id: string, text: string): Promise<{ svg: string }>
++}
++
++export type MermaidResult = { svg: string } | { error: string }
++
++const MAX_SOURCE = 20_000
++const CACHE_MAX = 64
++const CODE = '[data-component="markdown-code"] > pre > code.language-mermaid'
++
++const cache = new Map<string, MermaidResult>()
++let api: Promise<MermaidApi> | undefined
++let initialized: string | undefined
++let queue: Promise<unknown> = Promise.resolve()
++let seq = 0
++let watching = false
++let loader: () => Promise<MermaidApi> = () =>
++  // @ts-ignore resolved by the oco webview build (apps/chat-webview/vite.config.ts), not an upstream dependency
++  import("mermaid").then((m: { default: MermaidApi }) => m.default)
++
++/** Test hook: replace the mermaid loader and reset module state. */
++export function setMermaidLoader(next: () => Promise<MermaidApi>) {
++  loader = next
++  api = undefined
++  initialized = undefined
++  cache.clear()
++  queue = Promise.resolve()
++}
++
++/** Resolves once every queued render has been applied (tests). */
++export function mermaidIdle() {
++  return queue.then(() => undefined)
++}
++
++function scheme() {
++  const value = document.documentElement.dataset.colorScheme
++  if (value === "dark" || value === "light") return value
++  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
++}
++
++function hash(text: string) {
++  let h = 0
++  for (let i = 0; i < text.length; i++) h = (Math.imul(31, h) + text.charCodeAt(i)) | 0
++  return (h >>> 0).toString(36)
++}
++
++async function render(src: string, mode: string): Promise<MermaidResult> {
++  const key = mode + "\n" + src
++  const hit = cache.get(key)
++  if (hit) {
++    cache.delete(key)
++    cache.set(key, hit)
++    return hit
++  }
++  api ??= loader()
++  const mermaid = await api
++  if (initialized !== mode) {
++    mermaid.initialize({
++      startOnLoad: false,
++      // strict: labels are sanitized, click callbacks and javascript: links are disabled.
++      securityLevel: "strict",
++      theme: mode === "dark" ? "dark" : "default",
++      fontFamily: getComputedStyle(document.body).fontFamily || "sans-serif",
++      suppressErrorRendering: true,
++    })
++    initialized = mode
++  }
++  const id = `oco-mermaid-${++seq}`
++  let result: MermaidResult
++  try {
++    await mermaid.parse(src)
++    result = { svg: (await mermaid.render(id, src)).svg }
++  } catch (error) {
++    result = { error: error instanceof Error ? error.message : String(error) }
++  } finally {
++    // mermaid leaves its measuring container behind when rendering fails.
++    document.getElementById(id)?.remove()
++    document.getElementById("d" + id)?.remove()
++  }
++  cache.set(key, result)
++  if (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value!)
++  return result
++}
++
++function apply(wrapper: HTMLElement, key: string, result: MermaidResult) {
++  if (!wrapper.isConnected || wrapper.dataset.mermaidPending !== key) return
++  delete wrapper.dataset.mermaidPending
++  wrapper.querySelectorAll(':scope > [data-slot="markdown-mermaid"]').forEach((el) => el.remove())
++  const view = document.createElement("div")
++  view.setAttribute("data-slot", "markdown-mermaid")
++  if ("svg" in result) {
++    view.setAttribute("role", "img")
++    view.setAttribute("aria-label", "Mermaid diagram")
++    view.innerHTML = result.svg
++    wrapper.dataset.mermaid = "rendered"
++  } else {
++    view.dataset.error = ""
++    view.textContent = "Mermaid: " + (result.error.split("\n").find((line) => line.trim()) ?? "render failed").slice(0, 200)
++    wrapper.dataset.mermaid = "error"
++  }
++  wrapper.dataset.mermaidKey = key
++  wrapper.insertBefore(view, wrapper.firstChild)
++}
++
++function watchTheme() {
++  if (watching) return
++  watching = true
++  const resync = () =>
++    document.querySelectorAll<HTMLElement>('[data-component="markdown"]').forEach((root) => syncMermaidBlocks(root))
++  new MutationObserver(resync).observe(document.documentElement, {
++    attributes: true,
++    attributeFilter: ["data-color-scheme", "data-theme"],
++  })
++  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", resync)
++}
++
++/** Render every complete mermaid block under root whose diagram is missing or stale. */
++export function syncMermaidBlocks(root: HTMLElement) {
++  const codes = root.querySelectorAll<HTMLElement>(CODE)
++  if (codes.length === 0) return
++  watchTheme()
++  const mode = scheme()
++  codes.forEach((code) => {
++    const wrapper = code.parentElement!.parentElement as HTMLElement
++    // Code-mode blocks still receiving tokens are marked incomplete; render once the fence closes.
++    if (wrapper.closest<HTMLElement>("[data-markdown-block]")?.dataset.markdownComplete === "false") return
++    const src = (code.textContent ?? "").trim()
++    if (!src || src.length > MAX_SOURCE) return
++    const key = mode + ":" + src.length + ":" + hash(src)
++    const shown = wrapper.querySelector(':scope > [data-slot="markdown-mermaid"]')
++    if (wrapper.dataset.mermaidPending === key) return
++    if (shown && wrapper.dataset.mermaidKey === key) return
++    wrapper.dataset.mermaidPending = key
++    // mermaid keeps global state and its render is not reentrant: one diagram at a time.
++    queue = queue.then(() => render(src, mode).then((result) => apply(wrapper, key, result)))
++    queue = queue.catch((error) => console.error("Mermaid render failed", error))
++  })
++}
+diff --git a/packages/session-ui/src/components/markdown.css b/packages/session-ui/src/components/markdown.css
+index 1be5136..1fc3fb6 100644
+--- a/packages/session-ui/src/components/markdown.css
++++ b/packages/session-ui/src/components/markdown.css
+@@ -187,6 +187,34 @@
+     unicode-bidi: isolate;
+   }
+ 
++  /* oco (patches/opencode/0022): mermaid diagram replaces the source view; the hidden <pre> keeps the source for copy. */
++  [data-component="markdown-code"][data-mermaid="rendered"] > pre {
++    display: none;
++  }
++
++  [data-slot="markdown-mermaid"] {
++    display: flex;
++    justify-content: center;
++    overflow-x: auto;
++    padding: 12px;
++    border-radius: 6px;
++    border: 0.5px solid var(--v2-border-border-base);
++  }
++
++  [data-slot="markdown-mermaid"] svg {
++    max-width: 100%;
++    height: auto;
++  }
++
++  [data-slot="markdown-mermaid"][data-error] {
++    display: block;
++    padding: 4px 8px;
++    margin-bottom: 4px;
++    font-size: 12px;
++    color: var(--v2-text-text-muted);
++    border-style: dashed;
++  }
++
+   [data-component="markdown-code"][data-code-kind="shell"] .shiki {
+     background: var(--markdown-shell-code-background);
+     border-color: var(--markdown-shell-code-border);
+diff --git a/packages/session-ui/src/components/markdown.tsx b/packages/session-ui/src/components/markdown.tsx
+index 05a54d4..bebd64c 100644
+--- a/packages/session-ui/src/components/markdown.tsx
++++ b/packages/session-ui/src/components/markdown.tsx
+@@ -32,6 +32,7 @@ import { markdownBlockKey, type MarkdownToken } from "./markdown-worker-protocol
+ import { shouldResetCodeTokens, type RenderedCodeState } from "./markdown-code-state"
+ import { getCachedMarkdown, sanitizeMarkdown, touchCachedMarkdown, type MarkdownCacheEntry } from "./markdown-cache"
+ import { inlineCodeKind } from "./markdown-inline-code-kind"
++import { syncMermaidBlocks } from "./markdown-mermaid"
+ 
+ type RenderedBlock =
+   | (MarkdownCacheEntry & { key: string; mode: Exclude<Block["mode"], "code"> })
+@@ -579,6 +580,8 @@ export function Markdown(
+         () => local.onOpenPath,
+       )
+     if (local.onOpenPath) markOpenablePaths(container)
++    // oco (patches/opencode/0022): completed ```mermaid blocks render as diagrams.
++    syncMermaidBlocks(container)
+   })
+ 
+   onCleanup(() => {

@@ -1040,3 +1040,10 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 评估切到 v1.18.13 前端（补丁移植、E2E 见 `docs/evidence/baseline-1.18.13-2026-10-11.md`，在本地分支 `claude/opencode-1.18.13-baseline` 的 `bab44bf`）后决定不切：1.18.14–1.18.33 的前端差异约 1100 行实际代码，接口几乎不变，10-06 已验证 1.18.33 前端可连 1.18.13 服务端。
 - `VERIFIED_SERVER` 改为 `VERIFIED_SERVERS = ["1.18.33", "1.18.13"]`，连接企业 1.18.13 服务不再提示未验证。typecheck 0 errors，unit 221 pass / 0 fail；E2E NOT RUN。
 - `scripts/package-vsix.sh` 与 `docs/remote-install.md` 的 vsce 改用 `npx -y @vscode/vsce@4.0.0`：`bunx --bun` 两次在写 VSIX 时停住（CPU 0，>10 分钟，产物不是完整 zip），改 node 后正常产出 12.8MB VSIX。
+
+## 2026-10-11 Mermaid 图表渲染（补丁 0022）
+
+- 用户确认实现。新增 `markdown-mermaid.ts`，`markdown.tsx` 渲染 effect 末尾一行调用，`markdown.css` 样式；mermaid 11.17.2 作为 oco 根依赖经 vite alias 懒加载。
+- 验证：tsgo 0；单测 8/0（Gemini 编写，主线程重跑）；build PASS；E2E c9-mermaid 9/0（Claude 子代理 sonnet）。Gemini 指出缓存非 LRU，已修正。
+- 证据 [c9-mermaid-2026-10-11](evidence/c9-mermaid-2026-10-11.md)。
+

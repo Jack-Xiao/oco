@@ -2,6 +2,11 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## Mermaid 图表渲染（2026-10-11，分支 claude/mermaid-render，本地未推送）
+
+- 补丁 0022（4 文件 +467）：已完成的 ```mermaid 代码块懒加载 mermaid 11.17.2 渲染为 SVG（strict、串行、按主题+源码 LRU 缓存 64、跟随明暗主题；流式中显示源码；语法错误显示一行提示并保留源码；复制仍为源码）。mermaid 为 oco 根 devDependency，经 `apps/chat-webview/vite.config.ts` alias 引入，不改上游 lockfile；懒加载分块 mermaid.core 684 kB（gzip 169 kB）。
+- 验证：session-ui tsgo 0；单测 markdown-mermaid 8/0；build PASS；E2E c9-mermaid 9/0（外置 mock 服务方式，`run.mjs` 默认方式 NOT RUN，未加入默认套件）。渲染时 ResizeObserver loop 通知累计 19 次，无害。真实模型目视 NOT RUN。证据 [c9-mermaid](evidence/c9-mermaid-2026-10-11.md)。
+
 ## 多 agent 驾驶舱第二步：每会话结果卡（2026-10-10，分支 claude/cleanup-2026-10-10，本地未推送）
 
 - 侧栏 done / error 行提供最近一次运行的摘要（文件数 · 耗时 · 花费 · 最后一句）和 Open / Diff / Mark read（error 无 Mark read）。文件来源为最新 user `message.updated.info.summary.diffs`，不保存 patch；普通轮次汇总的 `session.diff` 发空数组（回退路径可非空）。其他字段沿用上游事件与客户端 busy/idle 时间。
