@@ -152,6 +152,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@oco/contracts": r("../../packages/contracts/src/bridge.ts"),
+      // Lazy-loaded by patches/opencode/0022 (markdown-mermaid.ts); an oco dependency, not an upstream one.
+      mermaid: r("../../node_modules/mermaid/dist/mermaid.core.mjs"),
       // Before "@opencode-ai/app": aliases match by prefix and the first match wins.
       "@opencode-ai/app/i18n/desktop-native": r("../../vendor/opencode/packages/app/src/i18n/desktop-native.ts"),
       "@opencode-ai/app": r("../../vendor/opencode/packages/app/src/index.ts"),
