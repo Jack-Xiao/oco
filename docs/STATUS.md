@@ -2,7 +2,7 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
-## 新建会话草稿页 + New worktree 勾选框（2026-10-12，分支 claude/new-session-draft，本地提交未推送、未合入 main）
+## 新建会话草稿页 + New worktree 勾选框（2026-10-12，已合入 main 并推送，合并提交 cc1aebe）
 
 - New（侧栏 +、命令、恢复页按钮）不再立即 `POST /session`，改开草稿面板（`SessionBinding.draft`，`sessionId=draft-<uuid>`）：OpenCode 原生新建会话页，项目只列 VS Code 文件夹、无"添加项目"；关掉面板服务端无残留；VS Code 重启不恢复草稿面板。
 - 首条消息才建会话；桥从 `POST /session|/api/session` 响应放行新会话，宿主原地换绑（不重建桥、不重载）。worktree 只有一个"New worktree / 新建 worktree"勾选框（默认不勾 = 当前分支；勾选 = 发送时 `POST /experimental/worktree`），无"选择已有 worktree"（用户决定，参照 Claude Code / Copilot）。worktree 由用户自行删除。
