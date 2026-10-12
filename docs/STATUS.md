@@ -2,6 +2,14 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 新建会话草稿页 + New worktree 勾选框（2026-10-12，分支 claude/new-session-draft，本地提交未推送、未合入 main）
+
+- New（侧栏 +、命令、恢复页按钮）不再立即 `POST /session`，改开草稿面板（`SessionBinding.draft`，`sessionId=draft-<uuid>`）：OpenCode 原生新建会话页，项目只列 VS Code 文件夹、无"添加项目"；关掉面板服务端无残留；VS Code 重启不恢复草稿面板。
+- 首条消息才建会话；桥从 `POST /session|/api/session` 响应放行新会话，宿主原地换绑（不重建桥、不重载）。worktree 只有一个"New worktree / 新建 worktree"勾选框（默认不勾 = 当前分支；勾选 = 发送时 `POST /experimental/worktree`），无"选择已有 worktree"（用户决定，参照 Claude Code / Copilot）。worktree 由用户自行删除。
+- 桥策略：草稿面板允许目录集合 = 工作区文件夹 ∪ 其项目 sandboxes ∪ 本面板新建 worktree；query 目录越界 403，v2 body `location.directory` 越界 403。侧栏列表加 `scope=project`，`Connection.roots()` 纳入 sandboxes，worktree 会话与普通会话混排显示；打开文件支持 worktree 路径。补丁 0023（8 文件 +84 -1）。
+- 验证：typecheck 0；vendor tsgo 0；unit 297/0；build PASS；E2E（mock）c12 13/13（`20261012-052504-c12-new-session-draft-d267`），p1b-sidebar、t007-multiroot 通过；旧套件经共享助手 `createAndOpenSession` 迁移后 mock 全量 23/24，p1b-main-panel 偶发失败一次（单独重跑 3×8/8）。真实模型 NOT RUN。
+- 已知限制：同一项目的多个工作区文件夹（同仓库克隆）会互见会话；worktree 会话的实时状态事件是否到达侧栏未验证；VS Code 打开的是仓库子目录时不识别其 worktree；t004 `cancel` mock 下失败未在基线定性。证据 [new-session-draft-eval](evidence/new-session-draft-eval.md)、[new-session-draft-e2e](evidence/new-session-draft-e2e.md)、[worktree-ai-tools-survey](evidence/worktree-ai-tools-survey.md)。
+
 ## Roadmap 批次：M11 / M05 首片 / M07 / M02 / M14 Pin / 侧栏多选 / M12 调查（2026-10-11，已提交 main 并推送）
 
 - 侧栏收件箱「等提问」行可就地作答（选项按钮 / 多选 / 自由文本 / 多题逐题），一次 `POST /question/:id/reply {answers}`；Dismiss 仍走 reject。

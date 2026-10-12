@@ -1,7 +1,7 @@
 // T004: official chat in a VS Code webview against the real server: stream, tool+permission, question, cancel.
 import fs from "node:fs"
 import path from "node:path"
-import { launch, command, waitForChatFrame, frameSession, shot, sleep, evidenceDir } from "./vscode.mjs"
+import { launch, command, waitForChatFrame, frameSession, shot, sleep, evidenceDir, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, status, waitIdle, lastAssistant, textOf, MODEL } from "./server.mjs"
 
 const results = []
@@ -29,7 +29,7 @@ async function sampleGrowth(frame, sid, ms) {
 
 try {
   await sleep(2000)
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page)
   const [frame] = await waitForChatFrame(page, 1, 90000, '[data-component="prompt-input"]')
   const sid = await frameSession(frame)
   console.log("session", sid)

@@ -14,7 +14,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, chatFrames, frameSession, sleep, runShot, hostState, clearNotifications } from "./vscode.mjs"
+import { launch, command, chatFrames, frameSession, sleep, runShot, hostState, clearNotifications, createAndOpenSession } from "./vscode.mjs"
 import { messages, waitReply } from "./server.mjs"
 
 const CASES = ["open-file-line", "open-file-refused", "tool-click-opens", "position-parse", "markdown-path", "diff-summary"]
@@ -40,7 +40,7 @@ async function closeAllEditors(page) {
 }
 
 async function newPanel(page) {
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page)
   const f = await waitFor(async () => {
     for (const f of await chatFrames(page)) {
       const s = await frameSession(f).catch(() => null)

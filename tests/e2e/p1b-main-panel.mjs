@@ -12,7 +12,7 @@
 //                          (patch 0015; upstream closes the whole workspace until the info arrives)
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, hostState } from "./vscode.mjs"
+import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, hostState, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, waitReply, MODEL } from "./server.mjs"
 
 const REQUIRED = ["switch-in-place", "send-after-switch", "draft-per-session", "switch-uncached-ready", "switch-uncached-no-blank", "pinned-unaffected", "open-shown-focuses", "reload-keeps-roles"]
@@ -88,7 +88,7 @@ const byRole = (st, role) => st.panels.filter((p) => p.role === role)
 
 try {
   // Setup: A in the main panel (New Session), with one exchanged message.
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page)
   let A
   await waitUntil(async () => {
     for (const f of await chatFrames(page)) A = await frameSession(f).catch(() => null)

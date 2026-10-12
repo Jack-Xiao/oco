@@ -6,7 +6,7 @@
 // OCO_NARROW_WIDTHS=260,320 overrides the width list.
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, clearNotifications, fitGroups } from "./vscode.mjs"
+import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, clearNotifications, fitGroups, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, status, waitIdle, waitReply, MODEL } from "./server.mjs"
 
 const WIDTHS = (process.env.OCO_NARROW_WIDTHS ?? "260,320,480,800").split(",").map(Number)
@@ -26,8 +26,7 @@ async function frameFor(page, sid) {
 
 /** First session: the main panel. Later ones: pinned panels, since the main panel switches in place (ADR-007). */
 async function newSession(page, known) {
-  if (known.length === 0) await command(page, "oco: New Session")
-  else await command(page, "oco: Open in New Panel", { input: (await api("POST", "/session", {})).id })
+  await createAndOpenSession(page, { newPanel: known.length > 0, wait: false })
   const t0 = Date.now()
   while (Date.now() - t0 < 90000) {
     for (const f of await chatFrames(page)) {

@@ -13,7 +13,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { startProxy } from "./lib/proxy.mjs"
-import { launch, command, chatFrames, frameSession, sleep, runShot, hostState, root } from "./vscode.mjs"
+import { launch, command, chatFrames, frameSession, sleep, runShot, hostState, root, createAndOpenSession } from "./vscode.mjs"
 
 const CASES = ["unavailable-row", "unavailable-open", "control-diff-row"]
 const run = createRun({ suite: "c2-diff-unavailable", required: CASES, scriptPath: fileURLToPath(import.meta.url) })
@@ -67,7 +67,7 @@ run.installCrashHandlers(async () => {
 })
 
 async function newPanel(page) {
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page)
   const f = await waitFor(async () => {
     for (const f of await chatFrames(page)) {
       const s = await frameSession(f).catch(() => null)

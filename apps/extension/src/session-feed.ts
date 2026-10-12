@@ -284,11 +284,13 @@ export class SessionFeed {
     pump.catch((e) => {
       if (!abort.signal.aborted) this.fail(token, e)
     })
-    // `directory` as a query filters to this directory (the header only selects the instance);
-    // /session/status lists non-idle sessions only; the server's default page is 100.
+    // `directory` as a query filters to this directory (the header only selects the instance); `scope=project`
+    // widens the list to the project's worktrees (patches/opencode/0023), which the store keeps only when the
+    // workspace owns them (Connection.roots). /session/status lists non-idle sessions only; the server's default
+    // page is 100.
     const q = `directory=${encodeURIComponent(directory)}`
     const [roots, status, permissions, questions] = await Promise.all([
-      get<ServerSession[]>(`/session?${q}&roots=true&limit=${this.rootLimit}`),
+      get<ServerSession[]>(`/session?${q}&scope=project&roots=true&limit=${this.rootLimit}`),
       get<Record<string, ServerStatus>>(`/session/status?${q}`),
       get<PendingRequest[]>(`/permission?${q}`),
       get<PendingRequest[]>(`/question?${q}`),
@@ -383,7 +385,7 @@ export class SessionFeed {
       const headers = { ...(await this.d.auth()), "x-opencode-directory": encodeURIComponent(directory) }
       if (token !== this.token) return
       const origin = this.d.endpoint().origin
-      const r = await this.d.fetch(`${origin}/session?directory=${encodeURIComponent(directory)}&roots=true&${extra}`, {
+      const r = await this.d.fetch(`${origin}/session?directory=${encodeURIComponent(directory)}&scope=project&roots=true&${extra}`, {
         headers,
         signal: this.abort?.signal,
         redirect: "manual",

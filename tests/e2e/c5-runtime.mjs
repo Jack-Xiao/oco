@@ -14,7 +14,7 @@
 // times from the REST API.
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, fitGroups } from "./vscode.mjs"
+import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, fitGroups, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, waitReply, waitIdle, MODEL } from "./server.mjs"
 
 const CHECKS = [
@@ -191,7 +191,7 @@ const visiblePieceOf = (body, full) =>
 const FORBIDDEN = ["question", "reply", "stop", "roster", "stats", "attention"].map((n) => `[data-oco-runtime-${n}]`).join(",")
 
 try {
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page)
   await waitUntil(async () => {
     for (const f of await chatFrames(page)) A = await frameSession(f).catch(() => null)
     return !!A
@@ -1312,7 +1312,8 @@ try {
   const geomOk = !geomPairs.includes(false) && (runRun === true || runDone === true) && doneReplay === true
   run.record("geometry-stable", geomOk ? "PASS" : "FAIL", { geomRunning, geomRunning2, geomDone, geomReplay, runRun, runDone, doneReplay })
 
-  // legend: 5 items (thinking, running, done, failed, needs you) plus the neutral "dismissed / rejected" item (D18);
+  // legend: 5 items (thinking, running, done, failed, needs you) plus the neutral "dismissed / rejected" item (D18)
+  // and, since patch 0020, the "ticks: round / failed / question" key (so 5-7 spans);
   // at 1000 px the first four are still readable.
   const legendCount = await count(fA, "[data-oco-runtime-legend]")
   const legendSpans = await fA.locator("[data-oco-runtime-legend] > span").allInnerTexts()
@@ -1327,7 +1328,7 @@ try {
   await sleep(250)
   run.record(
     "legend",
-    legendCount >= 1 && (legendSpans.length === 5 || legendSpans.length === 6) && legendMatches && first4VisibleAt1000 ? "PASS" : "FAIL",
+    legendCount >= 1 && legendSpans.length >= 5 && legendSpans.length <= 7 && legendMatches && first4VisibleAt1000 ? "PASS" : "FAIL",
     { legendCount, legendItemCount: legendSpans.length, legendSpans, legendMatches, first4VisibleAt1000, legend1000 },
   )
 

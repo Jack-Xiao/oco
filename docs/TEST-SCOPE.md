@@ -10,7 +10,7 @@
 | 构建 | `bun run verify:brief -- --build` | 另加约 12 秒 | 改到 webview、扩展打包、上游补丁，或准备跑 E2E 前 |
 | 定向 E2E（mock） | 服务用 `OCO_E2E_MODEL=mock bash scripts/test-server.sh`，再 `node tests/e2e/run.mjs <套件…>` | 单套件 10–130 秒 | 改到下表对应范围 |
 | 定向 E2E（真实模型） | 服务不带该变量启动，同一命令 | 比 mock 慢，受模型与网络影响 | 发送、取消、流式、权限/问答链路的改动收尾 |
-| 全量（真实模型） | `node tests/e2e/run.mjs`（默认 23 个套件） | 真实模型本轮实测合计见 STATUS | 阶段交付、公共等待逻辑、桥接协议、上游升级 |
+| 全量（真实模型） | `node tests/e2e/run.mjs`（默认 24 个套件） | 真实模型本轮实测合计见 STATUS | 阶段交付、公共等待逻辑、桥接协议、上游升级 |
 
 mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为特殊运行，不算验收。mock 证明不了真实流式输出、取消时序和模型协议兼容。
 
@@ -47,15 +47,15 @@ mock 运行在 `results.json` 记 `modelMode: "mock"`，`bun run brief` 归为�
 | 补丁 0004（等模型加载再发送） | — | p1b-pending-send、p1b-theme-load、p1b-switch-pending | mock |
 | `apps/chat-webview/`（主题、输入） | — | p1b-theme-load、p1b-ime、p1a-chat | mock |
 | 发送 / 取消 / 流式 / 权限 / 问答 链路 | 相关单元 | p1a-chat、p1b-sidebar（chain-*） | mock 定向后，收尾用真实模型 |
-| `tests/e2e/vscode.mjs`、`server.mjs`、`lib/`（公共测试设施） | e2e-results | 全部 23 个 | mock 全量；等待逻辑改动再加真实模型全量 |
+| `tests/e2e/vscode.mjs`、`server.mjs`、`lib/`（公共测试设施） | e2e-results | 全部 24 个 | mock 全量；等待逻辑改动再加真实模型全量 |
 | `scripts/brief*.mjs`、`scripts/lib/` | brief、e2e-results | — | — |
-| 上游升级、补丁重放 | 全部 | 全部 23 个 | 真实模型 |
+| 上游升级、补丁重放 | 全部 | 全部 24 个 | 真实模型 |
 
 一个改动命中多行时取并集。拿不准时，多跑一个相关套件比跑全量便宜。
 
 ## 全量的定义
 
-`tests/e2e/run.mjs` 的 `DEFAULT_SUITES`，共 23 个：p1a-chat、p1a-identity、p1b-sidebar、p1b-narrow、p1b-theme-load、p1b-ime、p1b-reconnect、p1b-pending-send、p1b-switch-pending、c1-open-file、c1-focus、c2-diff-unavailable、t010-recover、t014-connection、p1b-main-panel、c3-fork、t007-managed、t007-multiroot、t015-diagnostics、c4-trajectory、c5-runtime、c6-inbox、c7-result-card。
+`tests/e2e/run.mjs` 的 `DEFAULT_SUITES`，共 24 个：p1a-chat、p1a-identity、p1b-sidebar、p1b-narrow、p1b-theme-load、p1b-ime、p1b-reconnect、p1b-pending-send、p1b-switch-pending、c1-open-file、c1-focus、c2-diff-unavailable、t010-recover、t014-connection、p1b-main-panel、c3-fork、t007-managed、t007-multiroot、t015-diagnostics、c4-trajectory、c5-runtime、c6-inbox、c7-result-card、c12-new-session-draft。
 
 不在默认列表中：t004、t005（P0 历史套件）、perf、smoke、c8-git-review（切换 Review 范围时的定向回归，验证会话文件去重 / 外部 Git 文件排除、Git 入口及单文件定位）。p1b-ime 的 `ime-real-macos` 需要真人使用系统输入法，自动运行时恒为 NOT RUN。
 

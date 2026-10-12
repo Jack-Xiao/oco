@@ -6,7 +6,7 @@
 //   fork-response-last the fork button on the last response: new session holds both turns
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, hostState } from "./vscode.mjs"
+import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, hostState, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, waitReply, MODEL } from "./server.mjs"
 
 const REQUIRED = ["fork-user", "fork-response-mid", "fork-response-last"]
@@ -77,7 +77,7 @@ async function forkedFrom(from) {
 
 try {
   // Setup: A in the main panel with two turns.
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page)
   let A
   await waitUntil(async () => {
     for (const f of await chatFrames(page)) A = await frameSession(f).catch(() => null)

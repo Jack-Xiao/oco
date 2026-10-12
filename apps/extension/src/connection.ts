@@ -53,6 +53,13 @@ export class Connection {
     return (vscode.workspace.workspaceFolders ?? []).filter((f) => f.uri.scheme === "file").map((f) => f.uri.fsPath)
   }
 
+  private sandboxes: string[] = []
+
+  /** Workspace folders and discovered git worktree sandboxes (deduplicated, folders first). */
+  roots(): string[] {
+    return Array.from(new Set([...this.folders(), ...this.sandboxes]))
+  }
+
   /** Folder chosen with "oco: Select Workspace Folder" in a multi-root workspace (T007). */
   activeFolder: string | undefined
 
@@ -65,7 +72,18 @@ export class Connection {
   /** A server-reported session directory belongs to this workspace. Realpath only for a local server. */
   ownsDirectory(directory: string): boolean {
     const local = isLoopbackHost(this.endpoint().host)
-    return this.folders().some((f) => sameDirectory(f, directory, local))
+    return this.roots().some((f) => sameDirectory(f, directory, local))
+  }
+
+  async refreshSandboxes(): Promise<string[]> {
+    try {
+      const projects = await this.request<Project[]>("GET", "/project")
+      const local = isLoopbackHost(this.endpoint().host)
+      this.sandboxes = sandboxesFor(projects ?? [], this.folders(), (a, b) => sameDirectory(a, b, local))
+      return this.sandboxes
+    } catch {
+      return this.sandboxes
+    }
   }
 
   private secretKey(ep: Endpoint) {
@@ -110,6 +128,33 @@ export class Connection {
     const text = await res.text()
     return (text ? JSON.parse(text) : undefined) as T
   }
+}
+
+export type Project = { worktree: string; sandboxes?: string[] }
+
+/**
+ * Pure function: collects non-empty sandboxes from projects whose worktree matches any folder. Deduplicated.
+ */
+export function sandboxesFor(
+  projects: Project[],
+  folders: string[],
+  same: (a: string, b: string) => boolean,
+): string[] {
+  if (!Array.isArray(projects)) return []
+  const result: string[] = []
+  const seen = new Set<string>()
+  for (const project of projects) {
+    if (!project || typeof project.worktree !== "string") continue
+    if (!folders.some((f) => same(f, project.worktree))) continue
+    if (!project.sandboxes || !Array.isArray(project.sandboxes)) continue
+    for (const sb of project.sandboxes) {
+      if (typeof sb === "string" && sb.trim() !== "" && !seen.has(sb)) {
+        seen.add(sb)
+        result.push(sb)
+      }
+    }
+  }
+  return result
 }
 
 export type SessionInfo = { id: string; title?: string; directory: string; parentID?: string; time?: { updated?: number } }

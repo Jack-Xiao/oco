@@ -6,7 +6,7 @@
 import fs from "node:fs"
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, chatFrames, frameSession, sleep, runShot } from "./vscode.mjs"
+import { launch, command, chatFrames, frameSession, sleep, runShot, createAndOpenSession } from "./vscode.mjs"
 import { messages, waitReply, MODEL } from "./server.mjs"
 
 const run = createRun({ suite: "p1b-theme-load", required: ["theme-initial-light", "theme-switch-dark", "boot-continuous", "first-load-submit"], scriptPath: fileURLToPath(import.meta.url) })
@@ -14,7 +14,7 @@ let app
 run.installCrashHandlers(() => app?.close())
 
 async function newPanel(page, known = new Set(), selector = '[data-component="prompt-input"]') {
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page, { wait: false })
   const end = Date.now() + 60000
   while (Date.now() < end) {
     for (const f of await chatFrames(page)) {

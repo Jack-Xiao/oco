@@ -5,7 +5,7 @@
 // (OCO_DEV_SLOW_PATHS, honoured outside production mode only). Every case uses a fresh panel/session.
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, chatFrames, frameSession, sleep, runShot } from "./vscode.mjs"
+import { launch, command, chatFrames, frameSession, sleep, runShot, createAndOpenSession } from "./vscode.mjs"
 import { messages, waitReply, MODEL } from "./server.mjs"
 
 const DELAY = 8000
@@ -17,7 +17,7 @@ run.installCrashHandlers(() => app?.close())
 const INPUT = '[data-component="prompt-input"]'
 
 async function newPanel(page, known = new Set()) {
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page, { wait: false })
   const end = Date.now() + 60000
   while (Date.now() < end) {
     for (const f of await chatFrames(page)) {

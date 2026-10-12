@@ -1,0 +1,230 @@
+diff --git a/packages/app/src/components/prompt-project-selector.tsx b/packages/app/src/components/prompt-project-selector.tsx
+index b84afdb..d2ddf23 100644
+--- a/packages/app/src/components/prompt-project-selector.tsx
++++ b/packages/app/src/components/prompt-project-selector.tsx
+@@ -35,6 +35,8 @@ export type PromptProjectControls = {
+   server?: string
+   select: (worktree: string, server?: string) => void
+   add: (title: string, server?: string) => void
++  /** oco (patches/opencode/0023): false hides "open project" (an embedded page lists the host's folders only). */
++  canAdd?: boolean
+ }
+ 
+ const actionPrefix = "action:"
+@@ -127,6 +129,7 @@ export function createPromptProjectController(input: {
+   return {
+     selected,
+     empty: () => input.controls().available.length === 0,
++    canAdd: () => input.controls().canAdd !== false,
+     projects,
+     servers,
+     projectKey,
+@@ -396,6 +399,7 @@ export function PromptProjectSelector(props: {
+               </Show>
+             </div>
+           </div>
++          <Show when={props.controller.canAdd()}>
+           <div class="h-px bg-v2-border-border-muted" />
+           <div class="flex flex-col p-0.5">
+             <Show
+@@ -434,6 +438,7 @@ export function PromptProjectSelector(props: {
+               </DropdownMenu.Sub>
+             </Show>
+           </div>
++          </Show>
+         </DropdownMenu.Content>
+       </DropdownMenu.Portal>
+     </DropdownMenu>
+diff --git a/packages/app/src/components/prompt-workspace-selector.tsx b/packages/app/src/components/prompt-workspace-selector.tsx
+index a7a3537..59ec96b 100644
+--- a/packages/app/src/components/prompt-workspace-selector.tsx
++++ b/packages/app/src/components/prompt-workspace-selector.tsx
+@@ -5,6 +5,42 @@ import { Icon } from "@opencode-ai/ui/icon"
+ import { Icon as IconV2 } from "@opencode-ai/ui/v2/icon"
+ import { getFilename } from "@opencode-ai/core/util/path"
+ import { useLanguage } from "@/context/language"
++import { usePlatform } from "@/context/platform"
++
++// oco (patches/opencode/0023): the embedded page offers one choice only, like Claude Code / Copilot: a "New
++// worktree" checkbox (off: the session runs on the current branch; on: in a new worktree). No existing-worktree
++// picker. Copy lives here (oco maintains English and Chinese only; other locales fall back to English).
++const ocoWorktreeText = {
++  en: { label: "New worktree", title: "Checked: run this session in a new git worktree (its own branch). Unchecked: the current branch." },
++  zh: { label: "新建 worktree", title: "勾选：在新的 git worktree（独立分支）里运行；不勾：在当前分支运行。" },
++  zht: { label: "新建 worktree", title: "勾選：在新的 git worktree（獨立分支）裡執行；不勾：在目前分支執行。" },
++} as const
++
++function OcoWorktreeToggle(props: { value: string; branch?: string; onChange: (value: string) => void; onDone: () => void }) {
++  const language = useLanguage()
++  const text = () => ocoWorktreeText[language.locale() as keyof typeof ocoWorktreeText] ?? ocoWorktreeText.en
++  return (
++    <>
++      <label
++        data-action="oco-new-worktree"
++        title={text().title}
++        class="flex h-7 min-w-0 cursor-pointer select-none items-center gap-1.5 rounded-sm px-2 text-[13px] font-[440] leading-5 tracking-[-0.04px] text-v2-text-text-faint transition-colors hover:bg-v2-overlay-simple-overlay-hover"
++      >
++        <input
++          type="checkbox"
++          class="size-3.5 shrink-0 cursor-pointer accent-current"
++          checked={props.value === "create"}
++          onChange={(e) => {
++            props.onChange(e.currentTarget.checked ? "create" : "main")
++            props.onDone()
++          }}
++        />
++        <span class="min-w-0 truncate">{text().label}</span>
++      </label>
++      <PromptGitStatus branch={props.branch} />
++    </>
++  )
++}
+ 
+ export function PromptWorkspaceSelector(props: {
+   value: string
+@@ -14,6 +50,7 @@ export function PromptWorkspaceSelector(props: {
+   onChange: (value: string) => void
+   onDone: () => void
+ }) {
++  if (usePlatform().embedded) return <OcoWorktreeToggle {...props} />
+   const language = useLanguage()
+   let pending: string | undefined
+   const selected = () => (props.value === props.projectRoot ? "main" : props.value)
+diff --git a/packages/app/src/context/platform.tsx b/packages/app/src/context/platform.tsx
+index c0cdc82..c0939d2 100644
+--- a/packages/app/src/context/platform.tsx
++++ b/packages/app/src/context/platform.tsx
+@@ -90,6 +90,10 @@ type PlatformBase = {
+    * reloads the document for another one). Lets a session mount before its own info has been fetched. */
+   embeddedDirectory?: string
+ 
++  /** oco (patches/opencode/0023): the folders an embedded new-session page may pick (the host's workspace folders).
++   * The page lists only these and offers no "open project" (the host bridge refuses other directories). */
++  embeddedFolders?: string[]
++
+   /** oco (patches/opencode/0008): the embedding host renders its own recovery screen in place of the
+    * error page, the unreachable-server screen and the missing-session screen. */
+   recoveryView?(props: RecoveryViewProps): JSX.Element
+diff --git a/packages/app/src/pages/new-session.tsx b/packages/app/src/pages/new-session.tsx
+index 7c7b89f..362d623 100644
+--- a/packages/app/src/pages/new-session.tsx
++++ b/packages/app/src/pages/new-session.tsx
+@@ -6,12 +6,14 @@ import { createNewSessionDraftController } from "./new-session/new-session-draft
+ import { NewSessionStatus, NewSessionView } from "./new-session/new-session-view"
+ import { createNewSessionWorkspaceController } from "./new-session/new-session-workspace-controller"
+ import { useNewSessionCommands } from "./new-session/use-new-session-commands"
++import { useOcoWorktreeEvents } from "@/utils/oco-worktree-events"
+ 
+ /** The draft-only V2 session page. Submitting promotes the draft into a real session. */
+ export default function NewSessionPage() {
+   const settings = useSettings()
+   const rightMount = useTitlebarRightMount()
+   const workspace = createNewSessionWorkspaceController()
++  useOcoWorktreeEvents()
+   const draft = createNewSessionDraftController({
+     worktree: workspace.selection.value,
+     resetWorktree: workspace.selection.reset,
+diff --git a/packages/app/src/pages/new-session/new-session-workspace-controller.ts b/packages/app/src/pages/new-session/new-session-workspace-controller.ts
+index f3fc9b2..f87b006 100644
+--- a/packages/app/src/pages/new-session/new-session-workspace-controller.ts
++++ b/packages/app/src/pages/new-session/new-session-workspace-controller.ts
+@@ -2,6 +2,7 @@ import { createMemo, createSignal } from "solid-js"
+ import { useSDK } from "@/context/sdk"
+ import { useServerSync } from "@/context/server-sync"
+ import { useSync } from "@/context/sync"
++import { usePlatform } from "@/context/platform"
+ 
+ const workspaceBarEnabled = import.meta.env.VITE_OPENCODE_CHANNEL !== "prod"
+ 
+@@ -36,7 +37,9 @@ export function createNewSessionWorkspaceController() {
+   const sync = useSync()
+   const serverSync = useServerSync()
+   const [worktree, setWorktree] = createSignal<string>()
+-  const visible = createMemo(() => workspaceBarEnabled && sync().project?.vcs === "git")
++  // oco (patches/opencode/0023): oco builds with the prod channel but offers worktrees in its embedded page.
++  const platform = usePlatform()
++  const visible = createMemo(() => (workspaceBarEnabled || !!platform.embedded) && sync().project?.vcs === "git")
+   const value = createMemo(() =>
+     resolveNewSessionWorktree({
+       enabled: visible(),
+diff --git a/packages/app/src/pages/session.tsx b/packages/app/src/pages/session.tsx
+index e877f22..8553fae 100644
+--- a/packages/app/src/pages/session.tsx
++++ b/packages/app/src/pages/session.tsx
+@@ -57,6 +57,7 @@ import { PromptProvider, usePrompt } from "@/context/prompt"
+ import { usePlatform } from "@/context/platform"
+ import { SDKProvider, useSDK } from "@/context/sdk"
+ import { useServerSDK } from "@/context/server-sdk"
++import { useOcoWorktreeEvents } from "@/utils/oco-worktree-events"
+ import { ServerConnection, serverName, useServer } from "@/context/server"
+ import { useSettings } from "@/context/settings"
+ import { useSync } from "@/context/sync"
+@@ -378,6 +379,7 @@ export default function Page() {
+   const serverSDK = useServerSDK()
+   const settings = useSettings()
+   const platform = usePlatform()
++  useOcoWorktreeEvents() // oco (patches/opencode/0023): a new session's worktree may still be pending
+   const prompt = usePrompt()
+   const comments = useComments()
+   const command = useCommand()
+diff --git a/packages/app/src/pages/session/composer/session-composer-controls.ts b/packages/app/src/pages/session/composer/session-composer-controls.ts
+index a9b0070..e5b7065 100644
+--- a/packages/app/src/pages/session/composer/session-composer-controls.ts
++++ b/packages/app/src/pages/session/composer/session-composer-controls.ts
+@@ -12,6 +12,7 @@ import type { QueryOptionsApi } from "@/context/server-sync"
+ import { useServerSDK } from "@/context/server-sdk"
+ import { serverName, ServerConnection, useServer } from "@/context/server"
+ import { useSDK } from "@/context/sdk"
++import { usePlatform } from "@/context/platform"
+ import { useSync } from "@/context/sync"
+ import { useTabs } from "@/context/tabs"
+ import { useProviders } from "@/hooks/use-providers"
+@@ -72,7 +73,13 @@ export function createPromptProjectControls() {
+   const [search] = useSearchParams<{ draftId?: string }>()
+   const projectServer = () => serverSDK().server
+   const projectServerCtx = createMemo(() => global.ensureServerCtx(projectServer()))
++  // oco (patches/opencode/0023): an embedded page picks among the host's workspace folders only.
++  const embeddedFolders = usePlatform().embeddedFolders
+   const projects = createMemo(() => {
++    if (embeddedFolders) {
++      const known = projectServerCtx().projects.list()
++      return embeddedFolders.map((worktree) => known.find((p) => p.worktree === worktree) ?? { worktree })
++    }
+     if (server.list.length <= 1) {
+       return search.draftId ? projectServerCtx().projects.list() : layout.projects.list()
+     }
+@@ -129,5 +136,6 @@ export function createPromptProjectControls() {
+     server: server.list.length > 1 ? ServerConnection.key(projectServer()) : undefined,
+     select: selectProject,
+     add: addProject,
++    canAdd: !embeddedFolders,
+   }))
+ }
+diff --git a/packages/app/src/utils/oco-worktree-events.ts b/packages/app/src/utils/oco-worktree-events.ts
+new file mode 100644
+index 0000000..444945d
+--- /dev/null
++++ b/packages/app/src/utils/oco-worktree-events.ts
+@@ -0,0 +1,22 @@
++// oco (patches/opencode/0023): the new layout never resolves a pending worktree (only the legacy layout listens
++// for worktree.ready / worktree.failed), so a new-session page that creates one would wait for the 5-minute
++// timeout before sending. The embedded host mounts this on the new-session page and the session page, which
++// together cover the whole create → navigate → send sequence.
++import { onCleanup } from "solid-js"
++import { useLanguage } from "@/context/language"
++import { usePlatform } from "@/context/platform"
++import { useServerSDK } from "@/context/server-sdk"
++import { Worktree } from "@/utils/worktree"
++
++export function useOcoWorktreeEvents() {
++  const platform = usePlatform()
++  if (!platform.embedded) return
++  const serverSDK = useServerSDK()
++  const language = useLanguage()
++  const unsub = serverSDK().event.listen((e) => {
++    if (e.details?.type === "worktree.ready") Worktree.ready(serverSDK().scope, e.name)
++    if (e.details?.type === "worktree.failed")
++      Worktree.failed(serverSDK().scope, e.name, e.details.properties?.message ?? language.t("common.requestFailed"))
++  })
++  onCleanup(unsub)
++}

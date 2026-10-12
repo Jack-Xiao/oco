@@ -17,7 +17,7 @@
 //                      child session in the panel, its parent title returns to A, nothing opens outside VS Code (0016)
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, fitGroups } from "./vscode.mjs"
+import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, fitGroups, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, waitReply, MODEL } from "./server.mjs"
 
 const REQUIRED = [
@@ -130,7 +130,7 @@ const field = (f, label) =>
   }, label)
 
 try {
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page)
   await waitUntil(async () => {
     for (const f of await chatFrames(page)) A = await frameSession(f).catch(() => null)
     return !!A
@@ -339,7 +339,7 @@ try {
   // 8. Trajectory open, then another session in the main panel and back: 对话 again.
   await fA.locator('[data-oco-view="trajectory"]').click()
   await fA.locator("[data-oco-trajectory]").waitFor({ state: "visible", timeout: 10000 })
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page)
   await waitUntil(async () => {
     for (const f of await chatFrames(page)) if ((await frameSession(f).catch(() => null)) !== A) return true
     return false

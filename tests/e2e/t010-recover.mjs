@@ -9,8 +9,9 @@
 //                        the screen; once the server is back the panel continues (fresh document), the draft is
 //                        kept and a prompt gets its reply.
 //   session-deleted      the open session is deleted on the server: oco's "no longer exists" screen, no retry
-//                        button and no request loop; Sessions shows the sidebar; New Session opens a new panel whose
-//                        input is empty (the old draft is not carried over) and which sends nothing by itself;
+//                        button and no request loop; Sessions shows the sidebar; New Session opens the new-session page
+//                        (a draft panel, no server session yet) whose input is empty (the old draft is not carried over)
+//                        and which sends nothing by itself;
 //                        Close Panel closes the stale one.
 //   unknown-error        the message list answers 500 with a body that looks sensitive: oco's generic screen shows,
 //                        no raw body, path, stack or upstream Discord/report text; Reload Panel recovers the chat
@@ -18,7 +19,7 @@
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { startProxy } from "./lib/proxy.mjs"
-import { launch, command, chatFrames, frameSession, sleep, runShot } from "./vscode.mjs"
+import { launch, command, chatFrames, frameSession, sleep, runShot, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, waitReply } from "./server.mjs"
 
 const CASES = ["unknown-types", "down-while-open", "initial-unreachable", "session-deleted", "unknown-error"]
@@ -113,7 +114,7 @@ try {
   }
   const newPanel = async () => {
     const before = new Set((await Promise.all((await chatFrames(page)).map((f) => frameSession(f).catch(() => null)))).filter(Boolean))
-    await command(page, "oco: New Session")
+    await createAndOpenSession(page, { wait: false })
     return waitFor(async () => {
       for (const f of await chatFrames(page)) {
         const s = await frameSession(f).catch(() => null)
@@ -272,7 +273,9 @@ try {
     if (shown) await shown.f.locator('[data-oco-action="showSessions"]').click()
     await sleep(1000)
     const sidebar = await page.evaluate(() => document.querySelector(".part.sidebar .composite.title")?.textContent ?? "")
-    // New Session → a new, empty panel that sends nothing.
+    // New Session → the new-session page (a draft panel, no server session yet) that sends nothing.
+    const countSessions = async () => ((await api("GET", "/session?limit=500")) ?? []).length
+    const sessionsBefore = await countSessions()
     if (shown) await (await panel(page, gone)).f.locator('[data-oco-action="newSession"]').click()
     const fresh = await waitFor(async () => {
       for (const f of await chatFrames(page)) {
@@ -283,7 +286,9 @@ try {
     }, 30000)
     await sleep(3000)
     const freshState = fresh ? await panel(page, fresh) : null
-    const freshMessages = fresh ? (await messages(fresh)).length : null
+    const freshIsDraft = !!fresh && fresh.startsWith("draft-")
+    const freshMessages = freshIsDraft ? 0 : fresh ? (await messages(fresh)).length : null
+    const noServerSession = (await countSessions()) === sessionsBefore
     // Close Panel closes the stale one (kept alive behind the new session's tab: bring it to the front first).
     await showChat()
     const stale = await panel(page, gone)
@@ -293,7 +298,7 @@ try {
     const ok =
       shown && !shown.actions.includes("retry") && ["showSessions", "newSession", "closePanel"].every((a) => shown.actions.includes(a)) &&
       !leaks(shown).length && loopRequests <= 1 && /oco|opencode|会话|sessions/i.test(sidebar) &&
-      fresh && freshState?.draft === "" && freshMessages === 0 && closed
+      fresh && freshIsDraft && noServerSession && freshState?.draft === "" && freshMessages === 0 && closed
     run.record("session-deleted", ok ? "PASS" : "FAIL", {
       shown: brief(shown),
       leaks: leaks(shown),
@@ -301,6 +306,8 @@ try {
       sidebar: sidebar.slice(0, 60),
       freshPanel: !!fresh,
       freshDraft: freshState?.draft,
+      freshIsDraft,
+      noServerSession,
       freshMessages,
       staleClosed: !!closed,
       draftDecision: "kept in the deleted panel's storage; not migrated, not sent",

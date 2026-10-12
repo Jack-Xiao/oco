@@ -4,7 +4,7 @@
 // browser's own IME path, not a real macOS input method; the real input method is recorded NOT RUN.
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, chatFrames, frameSession, sleep, runShot } from "./vscode.mjs"
+import { launch, command, chatFrames, frameSession, sleep, runShot, createAndOpenSession } from "./vscode.mjs"
 import { messages, waitReply, MODEL } from "./server.mjs"
 
 const run = createRun({ suite: "p1b-ime", required: ["ime-composition-enter"], scriptPath: fileURLToPath(import.meta.url) })
@@ -12,7 +12,7 @@ const { app, page } = await launch({ profile: "p1b-ime", run })
 run.installCrashHandlers(() => app.close())
 const users = async (sid) => (await messages(sid)).filter((m) => m.info.role === "user")
 try {
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page)
   let f, sid
   for (let i = 0; i < 300 && !f; i++) {
     for (const x of await chatFrames(page)) if (await x.$('[data-component="prompt-input"]').catch(() => null)) (f = x), (sid = await frameSession(x))
