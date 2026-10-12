@@ -6,7 +6,7 @@
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { createMockServer } from "./lib/mock-llm.mjs"
-import { launch, command, waitForChatFrame, frameSession, sleep, runShot, waitUntil } from "./vscode.mjs"
+import { launch, command, waitForChatFrame, frameSession, sleep, runShot, waitUntil, createAndOpenSession } from "./vscode.mjs"
 import { api, MODEL, waitReply } from "./server.mjs"
 import fs from "node:fs"
 
@@ -106,7 +106,7 @@ try {
     if (/Content Security Policy|Refused to/i.test(t)) cspViolations.push(t.slice(0, 300))
     else if (m.type() === "error" && /mermaid/i.test(t)) pageErrors.push(t.slice(0, 300))
   })
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page)
   const [frame] = await waitForChatFrame(page, 1, 90000, '[data-component="prompt-input"]')
   const sid = await frameSession(frame)
   await frame.getByText(MODEL.label).first().waitFor({ timeout: 60000 })

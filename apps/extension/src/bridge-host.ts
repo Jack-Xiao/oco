@@ -107,9 +107,10 @@ export function createBridge(opts: {
     getBlob: (id) => opts.blobs.get(id),
   }
   const policy = new BridgePolicy(
-    { directory: opts.binding.directory, sessionId: opts.binding.sessionId },
+    { directory: opts.binding.directory, sessionId: opts.binding.sessionId, draft: opts.binding.draft },
     serverLookup(opts.conn, opts.binding.directory),
     () => vscode.workspace.isTrusted,
+    () => opts.conn.roots(), // draft panels only: workspace folders + their projects' worktrees
   )
   const core = new BridgeCore({
     post: (m) => void opts.webview.postMessage(m),
@@ -139,10 +140,11 @@ export function createBridge(opts: {
   return {
     core,
     policy,
-    /** Same connection and directory, another session: requests and titles follow it. */
-    retarget(id: string) {
+    /** Same connection and directory, another session: requests and titles follow it. A draft panel's new
+     *  session may live in another directory (a worktree); the policy then follows that directory. */
+    retarget(id: string, directory?: string) {
       sessionId = id
-      policy.retarget(id)
+      policy.retarget(id, directory)
     },
     dispose() {
       sub.dispose()

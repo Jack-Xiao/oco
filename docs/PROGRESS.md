@@ -1053,3 +1053,9 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 验证：tsgo 0；单测 8/0（Gemini 编写，主线程重跑）；build PASS；E2E c9-mermaid 9/0（Claude 子代理 sonnet）。Gemini 指出缓存非 LRU，已修正。
 - 证据 [c9-mermaid-2026-10-11](evidence/c9-mermaid-2026-10-11.md)。
 
+
+## 2026-10-12 新建会话草稿页 + New worktree 勾选框（补丁 0023）
+
+- 用户要求 New 与 OpenCode 原生一致（先出草稿页，取消不建会话）并支持 worktree；随后改为单一"New worktree"勾选框。评估、设计、委派记录见 [new-session-draft-eval](evidence/new-session-draft-eval.md)。
+- 主线程：契约、桥策略/核心、面板转正、webview 守卫、补丁 0023。Gemini：Connection sandboxes、桥策略单测、worktree 工具调研；Grok：上游调查；Claude 子代理（sonnet）：c12 E2E、旧套件迁移与 mock 全量。
+- 验证：unit 297/0；c12 13/13；mock 全量 23/24（p1b-main-panel 偶发）。分支 claude/new-session-draft，本地提交，未合入 main、未推送。

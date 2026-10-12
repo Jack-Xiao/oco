@@ -62,7 +62,12 @@ export function activate(context: vscode.ExtensionContext) {
     onState: (st) => {
       view.setConnection(st)
       panels.setConnection(st)
-      if (st.state === "connected") void refreshVersionLater()
+      if (st.state === "connected") {
+        void refreshVersionLater()
+        // Worktree sessions (patches/opencode/0023) belong to the workspace once their project's sandboxes are known.
+        const before = conn.roots().join("\0")
+        void conn.refreshSandboxes().then(() => conn.roots().join("\0") !== before && feed.restart()).catch(() => undefined)
+      }
     },
     log: (m) => log.info(m),
     // E2E hook for a silent stall (proxy holds the stream but forwards nothing), outside production only.
@@ -191,6 +196,19 @@ export function activate(context: vscode.ExtensionContext) {
   // A page asked to show another session (internal tab, child session link, shortcut...): the host
   // decides, and only for a session of the same connection and project. The main panel switches to it
   // (a pinned panel's link also goes to the main panel); a panel already showing it is focused.
+  // A new-session page sent its first message: show the session in the sidebar (a new worktree's directory
+  // joins the workspace's roots first, or the store would drop it).
+  panels.onPromoted = (b) => {
+    void (async () => {
+      if (!conn.ownsDirectory(b.directory)) {
+        await conn.refreshSandboxes().catch(() => undefined)
+        feed.restart() // the snapshot dropped the worktree's sessions before
+      }
+      const s = await conn.request<SessionInfo>("GET", `/session/${encodeURIComponent(b.sessionId)}`, undefined, b.directory).catch(() => undefined)
+      if (s && store.add(s)) view.refresh()
+    })()
+  }
+
   panels.onOpenSession = (from: Entry, sessionId: string) => {
     void (async () => {
       try {
@@ -268,10 +286,9 @@ export function activate(context: vscode.ExtensionContext) {
       try {
         if (!requireTrust("create a session")) return
         if (!conn.directory) throw new Error("Open a workspace folder first")
-        const s = await conn.request<SessionInfo>("POST", "/session", {})
-        if (store.add(s)) view.refresh() // identity backfill; the session.created event is deduplicated
-        panels.open(bindingFor(s), s.title || "New Session")
-        return s.id
+        // The new-session page (patches/opencode/0023): folder, branch / worktree and the first message are
+        // chosen there; the server session exists only once that message is sent. Closing the page discards it.
+        panels.open({ connectionId: conn.id, directory: conn.directory, sessionId: `draft-${crypto.randomUUID()}`, draft: true }, "New Session")
       } catch (e) {
         fail("Could not create session", e)
       }
@@ -279,7 +296,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("oco.addSelectionToDraft", async (targetSessionId?: string) => {
       const editor = vscode.window.activeTextEditor
       if (!editor) return void vscode.window.showWarningMessage("oco: No active editor")
-      const open = panels.list()
+      const open = panels.list().filter((e) => !e.binding.draft) // a new-session page has no session draft yet
       if (open.length === 0) return void vscode.window.showWarningMessage("oco: Open a session tab first")
       let target = typeof targetSessionId === "string" ? open.find((e) => e.binding.sessionId === targetSessionId) : undefined
       if (!target) {
@@ -482,6 +499,13 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewPanelSerializer(VIEW_TYPE, {
       async deserializeWebviewPanel(panel, state: { binding?: SessionBinding; role?: PanelRole } | undefined) {
         const b = state?.binding
+        // A new-session page is not restored (nothing was created on the server).
+        if (b?.draft) {
+          panel.dispose()
+          return
+        }
+        // A worktree session's directory is known only after the project list was read.
+        if (b?.sessionId && b.connectionId === conn.id && !conn.ownsDirectory(b.directory)) await conn.refreshSandboxes().catch(() => undefined)
         // Restore only panels of the currently configured connection and this workspace.
         if (!b?.sessionId || b.connectionId !== conn.id || !conn.ownsDirectory(b.directory)) {
           log.warn("not restoring panel: binding does not match current connection/workspace")

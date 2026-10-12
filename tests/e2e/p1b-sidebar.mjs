@@ -10,7 +10,7 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
 import { sessionsFrame, sessionRow, moreHead, loadMoreRow, titleAction, openSearch } from "./lib/sessions-web.mjs"
-import { launch, command, chatFrames, frameSession, sleep, runShot, hostState, clearNotifications, root } from "./vscode.mjs"
+import { launch, command, chatFrames, frameSession, sleep, runShot, hostState, clearNotifications, root, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, status, waitIdle, waitReply, waitMessageFinal } from "./server.mjs"
 
 const REQUIRED = [
@@ -120,14 +120,25 @@ async function openInputBox(open) {
 async function sidebarItem(id) {
   return (await sidebar()).items.find((i) => i.id === id)
 }
-/** The newest session created after `known`, once its panel has a composer. */
+/** Click the view's "+" (New Session): that opens the new-session page (a draft); sending its first message
+ *  creates the session and promotes the panel in place. Returns the new session once its panel has a composer. */
 async function newSessionFromPlus(known) {
   await revealSessionsActions()
   await titleAction(page, "New Session").click()
+  const draft = await until(async () => {
+    for (const f of await chatFrames(page)) {
+      const ok = await f
+        .evaluate(() => document.visibilityState === "visible" && !!document.querySelector('[data-component="session-new-design"]') && document.documentElement.dataset.ocoModel === "ready")
+        .catch(() => false)
+      if (ok) return f
+    }
+  }, 60000)
+  if (!draft) return undefined
+  await type(draft, `Reply with exactly: PLUS-created`, true)
   return until(async () => {
     for (const f of await chatFrames(page)) {
       const s = await frameSession(f).catch(() => null)
-      if (s && !known.has(s) && (await f.$('[data-component="prompt-input"]').catch(() => null))) return s
+      if (s && !s.startsWith("draft-") && !known.has(s) && (await f.$('[data-component="prompt-input"]').catch(() => null))) return s
     }
   }, 60000)
 }
@@ -148,7 +159,9 @@ try {
     const sb = await sidebar()
     const serverSessions = await serverRoots()
     const server = serverSessions.map((s) => s.id)
-    const loaded = server.slice(0, 100)
+    // The sidebar asks the server for 100 roots and then drops the archived ones, so mirror that page.
+    const page100 = ((await api("GET", `/session?directory=${encodeURIComponent(dir)}&roots=true&limit=100`)) ?? []).filter((s) => !s.time?.archived).sort((a, b) => (b.time?.updated ?? 0) - (a.time?.updated ?? 0))
+    const loaded = page100.map((s) => s.id)
     const ids = sb.items.map((i) => i.id)
     const updated = new Map(serverSessions.map((s) => [s.id, s.time?.updated ?? 0]))
     const since = startOfYesterday()
@@ -220,22 +233,27 @@ try {
     })
   }
 
-  // 2. Create from the view's "+" action: a panel opens and the list shows it first in Recent.
+  // 2. Create from the view's "+" action: it opens the new-session page (a draft); the first message creates the
+  //    session, whose panel is promoted in place, and the list shows it first in Recent. The later steps need a session
+  //    with no sent message (draft -> first send), so they use A, created through the API and opened afterwards.
   //    There is no "Open" marker; the row's aria-label is "title, time" while it is idle.
   let A
+  let A0
   {
     const before = new Set((await sidebar()).items.map((i) => i.id))
-    A = await newSessionFromPlus(before)
+    A0 = await newSessionFromPlus(before)
+    if (A0) await waitReply(A0, 60000).catch(() => {}) // let the first reply finish so the list is idle again
     const item = await until(async () => {
-      const it = await sidebarItem(A)
+      const it = await sidebarItem(A0)
       return it?.description ? it : undefined
     })
     const first = (await sidebar()).items[0]?.id
-    const server = await api("GET", `/session/${A}`)
+    const server = await api("GET", `/session/${A0}`)
     const aria = item ? (await (await sessionRow(page, item.title)).getAttribute("aria-label").catch(() => "")) ?? "" : ""
     const timeOk = !!item && item.group === "recent" && COMPACT_TIME.test(item.description) && !/\bOpen\b/.test(item.description)
     const ariaOk = !!item && aria.startsWith(`${item.title},`) && aria.includes(item.description) && !/\bOpen\b/.test(aria)
-    run.record("sidebar-create", !!A && timeOk && ariaOk && first === A && server?.directory === dir ? "PASS" : "FAIL", { sessionId: A, listedFirst: first === A, description: item?.description, group: item?.group, activity: item?.activity, aria, serverDirectory: server?.directory === dir })
+    run.record("sidebar-create", !!A0 && timeOk && ariaOk && first === A0 && server?.directory === dir ? "PASS" : "FAIL", { sessionId: A0, listedFirst: first === A0, description: item?.description, group: item?.group, activity: item?.activity, aria, serverDirectory: server?.directory === dir })
+    A = await createAndOpenSession(page, { title: `oco sidebar A ${rand}` })
   }
 
   // 3. Rename through oco.renameSession -> server title, list label and editor tab follow. The webview's
@@ -414,7 +432,7 @@ try {
     const fa = await frameFor(A)
     await type(fa, `draft-A-${rand}`)
     await sleep(1500)
-    B = await newSessionFromPlus(new Set((await sidebar()).items.map((i) => i.id)))
+    B = await createAndOpenSession(page, { title: `oco sidebar B ${rand}` })
     const fb = await until(() => frameFor(B))
     await type(fb, `draft-B-${rand}`)
     await sleep(1500)
@@ -535,9 +553,11 @@ try {
     }, 60000, 800)
     await watch
     const ids = up?.items.map((i) => i.id) ?? []
+    // The snapshot is the server's first 100 roots minus the archived ones (the list hides those).
+    const expectedPage = ((await api("GET", `/session?directory=${encodeURIComponent(dir)}&roots=true&limit=100`)) ?? []).filter((s) => !s.time?.archived).length
     run.record(
       "connection-switch",
-      down && down.items.length === 0 && /Not connected/.test(down.statusText) && up && new Set(ids).size === ids.length && ids.length === Math.min(beforeIds.length, 100) && ids.every((i) => beforeIds.includes(i)) && !emptyFlash ? "PASS" : "FAIL",
+      down && down.items.length === 0 && /Not connected/.test(down.statusText) && up && new Set(ids).size === ids.length && ids.length === Math.min(beforeIds.length, expectedPage) && ids.every((i) => beforeIds.includes(i)) && !emptyFlash ? "PASS" : "FAIL",
       {
         downState: down?.connection?.state ?? null,
         downItems: down?.items.length ?? null,

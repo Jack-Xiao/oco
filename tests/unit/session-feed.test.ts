@@ -281,7 +281,7 @@ describe("SessionFeed", () => {
       expect(h.store.list()).toEqual([])
 
       const urls = h.calls.map((call) => call.url)
-      expect(urls).toContain(`${ORIGIN}/session?directory=${enc}&roots=true&limit=${SessionFeed.PAGE}`)
+      expect(urls).toContain(`${ORIGIN}/session?directory=${enc}&scope=project&roots=true&limit=${SessionFeed.PAGE}`)
       expect(urls).toContain(`${ORIGIN}/session/status?directory=${enc}`)
       expect(urls).toContain(`${ORIGIN}/permission?directory=${enc}`)
       expect(urls).toContain(`${ORIGIN}/question?directory=${enc}`)
@@ -862,8 +862,8 @@ describe("SessionFeed pages and search", () => {
       const before = h.changes
       await h.feed.loadMore()
       const sessionUrls = h.calls.map((call) => call.url).filter((url) => url.includes("/session?"))
-      expect(sessionUrls[0]).toBe(`${ORIGIN}/session?directory=${enc}&roots=true&limit=${SessionFeed.PAGE}`)
-      expect(sessionUrls[1]).toBe(`${ORIGIN}/session?directory=${enc}&roots=true&limit=${SessionFeed.PAGE * 2}`)
+      expect(sessionUrls[0]).toBe(`${ORIGIN}/session?directory=${enc}&scope=project&roots=true&limit=${SessionFeed.PAGE}`)
+      expect(sessionUrls[1]).toBe(`${ORIGIN}/session?directory=${enc}&scope=project&roots=true&limit=${SessionFeed.PAGE * 2}`)
       const pageCall = h.calls.find((call) => call.url === sessionUrls[1])
       expect(pageCall?.init.redirect).toBe("manual")
       expect(hdr(pageCall!.init)).toEqual({ authorization: "Basic test", "x-opencode-directory": enc })
@@ -876,7 +876,7 @@ describe("SessionFeed pages and search", () => {
       h.feed.restart()
       await until(() => h.feed.state.state === "connected" && h.feed.stats.connects === 2, h, "reconnect keeps page")
       const again = h.calls.map((call) => call.url).filter((url) => url.includes("/session?"))
-      expect(again[2]).toBe(`${ORIGIN}/session?directory=${enc}&roots=true&limit=${SessionFeed.PAGE * 2}`)
+      expect(again[2]).toBe(`${ORIGIN}/session?directory=${enc}&scope=project&roots=true&limit=${SessionFeed.PAGE * 2}`)
       expect(h.store.size).toBe(SessionFeed.PAGE + 50)
       expect(h.store.limitReached).toBe(false)
     } finally {
@@ -922,7 +922,7 @@ describe("SessionFeed pages and search", () => {
       await h.feed.search(query)
       const searchCall = h.calls.find((call) => call.url.includes("search="))
       expect(searchCall?.url).toBe(
-        `${ORIGIN}/session?directory=${enc}&roots=true&search=${encodeURIComponent(query)}&limit=${SessionFeed.PAGE}`,
+        `${ORIGIN}/session?directory=${enc}&scope=project&roots=true&search=${encodeURIComponent(query)}&limit=${SessionFeed.PAGE}`,
       )
       expect(searchCall?.init.redirect).toBe("manual")
       expect(hdr(searchCall!.init)).toEqual({ authorization: "Basic test", "x-opencode-directory": enc })
@@ -963,7 +963,7 @@ describe("SessionFeed pages and search", () => {
       gate.resolve(new Response(null, { status: 200 }))
       await until(() => h.feed.state.state === "connected", h, "connected after gated event")
       const sessionUrls = h.calls.map((call) => call.url).filter((url) => url.includes("/session?"))
-      expect(sessionUrls).toEqual([`${ORIGIN}/session?directory=${enc}&roots=true&limit=${SessionFeed.PAGE}`])
+      expect(sessionUrls).toEqual([`${ORIGIN}/session?directory=${enc}&scope=project&roots=true&limit=${SessionFeed.PAGE}`])
     } finally {
       stream.close()
       h.feed.stop()

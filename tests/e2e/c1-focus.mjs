@@ -11,7 +11,7 @@
 // Works with the real or the scripted model (OCO_E2E_MODEL=mock); the run records which one was used.
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, chatFrames, frameSession, sleep, runShot, hostState } from "./vscode.mjs"
+import { launch, command, chatFrames, frameSession, sleep, runShot, hostState, createAndOpenSession } from "./vscode.mjs"
 import { waitReply } from "./server.mjs"
 
 const CASES = ["open-stays-on-file", "return-via-tab", "return-via-webview"]
@@ -48,7 +48,7 @@ try {
   const page = l.page
   const stats = async (sid) => (await hostState(page, l.stateFile)).panels.find((p) => p.sessionId === sid)
 
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page)
   const { f, sid } = await waitFor(async () => {
     for (const x of await chatFrames(page)) if (await x.$(INPUT).catch(() => null)) return { f: x, sid: await frameSession(x) }
     return null

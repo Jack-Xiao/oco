@@ -2,7 +2,7 @@
 // permissions, image bytes, hide/restore and Reload Window — in real VS Code against the real server.
 import fs from "node:fs"
 import path from "node:path"
-import { launch, command, waitForChatFrame, chatFrames, frameSession, shot, sleep, evidenceDir, root } from "./vscode.mjs"
+import { launch, command, waitForChatFrame, chatFrames, frameSession, shot, sleep, evidenceDir, root, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, status, waitIdle, MODEL } from "./server.mjs"
 
 const results = []
@@ -52,10 +52,10 @@ try {
   // 1. three sessions
   const ids = []
   for (let i = 0; i < 3; i++) {
-    await command(page, "oco: New Session")
+    const sid = await createAndOpenSession(page, { newPanel: i > 0 })
     await sleep(1500)
-    const f = await visibleFrame()
-    const sid = await frameSession(f)
+    let f
+    for (const fr of await chatFrames(page)) if ((await frameSession(fr).catch(() => null)) === sid) f = fr
     if (!ids.includes(sid)) ids.push(sid)
     await f.getByText(MODEL.label).first().waitFor({ timeout: 60000 })
     await sleep(3000)

@@ -4,7 +4,7 @@
 // OCO_E2E_NEGATIVE=question answers "red" while expecting "blue": the suite must then exit non-zero.
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, waitForChatFrame, frameSession, sleep, runShot, hostState } from "./vscode.mjs"
+import { launch, command, waitForChatFrame, frameSession, sleep, runShot, hostState, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, status, waitIdle, waitMessageFinal, MODEL } from "./server.mjs"
 
 const REQUIRED = ["stream-locked", "permission-bound", "question-answer", "cancel-real", "policy-foreign-session", "policy-directory-override", "policy-unlisted-write", "csp-violations"]
@@ -41,7 +41,7 @@ async function newPartIds(sid, known) {
 }
 
 try {
-  await command(page, "oco: New Session")
+  await createAndOpenSession(page)
   const [frame] = await waitForChatFrame(page, 1, 90000, '[data-component="prompt-input"]')
   const sid = await frameSession(frame)
   await frame.getByText(MODEL.label).first().waitFor({ timeout: 60000 })

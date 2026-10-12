@@ -57,6 +57,8 @@ export class PanelRegistry {
   onChange: () => void = () => {}
   /** T010 recovery screen buttons that need the rest of the extension (retry, settings, sessions list, new session). */
   onRecoveryAction: (action: "retryConnection" | "openSettings" | "showSessions" | "newSession") => void = () => {}
+  /** A draft panel's first message created this session; the panel now shows it (patches/opencode/0023). */
+  onPromoted: (binding: SessionBinding) => void = () => {}
   private connection: ConnectionSummary | undefined
 
   constructor(
@@ -148,7 +150,9 @@ export class PanelRegistry {
    * reloaded (the policy pins every request to one directory).
    */
   private switchTo(entry: Entry, binding: SessionBinding, title?: string) {
-    const sameDirectory = binding.connectionId === entry.binding.connectionId && binding.directory === entry.binding.directory
+    // A draft page (patches/opencode/0023) is another route tree: entering or leaving one always reloads.
+    const sameDirectory =
+      binding.connectionId === entry.binding.connectionId && binding.directory === entry.binding.directory && !binding.draft && !entry.binding.draft
     entry.stats.switches++
     entry.binding = binding
     entry.panel.title = title ?? entry.panel.title
@@ -164,15 +168,49 @@ export class PanelRegistry {
       entry.bridge = this.bridgeFor(entry)
       entry.panel.webview.html = this.html(entry.panel.webview, this.initFor(entry))
     }
+    if (!binding.draft)
+      void this.conn
+        .request<{ title?: string }>("GET", `/session/${encodeURIComponent(binding.sessionId)}`, undefined, binding.directory)
+        .then((s) => entry.binding.sessionId === binding.sessionId && s.title && this.setTitle(entry, s.title))
+        .catch(() => undefined)
+    this.onChange()
+  }
+
+  /** The draft page entered the session its first message created. Only a session this panel's bridge saw
+   *  being created is accepted; the panel then switches in place (no reload: the first prompt is in flight). */
+  private promote(entry: Entry, sessionId: string) {
+    if (!entry.binding.draft) return
+    const directory = entry.bridge.policy.created.get(sessionId)
+    if (directory === undefined) {
+      entry.stats.blockedNavigations++
+      this.log.warn(`promote refused: ${sessionId} was not created by this panel`)
+      return
+    }
+    const binding: SessionBinding = { connectionId: entry.binding.connectionId, directory, sessionId }
+    entry.binding = binding
+    entry.bridge.retarget(sessionId, directory)
+    entry.ready = true
+    // The page knows the session id (it navigated there) but not its directory: keep its saved state right.
+    entry.bridge.core.sendCurrent({ type: "navigate", sessionId, directory })
+    this.log.info(`draft promoted to ${sessionId} in ${directory}`)
+    this.onPromoted(binding)
     void this.conn
-      .request<{ title?: string }>("GET", `/session/${encodeURIComponent(binding.sessionId)}`, undefined, binding.directory)
-      .then((s) => entry.binding.sessionId === binding.sessionId && s.title && this.setTitle(entry, s.title))
+      .request<{ title?: string }>("GET", `/session/${encodeURIComponent(sessionId)}`, undefined, directory)
+      .then((s) => entry.binding.sessionId === sessionId && s.title && this.setTitle(entry, s.title))
       .catch(() => undefined)
     this.onChange()
   }
 
   private initFor(entry: Entry): WebviewInit {
-    return { panelId: entry.panelId, binding: entry.binding, serverUrl: BRIDGE_ORIGIN, locale: this.locale(), colorScheme: colorScheme(), role: entry.role }
+    return {
+      panelId: entry.panelId,
+      binding: entry.binding,
+      serverUrl: BRIDGE_ORIGIN,
+      locale: this.locale(),
+      colorScheme: colorScheme(),
+      role: entry.role,
+      ...(entry.binding.draft ? { folders: this.conn.folders() } : {}),
+    }
   }
 
   /** VS Code's display language. OCO_DEV_LOCALE (development only) stands in for an installed language
@@ -203,7 +241,7 @@ export class PanelRegistry {
   }
 
   private flushDrafts(e: Entry) {
-    if (!e.ready || !e.panel.visible) return
+    if (!e.ready || !e.panel.visible || e.binding.draft) return
     for (const d of this.pending(e))
       e.bridge.core.sendCurrent({ type: "draft.insert", id: d.id, sessionId: e.binding.sessionId, text: d.text, source: d.source })
   }
@@ -272,6 +310,14 @@ export class PanelRegistry {
           case "ready": {
             // A ready for another session: a switch happened before this document could receive "navigate"
             // (still loading), or it is late from before the switch. Either way, (re)send the current session.
+            if (entry.binding.draft) {
+              // A draft page has no session route yet (patches/opencode/0023).
+              entry.ready = true
+              entry.route = msg.route
+              this.log.info(`draft panel ready gen ${entry.bridge.core.generation}`)
+              this.sendConnection(entry)
+              return
+            }
             if (!msg.route.endsWith(`/session/${entry.binding.sessionId}`)) {
               this.sendNavigate(entry)
               return
@@ -312,6 +358,7 @@ export class PanelRegistry {
               entry.stats.blockedNavigations++
               this.log.info(`blocked in-panel navigation in ${entry.binding.sessionId}: ${msg.route ?? ""}`)
             }
+            if (msg.action === "promoted" && msg.sessionId) this.promote(entry, msg.sessionId)
             if (msg.action === "openSession" && msg.sessionId) {
               entry.stats.openRequests++
               this.onOpenSession(entry, msg.sessionId)
@@ -488,7 +535,11 @@ export class PanelRegistry {
       { path: p, line, column },
       {
         directory: entry.binding.directory,
-        workspaceRoots: (vscode.workspace.workspaceFolders ?? []).filter((f) => f.uri.scheme === "file").map((f) => f.uri.fsPath),
+        // Workspace folders plus their projects' worktrees (a worktree session's files live outside the folders).
+        workspaceRoots: [
+          ...(vscode.workspace.workspaceFolders ?? []).filter((f) => f.uri.scheme === "file").map((f) => f.uri.fsPath),
+          ...this.conn.roots(),
+        ],
         serverLocal,
         realpath: (x) => fs.promises.realpath(x).catch(() => null),
         isFile: (x) => fs.promises.stat(x).then((st) => st.isFile(), () => false),

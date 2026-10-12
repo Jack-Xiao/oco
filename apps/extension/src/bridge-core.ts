@@ -162,7 +162,9 @@ export class BridgeCore {
     const target = bridgeTarget(msg.url)!
     const label = `${msg.method} ${target.pathname}`
     try {
-      const decision = await this.deps.policy.decide(msg.method, target.pathname, target.search)
+      const headerDirectory = msg.headers.find(([k]) => k.toLowerCase() === "x-opencode-directory")?.[1]
+      const body = msg.body ? new Uint8Array(msg.body as ArrayBuffer) : undefined
+      const decision = await this.deps.policy.decide(msg.method, target.pathname, target.search, { headerDirectory, body })
       if (!decision.ok) {
         this.stats.rejectedRequests++
         this.deps.log.warn(`${label} rejected: ${decision.reason}`)
@@ -191,12 +193,18 @@ export class BridgeCore {
       const init: RequestInit = {
         method: msg.method,
         headers,
-        body: msg.body ? new Uint8Array(msg.body as ArrayBuffer) : undefined,
+        body,
         signal: entry.ac.signal,
         redirect: "manual", // never forward credentials to a redirect target
       }
       const res =
         msg.method === "GET" && SHARED.test(target.pathname) ? await this.sharedFetch(`${gen}\u0000${writes}`, url, init, entry.ac.signal) : await this.deps.fetch(url, init)
+      // A draft panel's new session / worktree must be admitted before the page sees the response (it sends
+      // the first prompt right after).
+      if (BridgePolicy.observes(msg.method, target.pathname) && res.ok) {
+        const json = await res.clone().json().catch(() => undefined)
+        this.deps.policy.observe(msg.method, target.pathname, res.status, json)
+      }
       const sse = (res.headers.get("content-type") ?? "").includes("text/event-stream")
       this.deps.log.info(`${label} -> ${res.status}${sse ? " (stream)" : ""}`)
       // Over Remote every body byte crosses the tunnel; a provider list is several MB of JSON (~11x smaller gzipped).

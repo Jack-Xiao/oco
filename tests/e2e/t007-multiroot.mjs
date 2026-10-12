@@ -5,7 +5,7 @@ import path from "node:path"
 import { execSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, sleep, runShot, hostState, root, waitForChatFrame } from "./vscode.mjs"
+import { launch, command, sleep, runShot, hostState, root, waitForChatFrame, chatFrames } from "./vscode.mjs"
 
 const CASES = ["default-first-folder", "select-folder", "new-session-in-folder", "open-panel-survives-switch", "choice-remembered"]
 const run = createRun({ suite: "t007-multiroot", required: CASES, scriptPath: fileURLToPath(import.meta.url) })
@@ -16,7 +16,9 @@ const WS_FILE = path.join(BASE, "multi.code-workspace")
 fs.rmSync(BASE, { recursive: true, force: true })
 for (const d of [A, B]) {
   fs.mkdirSync(d, { recursive: true })
-  execSync("git init -q && git -c user.email=t@oco.local -c user.name=t commit -q --allow-empty -m init", { cwd: d })
+  // The root commit must differ per folder: OpenCode derives the project id from it, and two folders with the same
+  // root commit are one project (the sidebar lists a project's sessions across its folders).
+  execSync(`git init -q && git -c user.email=t@oco.local -c user.name=t commit -q --allow-empty -m "init ${path.basename(d)} ${Date.now()}"`, { cwd: d })
 }
 fs.writeFileSync(WS_FILE, JSON.stringify({ folders: [{ path: "alpha" }, { path: "beta" }] }))
 const URL_ = process.env.OCO_TEST_URL ?? "http://127.0.0.1:4517"
@@ -86,13 +88,28 @@ try {
 
   await rec("new-session-in-folder", async () => {
     const before = new Set(((await dreq("GET", `/session?directory=${encodeURIComponent(B)}&limit=500`, B)) ?? []).map((s) => s.id))
+    // New Session opens the new-session page (a draft); the session is created in the selected folder by the first message.
     await command(page, "oco: New Session")
+    const draft = await until(async () => {
+      for (const f of await chatFrames(page)) {
+        const ok = await f.evaluate(() => !!document.querySelector('[data-component="session-new-design"]') && !!document.querySelector('[data-component="prompt-input"]') && document.documentElement.dataset.ocoModel === "ready").catch(() => false)
+        if (ok) return f
+      }
+    }, 60000, 200)
+    if (draft) {
+      const input = draft.locator('[data-component="prompt-input"]')
+      await input.click()
+      await input.focus()
+      await page.keyboard.type(`Reply with exactly: MR-NEW-${rand}`, { delay: 4 })
+      await sleep(200)
+      await page.keyboard.press("Enter")
+    }
     const s = await until(async () => {
       const list = (await dreq("GET", `/session?directory=${encodeURIComponent(B)}&limit=500`, B)) ?? []
       return list.find((x) => !before.has(x.id))
     }, 20000)
     if (s) created.push([s.id, B])
-    run.record("new-session-in-folder", s && s.directory === B ? "PASS" : "FAIL", { directory: s?.directory ?? null })
+    run.record("new-session-in-folder", draft && s && s.directory === B ? "PASS" : "FAIL", { directory: s?.directory ?? null })
   })
 
   await rec("choice-remembered", async () => {

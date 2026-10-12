@@ -168,6 +168,27 @@ export async function waitForChatFrame(page, count = 1, timeout = 60000, selecto
   throw new Error(`chat frame(s) not ready: wanted ${count}, have ${n}`)
 }
 
+/** Create a server session through the API and open it in the chat panel (main panel, or a pinned one with
+ *  `newPanel`), returning its id. `oco: New Session` only opens a draft page now (the session is created by the
+ *  first message), so suites that just need "a fresh session in a panel" use this instead; suites that test the
+ *  draft itself use New explicitly (c12-new-session-draft). `directory` defaults to the shared test workspace.
+ *  Retries the open once when no frame shows the session within 25 s (the picker may open before the list loads);
+ *  `wait: false` skips that check for suites that time the panel's first paint themselves. */
+export async function createAndOpenSession(page, { title, directory, newPanel = false, wait = true } = {}) {
+  const { api } = await import("./server.mjs")
+  const s = await api("POST", "/session", title ? { title } : {}, directory)
+  if (!s?.id) throw new Error("createAndOpenSession: server did not return a session: " + JSON.stringify(s)?.slice(0, 200))
+  const shown = async () => {
+    for (const f of await chatFrames(page)) if ((await frameSession(f).catch(() => null)) === s.id) return true
+    return false
+  }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await command(page, newPanel ? "oco: Open in New Panel" : "oco: Open Session", { input: s.id })
+    if (!wait || (await waitUntil(shown, 25000, 250))) return s.id
+  }
+  throw new Error("createAndOpenSession: no panel shows " + s.id)
+}
+
 /** Session id bound to a chat frame. */
 /** The session a chat frame currently shows (a main panel switches in place, ADR-007). */
 export const frameSession = (f) => f.evaluate(() => window.__OCO_DEBUG__?.sessionId?.() ?? window.__OCO_INIT__.binding.sessionId)

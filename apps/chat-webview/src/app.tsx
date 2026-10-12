@@ -30,7 +30,10 @@ const serverKey = ServerConnection.Key.make(init.serverUrl)
 // The session this panel shows. Starts at the init binding; changed only by the host's "navigate".
 const bound = { ...init.binding }
 const routeFor = (sessionId: string) => `/server/${base64Encode(serverKey)}/session/${sessionId}`
-const boundRoute = routeFor(bound.sessionId)
+// patches/opencode/0023: a draft panel starts on the legacy "/<dir>/session" route; the app turns it into a
+// /new-session?draftId=… page. Its first message creates the session the panel then shows ("promoted").
+const draftRoute = `/${base64Encode(bound.directory)}/session`
+const boundRoute = bound.draft ? draftRoute : routeFor(bound.sessionId)
 const stats = ((window as unknown as { __OCO_STATS__: Record<string, number> }).__OCO_STATS__ ??= {})
 stats.blockedNavigation = 0
 stats.openSessionRequests = 0
@@ -74,6 +77,7 @@ const platform: Platform = {
   version: "oco-p1a",
   embedded: true, // patches/opencode/0002: no tabs/home/new-session/terminal entry points
   embeddedDirectory: init.binding.directory, // patches/opencode/0015: the session mounts before its info arrives
+  embeddedFolders: init.folders, // patches/opencode/0023: the new-session page picks among these folders only
   windowID: init.panelId,
   openExternal: (url) => ui("openExternal", { url }),
   // patches/opencode/0005: file names in tool parts open in VS Code; the host validates the path.
@@ -108,8 +112,32 @@ let currentRoute = boundRoute
 const inner = createMemoryHistory()
 inner.set({ value: boundRoute, replace: true, scroll: false })
 
+/** Draft panel: the new-session page itself, then the first session route (the one its message created; the host
+ *  checks that). Everything else stays blocked. */
+function draftGuard(value: string) {
+  const path = value.split(/[?#]/)[0]
+  if (path === draftRoute || path === "/new-session") return true
+  const parts = path.split("/").filter(Boolean)
+  const id =
+    parts.length === 4 && parts[0] === "server" && parts[2] === "session" ? parts[3]
+    : parts.length === 3 && parts[1] === "session" ? parts[2]
+    : undefined
+  if (id) {
+    delete bound.draft
+    bound.sessionId = id
+    stats.navigations++
+    ui("promoted", { sessionId: id })
+    saveState()
+    return true
+  }
+  stats.blockedNavigation++
+  ui("blockedNavigation", { route: value.slice(0, 300) })
+  return false
+}
+
 function PanelRouter(props: BaseRouterProps) {
   const guard = (value: string) => {
+    if (bound.draft) return draftGuard(value)
     const c = classifyRoute(value)
     if (c.kind === "bound") return true
     if (c.kind === "session") {
@@ -208,7 +236,14 @@ onNavigate((msg) => {
   // Result card: the host asks for the review (diff) panel too. The page-side module keeps the intent until the
   // session page is on screen (patches/opencode/0021), so a navigate to an uncached session loses nothing.
   if (msg.review) window.dispatchEvent(new CustomEvent("oco:review-intent", { detail: { sessionID: msg.sessionId, file: msg.review.file } }))
-  if (msg.sessionId === bound.sessionId) return void ready(currentRoute)
+  if (msg.sessionId === bound.sessionId) {
+    // After a draft's promotion the host names the session's directory (a worktree may differ).
+    if (msg.directory && msg.directory !== bound.directory) {
+      bound.directory = msg.directory
+      saveState()
+    }
+    return void ready(currentRoute)
+  }
   stats.navigations++
   bound.sessionId = msg.sessionId
   currentRoute = routeFor(msg.sessionId)

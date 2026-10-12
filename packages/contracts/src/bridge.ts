@@ -16,7 +16,10 @@ export const BRIDGE_ORIGIN = "http://oco.bridge"
 export type SessionBinding = {
   connectionId: string
   directory: string
+  /** For a draft panel: a panel-local id ("draft-<uuid>"); the server has no such session. */
   sessionId: string
+  /** A new-session page with no session yet (patches/opencode/0023). Becomes a normal binding on "promoted". */
+  draft?: true
 }
 
 export type WebviewInit = {
@@ -28,6 +31,8 @@ export type WebviewInit = {
   colorScheme?: "light" | "dark"
   /** ADR-007: "main" follows the sidebar (the host may switch its session), "pinned" keeps one session. */
   role?: PanelRole
+  /** Draft panels: the workspace folders the new-session page may pick from. */
+  folders?: string[]
 }
 
 export type PanelRole = "main" | "pinned"
@@ -40,6 +45,7 @@ export type UiAction =
   | "notify"
   | "title"
   | "openSession"
+  | "promoted"
   | "blockedNavigation"
   | "openFile"
   | "reload"
@@ -106,7 +112,8 @@ export type ConnectionNotice = Envelope<
 >
 /** ADR-007: the host switched this panel to another session of the same connection and directory. The page's
  * route guard accepts only the session the host last sent; the page never picks its own session. */
-export type Navigate = Envelope<"navigate", { sessionId: string; review?: { file?: string } }>
+/** `directory`: sent after a draft panel's promotion, when the new session lives in another directory (a worktree). */
+export type Navigate = Envelope<"navigate", { sessionId: string; directory?: string; review?: { file?: string } }>
 export type HostToWebview = Welcome | FetchHead | FetchChunk | FetchEnd | FetchError | StoreResult | DraftInsert | ConnectionNotice | Navigate
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v)
@@ -122,6 +129,7 @@ const UI_ACTIONS = new Set<UiAction>([
   "notify",
   "title",
   "openSession",
+  "promoted",
   "blockedNavigation",
   "openFile",
   "reload",

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url"
 import fs from "node:fs"
 import path from "node:path"
 import { createRun } from "./lib/results.mjs"
-import { clearNotifications, launch, command, quickInput, waitUntil, chatFrames, frameSession, sleep, runShot, hostState, root } from "./vscode.mjs"
+import { clearNotifications, launch, command, quickInput, waitUntil, chatFrames, frameSession, sleep, runShot, hostState, root, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, status, waitIdle, waitReply, MODEL } from "./server.mjs"
 
 const REQUIRED = [
@@ -91,8 +91,7 @@ try {
   //    the others are pinned panels ("Open in New Panel"), since the main panel switches in place (ADR-007).
   const ids = []
   for (let i = 0; i < 3; i++) {
-    if (i === 0) await command(page, "oco: New Session")
-    else await command(page, "oco: Open in New Panel", { input: (await api("POST", "/session", {})).id })
+    await createAndOpenSession(page, { newPanel: i > 0 })
     // Identify the new panel from its frame (querying host state here would race the webview for focus).
     let sid
     const t0 = Date.now()
