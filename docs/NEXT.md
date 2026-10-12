@@ -4,13 +4,13 @@
 
 当前基线：main `ce17cd8`。运行视图 M1–M5（补丁 0020）已随 PR #4 / #5 合入 main；补丁 0001–0020 干净重放；vendor OpenCode v1.18.33。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
 
-## 0. 本批：收口（2026-10-10，已完成，证据见 [cleanup-2026-10-10](evidence/cleanup-2026-10-10.md)）
+## 0. 本批：roadmap 7 项（2026-10-11，分支 claude/roadmap-batch-2026-10-11，证据见 [roadmap-batch-2026-10-11](evidence/roadmap-batch-2026-10-11.md)）
 
-- [DONE] `.gitignore` 忽略 `.oco-e2e-*.log`；根目录只留最新 vsix；删除已合并且 worktree 干净的 `claude/*` 分支。保留 4 个有未提交改动的 worktree：`first-session-slow-open-c83e72`、`musing-solomon-847dba`、`nostalgic-gates-ef74ca`、`practical-shamir-62b821`，由各自会话处理。`.codex/`、`.kilo/` 下的 worktree 属于其他工具，不动。
-- [DONE] STATUS 瘦身为当前事实，批次历史整段搬到 PROGRESS。
-- [DONE；真实模型 c5 24/4，剩余 FAIL 与这三处修复无直接对应，见 fail-diag] M5 三个小坑：子会话翻完全部历史（原只同步最近 20 条）；step 时间旁表随 `dropSessionCaches` 清理；`snapshotAt` 的 token / 花费泄漏。
-- [DONE] `scripts/regen-patch.sh`：在临时 worktree 里按序应用前序补丁重建基线，再生成目标补丁并校验干净重放。旧基线 `deb241e` 在当前浅克隆中已不存在，0020 与前序补丁有 3 个文件重叠，不能直接 `git diff HEAD`。
-- [DONE] 代码落地后：0020 用 `regen-patch.sh` 再生成（58 文件，+20179 −8），0001–0020 干净重放且重放树与工作树一致；根 typecheck 0、unit 190/0；session 单测 427/0；`bun run build` PASS；本机已装 `oco-0.0.4-ce17cd8.vsix`（需 Reload Window）。第 1 节真实模型回归已跑一轮，结果见下。
+- [DONE] M11 就地作答、M05 首片 `oco.addToDraft`、M07 (1)+(2)、M02 todo 进度（ADR-009 §2 已补）、M14 Pin + Mark as Unread、侧栏 Shift 多选批量 Archive / Delete / Mark unread。
+- [DONE，待决策] M12：调查完成，上游是「暂时移除」而非缺陷；若立项，形态为一枚小补丁（下一编号，embedded 下 followup 默认 queue + 加载置 paused）。
+- [TODO] M05 第二片：终端最近命令输出、Problems / SCM 菜单贡献点、「Fix with OpenCode」灯泡。M07 后续：收件箱「压缩中」行与 `session.compacted` 订阅（现在按请求 resolve 即结束）。M14 第二步 Label + Snooze。
+- [TODO] E2E 未覆盖项见 c10 / c11 证据的 NOT RUN（模态确认的 delete / archive 批量、真实模型压缩目视）。
+- 上一批「收口（2026-10-10）」已完成，记录在 [cleanup-2026-10-10](evidence/cleanup-2026-10-10.md) 与 PROGRESS。
 
 ## 1. 真实模型回归（本批第二步）
 
@@ -44,7 +44,7 @@ oco 是 OpenCode 的客户端，不自建调度引擎。上游 1.18.33 已有 `t
 
 ## 3. 小项（按需）
 
-- 收件箱：提问就地作答（环心输入框，与 NEXT §2b P1-2 合并考虑）；真实模型下目视通知与收件箱；亮色主题下看一次分区与按钮。
+- 收件箱：提问就地作答已在侧栏落地（2026-10-11）；环心输入框版本与 §2b P1-2 合并考虑；真实模型下目视通知、收件箱与就地作答；亮色主题下看一次分区、选择栏与按钮。
 - 轮末工具台 tools-k：在 end 后 ≥2 s 再采样确认收到 0（2026-10-10 探查只采到 end 瞬间的 0.380，`dk` 为逐帧过渡值）。
 - 亮色主题下轨迹时间线圆点 rgb(205,214,228) 对比度偏低。
 - c4 / c5 在真实模型模式下跳过或分支 mock 专属断言（live-update、subagent-row、tool-turn、tool-fail、retry）；与另一会话的 fail-diag 协调，不要同时改 tests/e2e。

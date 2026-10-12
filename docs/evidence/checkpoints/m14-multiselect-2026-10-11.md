@@ -1,0 +1,21 @@
+# Checkpoint: M14 Pin 置顶 + Shift 多选 + Mark as Unread + M02 Todo 进度
+
+- 日期: 2026-10-11
+- 状态: 已完成 (子目标 1-7 全部完成)
+- 写入范围:
+  - `apps/extension/src/sessions-view.ts`
+  - `apps/extension/src/sessions-webview.ts`
+  - `apps/extension/src/session-groups.ts`
+  - `apps/extension/media/sessions-list/index.js`
+  - `apps/extension/media/sessions-list/index.css`
+  - `tests/unit/sessions-view.test.ts`
+  - `tests/unit/session-groups.test.ts`
+  - `docs/evidence/checkpoints/m14-multiselect-2026-10-11.md`
+- 目标与进度:
+  - [x] 子目标 1: UnreadTracker 公开 `remember(id)` 手动标记逻辑与单元测试 (豁免 update 抹除，current 时清除)
+  - [x] 子目标 2: SessionsView 增加 Pin 功能 (`setPinned`, `isPinned`, `togglePin`, memento `oco.pinnedSessions`，SESSIONS 分组 "Pinned")
+  - [x] 子目标 3: SessionsView 增加 `markUnread(ids: string[])`
+  - [x] 子目标 4: SessionsView M02 Todo 透传 (`WebRow.todo` & `setTodoProbe(fn)`)
+  - [x] 子目标 5: SessionsWebview 消息契约处理 (`pin`, `markUnread`, `batch`) 与 `data-vscode-context` (`pinned`, `selection`)
+  - [x] 子目标 6: 页面侧 (index.js / index.css): Shift/Cmd 多选、选择栏、Pin 图钉/分组、Todo 进度展开、无障碍与主题样式
+  - [x] 子目标 7: 单测覆盖与类型检查验证 (typecheck 0 错误, unit tests 284 pass, 0 fail)

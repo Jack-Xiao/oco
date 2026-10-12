@@ -2,7 +2,7 @@ import * as vscode from "vscode"
 import * as crypto from "node:crypto"
 import * as fs from "node:fs"
 import * as nodePath from "node:path"
-import { BRIDGE_ORIGIN, type ConnectionSummary, type PanelRole, type ReviewIntent, type SessionBinding, type WebviewInit } from "@oco/contracts"
+import { BRIDGE_ORIGIN, type ConnectionSummary, type DraftInsert, type PanelRole, type ReviewIntent, type SessionBinding, type WebviewInit } from "@oco/contracts"
 import { findPackedApp, loaderScript, type PackedApp } from "./app-loader"
 import { BlobStore, createBridge } from "./bridge-host"
 import type { Connection } from "./connection"
@@ -21,7 +21,7 @@ const colorScheme = (): "light" | "dark" => {
   return k === vscode.ColorThemeKind.Light || k === vscode.ColorThemeKind.HighContrastLight ? "light" : "dark"
 }
 
-type DraftSource = { path: string; startLine: number; endLine: number; unsaved: boolean }
+type DraftSource = DraftInsert["source"]
 type PendingDraft = { id: string; text: string; source: DraftSource }
 export type Entry = {
   panel: vscode.WebviewPanel

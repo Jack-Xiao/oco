@@ -4,6 +4,12 @@
 
 更新时间：2026-09-30（P1b 稳定性收尾后）。
 
+## Roadmap 批次：M11 / M05 首片 / M07 / M02 / M14 Pin / 侧栏多选 / M12 调查（2026-10-11）
+
+- 分支 claude/roadmap-batch-2026-10-11；证据 [roadmap-batch-2026-10-11](evidence/roadmap-batch-2026-10-11.md)、[m07-compact-precheck-2026-10-11](evidence/m07-compact-precheck-2026-10-11.md)、[c10-c11-sidebar-2026-10-11](evidence/c10-c11-sidebar-2026-10-11.md)。
+- 委派：M12 调查 Grok；M07 预检与 E2E Claude 子代理（Sonnet）；M11 / M02 / M07 宿主 / M14+多选 Gemini；M05 模块 Grok delegate（主线程发现 1 个打包后会抛错的缺陷并修复）。主线程：契约、ADR-009 §2、补丁 0019、extension.ts / package.json 接线。
+- 结果：typecheck 0；unit 284/0；build PASS；VSIX 本机安装；E2E mock c10 6/0、c11 7/0（delete 批量 NOT RUN）；第一轮 E2E 暴露并修复 2 个产品缺陷。
+
 ## 单主面板会话切换 — ADR-007 第 2–4 步（2026-09-30）
 
 ```text

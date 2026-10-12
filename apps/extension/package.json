@@ -68,6 +68,37 @@
         "enablement": "isWorkspaceTrusted"
       },
       {
+        "command": "oco.pinSession",
+        "title": "Pin Session",
+        "category": "oco",
+        "icon": "$(pinned)"
+      },
+      {
+        "command": "oco.unpinSession",
+        "title": "Unpin Session",
+        "category": "oco",
+        "icon": "$(pinned-dirty)"
+      },
+      {
+        "command": "oco.markSessionsUnread",
+        "title": "Mark Session as Unread",
+        "category": "oco",
+        "icon": "$(mail)"
+      },
+      {
+        "command": "oco.compactSession",
+        "title": "Compact Session (summarize context)",
+        "category": "oco",
+        "icon": "$(fold)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "oco.addToDraft",
+        "title": "Add to Draft… (Problems / Git diff)",
+        "category": "oco",
+        "icon": "$(add)"
+      },
+      {
         "command": "oco.searchSessions",
         "title": "Search Sessions",
         "category": "oco",
@@ -192,6 +223,26 @@
           "command": "oco.deleteSession",
           "when": "webviewId == 'oco.sessions' && webviewSection == 'session'",
           "group": "1_edit@3"
+        },
+        {
+          "command": "oco.compactSession",
+          "when": "webviewId == 'oco.sessions' && webviewSection == 'session'",
+          "group": "2_context@1"
+        },
+        {
+          "command": "oco.pinSession",
+          "when": "webviewId == 'oco.sessions' && webviewSection == 'session' && !pinned",
+          "group": "3_organize@1"
+        },
+        {
+          "command": "oco.unpinSession",
+          "when": "webviewId == 'oco.sessions' && webviewSection == 'session' && pinned",
+          "group": "3_organize@1"
+        },
+        {
+          "command": "oco.markSessionsUnread",
+          "when": "webviewId == 'oco.sessions' && webviewSection == 'session'",
+          "group": "3_organize@2"
         }
       ],
       "commandPalette": [

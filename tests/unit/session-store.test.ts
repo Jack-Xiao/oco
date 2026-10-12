@@ -1574,3 +1574,152 @@ describe("SessionStore run summary and inbox results", () => {
     ])
   })
 })
+
+describe("M02: SessionStore todo and lastModel", () => {
+  test("todo.updated whole-table replacement, id deduplication, and list() projection done/total", () => {
+    const store = make()
+    store.applySnapshot({
+      sessions: [session({ id: "s1", title: "Session 1" })],
+      status: {},
+      permissions: [],
+      questions: [],
+    })
+
+    // Initially undefined before any todo is fetched or updated
+    expect(store.list()[0].todo).toBeUndefined()
+    expect(store.hasTodo("s1")).toBe(false)
+    expect(store.getTodo("s1")).toBeUndefined()
+
+    // Apply todo.updated with duplicate IDs
+    const changed = store.applyEvent(
+      ev("todo.updated", {
+        sessionID: "s1",
+        todos: [
+          { id: "t1", content: "Step 1", status: "completed" },
+          { id: "t2", content: "Step 2", status: "in_progress" },
+          { id: "t1", content: "Step 1 dup", status: "pending" }, // duplicate id t1, should be dropped
+          { id: "t3", content: "Step 3", status: "cancelled" },
+          { id: "t4", content: "Step 4", status: "pending" },
+        ],
+      }),
+    )
+    expect(changed).toBe(true)
+    expect(store.hasTodo("s1")).toBe(true)
+
+    const item = store.list()[0]
+    expect(item.todo).toBeDefined()
+    expect(item.todo?.done).toBe(2) // 1 completed + 1 cancelled
+    expect(item.todo?.total).toBe(4)
+    expect(item.todo?.items).toEqual([
+      { content: "Step 1", status: "completed" },
+      { content: "Step 2", status: "in_progress" },
+      { content: "Step 3", status: "cancelled" },
+      { content: "Step 4", status: "pending" },
+    ])
+
+    // getTodo returns same projection
+    expect(store.getTodo("s1")).toEqual(item.todo)
+
+    // Re-applying identical todo.updated returns false (idempotent / no visible change)
+    const unchanged = store.applyEvent(
+      ev("todo.updated", {
+        sessionID: "s1",
+        todos: [
+          { id: "t1", content: "Step 1", status: "completed" },
+          { id: "t2", content: "Step 2", status: "in_progress" },
+          { id: "t3", content: "Step 3", status: "cancelled" },
+          { id: "t4", content: "Step 4", status: "pending" },
+        ],
+      }),
+    )
+    expect(unchanged).toBe(false)
+
+    // Replacing with updated table
+    const replaced = store.applyEvent(
+      ev("todo.updated", {
+        sessionID: "s1",
+        todos: [
+          { id: "t1", content: "Step 1", status: "completed" },
+          { id: "t2", content: "Step 2", status: "completed" },
+        ],
+      }),
+    )
+    expect(replaced).toBe(true)
+    const updatedItem = store.list()[0]
+    expect(updatedItem.todo?.done).toBe(2)
+    expect(updatedItem.todo?.total).toBe(2)
+  })
+
+  test("lastModel records assistant providerID and modelID, child session model does not bubble to root, and cleans up on delete and snapshot pruning", () => {
+    const store = make()
+    const root = session({ id: "root", title: "Root" })
+    const child = session({ id: "child", parentID: "root", title: "Child" })
+    store.applySnapshot({
+      sessions: [root, child],
+      status: {},
+      permissions: [],
+      questions: [],
+    })
+
+    expect(store.lastModel("root")).toBeUndefined()
+    expect(store.lastModel("child")).toBeUndefined()
+
+    // Assistant message on child session
+    store.applyEvent(
+      ev("message.updated", {
+        sessionID: "child",
+        info: {
+          id: "msg-1",
+          sessionID: "child",
+          role: "assistant",
+          providerID: "anthropic",
+          modelID: "claude-3-7-sonnet",
+        },
+      }),
+    )
+
+    // Model recorded on child, NOT bubbled to root
+    expect(store.lastModel("child")).toEqual({ providerID: "anthropic", modelID: "claude-3-7-sonnet" })
+    expect(store.lastModel("root")).toBeUndefined()
+
+    // Assistant message on root session
+    store.applyEvent(
+      ev("message.updated", {
+        sessionID: "root",
+        info: {
+          id: "msg-2",
+          sessionID: "root",
+          role: "assistant",
+          providerID: "google",
+          modelID: "gemini-2.5-flash",
+        },
+      }),
+    )
+    expect(store.lastModel("root")).toEqual({ providerID: "google", modelID: "gemini-2.5-flash" })
+
+    // Set todo on both
+    store.setTodo("root", [{ id: "tr", content: "Root task", status: "pending" }])
+    store.setTodo("child", [{ id: "tc", content: "Child task", status: "in_progress" }])
+    expect(store.hasTodo("root")).toBe(true)
+    expect(store.hasTodo("child")).toBe(true)
+
+    // Deleting child cleans up its lastModel and todo
+    store.applyEvent(ev("session.deleted", { sessionID: "child" }))
+    expect(store.has("child")).toBe(false)
+    expect(store.lastModel("child")).toBeUndefined()
+    expect(store.hasTodo("child")).toBe(false)
+    expect(store.lastModel("root")).toEqual({ providerID: "google", modelID: "gemini-2.5-flash" })
+
+    // Snapshot that prunes root cleans up root's lastModel and todo
+    store.applySnapshot({
+      sessions: [session({ id: "other", title: "Other" })],
+      status: {},
+      permissions: [],
+      questions: [],
+    })
+    expect(store.has("root")).toBe(false)
+    expect(store.lastModel("root")).toBeUndefined()
+    expect(store.hasTodo("root")).toBe(false)
+  })
+})
+

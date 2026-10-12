@@ -215,6 +215,45 @@ describe("UnreadTracker", () => {
     expect(defaults.ids()[0]).toBe("s1")
     expect(defaults.ids()[199]).toBe("s200")
   })
+
+  test("manually remembered session remains unread across update() and clears when becoming current", () => {
+    const tracker = new UnreadTracker()
+    expect(tracker.remember("manual-1")).toBe(true)
+    expect(tracker.has("manual-1")).toBe(true)
+
+    // update with idle item does not clear it
+    expect(tracker.update([item({ id: "manual-1", activity: "idle" })])).toBe(false)
+    expect(tracker.has("manual-1")).toBe(true)
+
+    // update with other session as current does not clear it
+    expect(tracker.update([item({ id: "manual-1", activity: "idle" })], "other")).toBe(false)
+    expect(tracker.has("manual-1")).toBe(true)
+
+    // when manual-1 becomes current, it is cleared
+    expect(tracker.update([item({ id: "manual-1", activity: "idle" })], "manual-1")).toBe(true)
+    expect(tracker.has("manual-1")).toBe(false)
+  })
+
+  test("manually remembered while already current stays unread on refresh, clears on reopening", () => {
+    const tracker = new UnreadTracker()
+    tracker.update([item({ id: "active", activity: "idle" })], "active")
+
+    // Marked while active is current
+    expect(tracker.remember("active")).toBe(true)
+    expect(tracker.has("active")).toBe(true)
+
+    // 150ms refresh with same current does not wipe it
+    expect(tracker.update([item({ id: "active", activity: "idle" })], "active")).toBe(false)
+    expect(tracker.has("active")).toBe(true)
+
+    // Switch to another session
+    expect(tracker.update([item({ id: "active", activity: "idle" })], "other")).toBe(false)
+    expect(tracker.has("active")).toBe(true)
+
+    // Reopen active (becomes current again)
+    expect(tracker.update([item({ id: "active", activity: "idle" })], "active")).toBe(true)
+    expect(tracker.has("active")).toBe(false)
+  })
 })
 
 describe("list state messages", () => {

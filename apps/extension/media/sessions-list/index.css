@@ -58,7 +58,8 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 30px;
+  min-height: 30px;
+  height: auto;
   margin: 0 6px;
   padding: 0 8px;
   border: 1px solid transparent;
@@ -67,12 +68,22 @@ body {
   user-select: none;
   transition: background-color 80ms linear;
 }
+.row {
+  flex-wrap: wrap;
+}
 .row:hover, .more-head:hover { background: var(--vscode-list-hoverBackground); }
 .row.current {
   background: var(--vscode-list-inactiveSelectionBackground);
   color: var(--vscode-list-inactiveSelectionForeground);
 }
 .row.current:hover { background: var(--vscode-list-inactiveSelectionBackground); }
+.row.selected {
+  background: var(--vscode-list-activeSelectionBackground, var(--vscode-list-inactiveSelectionBackground));
+  color: var(--vscode-list-activeSelectionForeground, var(--vscode-list-inactiveSelectionForeground));
+}
+.row.selected:hover {
+  background: var(--vscode-list-activeSelectionBackground, var(--vscode-list-inactiveSelectionBackground));
+}
 .row:focus, .more-head:focus { outline: none; }
 .row:focus-visible, .more-head:focus-visible {
   outline: 1px solid var(--vscode-focusBorder);
@@ -423,3 +434,312 @@ body.vscode-high-contrast .inbox-btn.inbox-btn-secondary {
 body.vscode-high-contrast .inbox-group-head:hover {
   border-color: var(--vscode-contrastActiveBorder);
 }
+
+/* M11: In-place question answering */
+.inbox-row.sending {
+  opacity: 0.7;
+}
+
+.question-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0 2px 15px;
+  margin-top: 4px;
+  border-top: 1px solid color-mix(in srgb, var(--vscode-foreground) 10%, transparent);
+}
+
+.question-step {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--vscode-descriptionForeground);
+  letter-spacing: 0.5px;
+}
+
+.question-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.question-text {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--vscode-foreground);
+  word-break: break-word;
+}
+
+.question-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.question-option-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 11px;
+  line-height: 28px;
+  border-radius: 3px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-align: left;
+}
+
+.question-option-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.question-option-btn:focus {
+  outline: none;
+}
+
+.question-option-btn:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.question-option-btn.selected {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-button-background);
+}
+
+.question-option-btn .option-label {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.question-option-btn .option-desc {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.question-option-btn.selected .option-desc {
+  color: var(--vscode-button-foreground);
+  opacity: 0.85;
+}
+
+.question-input {
+  display: block;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  padding: 0 6px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 3px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.question-input:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+.question-submit-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.question-submit {
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+  border-color: var(--vscode-button-background);
+}
+
+.question-submit:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.vscode-high-contrast .question-option-btn,
+body.vscode-high-contrast .question-option-btn {
+  border-color: var(--vscode-contrastBorder);
+}
+
+.vscode-high-contrast .question-option-btn.selected,
+body.vscode-high-contrast .question-option-btn.selected {
+  border-color: var(--vscode-contrastActiveBorder);
+}
+
+/* M14 Selection bar */
+.selection-bar[data-selection-bar] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 8px;
+  margin: 2px 6px 4px;
+  background: var(--vscode-editor-inactiveSelectionBackground, var(--vscode-list-inactiveSelectionBackground));
+  border: 1px solid var(--vscode-focusBorder, var(--vscode-widget-border));
+  border-radius: 4px;
+  font-size: 11px;
+}
+.selection-bar-text {
+  font-weight: 600;
+  color: var(--vscode-foreground);
+  white-space: nowrap;
+}
+.selection-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.selection-btn {
+  height: 20px;
+  padding: 0 6px;
+  font: inherit;
+  font-size: 11px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 22%, transparent);
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: none;
+}
+.selection-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+.selection-btn:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+/* M14 Pin mark and button */
+.pin-mark {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  color: var(--vscode-icon-foreground, var(--vscode-descriptionForeground));
+}
+.row.pinned .pin-mark {
+  display: inline-flex;
+}
+
+.pin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 80ms linear;
+  flex: 0 0 18px;
+}
+.row:hover .pin-btn,
+.row:focus-within .pin-btn,
+.row.pinned .pin-btn,
+.pin-btn:focus-visible {
+  opacity: 0.7;
+  pointer-events: auto;
+}
+.pin-btn:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground);
+}
+.pin-btn:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.pinned-head {
+  margin-top: 4px;
+}
+
+/* M02 Todo badge & list */
+.todo-badge {
+  flex: 0 0 auto;
+  font-size: 11px;
+  padding: 0 5px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: 8px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  cursor: pointer;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+.todo-badge:hover {
+  filter: brightness(1.15);
+}
+
+.todo-list[data-todo-list] {
+  flex-basis: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 2px 0 4px 15px;
+}
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.todo-item-icon {
+  flex: 0 0 auto;
+  font-size: 11px;
+}
+.todo-item-text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* High contrast support */
+.vscode-high-contrast .selection-btn,
+body.vscode-high-contrast .selection-btn {
+  border-color: var(--vscode-contrastBorder);
+}
+.vscode-high-contrast .row.selected,
+body.vscode-high-contrast .row.selected {
+  border-color: var(--vscode-contrastActiveBorder);
+}
+

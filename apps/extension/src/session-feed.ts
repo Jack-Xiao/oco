@@ -1,5 +1,5 @@
 import type { ConnectionSummary } from "@oco/contracts"
-import type { PendingRequest, ServerEvent, ServerSession, ServerStatus, SessionStore } from "./session-store"
+import type { PendingRequest, ServerEvent, ServerSession, ServerStatus, ServerTodo, SessionStore } from "./session-store"
 
 /**
  * One host-side event stream per window for the native sidebar and status bar (the chat panels keep
@@ -73,6 +73,7 @@ export class SseParser {
 
 export class SessionFeed {
   static readonly PAGE = 100
+  static readonly TODO_CONCURRENCY = 4
   private token = 0
   private abort: AbortController | undefined
   private retryTimer: unknown
@@ -82,6 +83,16 @@ export class SessionFeed {
   private rootLimit = SessionFeed.PAGE
   private summary: ConnectionSummary = { connectionId: null, label: "", directory: null, state: "unconfigured", attempt: 0, trusted: true }
   readonly stats = { attempts: 0, connects: 0, superseded: 0, stalls: 0 }
+  private todoEpoch = 0
+  private todoFetched = new Set<string>()
+  private todoQueue: Array<() => Promise<void>> = []
+  private todoRunning = 0
+  private activeContext?: {
+    token: number
+    get: <T>(path: string) => Promise<T>
+    abort: AbortController
+    origin: string
+  }
 
   constructor(private readonly d: FeedDeps) {}
 
@@ -98,6 +109,9 @@ export class SessionFeed {
     this.stopped = true
     this.token++
     this.abort?.abort()
+    this.activeContext = undefined
+    this.todoQueue = []
+    this.todoRunning = 0
     this.clear()
   }
 
@@ -151,8 +165,13 @@ export class SessionFeed {
     if (this.stopped) return
     if (this.abort) this.stats.superseded++
     this.abort?.abort()
+    this.activeContext = undefined
+    this.todoQueue = []
+    this.todoRunning = 0
     this.clear()
     const token = ++this.token
+    this.todoEpoch = token
+    this.todoFetched.clear()
     const abort = (this.abort = new AbortController())
     let ep: { origin: string; connectionId: string }
     const directory = this.d.directory()
@@ -175,22 +194,30 @@ export class SessionFeed {
     void this.run(token, abort, ep, directory).catch((e) => {
       if (token !== this.token) return
       if (e instanceof HttpError && e.status === 401) {
-        this.d.log?.(`feed: unauthorized`)
-        // A 401 can also come from a snapshot request while /event is open: close it and its
-        // watchdog, otherwise it keeps buffering and its end or stall would retry anyway.
-        abort.abort()
-        this.abort = undefined
-        this.clear()
-        return this.set({ state: "unauthorized", error: `Authentication failed (${ep.origin}): the username or password is incorrect. Run “oco: Set Server Password”, or check the username in Settings`, retryAt: undefined })
+        return this.handleUnauthorized(ep.origin, abort)
       }
       this.fail(token, e)
     })
+  }
+
+  private handleUnauthorized(origin: string, abort: AbortController) {
+    this.d.log?.(`feed: unauthorized`)
+    abort.abort()
+    this.abort = undefined
+    this.activeContext = undefined
+    this.todoQueue = []
+    this.todoRunning = 0
+    this.clear()
+    this.set({ state: "unauthorized", error: `Authentication failed (${origin}): the username or password is incorrect. Run “oco: Set Server Password”, or check the username in Settings`, retryAt: undefined })
   }
 
   private fail(token: number, e: unknown) {
     if (token !== this.token || this.stopped) return
     this.abort?.abort()
     this.abort = undefined
+    this.activeContext = undefined
+    this.todoQueue = []
+    this.todoRunning = 0
     this.clear()
     const attempt = this.summary.attempt + 1
     const base = Math.min(30000, 1000 * 2 ** Math.min(attempt - 1, 5))
@@ -222,6 +249,25 @@ export class SessionFeed {
         this.fail(token, new Error("Event stream has no heartbeat"))
       }, this.d.stallMs ?? 35000)
     }
+    const get = async <T>(path: string): Promise<T> => {
+      const r = await this.d.fetch(ep.origin + path, { headers, signal: abort.signal, redirect: "manual" })
+      if (!r.ok) throw new HttpError(r.status, `GET ${path}`)
+      return (await r.json()) as T
+    }
+    this.activeContext = { token, get, abort, origin: ep.origin }
+
+    const handleEvent = (e: ServerEvent): boolean => {
+      const changed = this.d.store.applyEvent(e)
+      if (e.type === "session.status") {
+        const p = e.properties as Record<string, any> | undefined
+        const sid = typeof p?.sessionID === "string" ? p.sessionID : undefined
+        if (sid && p?.status?.type === "busy" && !this.d.store.hasTodo(sid)) {
+          this.ensureTodo(sid)
+        }
+      }
+      return changed
+    }
+
     armStall()
     const pump = (async () => {
       for (;;) {
@@ -231,18 +277,13 @@ export class SessionFeed {
         armStall()
         for (const e of parser.push(decoder.decode(value, { stream: true }))) {
           if (!live) buffered.push(e)
-          else if (this.d.store.applyEvent(e)) this.d.onChange()
+          else if (handleEvent(e)) this.d.onChange()
         }
       }
     })()
     pump.catch((e) => {
       if (!abort.signal.aborted) this.fail(token, e)
     })
-    const get = async <T>(path: string): Promise<T> => {
-      const r = await this.d.fetch(ep.origin + path, { headers, signal: abort.signal, redirect: "manual" })
-      if (!r.ok) throw new HttpError(r.status, `GET ${path}`)
-      return (await r.json()) as T
-    }
     // `directory` as a query filters to this directory (the header only selects the instance);
     // /session/status lists non-idle sessions only; the server's default page is 100.
     const q = `directory=${encodeURIComponent(directory)}`
@@ -267,11 +308,70 @@ export class SessionFeed {
     }
     if (token !== this.token) return
     this.d.store.applySnapshot({ sessions: [...sessions.values()], status: status ?? {}, permissions: permissions ?? [], questions: questions ?? [], rootLimitReached: (roots ?? []).length >= this.rootLimit })
-    for (const e of buffered.splice(0)) this.d.store.applyEvent(e)
+    for (const e of buffered.splice(0)) {
+      if (handleEvent(e)) this.d.onChange()
+    }
     live = true
     this.stats.connects++
     this.set({ state: "connected", error: undefined, attempt: 0, retryAt: undefined, lastConnectedAt: this.now() })
     this.d.onChange()
+
+    for (const [id, s] of Object.entries(status ?? {})) {
+      if (s?.type === "busy" && sessions.has(id)) {
+        this.ensureTodo(id)
+      }
+    }
+  }
+
+  /**
+   * Ensure todo list is loaded for a session (GET /session/:id/todo).
+   * Fetched at most once per session per epoch; deduplicates in-flight requests.
+   */
+  ensureTodo(sessionID: string): void {
+    if (this.stopped || !sessionID) return
+    if (this.todoEpoch !== this.token) {
+      this.todoEpoch = this.token
+      this.todoFetched.clear()
+    }
+    if (this.todoFetched.has(sessionID)) return
+    this.todoFetched.add(sessionID)
+
+    this.enqueueTodo(async () => {
+      const ctx = this.activeContext
+      if (!ctx || ctx.token !== this.token) return
+      try {
+        const todos = await ctx.get<ServerTodo[]>(`/session/${encodeURIComponent(sessionID)}/todo`)
+        if (ctx.token !== this.token) return
+        if (Array.isArray(todos)) {
+          if (this.d.store.setTodo(sessionID, todos)) {
+            this.d.onChange()
+          }
+        }
+      } catch (e) {
+        if (ctx.token !== this.token) return
+        if (e instanceof HttpError && e.status === 401) {
+          this.handleUnauthorized(ctx.origin, ctx.abort)
+          return
+        }
+        this.d.log?.(`feed: GET /session/${sessionID}/todo failed (${e instanceof Error ? e.message : String(e)})`)
+      }
+    })
+  }
+
+  private enqueueTodo(fn: () => Promise<void>) {
+    this.todoQueue.push(fn)
+    this.drainTodoQueue()
+  }
+
+  private drainTodoQueue() {
+    while (this.todoRunning < SessionFeed.TODO_CONCURRENCY && this.todoQueue.length > 0) {
+      const next = this.todoQueue.shift()!
+      this.todoRunning++
+      next().finally(() => {
+        this.todoRunning--
+        this.drainTodoQueue()
+      })
+    }
   }
 
   /** GET /session roots. Undefined on failure or when this attempt was superseded mid-flight. Never throws. */

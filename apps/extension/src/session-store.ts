@@ -1,5 +1,13 @@
-import type { SessionActivity, SessionListItem } from "@oco/contracts"
+import type { SessionActivity, SessionListItem, TodoProgress, TodoStatus } from "@oco/contracts"
 import { compactTime } from "./session-groups"
+
+/** One todo item as GET /session/:id/todo and todo.updated carry it. v1.18.33 sends no `id` and a string `priority`. */
+export type ServerTodo = {
+  id?: string
+  content: string
+  status: TodoStatus
+  priority?: number | string
+}
 
 /**
  * Pure session cache for the native sidebar (no vscode dependency; unit-tested).
@@ -58,6 +66,8 @@ export type InboxRow = {
   title: string
   agent?: string
   parent?: string
+  /** M11: the full question list of a "question" row (options / multiple / custom), for answering in place. */
+  questions?: PendingRequest["questions"]
   summary: string
   detail: string
   time: string
@@ -102,6 +112,8 @@ type Row = {
   messageMetrics: Map<string, { cost: number; tokens: number }>
   lastText?: string
   lastPart?: { messageID: string; partID: string }
+  todo?: ServerTodo[]
+  lastModel?: { providerID: string; modelID: string }
 }
 
 export class SessionStore {
@@ -142,6 +154,8 @@ export class SessionStore {
         messageMetrics: prev?.messageMetrics ?? new Map(),
         lastText: prev?.lastText,
         lastPart: prev?.lastPart,
+        todo: prev?.todo,
+        lastModel: prev?.lastModel,
       })
     }
     this.rows = rows
@@ -231,6 +245,9 @@ export class SessionStore {
           if (infoSid && typeof info.id === "string") {
             const row = this.rows.get(infoSid)
             if (row) {
+              if (typeof info.providerID === "string" && typeof info.modelID === "string") {
+                row.lastModel = { providerID: info.providerID, modelID: info.modelID }
+              }
               row.assistantMessages.add(info.id)
               if (row.assistantMessages.size > SessionStore.RUN_COLLECTION_MAX) {
                 row.assistantMessages.delete(row.assistantMessages.values().next().value as string)
@@ -319,6 +336,8 @@ export class SessionStore {
       case "question.replied":
       case "question.rejected":
         return typeof p.requestID === "string" ? this.questions.delete(p.requestID) : false
+      case "todo.updated":
+        return sid && Array.isArray(p.todos) ? this.setTodo(sid, p.todos as ServerTodo[]) : false
       default:
         return false
     }
@@ -393,6 +412,7 @@ export class SessionStore {
             : error
               ? "error"
               : "idle"
+      const todo = row.todo ? projectTodo(row.todo) : undefined
       out.push({
         id,
         title,
@@ -402,6 +422,7 @@ export class SessionStore {
         pendingPermissions,
         pendingQuestions,
         error,
+        ...(todo ? { todo } : {}),
       })
     }
     return out.sort((a, b) => b.updated - a.updated || a.id.localeCompare(b.id))
@@ -446,6 +467,45 @@ export class SessionStore {
     const p = this.permissions.delete(id)
     const q = this.questions.delete(id)
     return p || q
+  }
+
+  /** Replace full todo list for a session, deduplicated by id while preserving order. Returns true if changed. */
+  setTodo(sessionID: string, todos: ServerTodo[]): boolean {
+    const row = this.rows.get(sessionID)
+    if (!row) return false
+    const seen = new Set<string>()
+    const deduped: ServerTodo[] = []
+    for (const item of todos) {
+      if (!item || typeof item !== "object" || typeof item.content !== "string") continue
+      // The server (v1.18.33) sends no id: dedupe by id when present, else by content + position (E2E c11, 2026-10-11).
+      const key = typeof item.id === "string" && item.id.length > 0 ? item.id : `${deduped.length}:${item.content}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      deduped.push({
+        ...(typeof item.id === "string" && item.id.length > 0 ? { id: item.id } : {}),
+        content: item.content,
+        status: item.status,
+        ...(typeof item.priority === "number" || typeof item.priority === "string" ? { priority: item.priority } : {}),
+      })
+    }
+    if (sameTodos(row.todo, deduped)) return false
+    row.todo = deduped
+    return true
+  }
+
+  hasTodo(sessionID: string): boolean {
+    return this.rows.get(sessionID)?.todo !== undefined
+  }
+
+  getTodo(sessionID: string): TodoProgress | undefined {
+    const row = this.rows.get(sessionID)
+    if (!row?.todo) return undefined
+    return projectTodo(row.todo)
+  }
+
+  /** Last assistant model used in this session. Subagent models stay on their own session id. */
+  lastModel(sessionID: string): { providerID: string; modelID: string } | undefined {
+    return this.rows.get(sessionID)?.lastModel
   }
 
   hasPending(id: string): boolean {
@@ -547,6 +607,7 @@ export class SessionStore {
         title: info.title,
         agent: info.agent,
         parent: info.parent,
+        questions: req.questions,
         summary,
         detail,
         time: info.time,
@@ -820,3 +881,27 @@ function sameFileChanges(a: FileChange[] | undefined, b: FileChange[] | undefine
   }
   return true
 }
+
+function projectTodo(todos: ServerTodo[]): TodoProgress {
+  let done = 0
+  const items: Array<{ content: string; status: TodoStatus }> = []
+  for (const t of todos) {
+    if (t.status === "completed" || t.status === "cancelled") done++
+    items.push({ content: t.content, status: t.status })
+  }
+  return { done, total: todos.length, items }
+}
+
+function sameTodos(a: ServerTodo[] | undefined, b: ServerTodo[] | undefined): boolean {
+  if (a === b) return true
+  if (!a || !b || a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i]
+    const y = b[i]
+    if (x.id !== y.id || x.content !== y.content || x.status !== y.status || x.priority !== y.priority) {
+      return false
+    }
+  }
+  return true
+}
+

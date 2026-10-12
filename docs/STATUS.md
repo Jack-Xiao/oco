@@ -2,7 +2,19 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
-## Mermaid 图表渲染（2026-10-11，已本地合入 main，未推送）
+## Roadmap 批次：M11 / M05 首片 / M07 / M02 / M14 Pin / 侧栏多选 / M12 调查（2026-10-11，已提交 main 并推送）
+
+- 侧栏收件箱「等提问」行可就地作答（选项按钮 / 多选 / 自由文本 / 多题逐题），一次 `POST /question/:id/reply {answers}`；Dismiss 仍走 reject。
+- 命令 `oco.addToDraft`（M05 首片）：QuickPick Problems（当前文件 / 全部）、Git 工作区 / 暂存 diff → 入会话草稿；T011 尾部截断 400 行；files.exclude / .gitignore 命中只传路径。`DraftInsert.source` 改为带 `kind` 的联合类型（补丁 0001 不动）。
+- 命令 `oco.compactSession`（M07(1)）：busy / `time.compacting` 守卫 → 模型取 store 最近 assistant（无则 GET /message 最后一条 assistant）→ 模态确认 → `POST /session/:id/summarize`，3 分钟超时。补丁 0019（M07(2)）：嵌入模式圆环改为「View context / Compact session」两项菜单，compact 走上游 `session.compact` 命令。
+- M02：session-feed 快照对 busy 会话懒取 `GET /session/:id/todo`，可见行经 `ensureTodo` 按 epoch 去重；`todo.updated` 整表替换；侧栏行「3/7」徽标可展开清单。ADR-009 §2 已补该数据源。
+- M14 第一步：Pin（memento `oco.pinnedSessions`，Pinned 分组置顶）与 Mark as Unread（UnreadTracker 手动标记豁免自动清除，打开会话时清除）。
+- 侧栏多选：Shift 范围 / Cmd-Ctrl 切换 / Shift+↑↓；选择栏批量 Archive（≥2 行一次模态确认）/ Delete（总是确认）/ Mark unread / Pin；右键菜单命令按 `selection` 批量。
+- M12：只做调查（上游 `ae7e2eb` 「remove queued follow-ups for now」，无缺陷原因，客户端队列逻辑在 v1.18.33 完整保留；详见 [roadmap-batch-2026-10-11](evidence/roadmap-batch-2026-10-11.md)）。是否立项小补丁待用户决定。
+- 验证：typecheck 0；unit 284/0（基线 221）；webview build PASS（含新 0019）；extension build PASS；VSIX 已打包并本机安装（文件名按 HEAD 取名为 `oco-0.0.4-df50eba.vsix`）。E2E（mock）c10 就地作答 6/0（单选 / 多选 / 自由文本）、c11 Pin / 多选 / Mark unread / archive 批量 / todo 徽标 7/0，delete 批量 NOT RUN（破坏性）；第一轮暴露并修复 2 个缺陷（`custom` 缺省、todo 条目无 id），见 [c10-c11-sidebar-2026-10-11](evidence/c10-c11-sidebar-2026-10-11.md)。新套件未加入 run.mjs 默认列表，单独 `node tests/e2e/c10-sidebar-answer.mjs` 跑。真实模型下压缩与就地作答目视 NOT RUN。
+- 注意：另一位工作者在同一检出里并行提交了 mermaid（df50eba，分支 claude/mermaid-render）；本批改动与之无文件重叠。
+
+## Mermaid 图表渲染（2026-10-11，已合入 main 并推送）
 
 - 补丁 0022（4 文件 +467）：已完成的 ```mermaid 代码块懒加载 mermaid 11.17.2 渲染为 SVG（strict、串行、按主题+源码 LRU 缓存 64、跟随明暗主题；流式中显示源码；语法错误显示一行提示并保留源码；复制仍为源码）。mermaid 为 oco 根 devDependency，经 `apps/chat-webview/vite.config.ts` alias 引入，不改上游 lockfile；懒加载分块 mermaid.core 684 kB（gzip 169 kB）。
 - 本机已装干净构建 `oco-0.0.4-df50eba.vsix`（仅 df50eba，13.8 MB，extension.js sha256 `4252fc27…`）；用户真实模型目视确认效果可用。

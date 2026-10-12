@@ -16,6 +16,7 @@ import {
 export { PendingNotifier, type NotifierDeps, type PendingNotificationItem }
 
 const UNREAD_KEY = "oco.unreadSessions"
+const PINNED_KEY = "oco.pinnedSessions"
 
 const STATUS: Record<SessionActivity, string> = {
   idle: "",
@@ -27,7 +28,16 @@ const STATUS: Record<SessionActivity, string> = {
 }
 
 /** Row and state shapes of the webview list (message contract: docs/evidence/sessions-webview-spike-2026-10-08.md). */
-export type WebRow = { id: string; title: string; time: string; status: "" | "running" | "waiting" | "unread" | "error"; tooltip: string; aria: string }
+export type WebRow = {
+  id: string
+  title: string
+  time: string
+  status: "" | "running" | "waiting" | "unread" | "error"
+  tooltip: string
+  aria: string
+  pinned: boolean
+  todo?: { done: number; total: number; items: Array<{ content: string; status: string }> }
+}
 export type WebListModel = {
   view: "list" | "message"
   text?: string
@@ -36,6 +46,7 @@ export type WebListModel = {
   query: string
   current?: string
   inbox: InboxEntry[]
+  pinned: WebRow[]
   recent: WebRow[]
   more: WebRow[]
   moreForcedOpen: boolean
@@ -59,6 +70,9 @@ export class SessionsView implements vscode.Disposable {
   private current: string | undefined
   private readonly status: vscode.StatusBarItem
   private readonly unread: UnreadTracker
+  private readonly pinned = new Set<string>()
+  private todoProbe?: (id: string) => void
+  private moreOpen = false
   private readonly clock: ReturnType<typeof setInterval>
   readonly notifier: PendingNotifier
   /** Title-row text and badge, applied by the webview view. */
@@ -71,6 +85,8 @@ export class SessionsView implements vscode.Disposable {
     notifier?: PendingNotifier,
   ) {
     this.unread = new UnreadTracker(memento?.get<string[]>(UNREAD_KEY) ?? [])
+    const initialPinned = memento?.get<string[]>(PINNED_KEY) ?? []
+    for (const id of initialPinned) this.pinned.add(id)
     this.notifier =
       notifier ??
       new PendingNotifier({
@@ -98,6 +114,43 @@ export class SessionsView implements vscode.Disposable {
   setCurrent(sessionId: string | undefined) {
     if (this.current === sessionId) return
     this.current = sessionId
+    this.refresh()
+  }
+
+  isPinned(id: string): boolean {
+    return this.pinned.has(id)
+  }
+
+  setPinned(id: string, pinned: boolean): void {
+    if (pinned) {
+      if (this.pinned.has(id)) return
+      this.pinned.add(id)
+    } else {
+      if (!this.pinned.has(id)) return
+      this.pinned.delete(id)
+    }
+    void this.memento?.update(PINNED_KEY, Array.from(this.pinned))
+    this.refresh()
+  }
+
+  togglePin(id: string): void {
+    this.setPinned(id, !this.isPinned(id))
+  }
+
+  markUnread(ids: string[]): void {
+    for (const id of ids) {
+      this.unread.remember(id)
+    }
+    void this.memento?.update(UNREAD_KEY, this.unread.ids())
+    this.refresh()
+  }
+
+  setTodoProbe(fn: (id: string) => void): void {
+    this.todoProbe = fn
+  }
+
+  setMoreOpen(open: boolean): void {
+    this.moreOpen = open
     this.refresh()
   }
 
@@ -148,29 +201,40 @@ export class SessionsView implements vscode.Disposable {
         )
       : inbox
     const groupedInbox = groupInbox(filteredRows)
+    const pinned = g.connected ? g.pinned.map((i) => this.webRow(i, g.now)) : []
+    const recent = g.connected ? g.recent.map((i) => this.webRow(i, g.now)) : []
+    const more = g.connected ? g.more.map((i) => this.webRow(i, g.now)) : []
+    const moreForcedOpen = !pinned.length && !recent.length
+    if (this.todoProbe && g.connected) {
+      for (const item of g.pinned) this.todoProbe(item.id)
+      for (const item of g.recent) this.todoProbe(item.id)
+      if (moreForcedOpen || this.moreOpen) {
+        for (const item of g.more) this.todoProbe(item.id)
+      }
+    }
     const base = {
       query: this.query,
       current: this.current,
+      // M11: groupedInbox preserves question rows' `questions` for in-place answering in webview
       inbox: groupedInbox,
-      recent: [] as WebRow[],
-      more: [] as WebRow[],
-      moreForcedOpen: false,
+      pinned,
+      recent,
+      more,
+      moreForcedOpen,
       loadMore: false,
       still,
     }
-    const recent = g.connected ? g.recent.map((i) => this.webRow(i, g.now)) : []
-    const more = g.connected ? g.more.map((i) => this.webRow(i, g.now)) : []
     const msg = listMessage({
       summary: s,
       connected: g.connected,
-      hasRows: groupedInbox.length > 0 || recent.length > 0 || more.length > 0 || g.loadMore,
+      hasRows: groupedInbox.length > 0 || pinned.length > 0 || recent.length > 0 || more.length > 0 || g.loadMore,
       query: this.query,
       loading: this.store.size === 0 && !this.empty,
       trusted: vscode.workspace.isTrusted,
     })
     if (msg) return { ...base, view: "message", text: msg.text, actions: msg.actions }
     const notice = s?.state === "reconnecting" ? `Connection lost. Reconnecting (attempt ${s.attempt})… The list may be out of date.` : undefined
-    return { ...base, view: "list", notice, recent, more, moreForcedOpen: !recent.length, loadMore: g.loadMore }
+    return { ...base, view: "list", notice, pinned, recent, more, moreForcedOpen, loadMore: g.loadMore }
   }
 
   private webRow(i: SessionListItem, now: number): WebRow {
@@ -184,7 +248,16 @@ export class SessionsView implements vscode.Disposable {
       : i.activity === "busy" || i.activity === "retry" ? "running"
       : unread ? "unread" : ""
     const tooltip = [i.title, statusText, i.updated ? `Updated ${new Date(i.updated).toLocaleString()}` : "", i.directory, i.error ? `Error: ${i.error}` : ""].filter(Boolean).join("\n")
-    return { id: i.id, title: i.title, time, status, tooltip, aria: [i.title, statusText, time].filter(Boolean).join(", ") }
+    return {
+      id: i.id,
+      title: i.title,
+      time,
+      status,
+      tooltip,
+      aria: [i.title, statusText, time].filter(Boolean).join(", "),
+      pinned: this.isPinned(i.id),
+      todo: i.todo,
+    }
   }
 
   setSearch(q: string) {
@@ -214,8 +287,32 @@ export class SessionsView implements vscode.Disposable {
     // Not connected and nothing cached -> webModel() shows the state message instead of rows.
     const connected = !(s === "unconfigured" || (s !== "connected" && s !== "reconnecting" && this.store.size === 0))
     const items = this.items()
-    const split = this.query ? { recent: items, more: [] } : splitSessions(items, now, (id) => this.unread.has(id))
-    return { ...split, now, connected, loadMore: !this.query && this.store.limitReached }
+    if (this.query) {
+      return {
+        pinned: [] as SessionListItem[],
+        recent: items,
+        more: [] as SessionListItem[],
+        now,
+        connected,
+        loadMore: false,
+      }
+    }
+    const pinned: SessionListItem[] = []
+    const nonPinned: SessionListItem[] = []
+    for (const item of items) {
+      if (this.isPinned(item.id)) pinned.push(item)
+      else nonPinned.push(item)
+    }
+    pinned.sort((a, b) => b.updated - a.updated || a.id.localeCompare(b.id))
+    const split = splitSessions(nonPinned, now, (id) => this.unread.has(id))
+    return {
+      pinned,
+      recent: split.recent,
+      more: split.more,
+      now,
+      connected,
+      loadMore: this.store.limitReached,
+    }
   }
 
   private updateChrome() {
@@ -319,7 +416,7 @@ export class SessionsView implements vscode.Disposable {
       items: (() => {
         const g = this.groups()
         const row = (group: string) => (i: SessionListItem) => ({ id: i.id, title: i.title, activity: i.activity, group, unread: this.unread.has(i.id), description: compactTime(i.updated, g.now) })
-        return [...g.recent.map(row("recent")), ...g.more.map(row("more"))]
+        return [...g.pinned.map(row("pinned")), ...g.recent.map(row("recent")), ...g.more.map(row("more"))]
       })(),
       loadMore: this.groups().loadMore,
     }

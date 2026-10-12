@@ -69,13 +69,15 @@ export function splitSessions(
 export class UnreadTracker {
   private readonly unread: string[] = []
   private readonly unreadSet = new Set<string>()
+  private readonly manual = new Set<string>()
   private previous = new Map<string, SessionActivity>()
+  private lastCurrent: string | undefined
 
   constructor(
     initial: Iterable<string> = [],
     private readonly max = 200,
   ) {
-    for (const id of initial) this.remember(id)
+    for (const id of initial) this.remember(id, false)
   }
 
   has(id: string): boolean {
@@ -84,6 +86,7 @@ export class UnreadTracker {
 
   /** Drops one id. True when it was present. */
   clear(id: string): boolean {
+    this.manual.delete(id)
     if (!this.unreadSet.delete(id)) return false
     const index = this.unread.indexOf(id)
     if (index !== -1) this.unread.splice(index, 1)
@@ -105,21 +108,36 @@ export class UnreadTracker {
       if (before === undefined || item.id === current) continue
       const wasRunning = before === "busy" || before === "retry"
       const settled = item.activity === "idle" || item.activity === "error"
-      if (wasRunning && settled && this.remember(item.id)) changed = true
+      if (wasRunning && settled && this.remember(item.id, false)) changed = true
     }
     this.previous = next
-    if (current !== undefined && this.clear(current)) changed = true
+    if (current !== undefined) {
+      const becameCurrent = current !== this.lastCurrent
+      if (becameCurrent) {
+        this.manual.delete(current)
+        if (this.clear(current)) changed = true
+      } else if (!this.manual.has(current)) {
+        if (this.clear(current)) changed = true
+      }
+      this.lastCurrent = current
+    } else {
+      this.lastCurrent = undefined
+    }
     return changed
   }
 
   /** Appends an id, dropping the oldest past `max`. False when the set does not change. */
-  private remember(id: string): boolean {
+  remember(id: string, manual = true): boolean {
+    if (manual) this.manual.add(id)
     if (this.unreadSet.has(id)) return false
     this.unread.push(id)
     this.unreadSet.add(id)
     while (this.unread.length > this.max) {
       const oldest = this.unread.shift()
-      if (oldest !== undefined) this.unreadSet.delete(oldest)
+      if (oldest !== undefined) {
+        this.unreadSet.delete(oldest)
+        this.manual.delete(oldest)
+      }
     }
     return this.unreadSet.has(id)
   }

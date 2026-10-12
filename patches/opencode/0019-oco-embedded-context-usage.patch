@@ -1,7 +1,22 @@
 diff --git a/packages/app/src/components/session-context-usage.tsx b/packages/app/src/components/session-context-usage.tsx
+index c1e0ccd..1746467 100644
 --- a/packages/app/src/components/session-context-usage.tsx
 +++ b/packages/app/src/components/session-context-usage.tsx
-@@ -21,6 +21,8 @@ interface SessionContextUsageProps {
+@@ -2,6 +2,7 @@ import { Match, Show, Switch, createMemo, type ComponentProps, type JSX } from "
+ import { ProgressCircle } from "@opencode-ai/ui/progress-circle"
+ import { ProgressCircleV2 } from "@opencode-ai/ui/v2/progress-circle-v2"
+ import { Button } from "@opencode-ai/ui/button"
++import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
+ import { IconButtonV2 } from "@opencode-ai/ui/v2/icon-button-v2"
+ import { TooltipV2 } from "@opencode-ai/ui/v2/tooltip-v2"
+ import { createMediaQuery } from "@solid-primitives/media"
+@@ -16,11 +17,14 @@ import { getSessionContext } from "@/components/session/session-context-metrics"
+ import { useSessionLayout } from "@/pages/session/session-layout"
+ import { createSessionTabs } from "@/pages/session/helpers"
+ import { useSettings } from "@/context/settings"
++import { useCommand } from "@/context/command"
+ 
+ interface SessionContextUsageProps {
    variant?: "button" | "indicator"
    buttonAppearance?: "default" | "v2"
    placement?: ComponentProps<typeof TooltipV2>["placement"]
@@ -10,7 +25,15 @@ diff --git a/packages/app/src/components/session-context-usage.tsx b/packages/ap
  }
  
  function ContextTooltipRow(props: { name: JSX.Element; value: JSX.Element }) {
-@@ -77,6 +79,15 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
+@@ -50,6 +54,7 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
+   const language = useLanguage()
+   const sdk = useSDK()
+   const settings = useSettings()
++  const command = useCommand()
+   const providers = useProviders(() => sdk().directory)
+   const { params, tabs, view } = useSessionLayout()
+   const isDesktop = createMediaQuery("(min-width: 768px)")
+@@ -77,6 +82,15 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
    const cost = createMemo(() => {
      return usd().format(info()?.cost ?? 0)
    })
@@ -26,7 +49,7 @@ diff --git a/packages/app/src/components/session-context-usage.tsx b/packages/ap
    const contextVisible = createMemo(() => view().reviewPanel.opened() && tabState.activeTab() === "context")
    const hasOtherTabs = createMemo(() =>
      tabs()
-@@ -128,7 +139,10 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
+@@ -128,7 +142,10 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
    const tooltipValue = () => (
      <div class="flex w-[120px] flex-col gap-2">
        <ContextTooltipRow name={language.t("context.usage.cost")} value={cost()} />
@@ -38,38 +61,53 @@ diff --git a/packages/app/src/components/session-context-usage.tsx b/packages/ap
        <ContextTooltipRow
          name={language.t("context.usage.tokens")}
          value={context()?.total.toLocaleString(language.intl()) ?? "0"}
-@@ -141,6 +155,30 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
+@@ -141,6 +158,44 @@ export function SessionContextUsage(props: SessionContextUsageProps) {
        <TooltipV2 value={tooltipValue()} placement={props.placement ?? "top"} shift={-8}>
          <Switch>
            <Match when={variant() === "indicator"}>{circle()}</Match>
 +          <Match when={props.tinted}>
-+            <Button
-+              type="button"
-+              variant="ghost"
-+              class="size-6"
-+              data-oco-context-usage={level()}
-+              onClick={openContext}
-+              aria-label={language.t("context.usage.view")}
-+            >
-+              <div
-+                class="flex items-center justify-center"
-+                style={{
-+                  "--progress-circle-progress":
-+                    level() === "danger"
-+                      ? "var(--v2-state-fg-danger)"
-+                      : level() === "warning"
-+                        ? "var(--v2-state-fg-warning)"
-+                        : undefined,
-+                }}
++            {/* oco M07: the ring opens a two-item menu (view breakdown / compact) instead of jumping straight to the
++                context tab, so compaction is one deliberate click away and never an accidental one. */}
++            <DropdownMenu gutter={4} placement={props.placement === "bottom" ? "bottom-end" : "top-end"}>
++              <DropdownMenu.Trigger
++                as={Button}
++                type="button"
++                variant="ghost"
++                class="size-6"
++                data-oco-context-usage={level()}
++                aria-label={language.t("context.usage.view")}
 +              >
-+                <ProgressCircle size={16} strokeWidth={2} percentage={context()?.usage ?? 0} />
-+              </div>
-+            </Button>
++                <div
++                  class="flex items-center justify-center"
++                  style={{
++                    "--progress-circle-progress":
++                      level() === "danger"
++                        ? "var(--v2-state-fg-danger)"
++                        : level() === "warning"
++                          ? "var(--v2-state-fg-warning)"
++                          : undefined,
++                  }}
++                >
++                  <ProgressCircle size={16} strokeWidth={2} percentage={context()?.usage ?? 0} />
++                </div>
++              </DropdownMenu.Trigger>
++              <DropdownMenu.Portal>
++                <DropdownMenu.Content class="mt-1" data-oco-context-menu>
++                  <DropdownMenu.Item data-oco-context-action="view" onSelect={openContext}>
++                    <DropdownMenu.ItemLabel>{language.t("context.usage.view")}</DropdownMenu.ItemLabel>
++                  </DropdownMenu.Item>
++                  <DropdownMenu.Item data-oco-context-action="compact" onSelect={() => command.trigger("session.compact")}>
++                    <DropdownMenu.ItemLabel>{language.t("command.session.compact")}</DropdownMenu.ItemLabel>
++                  </DropdownMenu.Item>
++                </DropdownMenu.Content>
++              </DropdownMenu.Portal>
++            </DropdownMenu>
 +          </Match>
            <Match when={buttonAppearance() === "v2"}>
              <IconButtonV2
                type="button"
 diff --git a/packages/app/src/components/session/session-header.tsx b/packages/app/src/components/session/session-header.tsx
+index a92f3d2..06a5818 100644
 --- a/packages/app/src/components/session/session-header.tsx
 +++ b/packages/app/src/components/session/session-header.tsx
 @@ -33,6 +33,7 @@ import { KeybindV2 } from "@opencode-ai/ui/v2/keybind-v2"

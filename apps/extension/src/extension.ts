@@ -11,6 +11,8 @@ import { SessionsWebview, SESSIONS_VIEW } from "./sessions-webview"
 import { BlobStore } from "./bridge-host"
 import { KvStore } from "./host-store"
 import { PanelRegistry, VIEW_TYPE, type Entry } from "./panels"
+import { registerAddToDraft } from "./add-to-draft"
+import { registerCompactSession } from "./compact-session"
 import { ManagedServer } from "./managed-server"
 import { redactValue, VERIFIED_SERVERS } from "./diagnostics"
 
@@ -66,6 +68,8 @@ export function activate(context: vscode.ExtensionContext) {
     // E2E hook for a silent stall (proxy holds the stream but forwards nothing), outside production only.
     stallMs: context.extensionMode !== vscode.ExtensionMode.Production && Number(process.env.OCO_DEV_STALL_MS) > 0 ? Number(process.env.OCO_DEV_STALL_MS) : undefined,
   })
+  // M02: visible sidebar rows ask the feed for their todo list once per epoch (busy sessions are fetched on snapshot anyway).
+  view.setTodoProbe((id) => feed.ensureTodo(id))
   panels.onChange = () => {
     const e = panels.active
     view.setCurrent(e && e.binding.connectionId === feed.state.connectionId ? e.binding.sessionId : undefined)
@@ -220,6 +224,14 @@ export function activate(context: vscode.ExtensionContext) {
     const id = rowId(arg)
     return id === undefined ? undefined : store.list().find((i) => i.id === id)
   }
+  /** Multi-select (sidebar batch): the webview's context carries `selection: string[]`; a single row is a one-item batch. */
+  const rowItems = (arg: unknown) => {
+    const sel = arg && typeof arg === "object" && Array.isArray((arg as { selection?: unknown }).selection)
+      ? ((arg as { selection: unknown[] }).selection.filter((x): x is string => typeof x === "string"))
+      : []
+    const ids = sel.length ? sel : [rowId(arg)].filter((x): x is string => typeof x === "string")
+    return ids.map((id) => store.list().find((i) => i.id === id)).filter((i): i is NonNullable<typeof i> => !!i)
+  }
 
   context.subscriptions.push(
     vscode.commands.registerCommand("oco.openSession", async (arg?: unknown) => {
@@ -287,7 +299,37 @@ export function activate(context: vscode.ExtensionContext) {
       const endLine = sel.end.line + 1
       const fence = "```"
       const snippet = `\n${rel}:${startLine}-${endLine}${doc.isDirty ? " (unsaved)" : ""}\n${fence}${doc.languageId}\n${text}\n${fence}\n`
-      await panels.insertDraft(target, snippet, { path: rel, startLine, endLine, unsaved: doc.isDirty })
+      await panels.insertDraft(target, snippet, { kind: "selection", path: rel, startLine, endLine, unsaved: doc.isDirty })
+    }),
+    // M14 Pin + Mark as Unread: sidebar-local metadata (memento), batch-aware via the webview's `selection` context.
+    vscode.commands.registerCommand("oco.pinSession", async (arg?: unknown) => {
+      const items = rowItems(arg)
+      const targets = items.length ? items : [await pickSession("Select a session to pin")].filter((x): x is NonNullable<typeof x> => !!x)
+      for (const s of targets) view.setPinned(s.id, true)
+    }),
+    vscode.commands.registerCommand("oco.unpinSession", async (arg?: unknown) => {
+      const items = rowItems(arg)
+      const targets = items.length ? items : [await pickSession("Select a session to unpin")].filter((x): x is NonNullable<typeof x> => !!x)
+      for (const s of targets) view.setPinned(s.id, false)
+    }),
+    vscode.commands.registerCommand("oco.markSessionsUnread", async (arg?: unknown) => {
+      const items = rowItems(arg)
+      const targets = items.length ? items : [await pickSession("Select a session to mark as unread")].filter((x): x is NonNullable<typeof x> => !!x)
+      if (targets.length) view.markUnread(targets.map((s) => s.id))
+    }),
+    registerAddToDraft(panels), // M05 first slice: Problems / Git diff → draft (oco.addToDraft)
+    // M07 (1): oco.compactSession — POST /session/:id/summarize with the session's last assistant model, after a modal confirm.
+    registerCompactSession({
+      request: (method, path, body, directory) => conn.request(method, path, body, directory),
+      lastModel: (id) => store.lastModel(id),
+      isBusy: (id) => {
+        const a = store.list().find((i) => i.id === id)?.activity
+        return a === "busy" || a === "retry"
+      },
+      rowItem,
+      pickSession,
+      requireTrust,
+      onDone: () => view.refresh(),
     }),
     vscode.commands.registerCommand("oco.setServerPassword", async () => {
       try {
@@ -324,12 +366,24 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("oco.archiveSession", async (arg?: unknown) => {
       try {
         if (!requireTrust("archive a session")) return
-        const item = rowItem(arg)
-        const s = item ?? (await pickSession("Select a session to archive"))
-        if (!s) return
-        const updated = await conn.request<SessionInfo>("PATCH", `/session/${encodeURIComponent(s.id)}`, { time: { archived: Date.now() } }, s.directory)
-        for (const e of panels.list()) if (e.binding.sessionId === s.id) e.panel.dispose()
-        if (store.add(updated)) view.refresh()
+        const items = rowItems(arg)
+        const targets = items.length ? items : [await pickSession("Select a session to archive")].filter((x): x is NonNullable<typeof x> => !!x)
+        if (targets.length === 0) return
+        if (targets.length > 1) {
+          const ok = await vscode.window.showWarningMessage(`Archive ${targets.length} sessions?`, { modal: true, detail: "Archived sessions leave the sidebar; they stay on the server." }, "Archive")
+          if (ok !== "Archive") return
+        }
+        let changed = false
+        for (const s of targets) {
+          try {
+            const updated = await conn.request<SessionInfo>("PATCH", `/session/${encodeURIComponent(s.id)}`, { time: { archived: Date.now() } }, s.directory)
+            for (const e of panels.list()) if (e.binding.sessionId === s.id) e.panel.dispose()
+            changed = store.add(updated) || changed
+          } catch (e) {
+            fail(`Could not archive session "${"title" in s && s.title ? s.title : s.id}"`, e)
+          }
+        }
+        if (changed) view.refresh()
       } catch (e) {
         fail("Could not archive session", e)
       }
@@ -337,15 +391,27 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("oco.deleteSession", async (arg?: unknown) => {
       try {
         if (!requireTrust("delete a session")) return
-        const item = rowItem(arg)
-        const s = item ?? (await pickSession("Select a session to delete"))
-        if (!s) return
-        const title = "title" in s && s.title ? s.title : s.id
-        const ok = await vscode.window.showWarningMessage(`Delete session "${title}"?`, { modal: true, detail: "The session will be permanently deleted from the server and cannot be recovered." }, "Delete")
+        const items = rowItems(arg)
+        const targets = items.length ? items : [await pickSession("Select a session to delete")].filter((x): x is NonNullable<typeof x> => !!x)
+        if (targets.length === 0) return
+        const titleOf = (s: (typeof targets)[number]) => ("title" in s && s.title ? s.title : s.id)
+        const ok = await vscode.window.showWarningMessage(
+          targets.length === 1 ? `Delete session "${titleOf(targets[0])}"?` : `Delete ${targets.length} sessions?`,
+          { modal: true, detail: targets.length === 1 ? "The session will be permanently deleted from the server and cannot be recovered." : `${targets.map(titleOf).join(", ")}\n\nThey will be permanently deleted from the server and cannot be recovered.` },
+          "Delete",
+        )
         if (ok !== "Delete") return
-        await conn.request("DELETE", `/session/${encodeURIComponent(s.id)}`, undefined, s.directory)
-        for (const e of panels.list()) if (e.binding.sessionId === s.id) e.panel.dispose()
-        if (store.applyEvent({ type: "session.deleted", properties: { sessionID: s.id } })) view.refresh()
+        let changed = false
+        for (const s of targets) {
+          try {
+            await conn.request("DELETE", `/session/${encodeURIComponent(s.id)}`, undefined, s.directory)
+            for (const e of panels.list()) if (e.binding.sessionId === s.id) e.panel.dispose()
+            changed = store.applyEvent({ type: "session.deleted", properties: { sessionID: s.id } }) || changed
+          } catch (e) {
+            fail(`Could not delete session "${titleOf(s)}"`, e)
+          }
+        }
+        if (changed) view.refresh()
       } catch (e) {
         fail("Could not delete session", e)
       }

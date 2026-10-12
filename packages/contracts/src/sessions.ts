@@ -44,7 +44,14 @@ export type SessionListItem = {
   pendingQuestions: number
   /** Last session.error message since the session was last busy. */
   error?: string
+  /** M02: the session's todo list (GET /session/:id/todo via the session-feed snapshot path + todo.updated). Undefined until fetched. */
+  todo?: TodoProgress
 }
+
+/** Todo item status as the server reports it. */
+export type TodoStatus = "pending" | "in_progress" | "completed" | "cancelled"
+/** M02 sidebar row progress ("3/7 步"): `done` counts completed + cancelled; `items` is the whole list in server order. */
+export type TodoProgress = { done: number; total: number; items: Array<{ content: string; status: TodoStatus }> }
 
 /** 4. open-session: open a session's panel, or reveal (focus) the editor group that already shows it. */
 export type OpenSessionRequest = {

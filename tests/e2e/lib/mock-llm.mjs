@@ -96,6 +96,11 @@ function planBase(body) {
   // "Use the task tool with the explore agent: <description>" starts a subagent (child session).
   if (tools.has("task") && (m = /use the task tool with the (\S+) agent:\s*(.+)$/im.exec(prompt)))
     return { tool: "task", args: { subagent_type: m[1], description: m[2].trim(), prompt: "Reply with exactly this line and nothing else: subagent-ok" } }
+  // "question multi tool": a multi-select question (red/blue/green). "question custom tool": single-select with free text allowed.
+  if (tools.has("question") && /question multi tool/i.test(prompt))
+    return { tool: "question", args: { questions: [{ question: "Which colors do you like?", header: "Colors", multiple: true, options: [{ label: "red", description: "Red" }, { label: "blue", description: "Blue" }, { label: "green", description: "Green" }] }] } }
+  if (tools.has("question") && /question custom tool/i.test(prompt))
+    return { tool: "question", args: { questions: [{ question: "Name a color of your own?", header: "Custom", custom: true, options: [{ label: "red", description: "Red" }, { label: "blue", description: "Blue" }] }] } }
   if (tools.has("question") && /question tool/i.test(prompt))
     return {
       tool: "question",

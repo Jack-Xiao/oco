@@ -27,8 +27,12 @@ type FromPage =
   | { type: "command"; command: string }
   | { type: "permissionReply"; id: string; reply: "once" | "always" | "reject" }
   | { type: "questionReject"; id: string }
+  | { type: "questionReply"; id: string; answers: string[][] }
   | { type: "openReview"; id: string }
   | { type: "markRead"; id: string }
+  | { type: "pin"; id: string; pinned: boolean }
+  | { type: "markUnread"; ids: string[] }
+  | { type: "batch"; action: "archive" | "delete"; ids: string[] }
 
 /**
  * The sidebar session list as a webview (time column, rounded selection, row height a native tree can't
@@ -127,6 +131,22 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
       case "markRead":
         if (typeof m.id === "string") this.list.markRead(m.id)
         return
+      case "pin":
+        if (typeof m.id === "string" && typeof m.pinned === "boolean") {
+          this.list.setPinned(m.id, m.pinned)
+        }
+        return
+      case "markUnread":
+        if (Array.isArray(m.ids)) {
+          this.list.markUnread(m.ids)
+        }
+        return
+      case "batch":
+        if ((m.action === "archive" || m.action === "delete") && Array.isArray(m.ids) && m.ids.length > 0) {
+          const cmd = m.action === "archive" ? "oco.archiveSession" : "oco.deleteSession"
+          void vscode.commands.executeCommand(cmd, { sessionId: m.ids[0], selection: m.ids })
+        }
+        return
       case "questionReject": {
         if (!this.list.sessionStore.hasPending(m.id)) {
           this.list.refresh()
@@ -142,6 +162,26 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
             this.list.refresh()
           } catch (e) {
             void vscode.window.showErrorMessage(`oco: Question reject failed (${(e as Error).message})`)
+            this.list.refresh()
+          }
+        })()
+        return
+      }
+      case "questionReply": {
+        if (!this.list.sessionStore.hasPending(m.id)) {
+          this.list.refresh()
+          return
+        }
+        if (!this.client) return
+        const dir = this.client.directory
+        const q = dir ? `?directory=${encodeURIComponent(dir)}` : ""
+        void (async () => {
+          try {
+            await this.client!.request("POST", `/question/${encodeURIComponent(m.id)}/reply${q}`, { answers: m.answers })
+            this.list.sessionStore.removePending(m.id)
+            this.list.refresh()
+          } catch (e) {
+            void vscode.window.showErrorMessage(`oco: Question reply failed (${(e as Error).message})`)
             this.list.refresh()
           }
         })()

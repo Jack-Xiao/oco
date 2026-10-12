@@ -1,6 +1,6 @@
 "use strict"
 
-const vscode = acquireVsCodeApi()
+const vscode = typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : null
 const saved = (typeof vscode !== "undefined" && vscode && typeof vscode.getState === "function" ? vscode.getState() : null) || {}
 const STAT = new Set(["running", "waiting", "unread", "error"])
 
@@ -54,6 +54,91 @@ const sessionsLabel = el("span", "section-label")
 sessionsLabel.textContent = "SESSIONS"
 const sessionsCount = el("span", "section-count")
 sessionsHead.append(sessionsChevron, sessionsLabel, sessionsCount)
+
+const pinnedHead = el("div", "section-head pinned-head")
+pinnedHead.dataset.group = "pinned"
+pinnedHead.tabIndex = -1
+pinnedHead.setAttribute("role", "button")
+const pinnedLabel = el("span", "section-label")
+pinnedLabel.textContent = "Pinned"
+pinnedHead.append(pinnedLabel)
+
+const selectedSessions = new Set()
+let selectionAnchor = null
+const todoExpanded = new Set()
+
+const selectionBar = el("div", "selection-bar")
+selectionBar.setAttribute("data-selection-bar", "")
+const selectionBarText = el("span", "selection-bar-text")
+const selectionBarActions = el("div", "selection-bar-actions")
+
+const btnArchive = document.createElement("button")
+btnArchive.type = "button"
+btnArchive.className = "selection-btn"
+btnArchive.dataset.batch = "archive"
+btnArchive.textContent = "Archive"
+btnArchive.setAttribute("aria-label", "Archive selected sessions")
+btnArchive.addEventListener("click", (e) => {
+  e.stopPropagation()
+  if (selectedSessions.size === 0) return
+  post({ type: "batch", action: "archive", ids: Array.from(selectedSessions) })
+})
+
+const btnDelete = document.createElement("button")
+btnDelete.type = "button"
+btnDelete.className = "selection-btn"
+btnDelete.dataset.batch = "delete"
+btnDelete.textContent = "Delete"
+btnDelete.setAttribute("aria-label", "Delete selected sessions")
+btnDelete.addEventListener("click", (e) => {
+  e.stopPropagation()
+  if (selectedSessions.size === 0) return
+  post({ type: "batch", action: "delete", ids: Array.from(selectedSessions) })
+})
+
+const btnUnread = document.createElement("button")
+btnUnread.type = "button"
+btnUnread.className = "selection-btn"
+btnUnread.dataset.batch = "unread"
+btnUnread.textContent = "Mark unread"
+btnUnread.setAttribute("aria-label", "Mark selected sessions as unread")
+btnUnread.addEventListener("click", (e) => {
+  e.stopPropagation()
+  if (selectedSessions.size === 0) return
+  post({ type: "markUnread", ids: Array.from(selectedSessions) })
+})
+
+const btnPin = document.createElement("button")
+btnPin.type = "button"
+btnPin.className = "selection-btn"
+btnPin.dataset.batch = "pin"
+btnPin.textContent = "Pin"
+btnPin.setAttribute("aria-label", "Pin selected sessions")
+btnPin.addEventListener("click", (e) => {
+  e.stopPropagation()
+  if (selectedSessions.size === 0) return
+  const allPinned = areAllSelectedPinned()
+  const targetPinned = !allPinned
+  for (const id of selectedSessions) {
+    post({ type: "pin", id: id, pinned: targetPinned })
+  }
+})
+
+const btnClear = document.createElement("button")
+btnClear.type = "button"
+btnClear.className = "selection-btn"
+btnClear.dataset.batch = "clear"
+btnClear.textContent = "Clear"
+btnClear.setAttribute("aria-label", "Clear selection")
+btnClear.addEventListener("click", (e) => {
+  e.stopPropagation()
+  selectedSessions.clear()
+  selectionAnchor = null
+  renderList()
+})
+
+selectionBarActions.append(btnArchive, btnDelete, btnUnread, btnPin, btnClear)
+selectionBar.append(selectionBarText, selectionBarActions)
 
 const inboxPool = new Map()
 const groupPool = new Map()
@@ -135,7 +220,7 @@ function el(tag, className) {
   node.className = className
   return node
 }
-function post(msg) { vscode.postMessage(msg) }
+function post(msg) { if (vscode && typeof vscode.postMessage === "function") vscode.postMessage(msg) }
 
 function save() {
   if (!persistReady) return
@@ -192,6 +277,7 @@ function activate(node) {
   else if (node.classList.contains("inbox-group-head")) postOpen(node.dataset.parentId, false)
   else if (node.dataset.kind === "more") toggleMore()
   else if (node.dataset.kind === "load") post({ type: "loadMore" })
+  else if (node.dataset.kind === "question") toggleQuestion(node.dataset.inboxId)
   else postOpen(node.dataset.sessionId || node.dataset.id, false)
 }
 
@@ -212,6 +298,88 @@ function layout() {
   else list.removeAttribute("aria-hidden")
 }
 
+function updateSelectionBar() {
+  selectionBarText.textContent = getSelectionBarText(selectedSessions.size)
+  const allPinned = areAllSelectedPinned()
+  btnPin.textContent = allPinned ? "Unpin" : "Pin"
+  btnPin.setAttribute("aria-label", allPinned ? "Unpin selected sessions" : "Pin selected sessions")
+}
+
+function getVisibleSessionIds() {
+  if (!state) return []
+  const pinned = Array.isArray(state.pinned) ? state.pinned : []
+  const recent = Array.isArray(state.recent) ? state.recent : []
+  const more = Array.isArray(state.more) ? state.more : []
+  const ids = []
+  const seen = new Set()
+  const add = (r) => {
+    if (r && r.id != null) {
+      const id = String(r.id)
+      if (!seen.has(id)) {
+        seen.add(id)
+        ids.push(id)
+      }
+    }
+  }
+  pinned.forEach(add)
+  recent.forEach(add)
+  if (expanded()) more.forEach(add)
+  return ids
+}
+
+function areAllSelectedPinned() {
+  if (selectedSessions.size === 0) return false
+  const pinnedSet = new Set()
+  if (state && Array.isArray(state.pinned)) {
+    for (const r of state.pinned) if (r && r.id != null) pinnedSet.add(String(r.id))
+  }
+  if (state) {
+    for (const r of (state.recent || [])) if (r && r.id != null && r.pinned) pinnedSet.add(String(r.id))
+    for (const r of (state.more || [])) if (r && r.id != null && r.pinned) pinnedSet.add(String(r.id))
+  }
+  for (const id of selectedSessions) {
+    if (!pinnedSet.has(id)) return false
+  }
+  return true
+}
+
+function computeRangeSelection(visibleIds, anchorId, targetId) {
+  if (!Array.isArray(visibleIds) || !visibleIds.length) return []
+  const targetStr = String(targetId)
+  const targetIdx = visibleIds.indexOf(targetStr)
+  if (targetIdx === -1) return []
+  const anchorStr = anchorId != null ? String(anchorId) : null
+  let anchorIdx = anchorStr != null ? visibleIds.indexOf(anchorStr) : -1
+  if (anchorIdx === -1) anchorIdx = targetIdx
+  const start = Math.min(anchorIdx, targetIdx)
+  const end = Math.max(anchorIdx, targetIdx)
+  return visibleIds.slice(start, end + 1)
+}
+
+function getSelectionBarText(count) {
+  return `${count} selected`
+}
+
+function getTodoBadgeText(todo) {
+  if (!todo || typeof todo.done !== "number" || typeof todo.total !== "number") return ""
+  return `${todo.done}/${todo.total}`
+}
+
+function getTodoBadgeTitle(todo) {
+  if (!todo || typeof todo.done !== "number" || typeof todo.total !== "number") return ""
+  return `${todo.done} of ${todo.total} steps`
+}
+
+function getTodoStatusIcon(status) {
+  switch (status) {
+    case "completed": return "✓"
+    case "in_progress": return "▸"
+    case "pending": return "○"
+    case "cancelled": return "✕"
+    default: return "○"
+  }
+}
+
 function syncSession(row) {
   const id = String(row.id)
   let node = pool.get(id)
@@ -221,34 +389,136 @@ function syncSession(row) {
     node.dataset.id = id
     node.tabIndex = -1
     node.setAttribute("role", "option")
-    node.setAttribute("data-vscode-context", JSON.stringify({
-      webviewSection: "session",
-      sessionId: id,
-      preventDefaultContextMenuItems: true,
-    }))
-    node.append(el("span", "dot"), el("span", "title"), el("span", "time"))
+
+    const dot = el("span", "dot")
+    const pinMark = el("span", "pin-mark")
+    pinMark.setAttribute("aria-hidden", "true")
+    pinMark.innerHTML = '<svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 1a.5.5 0 0 0-.5.5v2.8a.5.5 0 0 0 .15.35L5.5 6v3.3l-1.85 1.85a.5.5 0 0 0 .35.85H7.5V15a.5.5 0 0 0 1 0v-3h3.5a.5.5 0 0 0 .35-.85L10.5 9.3V6l1.35-1.35a.5.5 0 0 0 .15-.35V1.5a.5.5 0 0 0-.5-.5h-7z"/></svg>'
+
+    const title = el("span", "title")
+
+    const todoBadge = el("span", "todo-badge")
+    todoBadge.addEventListener("click", (e) => {
+      e.stopPropagation()
+      if (todoExpanded.has(id)) todoExpanded.delete(id)
+      else todoExpanded.add(id)
+      renderList()
+    })
+
+    const pinBtn = document.createElement("button")
+    pinBtn.type = "button"
+    pinBtn.className = "pin-btn"
+    pinBtn.dataset.pin = ""
+    pinBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 1a.5.5 0 0 0-.5.5v2.8a.5.5 0 0 0 .15.35L5.5 6v3.3l-1.85 1.85a.5.5 0 0 0 .35.85H7.5V15a.5.5 0 0 0 1 0v-3h3.5a.5.5 0 0 0 .35-.85L10.5 9.3V6l1.35-1.35a.5.5 0 0 0 .15-.35V1.5a.5.5 0 0 0-.5-.5h-7z"/></svg>'
+    pinBtn.addEventListener("click", (e) => {
+      e.stopPropagation()
+      const isPinned = node.classList.contains("pinned")
+      post({ type: "pin", id: id, pinned: !isPinned })
+    })
+
+    const time = el("span", "time")
+
+    const todoList = el("div", "todo-list")
+    todoList.setAttribute("data-todo-list", "")
+
+    node.append(dot, pinMark, title, todoBadge, pinBtn, time, todoList)
     pool.set(id, node)
   }
+  updateSessionRow(node, row)
+  return node
+}
+
+function updateSessionRow(node, row) {
+  const id = String(row.id)
+  node.dataset.id = id
   const title = row.title == null ? "" : String(row.title)
   const time = row.time == null ? "" : String(row.time)
   const tip = row.tooltip == null ? "" : String(row.tooltip)
   const aria = row.aria == null ? "" : String(row.aria)
   const status = STAT.has(row.status) ? row.status : ""
-  const selected = !!(state && state.current != null && String(state.current) === id)
+  const isPinned = Boolean(row.pinned)
+  const isSelected = selectedSessions.has(id)
+  const isCurrent = !!(state && state.current != null && String(state.current) === id)
+
+  node.classList.toggle("pinned", isPinned)
+  node.classList.toggle("selected", isSelected)
+  node.classList.toggle("current", isCurrent)
+
+  if (isSelected) node.setAttribute("data-selected", "")
+  else delete node.dataset.selected
+
+  const ariaSelected = isSelected || (!selectedSessions.size && isCurrent)
+  if ((node.getAttribute("aria-selected") === "true") !== ariaSelected) {
+    node.setAttribute("aria-selected", ariaSelected ? "true" : "false")
+  }
+
+  const ctx = JSON.stringify({
+    webviewSection: "session",
+    sessionId: id,
+    pinned: isPinned,
+    selection: isSelected ? Array.from(selectedSessions) : [id],
+    preventDefaultContextMenuItems: true,
+  })
+  if (node.getAttribute("data-vscode-context") !== ctx) {
+    node.setAttribute("data-vscode-context", ctx)
+  }
+
   const dot = node.children[0]
-  const titleEl = node.children[1]
-  const timeEl = node.children[2]
+  const pinMark = node.children[1]
+  const titleEl = node.children[2]
+  const todoBadge = node.children[3]
+  const pinBtn = node.children[4]
+  const timeEl = node.children[5]
+  const todoList = node.children[6]
+
   if (titleEl.textContent !== title) titleEl.textContent = title
   if (timeEl.textContent !== time) timeEl.textContent = time
   if (node.getAttribute("title") !== tip) node.setAttribute("title", tip)
   if (node.getAttribute("aria-label") !== aria) node.setAttribute("aria-label", aria)
-  if ((node.getAttribute("aria-selected") === "true") !== selected) node.setAttribute("aria-selected", selected ? "true" : "false")
-  if (node.classList.contains("current") !== selected) node.classList.toggle("current", selected)
+
   if (dot.dataset.status !== status) {
     dot.dataset.status = status
     dot.className = status ? "dot " + status : "dot"
   }
-  return node
+
+  pinMark.hidden = !isPinned
+  const pinLabel = isPinned ? "Unpin session" : "Pin session"
+  if (pinBtn.getAttribute("aria-label") !== pinLabel) pinBtn.setAttribute("aria-label", pinLabel)
+  if (pinBtn.getAttribute("title") !== pinLabel) pinBtn.setAttribute("title", pinLabel)
+
+  if (row.todo && typeof row.todo.total === "number" && row.todo.total > 0) {
+    todoBadge.hidden = false
+    const badgeText = getTodoBadgeText(row.todo)
+    if (todoBadge.textContent !== badgeText) todoBadge.textContent = badgeText
+    if (todoBadge.getAttribute("data-todo") !== badgeText) todoBadge.setAttribute("data-todo", badgeText)
+    const badgeTitle = getTodoBadgeTitle(row.todo)
+    if (todoBadge.getAttribute("title") !== badgeTitle) todoBadge.setAttribute("title", badgeTitle)
+
+    if (todoExpanded.has(id) && Array.isArray(row.todo.items) && row.todo.items.length > 0) {
+      todoList.hidden = false
+      while (todoList.firstChild) todoList.removeChild(todoList.firstChild)
+      for (const item of row.todo.items) {
+        if (!item) continue
+        const itemEl = el("div", "todo-item")
+        const icon = getTodoStatusIcon(item.status)
+        const contentStr = item.content == null ? "" : String(item.content)
+        itemEl.setAttribute("title", contentStr)
+        const iconEl = el("span", "todo-item-icon")
+        iconEl.textContent = icon
+        const textEl = el("span", "todo-item-text")
+        textEl.textContent = contentStr
+        itemEl.append(iconEl, textEl)
+        todoList.appendChild(itemEl)
+      }
+    } else {
+      todoList.hidden = true
+      while (todoList.firstChild) todoList.removeChild(todoList.firstChild)
+    }
+  } else {
+    todoBadge.hidden = true
+    todoList.hidden = true
+    while (todoList.firstChild) todoList.removeChild(todoList.firstChild)
+  }
 }
 
 function syncMore(count, open) {
@@ -270,6 +540,252 @@ function reconcile(parent, nodes) {
     if (cur[i] !== nodes[i]) parent.insertBefore(nodes[i], cur[i] || null)
   }
   while (parent.children.length > nodes.length) parent.removeChild(parent.lastElementChild)
+}
+
+function buildStepAnswer(question, selectedOptions, customText) {
+  const isMultiple = Boolean(question && question.multiple)
+  const isCustom = Boolean(question && question.custom) || !question || !question.options || question.options.length === 0
+  const custom = typeof customText === "string" ? customText.trim() : ""
+  const selected = Array.isArray(selectedOptions)
+    ? selectedOptions
+    : selectedOptions instanceof Set
+      ? Array.from(selectedOptions)
+      : []
+
+  if (isMultiple) {
+    const res = [...selected]
+    if (custom && isCustom) res.push(custom)
+    return res
+  }
+
+  // Single choice
+  if (custom && (isCustom || selected.length === 0)) {
+    return [custom]
+  }
+  if (selected.length > 0) {
+    return [selected[0]]
+  }
+  return []
+}
+
+function collectAnswers(questions, stepChoices) {
+  return (questions || []).map((q, i) => {
+    const choice = (stepChoices && stepChoices[i]) || {}
+    return buildStepAnswer(q, choice.selected || [], choice.custom || "")
+  })
+}
+
+function getQuestions(row) {
+  if (row && Array.isArray(row.questions) && row.questions.length > 0) return row.questions
+  return [{ question: (row && row.summary) || "Question", custom: true }]
+}
+
+function findInboxRow(id) {
+  if (!state || !Array.isArray(state.inbox)) return null
+  for (const entry of state.inbox) {
+    if (entry && entry.kind === "group") {
+      for (const r of (entry.rows || [])) if (r && String(r.id) === String(id)) return r
+    } else if (entry && String(entry.id) === String(id)) {
+      return entry
+    }
+  }
+  return null
+}
+
+const questionForms = new Map()
+
+function toggleQuestion(id) {
+  let qState = questionForms.get(id)
+  if (!qState) {
+    qState = {
+      expanded: true,
+      step: 0,
+      answers: [],
+      selected: new Set(),
+      customValue: "",
+      sending: false,
+    }
+    questionForms.set(id, qState)
+  } else {
+    qState.expanded = !qState.expanded
+  }
+  const node = inboxPool.get(id)
+  if (node) {
+    const row = findInboxRow(id)
+    if (row) updateInboxRow(node, row)
+  }
+}
+
+function submitCurrentQuestion(row, qState, node) {
+  const qList = getQuestions(row)
+  const currentQ = qList[qState.step] || qList[0]
+
+  const stepAnswer = buildStepAnswer(currentQ, qState.selected, qState.customValue)
+  if (stepAnswer.length === 0) return
+
+  qState.answers[qState.step] = stepAnswer
+  qState.selected = new Set()
+  qState.customValue = ""
+
+  if (qState.step < qList.length - 1) {
+    qState.step++
+    updateInboxRow(node, row)
+  } else {
+    qState.sending = true
+    updateInboxRow(node, row)
+    post({
+      type: "questionReply",
+      id: String(row.id),
+      answers: qState.answers,
+    })
+  }
+}
+
+function renderQuestionForm(formNode, node, row, qState) {
+  while (formNode.firstChild) formNode.removeChild(formNode.firstChild)
+
+  const qList = getQuestions(row)
+  const step = Math.min(qState.step, qList.length - 1)
+  qState.step = step
+  const currentQ = qList[step] || qList[0]
+
+  formNode.setAttribute("aria-label", currentQ.question || "Question form")
+
+  if (qList.length > 1) {
+    const stepEl = el("div", "question-step")
+    stepEl.textContent = "第 " + (step + 1) + " / " + qList.length + " 题"
+    formNode.appendChild(stepEl)
+  }
+
+  if (currentQ.header) {
+    const headerEl = el("div", "question-header")
+    headerEl.textContent = String(currentQ.header)
+    formNode.appendChild(headerEl)
+  }
+
+  const textEl = el("div", "question-text")
+  textEl.textContent = String(currentQ.question || "")
+  formNode.appendChild(textEl)
+
+  const hasOptions = Array.isArray(currentQ.options) && currentQ.options.length > 0
+  if (hasOptions) {
+    const optionsWrap = el("div", "question-options")
+    for (const opt of currentQ.options) {
+      if (!opt || opt.label == null) continue
+      const labelStr = String(opt.label)
+      const descStr = opt.description == null ? "" : String(opt.description)
+      const fullTitle = descStr ? labelStr + " — " + descStr : labelStr
+
+      const optBtn = document.createElement("button")
+      optBtn.type = "button"
+      optBtn.className = "question-option-btn"
+      optBtn.dataset.questionOption = labelStr
+      optBtn.setAttribute("aria-label", fullTitle)
+      optBtn.title = fullTitle
+      if (qState.sending) optBtn.disabled = true
+
+      const isSelected = qState.selected.has(labelStr)
+      if (isSelected) {
+        optBtn.classList.add("selected")
+        optBtn.setAttribute("aria-pressed", "true")
+      } else if (currentQ.multiple) {
+        optBtn.setAttribute("aria-pressed", "false")
+      }
+
+      const labelSpan = el("span", "option-label")
+      labelSpan.textContent = labelStr
+      optBtn.appendChild(labelSpan)
+
+      if (descStr) {
+        const descSpan = el("span", "option-desc")
+        descSpan.textContent = descStr
+        optBtn.appendChild(descSpan)
+      }
+
+      optBtn.addEventListener("click", (e) => {
+        e.stopPropagation()
+        if (qState.sending) return
+        if (currentQ.multiple) {
+          if (qState.selected.has(labelStr)) qState.selected.delete(labelStr)
+          else qState.selected.add(labelStr)
+          updateInboxRow(node, row)
+        } else {
+          qState.selected = new Set([labelStr])
+          qState.customValue = ""
+          submitCurrentQuestion(row, qState, node)
+        }
+      })
+
+      optionsWrap.appendChild(optBtn)
+    }
+    formNode.appendChild(optionsWrap)
+  }
+
+  // GET /question omits `custom` (v1.18.33); only an explicit false hides the free-text box (E2E c10, 2026-10-11).
+  const showCustom = currentQ.custom !== false || !hasOptions
+  let customInput = null
+  if (showCustom) {
+    customInput = document.createElement("input")
+    customInput.type = "text"
+    customInput.className = "question-input"
+    customInput.dataset.questionInput = ""
+    customInput.setAttribute("aria-label", currentQ.question || "Answer")
+    customInput.placeholder = currentQ.custom ? "Type custom answer…" : "Type your answer…"
+    customInput.value = qState.customValue || ""
+    if (qState.sending) customInput.disabled = true
+
+    customInput.addEventListener("input", () => {
+      qState.customValue = customInput.value
+    })
+
+    customInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault()
+        e.stopPropagation()
+        if (qState.sending) return
+        submitCurrentQuestion(row, qState, node)
+      } else if (e.key === "Escape") {
+        e.preventDefault()
+        e.stopPropagation()
+        qState.expanded = false
+        updateInboxRow(node, row)
+        focusRow(node)
+      }
+    })
+
+    formNode.appendChild(customInput)
+  }
+
+  const showSubmit = Boolean(currentQ.multiple) || showCustom
+  if (showSubmit) {
+    const submitWrap = el("div", "question-submit-wrap")
+    const submitBtn = document.createElement("button")
+    submitBtn.type = "button"
+    submitBtn.className = "inbox-btn question-submit"
+    submitBtn.dataset.questionSubmit = ""
+    submitBtn.textContent = qState.sending ? "Sending…" : "Submit"
+    submitBtn.setAttribute("aria-label", qState.sending ? "Sending" : "Submit answer")
+    if (qState.sending) submitBtn.disabled = true
+
+    submitBtn.addEventListener("click", (e) => {
+      e.stopPropagation()
+      if (qState.sending) return
+      submitCurrentQuestion(row, qState, node)
+    })
+
+    submitWrap.appendChild(submitBtn)
+    formNode.appendChild(submitWrap)
+  }
+
+  formNode.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      e.preventDefault()
+      e.stopPropagation()
+      qState.expanded = false
+      updateInboxRow(node, row)
+      focusRow(node)
+    }
+  })
 }
 
 function createInboxRow(row) {
@@ -361,7 +877,12 @@ function updateInboxRow(node, row) {
   if (summary.textContent !== summaryText) summary.textContent = summaryText
   if (summary.getAttribute("title") !== detail) summary.setAttribute("title", detail)
 
-  const actionKey = kind + ":" + id
+  let qState = kind === "question" ? questionForms.get(id) : null
+  if (qState && qState.sending) {
+    qState.sending = false
+  }
+
+  const actionKey = kind + ":" + id + ":" + (qState ? (qState.expanded ? "1" : "0") + ":" + (qState.sending ? "s" : "r") : "")
   if (actions.dataset.key !== actionKey) {
     actions.dataset.key = actionKey
     while (actions.firstChild) actions.removeChild(actions.firstChild)
@@ -403,9 +924,12 @@ function updateInboxRow(node, row) {
       bAnswer.className = "inbox-btn"
       bAnswer.dataset.action = "answer"
       bAnswer.textContent = "Answer"
+      bAnswer.setAttribute("aria-expanded", qState && qState.expanded ? "true" : "false")
+      if (qState && qState.sending) bAnswer.disabled = true
       bAnswer.addEventListener("click", (e) => {
         e.stopPropagation()
-        postOpen(sessionId, false)
+        if (qState && qState.sending) return
+        toggleQuestion(id)
       })
 
       const bDismiss = document.createElement("button")
@@ -413,8 +937,10 @@ function updateInboxRow(node, row) {
       bDismiss.className = "inbox-btn inbox-btn-secondary"
       bDismiss.dataset.reply = "reject"
       bDismiss.textContent = "Dismiss"
+      if (qState && qState.sending) bDismiss.disabled = true
       bDismiss.addEventListener("click", (e) => {
         e.stopPropagation()
+        if (qState && qState.sending) return
         post({ type: "questionReject", id: id })
       })
 
@@ -454,6 +980,23 @@ function updateInboxRow(node, row) {
         actions.append(bRead)
       }
     }
+  }
+
+  let formNode = node.querySelector(":scope > .question-form")
+  if (kind === "question" && qState && qState.expanded) {
+    node.classList.add("expanded")
+    node.classList.toggle("sending", !!qState.sending)
+    if (!formNode) {
+      formNode = document.createElement("div")
+      formNode.className = "question-form"
+      formNode.dataset.questionForm = ""
+      formNode.setAttribute("role", "group")
+      node.appendChild(formNode)
+    }
+    renderQuestionForm(formNode, node, row, qState)
+  } else {
+    node.classList.remove("expanded", "sending")
+    if (formNode) formNode.remove()
   }
 }
 
@@ -548,10 +1091,11 @@ function syncInboxHead(collapsed, pendingCount) {
   if (inboxHead.classList.contains("open") !== open) inboxHead.classList.toggle("open", open)
 }
 
-function countSessions(recent, more) {
+function countSessions(pinned, recent, more) {
   const set = new Set()
-  for (const r of recent) if (r && r.id != null) set.add(String(r.id))
-  for (const r of more) if (r && r.id != null) set.add(String(r.id))
+  if (Array.isArray(pinned)) for (const r of pinned) if (r && r.id != null) set.add(String(r.id))
+  if (Array.isArray(recent)) for (const r of recent) if (r && r.id != null) set.add(String(r.id))
+  if (Array.isArray(more)) for (const r of more) if (r && r.id != null) set.add(String(r.id))
   return set.size
 }
 
@@ -614,6 +1158,9 @@ function syncInbox(inboxEntries) {
   for (const key of groupPool.keys()) {
     if (!activeGroupIds.has(key)) groupPool.delete(key)
   }
+  for (const key of questionForms.keys()) {
+    if (!activeRowIds.has(key)) questionForms.delete(key)
+  }
 
   return inboxSection
 }
@@ -621,6 +1168,7 @@ function syncInbox(inboxEntries) {
 function renderList() {
   const active = document.activeElement
   const inbox = Array.isArray(state.inbox) ? state.inbox : []
+  const pinned = Array.isArray(state.pinned) ? state.pinned : []
   const recent = Array.isArray(state.recent) ? state.recent : []
   const more = Array.isArray(state.more) ? state.more : []
   const seen = new Set()
@@ -632,20 +1180,29 @@ function renderList() {
   } else {
     inboxPool.clear()
     groupPool.clear()
+    questionForms.clear()
   }
 
   const sCollapsed = isSessionsCollapsed()
-  const totalSessions = countSessions(recent, more)
+  const totalSessions = countSessions(pinned, recent, more)
   syncSessionsHead(sCollapsed, totalSessions)
   nodes.push(sessionsHead)
 
   if (!sCollapsed) {
+    if (selectedSessions.size > 0) {
+      updateSelectionBar()
+      nodes.push(selectionBar)
+    }
     const pushRow = (row) => {
       if (!row || row.id == null) return
       const id = String(row.id)
       if (seen.has(id)) return
       seen.add(id)
       nodes.push(syncSession(row))
+    }
+    if (pinned.length > 0) {
+      nodes.push(pinnedHead)
+      pinned.forEach(pushRow)
     }
     recent.forEach(pushRow)
     if (more.length) {
@@ -660,6 +1217,7 @@ function renderList() {
       }
     } else if (state.loadMore) nodes.push(loadMore)
   } else {
+    for (const row of pinned) if (row && row.id != null) seen.add(String(row.id))
     for (const row of recent) if (row && row.id != null) seen.add(String(row.id))
     for (const row of more) if (row && row.id != null) seen.add(String(row.id))
   }
@@ -698,6 +1256,19 @@ function applyState(next) {
   if (document.activeElement !== search && !searchTimer) {
     const query = next.query == null ? "" : String(next.query)
     if (search.value !== query) search.value = query
+  }
+  const validIds = new Set()
+  for (const r of (next.pinned || [])) if (r && r.id != null) validIds.add(String(r.id))
+  for (const r of (next.recent || [])) if (r && r.id != null) validIds.add(String(r.id))
+  for (const r of (next.more || [])) if (r && r.id != null) validIds.add(String(r.id))
+  for (const id of selectedSessions) {
+    if (!validIds.has(id)) selectedSessions.delete(id)
+  }
+  if (selectionAnchor && !validIds.has(selectionAnchor)) {
+    selectionAnchor = null
+  }
+  for (const id of todoExpanded) {
+    if (!validIds.has(id)) todoExpanded.delete(id)
   }
   document.body.classList.toggle("still", !!next.still)
   layout()
@@ -787,7 +1358,7 @@ search.addEventListener("blur", () => layout())
 list.addEventListener("mousedown", (event) => { if (event.button === 1) event.preventDefault() })
 
 list.addEventListener("click", (event) => {
-  if (event.target.closest("button, .section-head")) return
+  if (event.target.closest("button, .section-head, [data-question-form], .todo-badge")) return
   const groupHead = event.target.closest(".inbox-group-head")
   if (groupHead && list.contains(groupHead) && event.button === 0) {
     focusRow(groupHead)
@@ -799,6 +1370,31 @@ list.addEventListener("click", (event) => {
   focusRow(node)
   if (node.dataset.kind === "more") toggleMore()
   else if (node.dataset.kind === "load") post({ type: "loadMore" })
+  else if (node.dataset.kind === "session") {
+    const id = String(node.dataset.id)
+    if (event.shiftKey) {
+      event.preventDefault()
+      const visibleIds = getVisibleSessionIds()
+      if (!selectionAnchor) selectionAnchor = id
+      const range = computeRangeSelection(visibleIds, selectionAnchor, id)
+      selectedSessions.clear()
+      for (const rId of range) selectedSessions.add(rId)
+      renderList()
+      return
+    }
+    if (event.metaKey || event.ctrlKey) {
+      event.preventDefault()
+      if (selectedSessions.has(id)) selectedSessions.delete(id)
+      else selectedSessions.add(id)
+      selectionAnchor = id
+      renderList()
+      return
+    }
+    selectedSessions.clear()
+    selectionAnchor = id
+    renderList()
+    postOpen(id, false)
+  }
   else postOpen(node.dataset.sessionId || node.dataset.id, event.metaKey || event.ctrlKey)
 })
 
@@ -811,7 +1407,50 @@ list.addEventListener("auxclick", (event) => {
 })
 
 list.addEventListener("keydown", (event) => {
-  if (event.altKey || event.metaKey || event.ctrlKey) return
+  if (event.altKey) return
+  if (event.target.closest("[data-question-form]")) return
+  if (event.key === "Escape") {
+    if (selectedSessions.size > 0) {
+      event.preventDefault()
+      selectedSessions.clear()
+      renderList()
+      return
+    }
+    const act = document.activeElement
+    if (act && act.dataset && act.dataset.kind === "question") {
+      const qState = questionForms.get(act.dataset.inboxId)
+      if (qState && qState.expanded) {
+        event.preventDefault()
+        qState.expanded = false
+        const row = findInboxRow(act.dataset.inboxId)
+        if (row) updateInboxRow(act, row)
+        return
+      }
+    }
+  }
+  if (event.shiftKey && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+    const act = document.activeElement
+    if (act && act.dataset && act.dataset.kind === "session") {
+      const visibleIds = getVisibleSessionIds()
+      const curIdx = visibleIds.indexOf(act.dataset.id)
+      if (curIdx !== -1) {
+        const nextIdx = event.key === "ArrowDown" ? Math.min(visibleIds.length - 1, curIdx + 1) : Math.max(0, curIdx - 1)
+        if (nextIdx !== curIdx) {
+          event.preventDefault()
+          const nextId = visibleIds[nextIdx]
+          if (!selectionAnchor) selectionAnchor = act.dataset.id
+          const range = computeRangeSelection(visibleIds, selectionAnchor, nextId)
+          selectedSessions.clear()
+          for (const rId of range) selectedSessions.add(rId)
+          const nextNode = pool.get(nextId)
+          if (nextNode) focusRow(nextNode)
+          renderList()
+          return
+        }
+      }
+    }
+  }
+  if (event.metaKey || event.ctrlKey) return
   const items = focusables()
   const index = items.indexOf(document.activeElement)
   if (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Home" || event.key === "End") {
@@ -846,8 +1485,9 @@ window.addEventListener("message", (event) => {
 
 function boot() {
   document.body.appendChild(scroll)
+  list.setAttribute("aria-multiselectable", "true")
   const initial = readInitial()
-  applyState(initial || { view: "list", query: "", inbox: [], recent: [], more: [], moreForcedOpen: false, loadMore: false, still: false })
+  applyState(initial || { view: "list", query: "", inbox: [], pinned: [], recent: [], more: [], moreForcedOpen: false, loadMore: false, still: false })
   const hostQuery = initial && initial.query != null ? String(initial.query) : ""
   if (typeof saved.query === "string" && saved.query !== search.value) {
     search.value = saved.query
@@ -860,5 +1500,22 @@ function boot() {
   if (typeof saved.query === "string" && saved.query !== hostQuery) post({ type: "search", query: saved.query })
 }
 
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot)
-else boot()
+if (vscode) {
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot)
+  else boot()
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    buildStepAnswer,
+    collectAnswers,
+    getQuestions,
+    questionForms,
+    toggleQuestion,
+    computeRangeSelection,
+    getSelectionBarText,
+    getTodoBadgeText,
+    getTodoBadgeTitle,
+    getTodoStatusIcon,
+  }
+}

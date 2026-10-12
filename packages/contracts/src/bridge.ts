@@ -89,10 +89,15 @@ export type StoreResult = Envelope<
   "store.result",
   { id: string; value?: string | null; keys?: string[]; entries?: [string, string][]; blobId?: string; data?: Uint8Array | null; error?: string }
 >
-export type DraftInsert = Envelope<
-  "draft.insert",
-  { id: string; sessionId: string; text: string; source: { path: string; startLine: number; endLine: number; unsaved: boolean } }
->
+/** Where a draft insert came from (M05). `kind` is the discriminant; patch 0001 reads only id / sessionId / text. */
+export type DraftSource =
+  /** Editor selection (or whole file): the original `oco.addSelectionToDraft`. */
+  | { kind: "selection"; path: string; startLine: number; endLine: number; unsaved: boolean }
+  /** Problems view diagnostics of the current file (`path`) or the whole workspace. */
+  | { kind: "problems"; scope: "file" | "all"; path?: string; count: number; truncated: boolean }
+  /** Git working-tree or staged diff from the built-in git extension. Excluded files (files.exclude / .gitignore) contribute only their path. */
+  | { kind: "gitDiff"; scope: "working" | "staged"; files: number; truncated: boolean }
+export type DraftInsert = Envelope<"draft.insert", { id: string; sessionId: string; text: string; source: DraftSource }>
 /** Host connection state for this panel (T010). `state` is the host's feed state; `bound` is false when the host
  * is now connected somewhere else than the panel's binding. Carries no address, credentials or server text. */
 export type ConnectionNotice = Envelope<

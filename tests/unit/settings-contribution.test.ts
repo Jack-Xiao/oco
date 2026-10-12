@@ -46,8 +46,8 @@ describe("connection settings contribution", () => {
     expect(JSON.stringify(pkg)).not.toContain("onView:oco.connection")
     // Search is a title-bar button; row actions live in the webview's context menu.
     expect(c.menus["view/title"].map((m: any) => m.command)).toEqual(expect.arrayContaining(["oco.newSession", "oco.searchSessions", "oco.reconnect"]))
-    expect(c.menus["webview/context"].map((m: any) => m.command)).toEqual(["oco.openSessionInNewPanel", "oco.renameSession", "oco.archiveSession", "oco.deleteSession"])
-    for (const m of c.menus["webview/context"]) expect(m.when).toBe("webviewId == 'oco.sessions' && webviewSection == 'session'")
+    expect(c.menus["webview/context"].map((m: any) => m.command)).toEqual(["oco.openSessionInNewPanel", "oco.renameSession", "oco.archiveSession", "oco.deleteSession", "oco.compactSession", "oco.pinSession", "oco.unpinSession", "oco.markSessionsUnread"])
+    for (const m of c.menus["webview/context"]) expect(m.when).toContain("webviewId == 'oco.sessions' && webviewSection == 'session'")
     expect(c.menus["view/title"].find((m: any) => m.command === "oco.selectFolder")?.when).toContain("oco.multiRoot")
     for (const id of ["oco.selectFolder", "oco.exportDiagnostics", "oco.showLog", "oco.restartManagedServer", "oco.stopManagedServer"]) expect(c.commands.some((x: any) => x.command === id)).toBe(true)
   })

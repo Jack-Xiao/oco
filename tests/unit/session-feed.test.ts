@@ -61,12 +61,19 @@ type Snap = {
   permissions?: unknown
   questions?: unknown
   byId?: Record<string, unknown>
+  todos?: Record<string, unknown>
 }
 
 function routeSnapshot(url: string, snap: Snap): Response | undefined {
   if (url.includes("/session/status")) return json(snap.status ?? {})
   if (url.includes("/permission?")) return json(snap.permissions ?? [])
   if (url.includes("/question?")) return json(snap.questions ?? [])
+  const todoMatch = url.match(/\/session\/([^/?]+)\/todo/)
+  if (todoMatch) {
+    const id = decodeURIComponent(todoMatch[1])
+    if (snap.todos && id in snap.todos) return json(snap.todos[id])
+    return json([])
+  }
   const idMatch = url.match(/\/session\/([^/?]+)\?/)
   if (idMatch) {
     const id = decodeURIComponent(idMatch[1])
@@ -1035,3 +1042,274 @@ describe("SessionFeed pages and search", () => {
     }
   })
 })
+
+describe("SessionFeed M02 todo handling", () => {
+  const dir = "/work"
+  const enc = encodeURIComponent(dir)
+
+  test("lazy-fetches todo for busy sessions after snapshot, does not fetch for non-busy sessions", async () => {
+    const h = harness({ directory: dir })
+    const stream = openStream()
+    h.handle = (url) => {
+      if (url.includes("/event")) return new Response(stream.stream, { status: 200 })
+      return routeSnapshot(url, {
+        sessions: [
+          { id: "busy-1", directory: dir, title: "Busy 1", time: { updated: 10 } },
+          { id: "idle-1", directory: dir, title: "Idle 1", time: { updated: 5 } },
+        ],
+        status: { "busy-1": { type: "busy" }, "idle-1": { type: "idle" } },
+        todos: {
+          "busy-1": [
+            { id: "t1", content: "Implement M02", status: "in_progress" },
+            { id: "t2", content: "Review contracts", status: "completed" },
+          ],
+        },
+      })
+    }
+
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected")
+      await until(() => h.store.hasTodo("busy-1"), h, "busy-1 todo loaded")
+
+      const urls = h.calls.map((c) => c.url)
+      expect(urls.some((u) => u.includes("/session/busy-1/todo"))).toBe(true)
+      expect(urls.some((u) => u.includes("/session/idle-1/todo"))).toBe(false)
+
+      const busyItem = h.store.list().find((item) => item.id === "busy-1")
+      expect(busyItem?.todo).toEqual({
+        done: 1,
+        total: 2,
+        items: [
+          { content: "Implement M02", status: "in_progress" },
+          { content: "Review contracts", status: "completed" },
+        ],
+      })
+      const idleItem = h.store.list().find((item) => item.id === "idle-1")
+      expect(idleItem?.todo).toBeUndefined()
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("session.status event making session busy triggers ensureTodo when store has no todo", async () => {
+    const h = harness({ directory: dir })
+    const stream = openStream()
+    h.handle = (url) => {
+      if (url.includes("/event")) return new Response(stream.stream, { status: 200 })
+      return routeSnapshot(url, {
+        sessions: [{ id: "s1", directory: dir, title: "S1", time: { updated: 1 } }],
+        status: { s1: { type: "idle" } },
+        todos: {
+          s1: [{ id: "t1", content: "Dynamic task", status: "pending" }],
+        },
+      })
+    }
+
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected")
+      expect(h.store.hasTodo("s1")).toBe(false)
+      const callsBefore = h.calls.filter((c) => c.url.includes("/session/s1/todo")).length
+      expect(callsBefore).toBe(0)
+
+      // session becomes busy -> triggers ensureTodo
+      stream.push(sse({ type: "session.status", properties: { sessionID: "s1", status: { type: "busy" } } }))
+      await until(() => h.store.hasTodo("s1"), h, "s1 todo loaded after busy event")
+      expect(h.calls.filter((c) => c.url.includes("/session/s1/todo"))).toHaveLength(1)
+      expect(h.store.getTodo("s1")?.total).toBe(1)
+
+      // another session.status busy event when store already has todo does not trigger re-fetch
+      stream.push(sse({ type: "session.status", properties: { sessionID: "s1", status: { type: "busy" } } }))
+      await flush()
+      expect(h.calls.filter((c) => c.url.includes("/session/s1/todo"))).toHaveLength(1)
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("ensureTodo deduplicates concurrent and repeated calls within the same epoch", async () => {
+    const h = harness({ directory: dir })
+    const stream = openStream()
+    h.handle = (url) => {
+      if (url.includes("/event")) return new Response(stream.stream, { status: 200 })
+      return routeSnapshot(url, {
+        sessions: [{ id: "s1", directory: dir, title: "S1", time: { updated: 1 } }],
+        status: {},
+        todos: {
+          s1: [{ id: "t1", content: "Task", status: "completed" }],
+        },
+      })
+    }
+
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected")
+
+      // Call ensureTodo 3 times concurrently
+      h.feed.ensureTodo("s1")
+      h.feed.ensureTodo("s1")
+      h.feed.ensureTodo("s1")
+
+      await until(() => h.store.hasTodo("s1"), h, "s1 todo loaded")
+      const todoCalls = h.calls.filter((c) => c.url.includes("/session/s1/todo"))
+      expect(todoCalls).toHaveLength(1)
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("epoch expired results are discarded and do not overwrite new epoch", async () => {
+    const h = harness({ directory: dir })
+    const firstStream = openStream()
+    const secondStream = openStream()
+    let streamCount = 0
+    const gate = defer<Response>()
+
+    h.handle = (url) => {
+      if (url.includes("/event")) {
+        streamCount++
+        return new Response((streamCount === 1 ? firstStream : secondStream).stream, { status: 200 })
+      }
+      if (url.includes("/session/s1/todo")) {
+        return gate.promise
+      }
+      return routeSnapshot(url, {
+        sessions: [{ id: "s1", directory: dir, title: "S1", time: { updated: 1 } }],
+        status: { s1: { type: "busy" } },
+      })
+    }
+
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "first connected")
+      // The todo request for s1 is in-flight (waiting on gate)
+      await until(() => h.calls.some((c) => c.url.includes("/session/s1/todo")), h, "todo in flight")
+
+      // Reconnect (new epoch)
+      h.feed.restart()
+      await until(() => h.feed.state.state === "connected" && h.feed.stats.connects === 2, h, "second connected")
+
+      // Now resolve the old epoch's request
+      gate.resolve(
+        json([
+          { id: "old-1", content: "Old epoch todo", status: "completed" },
+        ]),
+      )
+      await flush()
+
+      // The store in the second epoch should NOT have old-1 todo because epoch expired
+      expect(h.store.getTodo("s1")).toBeUndefined()
+    } finally {
+      firstStream.close()
+      secondStream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("404 on todo fetch logs error and does not affect snapshot or connection", async () => {
+    const h = harness({ directory: dir })
+    const stream = openStream()
+    h.handle = (url) => {
+      if (url.includes("/event")) return new Response(stream.stream, { status: 200 })
+      if (url.includes("/todo")) return new Response("Not found", { status: 404 })
+      return routeSnapshot(url, {
+        sessions: [{ id: "s1", directory: dir, title: "S1", time: { updated: 1 } }],
+        status: { s1: { type: "busy" } },
+      })
+    }
+
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected")
+      await until(() => h.calls.some((c) => c.url.includes("/session/s1/todo")), h, "todo fetched")
+
+      expect(h.feed.state.state).toBe("connected")
+      expect(h.store.hasTodo("s1")).toBe(false)
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("401 on todo fetch triggers unauthorized state", async () => {
+    const h = harness({ directory: dir })
+    const stream = openStream()
+    h.handle = (url) => {
+      if (url.includes("/event")) return new Response(stream.stream, { status: 200 })
+      if (url.includes("/todo")) return new Response("Unauthorized", { status: 401 })
+      return routeSnapshot(url, {
+        sessions: [{ id: "s1", directory: dir, title: "S1", time: { updated: 1 } }],
+        status: { s1: { type: "busy" } },
+      })
+    }
+
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "unauthorized", h, "unauthorized state")
+      expect(h.feed.state.state).toBe("unauthorized")
+      expect(h.feed.state.error).toContain("Authentication failed")
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("concurrency limit 4 is enforced when multiple busy sessions are fetched", async () => {
+    const h = harness({ directory: dir })
+    const stream = openStream()
+    const sessionIds = ["b1", "b2", "b3", "b4", "b5", "b6"]
+    const statusMap: Record<string, { type: "busy" }> = {}
+    for (const id of sessionIds) statusMap[id] = { type: "busy" }
+
+    let concurrent = 0
+    let maxConcurrent = 0
+    const resolvers: Array<() => void> = []
+
+    h.handle = (url) => {
+      if (url.includes("/event")) return new Response(stream.stream, { status: 200 })
+      if (url.includes("/todo")) {
+        concurrent++
+        if (concurrent > maxConcurrent) maxConcurrent = concurrent
+        return new Promise<Response>((resolve) => {
+          resolvers.push(() => {
+            concurrent--
+            resolve(json([]))
+          })
+        })
+      }
+      return routeSnapshot(url, {
+        sessions: sessionIds.map((id) => ({ id, directory: dir, title: id, time: { updated: 1 } })),
+        status: statusMap,
+      })
+    }
+
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected")
+      // Wait until initial batch of 4 is dispatched
+      await until(() => resolvers.length === 4, h, "4 in flight")
+      expect(maxConcurrent).toBe(4)
+      expect(resolvers.length).toBe(4)
+
+      // Resolve one, 5th should start
+      resolvers.shift()!()
+      await until(() => resolvers.length === 4, h, "next in flight")
+      expect(maxConcurrent).toBe(4)
+
+      // Resolve remaining
+      while (resolvers.length > 0) {
+        resolvers.shift()!()
+        await flush()
+      }
+      expect(maxConcurrent).toBe(4)
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+})
+
