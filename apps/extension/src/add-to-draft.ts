@@ -300,7 +300,7 @@ export function formatGitDiff(
   }
 }
 
-function filesExcludePatterns(): string[] {
+export function filesExcludePatterns(): string[] {
   const value = vs().workspace.getConfiguration("files").get("exclude")
   if (!value || typeof value !== "object") return []
   return Object.entries(value as Record<string, unknown>)
@@ -308,7 +308,7 @@ function filesExcludePatterns(): string[] {
     .map(([pattern]) => pattern)
 }
 
-function gitignoreLines(): string[] {
+export function gitignoreLines(): string[] {
   const root = vs().workspace.workspaceFolders?.[0]?.uri.fsPath
   if (!root) return []
   try {

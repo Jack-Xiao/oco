@@ -103,6 +103,12 @@ export type DraftSource =
   | { kind: "problems"; scope: "file" | "all"; path?: string; count: number; truncated: boolean }
   /** Git working-tree or staged diff from the built-in git extension. Excluded files (files.exclude / .gitignore) contribute only their path. */
   | { kind: "gitDiff"; scope: "working" | "staged"; files: number; truncated: boolean }
+  /** Review notes (M13) collected with "Add to Review Notes" and sent together. Snippets come from the working tree. */
+  | { kind: "reviewNotes"; notes: number; files: number; truncated: boolean }
+  /** Last finished command of a terminal, from shell integration (M05 second slice). */
+  | { kind: "terminal"; command: string; exitCode?: number; truncated: boolean }
+  /** "Fix with OpenCode" code action: diagnostics at one location plus the surrounding code. */
+  | { kind: "fix"; path: string; line: number; count: number; truncated: boolean }
 export type DraftInsert = Envelope<"draft.insert", { id: string; sessionId: string; text: string; source: DraftSource }>
 /** Host connection state for this panel (T010). `state` is the host's feed state; `bound` is false when the host
  * is now connected somewhere else than the panel's binding. Carries no address, credentials or server text. */

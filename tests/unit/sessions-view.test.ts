@@ -960,4 +960,32 @@ describe("M14: Pure functions (multi-select, selection bar, todo badge)", () => 
     expect(getTodoStatusIcon("cancelled")).toBe("✕")
     expect(getTodoStatusIcon("unknown")).toBe("○")
   })
+
+  test("M13: setNoteCounter populates notes count in WebRow only when greater than 0", () => {
+    const store = new SessionStore(() => true)
+    store.applySnapshot({
+      sessions: [
+        { id: "s-1", title: "Session 1", directory: "/work", time: { updated: Date.now() } },
+        { id: "s-2", title: "Session 2", directory: "/work", time: { updated: Date.now() } },
+      ],
+      status: { "s-1": { type: "idle" }, "s-2": { type: "idle" } },
+      permissions: [],
+      questions: [],
+    })
+    const view = new SessionsView(store)
+    view.setConnection({
+      connectionId: "c1",
+      label: "local",
+      directory: "/work",
+      state: "connected",
+      attempt: 0,
+      trusted: true,
+    })
+    view.setNoteCounter((id) => (id === "s-1" ? 3 : 0))
+    const model = view.webModel()
+    const r1 = model.recent.find((r) => r.id === "s-1")
+    const r2 = model.recent.find((r) => r.id === "s-2")
+    expect(r1?.notes).toBe(3)
+    expect(r2?.notes).toBeUndefined()
+  })
 })

@@ -133,6 +133,21 @@
         "category": "oco"
       },
       {
+        "command": "oco.addToReviewNotes",
+        "title": "Add to Review Notes",
+        "category": "oco"
+      },
+      {
+        "command": "oco.reviewNotes.sendAll",
+        "title": "Send Review Notes to Draft",
+        "category": "oco"
+      },
+      {
+        "command": "oco.reviewNotes.clear",
+        "title": "Clear Review Notes",
+        "category": "oco"
+      },
+      {
         "command": "oco.setServerPassword",
         "title": "Set Server Password",
         "category": "oco"
@@ -263,6 +278,11 @@
         {
           "command": "oco.addSelectionToDraft",
           "group": "oco@1"
+        },
+        {
+          "command": "oco.addToReviewNotes",
+          "when": "editorHasSelection",
+          "group": "oco@2"
         }
       ]
     },

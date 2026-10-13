@@ -704,6 +704,24 @@ body.vscode-high-contrast .question-option-btn.selected {
   filter: brightness(1.15);
 }
 
+/* M13 Notes badge */
+.notes-badge {
+  flex: 0 0 auto;
+  font-size: 11px;
+  padding: 0 5px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: 8px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  cursor: pointer;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+.notes-badge:hover {
+  filter: brightness(1.15);
+}
+
 .todo-list[data-todo-list] {
   flex-basis: 100%;
   width: 100%;
