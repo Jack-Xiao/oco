@@ -12,6 +12,8 @@ import { BlobStore } from "./bridge-host"
 import { KvStore } from "./host-store"
 import { PanelRegistry, VIEW_TYPE, type Entry } from "./panels"
 import { registerAddToDraft } from "./add-to-draft"
+import { registerTerminalOutput } from "./terminal-output"
+import { registerFixWithOpenCode } from "./fix-with-opencode"
 import { ReviewNotes, registerReviewNotesCommands } from "./review-notes"
 import { registerCompactSession } from "./compact-session"
 import { ManagedServer } from "./managed-server"
@@ -339,6 +341,8 @@ export function activate(context: vscode.ExtensionContext) {
       if (targets.length) view.markUnread(targets.map((s) => s.id))
     }),
     registerAddToDraft(panels), // M05 first slice: Problems / Git diff → draft (oco.addToDraft)
+    registerTerminalOutput(panels), // M05: last terminal command → draft
+    registerFixWithOpenCode(panels), // M05: Fix with OpenCode → draft
     ...registerReviewNotesCommands(panels, reviewNotes, conn), // M13: Review notes → draft (oco.addToReviewNotes)
     // M07 (1): oco.compactSession — POST /session/:id/summarize with the session's last assistant model, after a modal confirm.
     registerCompactSession({

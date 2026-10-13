@@ -99,6 +99,26 @@
         "icon": "$(add)"
       },
       {
+        "command": "oco.addTerminalOutputToDraft",
+        "title": "Add Terminal Output to Session Draft",
+        "category": "oco"
+      },
+      {
+        "command": "oco.addProblemToDraft",
+        "title": "Add Problem to Session Draft",
+        "category": "oco"
+      },
+      {
+        "command": "oco.addGitDiffToDraft",
+        "title": "Add Git Diff to Session Draft",
+        "category": "oco"
+      },
+      {
+        "command": "oco.fixWithOpenCode",
+        "title": "Fix with OpenCode",
+        "category": "oco"
+      },
+      {
         "command": "oco.searchSessions",
         "title": "Search Sessions",
         "category": "oco",
@@ -262,6 +282,14 @@
       ],
       "commandPalette": [
         {
+          "command": "oco.addProblemToDraft",
+          "when": "false"
+        },
+        {
+          "command": "oco.fixWithOpenCode",
+          "when": "false"
+        },
+        {
           "command": "oco.loadMoreSessions",
           "when": "false"
         },
@@ -272,6 +300,25 @@
         {
           "command": "oco.selectFolder",
           "when": "oco.multiRoot"
+        }
+      ],
+      "terminal/context": [
+        {
+          "command": "oco.addTerminalOutputToDraft",
+          "group": "oco"
+        }
+      ],
+      "problems/context": [
+        {
+          "command": "oco.addProblemToDraft",
+          "group": "oco"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "oco.addGitDiffToDraft",
+          "when": "scmProvider == git",
+          "group": "navigation"
         }
       ],
       "editor/context": [
