@@ -18,6 +18,19 @@ export function computeMissingRequired(results, required = []) {
   return missing;
 }
 
+/**
+ * Record a check as N/A (it does not apply to this run, e.g. it depends on a mock-model token) and drop it from the
+ * required list, so the exit code is decided by the checks that do apply. `required` must be the very array that was
+ * passed to createRun (it is edited in place). The reason always lands in the result detail.
+ */
+export function recordNotApplicable(run, required, id, reason, detail = {}) {
+  if (Array.isArray(required)) {
+    const i = required.indexOf(id);
+    if (i >= 0) required.splice(i, 1);
+  }
+  return run.record(id, "N/A", { reason, ...detail });
+}
+
 export function computeExit(results, required = []) {
   if (!results || results.length === 0) {
     return 1;

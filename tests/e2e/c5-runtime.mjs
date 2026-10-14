@@ -13,7 +13,7 @@
 // in its await-results stage for ~9 s) or read back deterministically with __ocoRuntime.seek() using the part
 // times from the REST API.
 import { fileURLToPath } from "node:url"
-import { createRun } from "./lib/results.mjs"
+import { createRun, recordNotApplicable } from "./lib/results.mjs"
 import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, fitGroups, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, waitReply, waitIdle, MODEL } from "./server.mjs"
 
@@ -68,6 +68,10 @@ const run = createRun({ suite: "c5-runtime", required: REQUIRED, scriptPath: fil
 const health = await api("GET", "/global/health").catch(() => null)
 const LOCALE = process.env.OCO_E2E_LOCALE ?? ""
 run.setEnv({ serverVersion: health?.version ?? null, modelMode: MODEL.mode, locale: LOCALE || "default" })
+// Real-model mode: checks that need a mock-only prompt token (WITH-SLOW-SIBLING, RETRY-ONCE) or a model that keeps a
+// request "in flight" for a chosen time are relaxed or judged N/A (reason in the result) instead of failing on model
+// variance. Mock mode is unchanged. A real full run is long (>15 min): the outer timeout is set in tests/e2e/run.mjs.
+const REAL = MODEL.mode === "real"
 const { app, page } = await launch({
   profile: "c5-runtime",
   run,
@@ -464,13 +468,18 @@ try {
   const resultRows = resultSamples.some((s) => s.tools.some((x) => x.startsWith("ok")) && (!siblingTask || s.cells.includes("run")))
   await waitUntil(async () => (await stageOf()) === "end", 15000, 100)
 
+  // Real model: without the mock's slow sibling the request does not stay in "await results", so the "result" card may
+  // never be live long enough to sample (seen: 0 samples). Round 1 (permission, ask stage, call card, bash row, end)
+  // is still fully required; the round-2 result-card claim is judged only when the poll caught at least one sample.
+  const resultCardSkipped = REAL && resultSamples.length === 0
+  const resultCardOk = resultCardSkipped || (ttResultSeen && resultTone && resultStageWait && resultRows)
   run.record(
     "tool-turn",
     ttPermSeen && ttAskStage && ttPendingBadge && ttYouButtons === 0 && L.approvalRe.test(ttStatusWhilePending) &&
-      ttEnded && ttFocusEnd === "end" && ttStatusEnd.includes(L.standing) && callOk && bashRowOk && ttResultSeen && resultTone && resultStageWait && resultRows
+      ttEnded && ttFocusEnd === "end" && ttStatusEnd.includes(L.standing) && callOk && bashRowOk && resultCardOk
       ? "PASS"
       : "FAIL",
-    { ttPermSeen, ttAskStage, ttPendingBadge, ttYouButtons, ttRunWhilePending, ttStatusWhilePending, ttEnded, ttFocusEnd, ttStatusEnd, callDet, callOk, bashRowOk, ttResultSeen, resultSamples: resultSamples.length, resultTone, resultStageWait, resultRows, siblingTask, resultTools: resultSamples.slice(0, 2).map((s) => s.tools), resultCells: resultSamples.slice(0, 2).map((s) => s.cells) },
+    { ...(resultCardSkipped ? { relaxed: "real model: result card not sampled (no slow sibling), round-2 result-card checks skipped" } : {}), ttPermSeen, ttAskStage, ttPendingBadge, ttYouButtons, ttRunWhilePending, ttStatusWhilePending, ttEnded, ttFocusEnd, ttStatusEnd, callDet, callOk, bashRowOk, ttResultSeen, resultSamples: resultSamples.length, resultTone, resultStageWait, resultRows, siblingTask, resultTools: resultSamples.slice(0, 2).map((s) => s.tools), resultCells: resultSamples.slice(0, 2).map((s) => s.cells) },
   )
 
   // 4. context-known: after the first receipt the status bar shows the context size (digits); token in/out now live in the model box receipt.
@@ -732,11 +741,18 @@ try {
   // The card body is clamped to its 3 lines and ends or starts with "…" when the card is narrow (small stage height);
   // the full text stays behind "Full text". Accept a visible piece (6+ characters) of the error as well as the whole head.
   const failErrShown = readErrHead === "" || failInfo.cardText.includes(readErrHead) || visiblePieceOf(failBody, readErrFull)
-  run.record(
-    "tool-fail",
-    failedCard && failInfo.cardTone === "err" && failInfo.rowState === "err" && readPart?.state?.status === "error" && failErrShown ? "PASS" : "FAIL",
-    { failedCard, ...failInfo, cardText: failInfo.cardText.slice(0, 160), failBody: failBody.slice(0, 120), failErrShown, readStatus: readPart?.state?.status ?? null, readErrHead },
-  )
+  const failDetail = { failedCard, ...failInfo, cardText: failInfo.cardText.slice(0, 160), failBody: failBody.slice(0, 120), failErrShown, readStatus: readPart?.state?.status ?? null, readErrHead }
+  if (REAL && !failedCard) {
+    // The red "failed" card is held live only by the mock's slow sibling (WITH-SLOW-SIBLING); a real model reads the
+    // error and finishes the round at once, so the card is "round-end" and the err row is gone (seen). Not applicable.
+    recordNotApplicable(run, REQUIRED, "tool-fail", "real model: the failed card needs the mock's slow sibling to stay live; the round ended before it could be sampled", failDetail)
+  } else {
+    run.record(
+      "tool-fail",
+      failedCard && failInfo.cardTone === "err" && failInfo.rowState === "err" && readPart?.state?.status === "error" && failErrShown ? "PASS" : "FAIL",
+      failDetail,
+    )
+  }
 
   // 15. question-route: the question stays in the composer dock; the runtime view shows card "ask" with the question text
   // and the options in the You dock as list items (not buttons). Answering clears pending and the server queue.
@@ -917,11 +933,18 @@ try {
   })
   const sawRetrying = retrySeq.includes("retrying+retry")
   const retryText = (retryReply?.parts ?? []).filter((p) => p.type === "text").map((p) => p.text).join("")
-  run.record(
-    "retry",
-    sawRetrying && retrySeq.at(-1)?.startsWith("idle") && retryText.includes(`RETRY-ONCE-${rand}`) ? "PASS" : "FAIL",
-    { pollMs: 50, retrySeq, sawRetrying, completed: !!retryReply?.info?.time?.completed, retryText: retryText.slice(0, 80) },
-  )
+  const retryDetail = { pollMs: 50, retrySeq, sawRetrying, completed: !!retryReply?.info?.time?.completed, retryText: retryText.slice(0, 80) }
+  if (REAL && !sawRetrying) {
+    // RETRY-ONCE is a token only the mock model understands (it fails the first request once); a real model never
+    // retries on demand. The turn above still ran, so the later steps see the same conversation as in mock mode.
+    recordNotApplicable(run, REQUIRED, "retry", "real model: RETRY-ONCE is a mock-model token, a real model does not trigger a retry on demand", retryDetail)
+  } else {
+    run.record(
+      "retry",
+      sawRetrying && retrySeq.at(-1)?.startsWith("idle") && retryText.includes(`RETRY-ONCE-${rand}`) ? "PASS" : "FAIL",
+      retryDetail,
+    )
+  }
 
   // ---- subagents, replay without actions, keyboard, thinking ----
 
