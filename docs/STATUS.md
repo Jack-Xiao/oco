@@ -2,6 +2,13 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## M20 第一步：侧栏子代理聚合（2026-10-14，分支 `claude/m20-subagent-aggregation` 7388bce，未合入 main，未推送）
+
+- 有子会话（子代理）的父会话行显示徽标：分支图标 + `done/total`；子代理运行中时为 running 样式；有子会话等授权 / 等回答或报错时高亮；悬停说明如 `Subagents: 1 done, 2 running`。点击徽标展开 / 收起直接子会话列表（默认收起，展开状态存在 webview state），点子会话行打开该子会话；点徽标不切换当前会话。每个子项状态按其子树汇总（running > waiting > error > done）。
+- 数据：`SessionStore` 已有的子会话行（实时事件）+ 对可见行懒取 `GET /session/:id/children`（与 todo 同队列、同 epoch、同 401 处理，并发上限 4）；ADR-009 §2 已补一行。侧栏行内元素改按类名取，不再依赖子节点下标。
+- 验证（4634d4b / 7388bce）：typecheck 0；unit 393/0；build PASS；E2E（mock）c17-subagent-aggregate 5/0 连续 3 次（含重启 VS Code 后只靠懒取恢复 "1/1"）；回归 c16 5/0、c11 7/0/1、c6 5/0、p1b-sidebar 13/0。本机已装 `oco-0.0.4-7388bce.vsix`。证据 [m20-subagent-aggregation](evidence/m20-subagent-aggregation-2026-10-14.md)、[m20-e2e](evidence/m20-e2e.md)。
+- 未做 / NOT RUN：第二步（补丁扩 0017 标题行的子代理 pills 与 chord 键位）；attention 样式只有单测；嵌套 ≥2 层只在一层验收；真实模型目视。
+
 ## 卡 2：侧栏停止 + 通知分级 + V2 识别（2026-10-14，已合入本机 main，合并提交 18cae65，未推送）
 
 - 侧栏一键停止（M10）：会话自身或任一子代理在服务端 busy（含等授权 / 等提问）时，行悬停出现 ■；多选栏 Stop；右键 Stop Session；状态栏 `$(debug-stop) N` → Stop All Running（模态确认一次）。四处共用一套「可停止」判定（`planStop`），状态栏计数与 Stop All 的确认数一致。宿主对每个会话按其自身目录 `POST /session/:id/abort`，发送前按服务端状态再核；停父会话前若有运行中的子代理先确认，再一并停。上游 abort 不清待处理的权限 / 提问，Stop 在 abort 成功后按会话目录 reject 它们，收件箱随之清空。Restricted Mode 下不可用。
@@ -86,7 +93,7 @@
 
 - 上游基线：vendor OpenCode v1.18.33（提交 `51ef4be`，浅克隆；旧文档里的补丁基线 `deb241e` 已不存在，补丁再生成改用 `scripts/regen-patch.sh` 在临时 worktree 重建基线）。宿主 `VERIFIED_SERVERS` = 1.18.33、1.18.13（企业服务；前端保持 1.18.33，验收对着 1.18.13 服务端跑；切到 1.18.13 前端的方案停放在本地分支 `claude/opencode-1.18.13-baseline`）。
 - 补丁链：`patches/opencode/` 0001–0023 在干净 vendor HEAD `51ef4be` 上重放 23/23 通过（2026-10-14；`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡；`0022-oco-markdown-mermaid.patch` 为 Mermaid；`0023-oco-embedded-new-session-draft.patch` 为新建会话草稿页）。卡 1、卡 3 未改补丁。
-- 本机扩展：已装 `oco-0.0.4-eca230e.vsix`（分支 `claude/card2-stop-notify-v2` eca230e = main 卡 1 / 卡 3 + 卡 2，vendor v1.18.33；2026-10-14；extension.js sha256 `281b6781…`；位于 `~/.vscode/extensions/oco-local-test.oco-0.0.4`，需 Reload Window）。
+- 本机扩展：已装 `oco-0.0.4-7388bce.vsix`（分支 `claude/m20-subagent-aggregation` 7388bce = main 卡 1–3 + M20，vendor v1.18.33；2026-10-14；extension.js sha256 `4a8001f4…`；位于 `~/.vscode/extensions/oco-local-test.oco-0.0.4`，需 Reload Window）。
 
 ## 已合入 main 的能力
 
