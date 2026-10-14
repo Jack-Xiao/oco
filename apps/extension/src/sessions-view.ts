@@ -2,6 +2,7 @@ import * as vscode from "vscode"
 import type { ConnectionSummary, SessionActivity, SessionListItem } from "@oco/contracts"
 import type { InboxEntry, InboxRow, SessionStore } from "./session-store"
 import { serverInfoLines, versionNote, type ServerInfo } from "./diagnostics"
+import { resolveLevel, type NotifySettingsInspect } from "./notify-policy"
 import {
   compactTime,
   groupInbox,
@@ -9,6 +10,9 @@ import {
   splitSessions,
   UnreadTracker,
   PendingNotifier,
+  FinishedNotifier,
+  type FinishedAction,
+  type FinishedSession,
   type NotifierDeps,
   type PendingNotificationItem,
 } from "./session-groups"
@@ -17,6 +21,38 @@ export { PendingNotifier, type NotifierDeps, type PendingNotificationItem }
 
 const UNREAD_KEY = "oco.unreadSessions"
 const PINNED_KEY = "oco.pinnedSessions"
+
+/** Live inspect snapshot. A settings change applies on the next check; nothing is written back. */
+function readNotifySettings(): NotifySettingsInspect {
+  const oco = vscode.workspace.getConfiguration("oco")
+  const sessions = vscode.workspace.getConfiguration("oco.sessions")
+  return {
+    needsMe: oco.inspect<unknown>("notify.needsMe"),
+    finished: oco.inspect<unknown>("notify.finished"),
+    notifyPending: sessions.inspect<unknown>("notifyPending"),
+  }
+}
+
+function finishedSessions(list: { id: string; title: string; activity: FinishedSession["activity"]; error?: string }[], inbox: InboxRow[]): FinishedSession[] {
+  const extra = new Map<string, { parentID?: string; result?: FinishedSession["result"] }>()
+  for (const row of inbox) {
+    const prev = extra.get(row.sessionId)
+    if (!prev || row.kind === "done" || row.kind === "error") {
+      extra.set(row.sessionId, { parentID: row.parentId ?? prev?.parentID, result: row.result ?? prev?.result })
+    }
+  }
+  return list.map((item) => {
+    const more = extra.get(item.id)
+    return {
+      id: item.id,
+      parentID: more?.parentID,
+      activity: item.activity,
+      title: item.title,
+      result: more?.result,
+      error: item.error,
+    }
+  })
+}
 
 const STATUS: Record<SessionActivity, string> = {
   idle: "",
@@ -70,6 +106,9 @@ export class SessionsView implements vscode.Disposable {
   private refreshTimer: ReturnType<typeof setTimeout> | undefined
   private current: string | undefined
   private readonly status: vscode.StatusBarItem
+  /** Card 2 B: "Stop all running", shown next to the connection item only while a session runs. */
+  private readonly stopStatus: vscode.StatusBarItem
+  private stopVisible = false
   private readonly unread: UnreadTracker
   private readonly pinned = new Set<string>()
   private todoProbe?: (id: string) => void
@@ -77,6 +116,7 @@ export class SessionsView implements vscode.Disposable {
   private moreOpen = false
   private readonly clock: ReturnType<typeof setInterval>
   readonly notifier: PendingNotifier
+  private readonly finished: FinishedNotifier
   /** Title-row text and badge, applied by the webview view. */
   chrome: { description?: string; badge?: { value: number; tooltip: string } } = {}
   readonly stats = { renders: 0 }
@@ -89,6 +129,10 @@ export class SessionsView implements vscode.Disposable {
     this.unread = new UnreadTracker(memento?.get<string[]>(UNREAD_KEY) ?? [])
     const initialPinned = memento?.get<string[]>(PINNED_KEY) ?? []
     for (const id of initialPinned) this.pinned.add(id)
+    const focusSessions = () => {
+      void vscode.commands.executeCommand("oco.sessions.focus")
+    }
+    const windowFocused = () => vscode.window.state.focused
     this.notifier =
       notifier ??
       new PendingNotifier({
@@ -96,14 +140,31 @@ export class SessionsView implements vscode.Disposable {
           const msg = `${count} request${count === 1 ? "" : "s"} waiting for approval`
           return vscode.window.showWarningMessage(msg, "Show") as Thenable<"Show" | undefined>
         },
-        focus: () => {
-          void vscode.commands.executeCommand("oco.sessions.focus")
-        },
-        isEnabled: () => vscode.workspace.getConfiguration("oco.sessions").get<boolean>("notifyPending", true),
+        focus: focusSessions,
+        level: () => resolveLevel("needsMe", readNotifySettings()),
+        windowFocused,
       })
+    this.finished = new FinishedNotifier({
+      level: () => resolveLevel("finished", readNotifySettings()),
+      windowFocused,
+      notify: (notice) =>
+        (notice.severity === "warning"
+          ? vscode.window.showWarningMessage(notice.message, ...notice.actions)
+          : vscode.window.showInformationMessage(notice.message, ...notice.actions)) as Thenable<FinishedAction | undefined>,
+      focus: focusSessions,
+      open: (id) => {
+        void vscode.commands.executeCommand("oco.openSession", id)
+      },
+      diff: (id) => {
+        void vscode.commands.executeCommand("oco.openSessionReview", id)
+      },
+    })
     // Time labels and the "since yesterday" boundary age without events.
     this.clock = setInterval(() => this.refresh(), 60_000)
     this.status = vscode.window.createStatusBarItem("oco.connection", vscode.StatusBarAlignment.Left, 10)
+    this.stopStatus = vscode.window.createStatusBarItem("oco.stopAll", vscode.StatusBarAlignment.Left, 9)
+    this.stopStatus.name = "oco Stop All Running"
+    this.stopStatus.command = "oco.sessions.stopAllRunning"
     this.status.name = "oco Connection"
     void vscode.commands.executeCommand("setContext", "oco.searchActive", false)
   }
@@ -330,6 +391,9 @@ export class SessionsView implements vscode.Disposable {
     const inbox = this.store.inbox(this.current, (id) => this.unread.has(id))
     const waitingRows = inbox.filter((i) => i.kind === "permission" || i.kind === "question")
     const waiting = waitingRows.length
+    // Notifications and the stop item look at every root session, not just the ones a search shows.
+    const roots = this.query ? this.store.list() : all
+    this.finished.check(finishedSessions(roots, inbox), this.current)
 
     if (s?.state === "connected") {
       const pendingItems: PendingNotificationItem[] = waitingRows.map((r) => ({
@@ -395,6 +459,13 @@ export class SessionsView implements vscode.Disposable {
     const extra = serverInfoLines(this.info)
     if (extra.length) st.tooltip = `${typeof st.tooltip === "string" ? st.tooltip : ""}\n${extra.join("\n")}`
     st.show()
+    const running = s?.state === "connected" && vscode.workspace.isTrusted ? roots.filter((i) => i.activity === "busy" || i.activity === "retry").length : 0
+    if (running > 0) {
+      this.stopStatus.text = `$(debug-stop) ${running}`
+      this.stopStatus.tooltip = `Stop all running sessions (${running})…`
+      this.stopStatus.show()
+    } else this.stopStatus.hide()
+    this.stopVisible = running > 0
   }
 
   private empty = false
@@ -422,6 +493,7 @@ export class SessionsView implements vscode.Disposable {
       badge: this.chrome.badge?.value ?? 0,
       statusText: this.status.text,
       statusTooltip: typeof this.status.tooltip === "string" ? this.status.tooltip : null,
+      stopText: this.stopVisible ? this.stopStatus.text : null,
       items: (() => {
         const g = this.groups()
         const row = (group: string) => (i: SessionListItem) => ({ id: i.id, title: i.title, activity: i.activity, group, unread: this.unread.has(i.id), description: compactTime(i.updated, g.now) })
@@ -434,7 +506,9 @@ export class SessionsView implements vscode.Disposable {
   dispose() {
     if (this.refreshTimer) clearTimeout(this.refreshTimer)
     clearInterval(this.clock)
+    this.finished.dispose()
     this.rendered.dispose()
     this.status.dispose()
+    this.stopStatus.dispose()
   }
 }

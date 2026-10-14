@@ -33,6 +33,7 @@ type FromPage =
   | { type: "pin"; id: string; pinned: boolean }
   | { type: "markUnread"; ids: string[] }
   | { type: "batch"; action: "archive" | "delete"; ids: string[] }
+  | { type: "stop"; ids: string[] }
   | { type: "sendNotes"; id: string }
 
 /**
@@ -146,6 +147,11 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
         if ((m.action === "archive" || m.action === "delete") && Array.isArray(m.ids) && m.ids.length > 0) {
           const cmd = m.action === "archive" ? "oco.archiveSession" : "oco.deleteSession"
           void vscode.commands.executeCommand(cmd, { sessionId: m.ids[0], selection: m.ids })
+        }
+        return
+      case "stop":
+        if (Array.isArray(m.ids) && m.ids.length > 0 && m.ids.every((x) => typeof x === "string")) {
+          void vscode.commands.executeCommand("oco.sessions.stop", { sessionId: m.ids[0], selection: m.ids })
         }
         return
       case "sendNotes":

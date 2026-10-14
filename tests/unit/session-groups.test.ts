@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test"
 import type { SessionActivity, SessionListItem } from "@oco/contracts"
 import {
+  FinishedNotifier,
+  PendingNotifier,
   UnreadTracker,
   compactTime,
   groupInbox,
@@ -385,5 +387,254 @@ describe("groupInbox", () => {
     })
     expect(entries[2]).toMatchObject({ id: "solo-1", at: 100 })
     expect(entries[3]).toMatchObject({ id: "solo-2", at: 200 })
+  })
+})
+
+describe("PendingNotifier level gate", () => {
+  function check(level: "off" | "windowNotFocused" | "always", focused: boolean) {
+    let notified = 0
+    const notifier = new PendingNotifier({
+      notify: async () => {
+        notified++
+        return undefined
+      },
+      focus: () => {},
+      level: () => level,
+      windowFocused: () => focused,
+    })
+    const fired = notifier.check([{ id: "req", sessionId: "other", rootSessionId: "other" }], "current")
+    return { fired, notified }
+  }
+
+  test("off never notifies, windowNotFocused only in the background, always notifies", () => {
+    expect(check("off", false)).toEqual({ fired: false, notified: 0 })
+    expect(check("off", true)).toEqual({ fired: false, notified: 0 })
+    expect(check("windowNotFocused", true)).toEqual({ fired: false, notified: 0 })
+    expect(check("windowNotFocused", false)).toEqual({ fired: true, notified: 1 })
+    expect(check("always", true)).toEqual({ fired: true, notified: 1 })
+    expect(check("always", false)).toEqual({ fired: true, notified: 1 })
+  })
+})
+
+describe("FinishedNotifier", () => {
+  type Notice = {
+    severity: "info" | "warning"
+    message: string
+    actions: string[]
+    sessionId?: string
+  }
+
+  function harness(level: "off" | "windowNotFocused" | "always" = "always", focused = false) {
+    const notices: Notice[] = []
+    let choice: "Show" | "Open" | "Diff" | undefined
+    let focus = 0
+    let opened: string | undefined
+    let diffed: string | undefined
+    const timers: { fn: () => void; cancelled: boolean; ms: number }[] = []
+    const notifier = new FinishedNotifier({
+      level: () => level,
+      windowFocused: () => focused,
+      notify: (notice) => {
+        notices.push(notice)
+        return Promise.resolve(choice)
+      },
+      focus: () => {
+        focus++
+      },
+      open: (id) => {
+        opened = id
+      },
+      diff: (id) => {
+        diffed = id
+      },
+      schedule: (fn, ms) => {
+        const timer = { fn, cancelled: false, ms }
+        timers.push(timer)
+        return () => {
+          timer.cancelled = true
+        }
+      },
+    })
+    return {
+      notifier,
+      notices,
+      timers,
+      choose: (next: "Show" | "Open" | "Diff" | undefined) => {
+        choice = next
+      },
+      get focus() {
+        return focus
+      },
+      get opened() {
+        return opened
+      },
+      get diffed() {
+        return diffed
+      },
+      flush: async () => {
+        const due = timers.splice(0)
+        for (const timer of due) if (!timer.cancelled) timer.fn()
+        await Promise.resolve()
+        await Promise.resolve()
+      },
+    }
+  }
+
+  function sess(partial: { id: string; activity: "idle" | "busy" | "retry" | "error" | "permission" | "question"; title?: string; parentID?: string; error?: string; result?: { files?: unknown[]; durMs?: number; costUsd?: number; lastText?: string } }) {
+    return { title: partial.id, ...partial }
+  }
+
+  test("notifies a finished root after the delay, with Open and Diff when files changed", async () => {
+    const h = harness()
+    h.choose("Diff")
+    h.notifier.check([sess({ id: "a", activity: "busy" })])
+    h.notifier.check([
+      sess({ id: "a", activity: "idle", title: "Build", result: { files: [{}, {}, {}], durMs: 252_000 } }),
+    ])
+    expect(h.notices).toEqual([])
+    expect(h.timers.map((timer) => timer.ms)).toEqual([1500])
+    await h.flush()
+    expect(h.notices).toEqual([
+      {
+        severity: "info",
+        message: `"Build" finished · 3 files · 4m12s`,
+        actions: ["Open", "Diff"],
+        sessionId: "a",
+      },
+    ])
+    expect(h.diffed).toBe("a")
+    expect(h.opened).toBeUndefined()
+  })
+
+  test("uses the latest summary if it arrives during the delay", async () => {
+    const h = harness()
+    h.notifier.check([sess({ id: "a", activity: "busy", title: "Build" })])
+    h.notifier.check([sess({ id: "a", activity: "idle", title: "Build", result: { durMs: 5_000 } })])
+    h.notifier.check([
+      sess({
+        id: "a",
+        activity: "idle",
+        title: "Build",
+        result: { files: [{}], durMs: 252_000, costUsd: 1.2, lastText: "done" },
+      }),
+    ])
+    await h.flush()
+    expect(h.notices[0]?.message).toBe(`"Build" finished · 1 file · 4m12s · $1.20 · done`)
+    expect(h.notices[0]?.actions).toEqual(["Open", "Diff"])
+  })
+
+  test("warns on retry → error with Open only", async () => {
+    const h = harness()
+    h.choose("Open")
+    h.notifier.check([sess({ id: "a", activity: "retry", title: "Build" })])
+    h.notifier.check([sess({ id: "a", activity: "error", title: "Build", error: "boom" })])
+    await h.flush()
+    expect(h.notices).toEqual([
+      { severity: "warning", message: `"Build" failed: boom`, actions: ["Open"], sessionId: "a" },
+    ])
+    expect(h.opened).toBe("a")
+  })
+
+  test("does not notify a child session", async () => {
+    const h = harness()
+    h.notifier.check([sess({ id: "child", parentID: "root", activity: "busy" })])
+    h.notifier.check([sess({ id: "child", parentID: "root", activity: "idle", title: "Child" })])
+    await h.flush()
+    expect(h.notices).toEqual([])
+  })
+
+  test("does not notify the current session, including when it becomes current during the delay", async () => {
+    const h = harness()
+    h.notifier.check([sess({ id: "a", activity: "busy" })], "a")
+    h.notifier.check([sess({ id: "a", activity: "idle", title: "A" })], "a")
+    await h.flush()
+    expect(h.notices).toEqual([])
+
+    h.notifier.check([sess({ id: "b", activity: "busy" })])
+    h.notifier.check([sess({ id: "b", activity: "idle", title: "B" })])
+    h.notifier.check([sess({ id: "b", activity: "idle", title: "B" })], "b")
+    await h.flush()
+    expect(h.notices).toEqual([])
+  })
+
+  test("a first sighting is not a transition", async () => {
+    const h = harness()
+    h.notifier.check([sess({ id: "a", activity: "idle", title: "A" })])
+    await h.flush()
+    expect(h.timers).toEqual([])
+    expect(h.notices).toEqual([])
+  })
+
+  test("cancels when the session goes back to busy during the delay", async () => {
+    const h = harness()
+    h.notifier.check([sess({ id: "a", activity: "busy" })])
+    h.notifier.check([sess({ id: "a", activity: "idle", title: "A" })])
+    h.notifier.check([sess({ id: "a", activity: "busy" })])
+    expect(h.timers[0]?.cancelled).toBe(true)
+    await h.flush()
+    expect(h.notices).toEqual([])
+  })
+
+  test("merges several sessions that settle in one pass into one Show toast", async () => {
+    const h = harness()
+    h.choose("Show")
+    h.notifier.check([sess({ id: "a", activity: "busy" }), sess({ id: "b", activity: "retry" })])
+    h.notifier.check([
+      sess({ id: "a", activity: "idle", title: "A" }),
+      sess({ id: "b", activity: "error", title: "B", error: "nope" }),
+    ])
+    await h.flush()
+    expect(h.notices).toEqual([
+      { severity: "warning", message: "2 sessions finished", actions: ["Show"] },
+    ])
+    expect(h.focus).toBe(1)
+  })
+
+  test("a batch that shrinks to one session uses the single-session toast", async () => {
+    const h = harness()
+    h.notifier.check([sess({ id: "a", activity: "busy" }), sess({ id: "b", activity: "busy" })])
+    h.notifier.check([
+      sess({ id: "a", activity: "idle", title: "A" }),
+      sess({ id: "b", activity: "idle", title: "B" }),
+    ])
+    h.notifier.check([
+      sess({ id: "a", activity: "busy" }),
+      sess({ id: "b", activity: "idle", title: "B" }),
+    ])
+    await h.flush()
+    expect(h.notices).toEqual([
+      { severity: "info", message: `"B" finished`, actions: ["Open"], sessionId: "b" },
+    ])
+  })
+
+  test("level off does not notify", async () => {
+    const h = harness("off")
+    h.notifier.check([sess({ id: "a", activity: "busy" })])
+    h.notifier.check([sess({ id: "a", activity: "idle", title: "A" })])
+    await h.flush()
+    expect(h.notices).toEqual([])
+  })
+
+  test("windowNotFocused stays quiet in the foreground", async () => {
+    const quiet = harness("windowNotFocused", true)
+    quiet.notifier.check([sess({ id: "a", activity: "busy" })])
+    quiet.notifier.check([sess({ id: "a", activity: "idle", title: "A" })])
+    await quiet.flush()
+    expect(quiet.notices).toEqual([])
+
+    const loud = harness("windowNotFocused", false)
+    loud.notifier.check([sess({ id: "a", activity: "busy" })])
+    loud.notifier.check([sess({ id: "a", activity: "idle", title: "A" })])
+    await loud.flush()
+    expect(loud.notices).toHaveLength(1)
+  })
+
+  test("dispose cancels a pending toast", async () => {
+    const h = harness()
+    h.notifier.check([sess({ id: "a", activity: "busy" })])
+    h.notifier.check([sess({ id: "a", activity: "idle", title: "A" })])
+    h.notifier.dispose()
+    await h.flush()
+    expect(h.notices).toEqual([])
   })
 })

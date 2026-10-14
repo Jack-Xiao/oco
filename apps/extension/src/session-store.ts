@@ -382,6 +382,15 @@ export class SessionStore {
     return cur
   }
 
+  /** Every loaded session (roots and subagents) with its own server status, not rolled up to the root (host actions such as Stop). */
+  sessionStates(): { id: string; parentID?: string; status: ServerStatus["type"]; directory: string; title: string }[] {
+    const out: { id: string; parentID?: string; status: ServerStatus["type"]; directory: string; title: string }[] = []
+    for (const [id, row] of this.rows) {
+      out.push({ id, parentID: row.session.parentID, status: row.status, directory: row.session.directory, title: row.session.title?.trim() || id })
+    }
+    return out
+  }
+
   /** Root sessions, newest first. `query` matches title or id, case-insensitively. */
   list(query?: string): SessionListItem[] {
     const perm = this.countByRoot(this.permissions)

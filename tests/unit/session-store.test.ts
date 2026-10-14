@@ -1755,3 +1755,15 @@ describe("SessionStore pendingDirectory", () => {
   })
 })
 
+describe("sessionStates (card 2 stop)", () => {
+  test("lists roots and subagents with their own status, not rolled up", () => {
+    const store = new SessionStore(() => true)
+    store.add({ id: "p", title: "Parent", directory: "/w" })
+    store.add({ id: "c", title: "Child", directory: "/w", parentID: "p" })
+    store.applyEvent({ type: "session.status", properties: { sessionID: "c", status: { type: "busy" } } } as any)
+    const states = store.sessionStates()
+    expect(states.find((s) => s.id === "p")?.status).toBe("idle")
+    expect(states.find((s) => s.id === "c")).toEqual({ id: "c", parentID: "p", status: "busy", directory: "/w", title: "Child" })
+    expect(store.list().find((i) => i.id === "p")?.activity).toBe("busy")
+  })
+})

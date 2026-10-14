@@ -2,6 +2,13 @@
 // No vscode dependency. The host passes `now` and the id of the open session.
 import type { ConnectionSummary, SessionActivity, SessionListItem } from "@oco/contracts"
 import type { InboxEntry, InboxGroup, InboxRow } from "./session-store"
+import {
+  formatFailed,
+  formatFinished,
+  shouldNotify,
+  type NotifyLevel,
+  type NotifyResult,
+} from "./notify-policy"
 
 export type { InboxEntry, InboxGroup, InboxRow }
 
@@ -195,7 +202,9 @@ export type PendingNotificationItem = {
 export type NotifierDeps = {
   notify: (count: number) => Promise<"Show" | undefined> | { then: (cb: (choice: "Show" | undefined) => void) => unknown }
   focus: () => void | Promise<void>
-  isEnabled: () => boolean
+  /** Read on each check so a settings change applies without a reload. */
+  level: () => NotifyLevel
+  windowFocused: () => boolean
 }
 
 export class PendingNotifier {
@@ -224,7 +233,7 @@ export class PendingNotifier {
     }
 
     if (!hasNewNonCurrent) return false
-    if (!this.deps.isEnabled()) return false
+    if (!shouldNotify(this.deps.level(), this.deps.windowFocused())) return false
     if (this.notifying) return false
 
     this.notifying = true
@@ -245,6 +254,191 @@ export class PendingNotifier {
   reset() {
     this.seenIds.clear()
     this.notifying = false
+  }
+}
+
+export type FinishedSession = {
+  id: string
+  parentID?: string
+  activity: SessionActivity
+  title: string
+  result?: NotifyResult
+  error?: string
+}
+
+export type FinishedAction = "Show" | "Open" | "Diff"
+
+export type FinishedNotice = {
+  severity: "info" | "warning"
+  message: string
+  actions: FinishedAction[]
+  /** Set for a single session so Open / Diff know the target. */
+  sessionId?: string
+}
+
+const FINISHED_DELAY_MS = 1500
+
+export type FinishedNotifierDeps = {
+  level: () => NotifyLevel
+  windowFocused: () => boolean
+  notify: (
+    notice: FinishedNotice,
+  ) => Promise<FinishedAction | undefined> | { then: (cb: (choice: FinishedAction | undefined) => void) => unknown }
+  focus: () => void | Promise<void>
+  open: (sessionId: string) => void | Promise<void>
+  diff: (sessionId: string) => void | Promise<void>
+  /** Returns a cancel function. Defaults to `setTimeout` of 1500 ms. */
+  schedule?: (fn: () => void, ms: number) => () => void
+  delayMs?: number
+}
+
+type FinishedBatch = {
+  ids: Map<string, "idle" | "error">
+  cancel: () => void
+}
+
+/**
+ * Notifies when a root session leaves busy/retry for idle or error.
+ * The toast waits so a summary that lands just after idle is included, and is dropped if the
+ * session starts running again. Several roots settling in one pass share one toast.
+ */
+export class FinishedNotifier {
+  private previous = new Map<string, SessionActivity>()
+  private latest = new Map<string, FinishedSession>()
+  private current: string | undefined
+  private batches: FinishedBatch[] = []
+  private disposed = false
+  private readonly schedule: (fn: () => void, ms: number) => () => void
+  private readonly delayMs: number
+
+  constructor(private readonly deps: FinishedNotifierDeps) {
+    this.schedule =
+      deps.schedule ??
+      ((fn, ms) => {
+        const handle = setTimeout(fn, ms)
+        return () => clearTimeout(handle)
+      })
+    this.delayMs = deps.delayMs ?? FINISHED_DELAY_MS
+  }
+
+  check(items: FinishedSession[], currentSessionId?: string): void {
+    this.current = currentSessionId
+    const seen = new Set<string>()
+    const fresh: Array<{ id: string; outcome: "idle" | "error" }> = []
+    for (const item of items) {
+      seen.add(item.id)
+      this.remember(item)
+      const before = this.previous.get(item.id)
+      this.previous.set(item.id, item.activity)
+      if (item.activity === "busy" || item.activity === "retry") this.cancelId(item.id)
+      if (item.parentID) continue
+      if (currentSessionId !== undefined && item.id === currentSessionId) {
+        this.cancelId(item.id)
+        continue
+      }
+      if (before === undefined) continue
+      const wasRunning = before === "busy" || before === "retry"
+      if (wasRunning && (item.activity === "idle" || item.activity === "error")) {
+        fresh.push({ id: item.id, outcome: item.activity })
+      }
+    }
+    const gone: string[] = []
+    for (const id of this.previous.keys()) if (!seen.has(id)) gone.push(id)
+    for (const id of gone) {
+      this.previous.delete(id)
+      this.latest.delete(id)
+      this.cancelId(id)
+    }
+    if (fresh.length > 0) this.arm(fresh)
+  }
+
+  dispose(): void {
+    this.disposed = true
+    for (const batch of this.batches) batch.cancel()
+    this.batches = []
+  }
+
+  private remember(item: FinishedSession): void {
+    const prev = this.latest.get(item.id)
+    if (item.activity === "busy" || item.activity === "retry") {
+      this.latest.set(item.id, { ...item, result: undefined, error: undefined })
+      return
+    }
+    this.latest.set(item.id, {
+      ...item,
+      result: item.result ?? prev?.result,
+      error: item.error ?? prev?.error,
+    })
+  }
+
+  private arm(fresh: Array<{ id: string; outcome: "idle" | "error" }>): void {
+    const ids = new Map(fresh.map((item) => [item.id, item.outcome]))
+    const batch: FinishedBatch = { ids, cancel: () => {} }
+    this.batches.push(batch)
+    batch.cancel = this.schedule(() => {
+      this.batches = this.batches.filter((item) => item !== batch)
+      this.fire(ids)
+    }, this.delayMs)
+  }
+
+  private cancelId(id: string): void {
+    const keep: FinishedBatch[] = []
+    for (const batch of this.batches) {
+      batch.ids.delete(id)
+      if (batch.ids.size === 0) batch.cancel()
+      else keep.push(batch)
+    }
+    this.batches = keep
+  }
+
+  private fire(ids: Map<string, "idle" | "error">): void {
+    if (this.disposed) return
+    if (!shouldNotify(this.deps.level(), this.deps.windowFocused())) return
+    const alive: FinishedSession[] = []
+    const outcomes: Array<"idle" | "error"> = []
+    for (const [id, scheduled] of ids) {
+      if (this.current !== undefined && id === this.current) continue
+      const session = this.latest.get(id)
+      if (!session || session.parentID) continue
+      if (session.activity === "busy" || session.activity === "retry") continue
+      const outcome = session.activity === "idle" || session.activity === "error" ? session.activity : scheduled
+      alive.push(session)
+      outcomes.push(outcome)
+    }
+    if (alive.length === 0) return
+    if (alive.length > 1) {
+      this.emit({
+        severity: outcomes.some((outcome) => outcome === "error") ? "warning" : "info",
+        message: `${alive.length} sessions finished`,
+        actions: ["Show"],
+      })
+      return
+    }
+    const session = alive[0]
+    if (outcomes[0] === "error") {
+      this.emit({
+        severity: "warning",
+        message: formatFailed(session.title, session.error),
+        actions: ["Open"],
+        sessionId: session.id,
+      })
+      return
+    }
+    const fileCount = session.result?.files?.length ?? 0
+    this.emit({
+      severity: "info",
+      message: formatFinished(session.title, session.result),
+      actions: fileCount > 0 ? ["Open", "Diff"] : ["Open"],
+      sessionId: session.id,
+    })
+  }
+
+  private emit(notice: FinishedNotice): void {
+    Promise.resolve(this.deps.notify(notice)).then((choice) => {
+      if (choice === "Show") void this.deps.focus()
+      else if (choice === "Open" && notice.sessionId) void this.deps.open(notice.sessionId)
+      else if (choice === "Diff" && notice.sessionId) void this.deps.diff(notice.sessionId)
+    })
   }
 }
 

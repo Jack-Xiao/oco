@@ -34,9 +34,12 @@ mock.module("vscode", () => ({
         command: undefined as string | undefined,
         backgroundColor: undefined as unknown,
         show() {},
+        hide() {},
         dispose() {},
       }
     },
+    state: { focused: true },
+    showInformationMessage: () => Promise.resolve(undefined),
     showWarningMessage: () => Promise.resolve(undefined),
     showErrorMessage: (msg: string) => {
       showErrorMessageCalls.push(msg)
@@ -53,6 +56,7 @@ mock.module("vscode", () => ({
     isTrusted: true,
     getConfiguration: () => ({
       get: (_key: string, fallback?: unknown) => fallback,
+      inspect: () => undefined,
     }),
   },
   Uri: {
@@ -113,7 +117,8 @@ describe("PendingNotifier throttling and rules", () => {
       focus: () => {
         focusCalled = true
       },
-      isEnabled: () => enabled,
+      level: () => (enabled ? "always" : "off"),
+      windowFocused: () => false,
     })
 
     const items: PendingNotificationItem[] = [
@@ -148,7 +153,8 @@ describe("PendingNotifier throttling and rules", () => {
         return undefined
       },
       focus: () => {},
-      isEnabled: () => true,
+      level: () => "always",
+      windowFocused: () => true,
     })
 
     // Request on current session directly
@@ -166,7 +172,7 @@ describe("PendingNotifier throttling and rules", () => {
     expect(notified).toBe(false)
   })
 
-  test("does not trigger if setting oco.sessions.notifyPending is false", () => {
+  test("does not trigger when the notify level is off", () => {
     let notified = false
     const notifier = new PendingNotifier({
       notify: async () => {
@@ -174,7 +180,8 @@ describe("PendingNotifier throttling and rules", () => {
         return undefined
       },
       focus: () => {},
-      isEnabled: () => false,
+      level: () => "off",
+      windowFocused: () => false,
     })
 
     const items: PendingNotificationItem[] = [
@@ -192,7 +199,8 @@ describe("PendingNotifier throttling and rules", () => {
         return undefined
       },
       focus: () => {},
-      isEnabled: () => true,
+      level: () => "always",
+      windowFocused: () => false,
     })
 
     const items: PendingNotificationItem[] = [
@@ -987,5 +995,80 @@ describe("M14: Pure functions (multi-select, selection bar, todo badge)", () => 
     const r2 = model.recent.find((r) => r.id === "s-2")
     expect(r1?.notes).toBe(3)
     expect(r2?.notes).toBeUndefined()
+  })
+})
+
+describe("waiting badge ignores errors", () => {
+  const connected: ConnectionSummary = {
+    connectionId: "c1",
+    label: "local",
+    directory: "/work",
+    state: "connected",
+    attempt: 0,
+    trusted: true,
+  }
+
+  async function settle(view: { refresh: () => void }) {
+    view.refresh()
+    await new Promise((resolve) => setTimeout(resolve, 180))
+  }
+
+  test("stop-all status item shows the running root count and hides when nothing runs", async () => {
+    const store = new SessionStore(() => true)
+    store.applySnapshot({
+      sessions: [
+        { id: "s-run", title: "Running", directory: "/work", time: { updated: 2 } },
+        { id: "s-sub", title: "Sub", directory: "/work", parentID: "s-idle", time: { updated: 1 } },
+        { id: "s-idle", title: "Idle parent", directory: "/work", time: { updated: 1 } },
+      ],
+      status: { "s-run": { type: "busy" }, "s-sub": { type: "busy" }, "s-idle": { type: "idle" } },
+      permissions: [],
+      questions: [],
+    })
+    const view = new SessionsView(store)
+    view.setConnection(connected)
+    await settle(view)
+    expect(view.debugState().stopText).toBe("$(debug-stop) 2")
+
+    store.applyEvent({ type: "session.status", properties: { sessionID: "s-run", status: { type: "idle" } } })
+    store.applyEvent({ type: "session.status", properties: { sessionID: "s-sub", status: { type: "idle" } } })
+    await settle(view)
+    expect(view.debugState().stopText).toBeNull()
+    view.dispose()
+  })
+
+  test("permission and question count; an error session does not", async () => {
+    const store = new SessionStore(() => true)
+    store.applySnapshot({
+      sessions: [
+        { id: "s-err", title: "Broken", directory: "/work", time: { updated: 2 } },
+        { id: "s-wait", title: "Needs me", directory: "/work", time: { updated: 1 } },
+      ],
+      status: { "s-err": { type: "idle" }, "s-wait": { type: "idle" } },
+      permissions: [{ id: "p1", sessionID: "s-wait", permission: "bash" }],
+      questions: [],
+    })
+    store.applyEvent({
+      type: "session.error",
+      properties: { sessionID: "s-err", error: { data: { message: "boom" } } },
+    })
+    const view = new SessionsView(store)
+    view.setConnection(connected)
+    await settle(view)
+
+    expect(view.debugState().badge).toBe(1)
+    expect(view.debugState().statusText).toBe("$(oco-logo) oco $(bell-dot) 1")
+
+    store.applyEvent({ type: "permission.replied", properties: { requestID: "p1" } })
+    await settle(view)
+    expect(view.debugState().badge).toBe(0)
+    expect(view.debugState().statusText).toBe("$(oco-logo) oco")
+
+    store.applyEvent({ type: "question.asked", properties: { id: "q1", sessionID: "s-wait" } })
+    await settle(view)
+    expect(view.debugState().badge).toBe(1)
+    expect(view.debugState().statusText).toContain("$(bell-dot) 1")
+
+    view.dispose()
   })
 })

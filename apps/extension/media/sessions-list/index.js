@@ -72,6 +72,20 @@ selectionBar.setAttribute("data-selection-bar", "")
 const selectionBarText = el("span", "selection-bar-text")
 const selectionBarActions = el("div", "selection-bar-actions")
 
+const btnStop = document.createElement("button")
+btnStop.type = "button"
+btnStop.className = "selection-btn selection-btn-danger"
+btnStop.dataset.batch = "stop"
+btnStop.textContent = "Stop"
+btnStop.setAttribute("aria-label", "Stop selected sessions")
+btnStop.addEventListener("click", (e) => {
+  e.stopPropagation()
+  if (selectedSessions.size === 0) return
+  const running = getSelectedRunningIds()
+  if (running.length === 0) return
+  post({ type: "stop", ids: running })
+})
+
 const btnArchive = document.createElement("button")
 btnArchive.type = "button"
 btnArchive.className = "selection-btn"
@@ -137,7 +151,7 @@ btnClear.addEventListener("click", (e) => {
   renderList()
 })
 
-selectionBarActions.append(btnArchive, btnDelete, btnUnread, btnPin, btnClear)
+selectionBarActions.append(btnStop, btnArchive, btnDelete, btnUnread, btnPin, btnClear)
 selectionBar.append(selectionBarText, selectionBarActions)
 
 const inboxPool = new Map()
@@ -298,11 +312,44 @@ function layout() {
   else list.removeAttribute("aria-hidden")
 }
 
+function isSessionIdRunning(sessionId) {
+  if (!sessionId || !state) return false
+  const sid = String(sessionId)
+  const check = (arr) => {
+    if (!Array.isArray(arr)) return false
+    return arr.some((r) => r && String(r.id) === sid && r.status === "running")
+  }
+  return check(state.pinned) || check(state.recent) || check(state.more)
+}
+
+function getSelectedRunningIds() {
+  if (selectedSessions.size === 0 || !state) return []
+  const runningSet = new Set()
+  const check = (arr) => {
+    if (!Array.isArray(arr)) return
+    for (const r of arr) {
+      if (r && r.id != null && r.status === "running") {
+        runningSet.add(String(r.id))
+      }
+    }
+  }
+  check(state.pinned)
+  check(state.recent)
+  check(state.more)
+  const result = []
+  for (const id of selectedSessions) {
+    if (runningSet.has(id)) result.push(id)
+  }
+  return result
+}
+
 function updateSelectionBar() {
   selectionBarText.textContent = getSelectionBarText(selectedSessions.size)
   const allPinned = areAllSelectedPinned()
   btnPin.textContent = allPinned ? "Unpin" : "Pin"
   btnPin.setAttribute("aria-label", allPinned ? "Unpin selected sessions" : "Pin selected sessions")
+  const runningIds = getSelectedRunningIds()
+  btnStop.hidden = runningIds.length === 0
 }
 
 function getVisibleSessionIds() {
@@ -422,12 +469,24 @@ function syncSession(row) {
       post({ type: "pin", id: id, pinned: !isPinned })
     })
 
+    const stopBtn = document.createElement("button")
+    stopBtn.type = "button"
+    stopBtn.className = "stop-btn"
+    stopBtn.dataset.stop = ""
+    stopBtn.innerHTML = '<svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="12" height="12" rx="1.5"/></svg>'
+    stopBtn.setAttribute("aria-label", "Stop session")
+    stopBtn.setAttribute("title", "Stop session")
+    stopBtn.addEventListener("click", (e) => {
+      e.stopPropagation()
+      post({ type: "stop", ids: [id] })
+    })
+
     const time = el("span", "time")
 
     const todoList = el("div", "todo-list")
     todoList.setAttribute("data-todo-list", "")
 
-    node.append(dot, pinMark, title, todoBadge, notesBadge, pinBtn, time, todoList)
+    node.append(dot, pinMark, title, todoBadge, notesBadge, pinBtn, stopBtn, time, todoList)
     pool.set(id, node)
   }
   updateSessionRow(node, row)
@@ -442,6 +501,7 @@ function updateSessionRow(node, row) {
   const tip = row.tooltip == null ? "" : String(row.tooltip)
   const aria = row.aria == null ? "" : String(row.aria)
   const status = STAT.has(row.status) ? row.status : ""
+  const isRunning = status === "running"
   const isPinned = Boolean(row.pinned)
   const isSelected = selectedSessions.has(id)
   const isCurrent = !!(state && state.current != null && String(state.current) === id)
@@ -462,6 +522,7 @@ function updateSessionRow(node, row) {
     webviewSection: "session",
     sessionId: id,
     pinned: isPinned,
+    ...(isRunning ? { running: true } : {}),
     selection: isSelected ? Array.from(selectedSessions) : [id],
     preventDefaultContextMenuItems: true,
   })
@@ -475,8 +536,9 @@ function updateSessionRow(node, row) {
   const todoBadge = node.children[3]
   const notesBadge = node.children[4]
   const pinBtn = node.children[5]
-  const timeEl = node.children[6]
-  const todoList = node.children[7]
+  const stopBtn = node.children[6]
+  const timeEl = node.children[7]
+  const todoList = node.children[8]
 
   if (titleEl.textContent !== title) titleEl.textContent = title
   if (timeEl.textContent !== time) timeEl.textContent = time
@@ -492,6 +554,11 @@ function updateSessionRow(node, row) {
   const pinLabel = isPinned ? "Unpin session" : "Pin session"
   if (pinBtn.getAttribute("aria-label") !== pinLabel) pinBtn.setAttribute("aria-label", pinLabel)
   if (pinBtn.getAttribute("title") !== pinLabel) pinBtn.setAttribute("title", pinLabel)
+
+  stopBtn.hidden = !isRunning
+  const stopLabel = "Stop session"
+  if (stopBtn.getAttribute("aria-label") !== stopLabel) stopBtn.setAttribute("aria-label", stopLabel)
+  if (stopBtn.getAttribute("title") !== stopLabel) stopBtn.setAttribute("title", stopLabel)
 
   if (row.todo && typeof row.todo.total === "number" && row.todo.total > 0) {
     todoBadge.hidden = false
@@ -813,9 +880,11 @@ function createInboxRow(row) {
   if (row.parentId) node.dataset.parentId = String(row.parentId)
   node.tabIndex = -1
   node.setAttribute("role", "option")
+  const isRunning = row.status === "running" || isSessionIdRunning(row.sessionId)
   node.setAttribute("data-vscode-context", JSON.stringify({
     webviewSection: "session",
     sessionId: String(row.sessionId),
+    ...(isRunning ? { running: true } : {}),
     preventDefaultContextMenuItems: true,
   }))
 
@@ -855,6 +924,17 @@ function updateInboxRow(node, row) {
   const selected = !!(state && state.current != null && String(state.current) === sessionId)
   if ((node.getAttribute("aria-selected") === "true") !== selected) node.setAttribute("aria-selected", selected ? "true" : "false")
   if (node.classList.contains("current") !== selected) node.classList.toggle("current", selected)
+
+  const isRunning = row.status === "running" || isSessionIdRunning(sessionId)
+  const ctx = JSON.stringify({
+    webviewSection: "session",
+    sessionId: sessionId,
+    ...(isRunning ? { running: true } : {}),
+    preventDefaultContextMenuItems: true,
+  })
+  if (node.getAttribute("data-vscode-context") !== ctx) {
+    node.setAttribute("data-vscode-context", ctx)
+  }
 
   const top = node.children[0]
   const bottom = node.children[1]
