@@ -1,3 +1,27 @@
+diff --git a/packages/app/src/components/session/session-child-pills.tsx b/packages/app/src/components/session/session-child-pills.tsx
+index 6be2c33..52806ff 100644
+--- a/packages/app/src/components/session/session-child-pills.tsx
++++ b/packages/app/src/components/session/session-child-pills.tsx
+@@ -59,7 +59,7 @@ function subtree(root: string, byParent: Map<string, string[]>) {
+ }
+ 
+ /** Direct children of `sessionID`, oldest first. Status matches the host subagent badge:
+- * running (self or descendant busy/retry) > waiting (pending permission or question in the subtree) > error (self) > done.
++ * waiting (pending permission or question in the subtree; such a session is busy server-side) > running (self or descendant busy/retry) > error (self) > done.
+  */
+ export function directChildPills(input: {
+   sessionID: string
+@@ -82,8 +82,8 @@ export function directChildPills(input: {
+   return children.map((session) => {
+     const ids = subtree(session.id, byParent)
+     let status: ChildPillStatus = "done"
+-    if (ids.some((id) => input.running(id))) status = "running"
+-    else if (ids.some((id) => input.waiting(id))) status = "waiting"
++    if (ids.some((id) => input.waiting(id))) status = "waiting"
++    else if (ids.some((id) => input.running(id))) status = "running"
+     else if (input.errored(session.id)) status = "error"
+     return { id: session.id, title: pillTitle(session), status }
+   })
 diff --git a/packages/app/src/components/session/session-runtime-i18n.test.ts b/packages/app/src/components/session/session-runtime-i18n.test.ts
 index c20dbd6..f7b4feb 100644
 --- a/packages/app/src/components/session/session-runtime-i18n.test.ts
