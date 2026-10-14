@@ -1,0 +1,78 @@
+{
+  "runId": "20261014-193356-c20-inbox-nav-75c9",
+  "suite": "c20-inbox-nav",
+  "startedAt": "2026-10-14T19:33:56.120Z",
+  "ocoCommit": "8d2d9dbd0124a17b3ef94dc7fd8f1633e05eae17",
+  "ocoDirty": false,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "05a929fb915c4fe5b641720c8b4482d69439f23f12514574e3b610cf2e79d847",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "vscodeVersion": "1.109.5",
+  "vscodeProfile": "c20-inbox-nav",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-14T19:34:05.506Z",
+  "results": [
+    {
+      "id": "inbox-quickpick-opens",
+      "status": "PASS",
+      "detail": {
+        "opened": true,
+        "title": "OpenCode Inbox",
+        "alreadyShown": false
+      },
+      "at": "2026-10-14T19:34:01.342Z"
+    },
+    {
+      "id": "inbox-enter-opens-session",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec417b986ffe0PNcmIK1MDVeFL",
+        "focusedBeforeEnter": true
+      },
+      "at": "2026-10-14T19:34:01.817Z"
+    },
+    {
+      "id": "sidebar-jk",
+      "status": "PASS",
+      "detail": {
+        "i0": 1,
+        "i1": 2,
+        "i2": 3,
+        "i3": 2,
+        "act": "DIV.row|session|true"
+      },
+      "at": "2026-10-14T19:34:04.349Z"
+    },
+    {
+      "id": "sidebar-enter-opens",
+      "status": "PASS",
+      "detail": {
+        "focusedOk": true,
+        "sessionId": "ses_ec417b436ffeuUBVJxKYQwm3FW"
+      },
+      "at": "2026-10-14T19:34:04.400Z"
+    },
+    {
+      "id": "sidebar-help",
+      "status": "PASS",
+      "detail": {
+        "focusedHelp": "row",
+        "helpVisible": true,
+        "text": "Keyboard Shortcuts\n✕\nj / ↓\nNext item\nk / ↑\nPrevious item\nEnter\nOpen item\nEsc\nClear selection / close\n?\nToggle this cheat sheet"
+      },
+      "at": "2026-10-14T19:34:05.177Z"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

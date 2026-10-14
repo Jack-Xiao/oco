@@ -188,6 +188,31 @@ describe("follow-mode", () => {
     expect(opened).toEqual(["/workspace/a.ts", "/workspace/b.ts", "/workspace/a.ts"])
   })
 
+  test("a failed open (file not on disk yet) does not throttle the retry", async () => {
+    const opened: string[] = []
+    let fail = true
+    const panels = {
+      active: { binding: { sessionId: "ses_1", directory: "/workspace" }, panel: { viewColumn: 1 } },
+      onDidChangeActiveSession: () => ({ dispose: () => {} }),
+    } as any
+    const manager = new FollowModeManager({
+      panels,
+      now: () => 10000,
+      showTextDocument: async (uri) => {
+        if (fail) throw new Error("Unable to read file")
+        opened.push(uri.fsPath)
+      },
+      getActiveTextEditor: () => undefined,
+    })
+    manager.toggle("ses_1")
+    const ev = { type: "message.part.updated", properties: { part: { type: "tool", tool: "write", sessionID: "ses_1", state: { input: { filePath: "n.txt" } } } } }
+    await manager.onEvent(ev as any)
+    expect(opened).toEqual([])
+    fail = false
+    await manager.onEvent(ev as any)
+    expect(opened).toEqual(["/workspace/n.txt"])
+  })
+
   test("skips switching when active editor has unsaved changes or recent user edit", async () => {
     const opened: string[] = []
     let currentTime = 10000

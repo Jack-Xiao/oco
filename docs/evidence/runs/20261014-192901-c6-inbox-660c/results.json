@@ -1,0 +1,107 @@
+{
+  "runId": "20261014-192901-c6-inbox-660c",
+  "suite": "c6-inbox",
+  "startedAt": "2026-10-14T19:29:01.375Z",
+  "ocoCommit": "8d2d9dbd0124a17b3ef94dc7fd8f1633e05eae17",
+  "ocoDirty": false,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "17259ffc62c3d6667324fb83655d248a1acb558c0c47003c2a88521c660c95bd",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "vscodeVersion": "1.109.5",
+  "vscodeProfile": "c6-inbox",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-14T19:29:08.899Z",
+  "results": [
+    {
+      "id": "subagents-waiting",
+      "status": "PASS",
+      "detail": {
+        "pendingCount": 3,
+        "sessionIDs": [
+          "ses_ec41c38d6fferXCjoHym5E7FOY",
+          "ses_ec41c38ceffeGgLUhxe3NQPqNN",
+          "ses_ec41c38c8ffexdriCw1H7Qxi8l"
+        ],
+        "parentId": "ses_ec41c3ae6ffe40FPhOn5JApPen"
+      },
+      "at": "2026-10-14T19:29:06.339Z"
+    },
+    {
+      "id": "inbox-rendered",
+      "status": "PASS",
+      "detail": {
+        "rowCount": 3,
+        "allHaveParent": true,
+        "noPanelsOpen": true,
+        "parentTitle": "c6-parent-3mals",
+        "rows": [
+          {
+            "index": 0,
+            "inboxId": "per_13be3c803001dGKL4zTOW2lBn6",
+            "sessionId": "ses_ec41c38d6fferXCjoHym5E7FOY",
+            "rowParentId": "ses_ec41c3ae6ffe40FPhOn5JApPen",
+            "hasParent": true,
+            "headText": "c6-parent-3mals 3",
+            "textHead": "child-alpha @explore now echo perm-sub-1 Allow Always Deny D"
+          },
+          {
+            "index": 1,
+            "inboxId": "per_13be3c8120015wGgWBbJ2hk0Vp",
+            "sessionId": "ses_ec41c38ceffeGgLUhxe3NQPqNN",
+            "rowParentId": "ses_ec41c3ae6ffe40FPhOn5JApPen",
+            "hasParent": true,
+            "headText": "c6-parent-3mals 3",
+            "textHead": "child-beta @general now echo perm-sub-2 Allow Always Deny De"
+          },
+          {
+            "index": 2,
+            "inboxId": "per_13be3c828001Lf7UOcwV5vgENw",
+            "sessionId": "ses_ec41c38c8ffexdriCw1H7Qxi8l",
+            "rowParentId": "ses_ec41c3ae6ffe40FPhOn5JApPen",
+            "hasParent": true,
+            "headText": "c6-parent-3mals 3",
+            "textHead": "child-gamma @explore now echo perm-sub-3 Allow Always Deny D"
+          }
+        ]
+      },
+      "at": "2026-10-14T19:29:06.917Z"
+    },
+    {
+      "id": "inbox-batch-approved",
+      "status": "PASS",
+      "detail": {
+        "approvedCount": 3
+      },
+      "at": "2026-10-14T19:29:08.334Z"
+    },
+    {
+      "id": "inbox-cleared",
+      "status": "PASS",
+      "detail": {
+        "permEmpty": true,
+        "inboxCleared": true
+      },
+      "at": "2026-10-14T19:29:08.416Z"
+    },
+    {
+      "id": "bell-count-zero",
+      "status": "PASS",
+      "detail": {
+        "bellZero": true
+      },
+      "at": "2026-10-14T19:29:08.582Z"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

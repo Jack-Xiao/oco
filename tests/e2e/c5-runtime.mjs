@@ -79,6 +79,16 @@ const { app, page } = await launch({
   env: LOCALE ? { OCO_DEV_LOCALE: LOCALE } : {},
 })
 
+// A short window (laptop / mini display) gives the runtime stage < 560 px and the narrow layout then folds the tool dock; use a tall one.
+await app.evaluate(({ BrowserWindow }) => { const w = BrowserWindow.getAllWindows()[0]; w?.setBounds({ x: 0, y: 0, width: 1500, height: 1200 }); w?.webContents.setZoomFactor(Number(process.env.OCO_E2E_ZOOM ?? 0.75)) }).catch(() => {})
+await sleep(800)
+if (process.env.OCO_E2E_CONSOLE) {
+  const hook = (pg) => pg.on("console", (m) => { if (m.type() === "error") console.log("[console.error]", m.text().slice(0, 600)) })
+  hook(page)
+  app.on("window", hook)
+  page.on("pageerror", (e) => console.log("[pageerror]", String(e).slice(0, 600)))
+}
+
 // Copy the checks assert on (plan "i18n 键": ring.status.*, ring.tools.row.rejected, ring.bar.*, ring.legend.*, ring.fold.*).
 const COPY = {
   en: {
@@ -149,7 +159,10 @@ async function send(f, text) {
   const users = async () => ((await messages(A)) ?? []).filter((m) => m.info.role === "user").length
   const before = await users()
   const input = f.locator('[data-component="prompt-input"]')
-  await input.waitFor({ state: "visible", timeout: 15000 })
+  await input.waitFor({ state: "visible", timeout: 15000 }).catch(async (e) => {
+    const dbg = await f.evaluate(() => ({ ds: { ...document.documentElement.dataset }, n: document.querySelectorAll('[data-component="prompt-input"]').length, vis: document.visibilityState, txt: document.body.innerText.slice(0, 200), rect: (() => { const r = document.querySelector('[data-component="prompt-input"]')?.getBoundingClientRect(); return r ? [r.width, r.height] : null })(), w: innerWidth, h: innerHeight })).catch(() => null)
+    throw new Error(String(e.message).split("\n")[0] + " " + JSON.stringify(dbg))
+  })
   await input.scrollIntoViewIfNeeded().catch(() => {})
   await input.click()
   await input.focus()
@@ -771,7 +784,8 @@ try {
     if (!questionPendingSeen) await waitIdle(A)
   }
   const qCardAsk = await until(async () => (await cardKindOf()) === "ask", 10000, 100)
-  const qCardBody = await textOf("[data-oco-runtime-card-body]")
+  // Patch 0025 (P1-2): the ask card itself carries the question text and the option buttons (answer in the ring; see c24).
+  const qCardBody = await textOf("[data-oco-runtime-card]")
   const qYouState = await youStateOf()
   const qOpts = await fA.evaluate(() =>
     [...document.querySelectorAll("[data-oco-runtime-you-option]")].map((e) => ({
@@ -864,7 +878,8 @@ try {
   run.record(
     "same-command",
     samePermissions && sameRowsReady && JSON.stringify(sameValues) === JSON.stringify(["1/3", "2/3", "3/3"]) && sameTools.length === 3 && sameTools.every((p) => p.state?.status === "completed") ? "PASS" : "FAIL",
-    { samePermissions, sameRowsReady, sameValues, statuses: sameTools.map((p) => p.state?.status) },
+    { samePermissions, sameRowsReady, sameValues, statuses: sameTools.map((p) => p.state?.status),
+      dbg: await fA.evaluate(() => ({ rows: document.querySelectorAll("[data-oco-runtime-tool-row]").length, layout: document.querySelector("[data-oco-runtime-layout]")?.getAttribute("data-oco-runtime-layout"), toolsK: document.querySelector("[data-oco-runtime-tools-k]")?.getAttribute("data-oco-runtime-tools-k"), stage: (() => { const r = document.querySelector("[data-oco-runtime-stage]")?.getBoundingClientRect(); return r ? [r.width, r.height] : null })(), toolsTxt: document.querySelector("[data-oco-runtime-tools]")?.textContent?.slice(0, 120), w: innerWidth, h: innerHeight })).catch(() => null) },
   )
 
   // 18. no-leak: pause inside a bash call (the mid-point of state.time.start/end from REST). The row is not "ok" yet and no

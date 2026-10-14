@@ -1,0 +1,52 @@
+{
+  "runId": "20261014-193418-c22-review-threads-4b48",
+  "suite": "c22-review-threads",
+  "startedAt": "2026-10-14T19:34:18.868Z",
+  "ocoCommit": "8d2d9dbd0124a17b3ef94dc7fd8f1633e05eae17",
+  "ocoDirty": false,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "ddc5aaea47c9cb983b382de22d35776e32012d31ce1652e0486988a9d14ad77f",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "fixtureWorkspace": "/Users/jarvis/Ai-Project/oco-mini/.oco-test/c22/ws-d3ad3",
+  "vscodeVersion": "1.109.5",
+  "vscodeProfile": "c22-review-threads",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-14T19:35:31.069Z",
+  "results": [
+    {
+      "id": "thread-appears",
+      "status": "PASS",
+      "detail": {
+        "base": 0,
+        "count": 1,
+        "badge": true,
+        "addNote": {
+          "placeholder": "Enter note or feedback (optional)",
+          "picked": false
+        }
+      },
+      "at": "2026-10-14T19:35:29.954Z"
+    },
+    {
+      "id": "thread-gone",
+      "status": "PASS",
+      "detail": {
+        "count": 0,
+        "base": 0
+      },
+      "at": "2026-10-14T19:35:30.479Z"
+    }
+  ],
+  "summary": {
+    "PASS": 2,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

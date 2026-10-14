@@ -85,10 +85,22 @@ async function selectLines(from, to) {
   await page.keyboard.press("Shift+End")
   await sleep(200)
 }
+/** Select, then add the note; the selection sometimes is not registered yet ("Select some code first"): retry up to 3 times. */
+async function addNoteAt(from, to, comment) {
+  let last
+  for (let i = 0; i < 3; i++) {
+    await selectLines(from, to)
+    try { return await addNote(comment) } catch (e) { last = e; await page.keyboard.press("Escape").catch(() => {}); await sleep(500) }
+  }
+  throw last
+}
 /** Run "oco: Add to Review Notes": answer a session pick if one is shown, then the comment box. */
 async function addNote(comment) {
   await command(page, "oco: Add to Review Notes")
-  await page.waitForFunction(() => { const el = document.querySelector(".quick-input-widget input"); return el && el.offsetParent !== null && !el.value.startsWith(">") }, null, { timeout: 10000 })
+  await page.waitForFunction(() => { const el = document.querySelector(".quick-input-widget input"); return el && el.offsetParent !== null && !el.value.startsWith(">") }, null, { timeout: 10000 }).catch(async (e) => {
+    const dbg = await page.evaluate(() => ({ v: document.querySelector(".quick-input-widget input")?.value, vis: document.querySelector(".quick-input-widget")?.style.display, rows: [...document.querySelectorAll(".quick-input-list .monaco-list-row")].map((r) => r.getAttribute("aria-label")).slice(0, 5), toasts: [...document.querySelectorAll(".notifications-toasts .notification-list-item")].map((n) => n.innerText.slice(0, 200)) })).catch(() => null)
+    throw new Error("addNote: palette did not turn into the note input " + JSON.stringify(dbg))
+  })
   const placeholder = await page.locator(".quick-input-widget input").getAttribute("placeholder")
   const picked = /which session/i.test(placeholder ?? "")
   if (picked) { await page.keyboard.press("Enter"); await sleep(400) }
@@ -109,14 +121,12 @@ try {
 
   const c1 = `first-note-${rand}`
   const c2 = `second-note-${rand}`
-  await selectLines(2, 2)
-  const a1 = await addNote(c1)
+  const a1 = await addNoteAt(2, 2, c1)
   await command(page, "Focus on Sessions View")
   const b1 = await waitBadge(sid, "1 to send")
   run.record("notes-badge-1", b1 ? "PASS" : "FAIL", { badge: (await badgeOf(sid))?.text, addNote: a1 })
 
-  await selectLines(5, 6)
-  const a2 = await addNote(c2)
+  const a2 = await addNoteAt(5, 6, c2)
   await command(page, "Focus on Sessions View")
   const b2 = await waitBadge(sid, "2 to send")
   await runShot(page, run, "2-badge")

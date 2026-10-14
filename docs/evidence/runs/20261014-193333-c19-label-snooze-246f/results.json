@@ -1,0 +1,80 @@
+{
+  "runId": "20261014-193333-c19-label-snooze-246f",
+  "suite": "c19-label-snooze",
+  "startedAt": "2026-10-14T19:33:33.056Z",
+  "ocoCommit": "8d2d9dbd0124a17b3ef94dc7fd8f1633e05eae17",
+  "ocoDirty": false,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "d1dbcd0e1c2451af2eb6fcbea6bd42f2304172bb252239fe9fa051570fd0f3d7",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "vscodeVersion": "1.109.5",
+  "vscodeProfile": "c19-label-snooze",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-14T19:33:55.901Z",
+  "results": [
+    {
+      "id": "label-section",
+      "status": "PASS",
+      "detail": {
+        "secL": "label:urgent",
+        "secO": "sessions",
+        "nSel": 1
+      },
+      "at": "2026-10-14T19:33:39.106Z"
+    },
+    {
+      "id": "snooze-hides",
+      "status": "PASS",
+      "detail": {
+        "hiddenFromMain": true,
+        "inSnoozedSection": true,
+        "secO": "sessions"
+      },
+      "at": "2026-10-14T19:33:39.586Z"
+    },
+    {
+      "id": "unsnooze-restores",
+      "status": "PASS",
+      "detail": {
+        "section": "sessions"
+      },
+      "at": "2026-10-14T19:33:39.892Z"
+    },
+    {
+      "id": "wake-on-message",
+      "status": "PASS",
+      "detail": {
+        "wasSnoozed": true,
+        "sectionAfter": "sessions"
+      },
+      "at": "2026-10-14T19:33:51.677Z"
+    },
+    {
+      "id": "waiting-not-hidden",
+      "status": "PASS",
+      "detail": {
+        "asked": true,
+        "waiting": true,
+        "counted": true,
+        "hoverBtnHidden": true,
+        "section": "sessions",
+        "counterBefore": "$(debug-stop) 1",
+        "counterAfter": "$(debug-stop) 1",
+        "stillWaiting": true
+      },
+      "at": "2026-10-14T19:33:54.987Z"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

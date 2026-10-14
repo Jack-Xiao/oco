@@ -94,7 +94,7 @@ const act = {
 /** platform.recoveryView */
 export function RecoveryView(p: RecoveryViewProps): JSX.Element {
   const kind = classify(p)
-  if (p.error !== undefined) console.error("[oco] recovery view:", kind, p.error)
+  if (p.error !== undefined) console.error("[oco] recovery view:", kind, p.error instanceof Error ? (p.error.stack ?? p.error) : p.error)
   // Shown by the app's startup health gate: once the server answers again the gate drops this view. The app
   // bootstrapped nothing while it was down (models/agents stay unloaded), so start the document afresh.
   // The gate also renders this view for a moment on every healthy start (it leaves "blocking" mode before its
