@@ -1070,5 +1070,5 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 
 - 主线程：契约（命令、设置、清单测试）、`extension.ts` 接线、状态栏 Stop all 项、统一「可停止」判定、评审修复 3 处（父会话空闲时 ■ 无效、等授权会话不可停且计数不一致、Stop 后待处理请求残留）。Gemini：侧栏停止；Grok：通知分级、V2 识别；Claude 子代理（sonnet）：c16 新套件与回归共 3 轮。委派记录见 [card2-stop-notify-v2](evidence/card2-stop-notify-v2-2026-10-14.md)。
 - 验证：unit 385/0；c16 5/0、c6 5/0、c10 6/0（第 3 轮），c11 / c13 / p1b-sidebar / t015 / t014 第 1 轮通过（t014 测试侧修复）。本机已装 `oco-0.0.4-eca230e.vsix`。
-- 分支 `claude/card2-stop-notify-v2`，未合入 main，未推送。
+- 分支 `claude/card2-stop-notify-v2`，用户确认后合入本机 main（18cae65），未推送。卡 4 排期：下一批 M20；M12 暂不做；M20 完成后推送并更新 Mac mini。
 

@@ -2,7 +2,7 @@
 
 本文件是唯一的当前队列。状态只看 [STATUS](STATUS.md)。不要执行 HANDOFF 或 P1B-NEXT-STEPS 里的旧提示词。
 
-当前基线：main `88b56c2`（2026-10-14 合入卡 1、卡 3；本机 main 领先 origin 9 个提交，未推送）；卡 2 在分支 `claude/card2-stop-notify-v2`（eca230e），待用户决定是否合入。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
+当前基线：main `18cae65`（2026-10-14 合入卡 1、卡 3、卡 2；本机 main 领先 origin，未推送。用户定：M20 做完后推送 origin，再把 Mac mini 更新到最新）。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
 
 ## 0. 本轮路线（2026-10-13 用户确认：按建议从前往后做，一个会话做一张卡）
 
@@ -33,7 +33,7 @@
   4. 新增 mock E2E `c13-worktree-inbox`：两个 worktree 会话同时等授权 → 不开面板，在侧栏全部 Allow → `GET /permission` 为空、计数归零。回归 c6-inbox、c12-new-session-draft、p1b-sidebar。
 - 验收：c13 通过；typecheck 0、unit 全过、build PASS；VSIX 已安装。如果复现时已经能收到，只补 c13 和 STATUS，可以在同一会话接着做卡 2。
 
-### 卡 2：侧栏停止 + 通知分级 + V2 识别（各 S）[DONE 2026-10-14，分支 `claude/card2-stop-notify-v2` eca230e，待用户决定是否合入 main；见 STATUS]
+### 卡 2：侧栏停止 + 通知分级 + V2 识别（各 S）[DONE 2026-10-14，合入 main 18cae65，见 STATUS]
 
 - [DONE 2026-10-14：本机 ssh fetch Mac mini 分支后合入 = 88b56c2，c13 / c14 / c15 / c6 / c12 / p1b-sidebar 全过，见 [card2-merge-e2e](evidence/card2-merge-e2e.md)；Mac mini 上两个 worktree 待卡 2 收尾时移除] 开工先合并：确认卡 1、卡 3 两个会话都已结束，只读两份证据文件的结论段；把 `claude/card1-worktree-inbox`、`claude/card3-review-notes` 依次合进 main，冲突以卡 1 的按会话目录逻辑为准；合并后跑 typecheck、unit、build 和两边新增的 E2E。收尾时一并 `git worktree remove` 两个 worktree。
 - B 侧栏一键停止（M10，`roadmap-research-2026-10-10.md:333`）。现在侧栏没有停止入口，`oco.stopManagedServer` 停的是整个托管服务。计划：运行中的行悬停出现 ■，多选栏加 Stop，状态栏「Stop all running」先确认一次；宿主 `POST /session/:id/abort`，发送前核对仍是 busy；停父会话时提示会连带停后台子代理。mock E2E：busy 会话从侧栏 Stop → 回到 idle、转圈消失。
@@ -49,7 +49,7 @@
 - 两项都走草稿投递路径，按顺序做或合成一个实现任务，不要并行改同一批文件。
 - 验收：各一条 mock E2E；typecheck、unit、build；VSIX 已安装。
 
-### 卡 4：和用户一起重新排期
+### 卡 4：和用户一起重新排期 [DONE 2026-10-14：下一批只做 M20 子代理聚合；M12 暂不做；做完 M20 推送 origin 并让 Mac mini 更新到最新]
 
 - 待用户决定：M12 会话内排队（调查已完成，上游是「暂时移除」而非缺陷；若立项，形态为一枚小补丁：embedded 下 followup 默认 queue，加载时置 paused）；是否也连公共版 opencode（npm 最新 1.19.0，未验证）；T018。
 - 候选：M03 键盘直达、M14 第二步 Label + Snooze、M20 子代理聚合、M21 结果卡 Git 动作（先补 ADR-009 §4）、§1 / §2b 的测试与目视欠账。

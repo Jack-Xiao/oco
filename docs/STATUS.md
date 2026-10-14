@@ -2,7 +2,7 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
-## 卡 2：侧栏停止 + 通知分级 + V2 识别（2026-10-14，分支 `claude/card2-stop-notify-v2` eca230e，未合入 main，未推送）
+## 卡 2：侧栏停止 + 通知分级 + V2 识别（2026-10-14，已合入本机 main，合并提交 18cae65，未推送）
 
 - 侧栏一键停止（M10）：会话自身或任一子代理在服务端 busy（含等授权 / 等提问）时，行悬停出现 ■；多选栏 Stop；右键 Stop Session；状态栏 `$(debug-stop) N` → Stop All Running（模态确认一次）。四处共用一套「可停止」判定（`planStop`），状态栏计数与 Stop All 的确认数一致。宿主对每个会话按其自身目录 `POST /session/:id/abort`，发送前按服务端状态再核；停父会话前若有运行中的子代理先确认，再一并停。上游 abort 不清待处理的权限 / 提问，Stop 在 abort 成功后按会话目录 reject 它们，收件箱随之清空。Restricted Mode 下不可用。
 - 通知分级（M01 后半）：`oco.notify.needsMe`（等授权 / 等回答）与 `oco.notify.finished`（跑完 / 报错），各 off / windowNotFocused / always，默认 windowNotFocused。旧 `oco.sessions.notifyPending=false` 在新键未设置时视为两类都 off（只读，不改写设置）。完成通知只发根会话，结算后等 1.5 s 取结果摘要（文件数 · 耗时 · 花费 · 最后一句），同时完成的多个合并成一条；单条带 Open / Diff，报错带 Open。只弹 VS Code 窗口内通知。状态栏与标题徽标仍只数等授权 / 等提问。
