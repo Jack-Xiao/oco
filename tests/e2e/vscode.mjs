@@ -165,7 +165,10 @@ export async function command(page, title, { input } = {}) {
       { timeout: 3000 },
     )
     .catch(() => page.waitForTimeout(500))
-  await page.keyboard.press("Enter")
+  // Newer VS Code lists fuzzy matches alphabetically, so the exact title may not be the focused row: click it.
+  const exact = page.locator(`.quick-input-list .monaco-list-row[aria-label="${title}"]`).first()
+  if (await exact.isVisible().catch(() => false)) await exact.click().catch(() => {})
+  else await page.keyboard.press("Enter")
   if (input !== undefined) await quickInput(page, input)
 }
 

@@ -162,11 +162,16 @@ export class FollowModeManager implements vscode.Disposable {
     }
 
     const uri = vscode.Uri.file(fullPath)
-    if (this.deps.showTextDocument) {
-      await this.deps.showTextDocument(uri, { viewColumn: targetColumn, preview: true, preserveFocus: true })
-    } else {
-      const doc = await vscode.workspace.openTextDocument(uri)
-      await vscode.window.showTextDocument(doc, { viewColumn: targetColumn, preview: true, preserveFocus: true })
+    try {
+      if (this.deps.showTextDocument) {
+        await this.deps.showTextDocument(uri, { viewColumn: targetColumn, preview: true, preserveFocus: true })
+      } else {
+        const doc = await vscode.workspace.openTextDocument(uri)
+        await vscode.window.showTextDocument(doc, { viewColumn: targetColumn, preview: true, preserveFocus: true })
+      }
+    } catch {
+      // A write tool announces its path before the file exists on disk; forget the attempt so the next update of the part retries.
+      this.lastOpenedFile = undefined
     }
   }
 
