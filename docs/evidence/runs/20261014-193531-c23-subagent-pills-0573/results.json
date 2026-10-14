@@ -1,0 +1,59 @@
+{
+  "runId": "20261014-193531-c23-subagent-pills-0573",
+  "suite": "c23-subagent-pills",
+  "startedAt": "2026-10-14T19:35:31.331Z",
+  "ocoCommit": "8d2d9dbd0124a17b3ef94dc7fd8f1633e05eae17",
+  "ocoDirty": false,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "01ee891ea96f8d21dd2ba332ea12881cf6cf34f8c45d50316a54f8d8d8f536c7",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "vscodeVersion": "1.109.5",
+  "vscodeProfile": "c23-subagent-pills",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-14T19:35:41.154Z",
+  "results": [
+    {
+      "id": "pills-visible",
+      "status": "PASS",
+      "detail": {
+        "childId": "ses_ec41634dfffevVaiGzgf4Z2TRp",
+        "info": {
+          "header": true,
+          "bar": true,
+          "mode": "pills",
+          "count": null,
+          "pills": [
+            {
+              "id": "ses_ec41634dfffevVaiGzgf4Z2TRp",
+              "status": "running",
+              "title": "slow sibling"
+            }
+          ]
+        }
+      },
+      "at": "2026-10-14T19:35:40.303Z"
+    },
+    {
+      "id": "pill-open-child",
+      "status": "PASS",
+      "detail": {
+        "childId": "ses_ec41634dfffevVaiGzgf4Z2TRp",
+        "openedBy": "panel",
+        "mode": "pills"
+      },
+      "at": "2026-10-14T19:35:40.758Z"
+    }
+  ],
+  "summary": {
+    "PASS": 2,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

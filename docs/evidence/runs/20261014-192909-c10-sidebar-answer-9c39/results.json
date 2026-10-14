@@ -1,0 +1,110 @@
+{
+  "runId": "20261014-192909-c10-sidebar-answer-9c39",
+  "suite": "c10-sidebar-answer",
+  "startedAt": "2026-10-14T19:29:09.115Z",
+  "ocoCommit": "8d2d9dbd0124a17b3ef94dc7fd8f1633e05eae17",
+  "ocoDirty": false,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "55df8260efee6b4b8484d11892652f8a4e6ad0a37b3f1c25eaf40e1181a0bc7d",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "vscodeVersion": "1.109.5",
+  "vscodeProfile": "c10-sidebar-answer",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-14T19:29:17.523Z",
+  "results": [
+    {
+      "id": "question-row",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec41c1abaffeLanIMHcj4W0n3u",
+        "rowVisible": true,
+        "hasAnswerBtn": true,
+        "formOpen": true,
+        "options": [
+          "red",
+          "blue"
+        ],
+        "sent": true,
+        "rowGone": true,
+        "noPanels": true
+      },
+      "at": "2026-10-14T19:29:14.713Z"
+    },
+    {
+      "id": "form-open",
+      "status": "PASS",
+      "detail": {
+        "options": [
+          "red",
+          "blue"
+        ]
+      },
+      "at": "2026-10-14T19:29:14.713Z"
+    },
+    {
+      "id": "answer-sent",
+      "status": "PASS",
+      "detail": {
+        "sent": true
+      },
+      "at": "2026-10-14T19:29:14.713Z"
+    },
+    {
+      "id": "inbox-cleared",
+      "status": "PASS",
+      "detail": {
+        "rowGone": true,
+        "bellZero": true,
+        "noPanelsAfter": true
+      },
+      "at": "2026-10-14T19:29:14.887Z"
+    },
+    {
+      "id": "multi-answer",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec41c1576ffeL65cwATsFKspM8",
+        "rowVisible": true,
+        "hasAnswerBtn": true,
+        "formOpen": true,
+        "options": [
+          "red",
+          "blue",
+          "green"
+        ],
+        "sent": true,
+        "rowGone": true
+      },
+      "at": "2026-10-14T19:29:16.061Z"
+    },
+    {
+      "id": "custom-answer",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec41c10e1ffeh7XsRP7T2lXp37",
+        "rowVisible": true,
+        "hasAnswerBtn": true,
+        "formOpen": true,
+        "options": [
+          "red",
+          "blue"
+        ],
+        "sent": true,
+        "rowGone": true
+      },
+      "at": "2026-10-14T19:29:17.212Z"
+    }
+  ],
+  "summary": {
+    "PASS": 6,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}
