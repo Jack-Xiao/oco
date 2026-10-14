@@ -6,6 +6,7 @@ import type { OpenSessionRequest, PanelRole, ReviewIntent, SessionBinding } from
 import { Connection, type SessionInfo } from "./connection"
 import { SessionStore } from "./session-store"
 import { SessionFeed } from "./session-feed"
+import { isLoopbackHost, sameDirectory } from "./endpoint"
 import { SessionsView } from "./sessions-view"
 import { SessionsWebview, SESSIONS_VIEW } from "./sessions-webview"
 import { BlobStore } from "./bridge-host"
@@ -56,6 +57,8 @@ export function activate(context: vscode.ExtensionContext) {
     endpoint: () => conn.endpoint(),
     auth: () => conn.auth(),
     directory: () => conn.directory,
+    roots: () => conn.roots(),
+    sameDirectory: (a, b) => sameDirectory(a, b, isLoopbackHost(conn.endpoint().host)),
     trusted: () => vscode.workspace.isTrusted,
     store,
     onChange: () => view.refresh(),

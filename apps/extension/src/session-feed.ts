@@ -17,6 +17,8 @@ export type FeedDeps = {
   endpoint: () => { origin: string; connectionId: string }
   auth: () => Promise<Record<string, string>>
   directory: () => string | undefined
+  roots?: () => string[]
+  sameDirectory?: (a: string, b: string) => boolean
   trusted: () => boolean
   store: SessionStore
   onChange: () => void
@@ -43,13 +45,20 @@ function describeFailure(e: unknown) {
   return /^Event stream/.test(m) ? m : `Cannot reach the server (offline or wrong address/port): ${m}`
 }
 
+export type GlobalEvent = {
+  directory?: string
+  project?: unknown
+  workspace?: unknown
+  payload: ServerEvent
+}
+
 /** Incremental text/event-stream parser: returns the JSON `data` payload of each complete event. */
 export class SseParser {
   private buf = ""
   private data: string[] = []
-  push(chunk: string): ServerEvent[] {
+  push(chunk: string): Array<ServerEvent | GlobalEvent> {
     this.buf += chunk
-    const out: ServerEvent[] = []
+    const out: Array<ServerEvent | GlobalEvent> = []
     let nl: number
     while ((nl = this.buf.indexOf("\n")) >= 0) {
       let line = this.buf.slice(0, nl)
@@ -59,7 +68,9 @@ export class SseParser {
         if (this.data.length) {
           try {
             const e = JSON.parse(this.data.join("\n"))
-            if (e && typeof e.type === "string") out.push(e)
+            if (e && (typeof e.type === "string" || (e.payload && typeof e.payload === "object" && typeof e.payload.type === "string"))) {
+              out.push(e)
+            }
           } catch {
             // ignore malformed event
           }
@@ -231,10 +242,43 @@ export class SessionFeed {
     }, delay)
   }
 
+  private isSameDirectory(a: string, b: string): boolean {
+    if (this.d.sameDirectory) return this.d.sameDirectory(a, b)
+    const norm = (p: string) => {
+      let s = p.trim()
+      while (s.length > 1 && (s.endsWith("/") || s.endsWith("\\"))) {
+        s = s.slice(0, -1)
+      }
+      return s
+    }
+    return norm(a) === norm(b)
+  }
+
+  private getRoots(directory: string): string[] {
+    const raw = this.d.roots ? this.d.roots() : [directory]
+    const out: string[] = []
+    const list = [directory, ...(raw ?? [])].filter((r): r is string => typeof r === "string" && r.length > 0)
+    for (const r of list) {
+      if (!out.some((existing) => this.isSameDirectory(existing, r))) {
+        out.push(r)
+      }
+    }
+    return out.length > 0 ? out : [directory]
+  }
+
+  private inRoots(dir: string, roots: string[]): boolean {
+    return roots.some((r) => this.isSameDirectory(r, dir))
+  }
+
   private async run(token: number, abort: AbortController, ep: { origin: string }, directory: string) {
     const headers = { ...(await this.d.auth()), "x-opencode-directory": encodeURIComponent(directory) }
-    const res = await this.d.fetch(ep.origin + "/event", { headers: { ...headers, accept: "text/event-stream" }, signal: abort.signal, redirect: "manual" })
-    if (!res.ok || !res.body) throw new HttpError(res.status, "GET /event")
+    let isGlobal = true
+    let res = await this.d.fetch(ep.origin + "/global/event", { headers: { ...headers, accept: "text/event-stream" }, signal: abort.signal, redirect: "manual" })
+    if (res.status === 404) {
+      isGlobal = false
+      res = await this.d.fetch(ep.origin + "/event", { headers: { ...headers, accept: "text/event-stream" }, signal: abort.signal, redirect: "manual" })
+    }
+    if (!res.ok || !res.body) throw new HttpError(res.status, isGlobal ? "GET /global/event" : "GET /event")
     const buffered: ServerEvent[] = []
     let live = false
     const parser = new SseParser()
@@ -268,6 +312,9 @@ export class SessionFeed {
       return changed
     }
 
+    const rootDirs = this.getRoots(directory)
+    const inRoots = (dir: string) => this.inRoots(dir, rootDirs)
+
     armStall()
     const pump = (async () => {
       for (;;) {
@@ -275,7 +322,22 @@ export class SessionFeed {
         if (token !== this.token || abort.signal.aborted) return
         if (done) throw new Error("Event stream ended")
         armStall()
-        for (const e of parser.push(decoder.decode(value, { stream: true }))) {
+        for (const raw of parser.push(decoder.decode(value, { stream: true }))) {
+          let e: ServerEvent
+          if (isGlobal && raw && typeof raw === "object" && "payload" in raw && raw.payload) {
+            const globalEvent = raw as { directory?: string; payload: ServerEvent }
+            if (typeof globalEvent.directory === "string" && !inRoots(globalEvent.directory)) {
+              continue
+            }
+            if (globalEvent.payload.type === "sync") {
+              continue
+            }
+            e = globalEvent.payload
+          } else if (raw && typeof (raw as any).type === "string") {
+            e = raw as ServerEvent
+          } else {
+            continue
+          }
           if (!live) buffered.push(e)
           else if (handleEvent(e)) this.d.onChange()
         }
@@ -288,24 +350,84 @@ export class SessionFeed {
     // widens the list to the project's worktrees (patches/opencode/0023), which the store keeps only when the
     // workspace owns them (Connection.roots). /session/status lists non-idle sessions only; the server's default
     // page is 100.
-    const q = `directory=${encodeURIComponent(directory)}`
-    const [roots, status, permissions, questions] = await Promise.all([
-      get<ServerSession[]>(`/session?${q}&scope=project&roots=true&limit=${this.rootLimit}`),
-      get<Record<string, ServerStatus>>(`/session/status?${q}`),
-      get<PendingRequest[]>(`/permission?${q}`),
-      get<PendingRequest[]>(`/question?${q}`),
-    ])
+    const sessionRootsPromise = get<ServerSession[]>(
+      `/session?directory=${encodeURIComponent(directory)}&scope=project&roots=true&limit=${this.rootLimit}`,
+    )
+
+    const dirResultsPromises = rootDirs.map(async (d) => {
+      const isWs = this.isSameDirectory(d, directory)
+      const qDir = `directory=${encodeURIComponent(d)}`
+      if (isWs) {
+        const [st, perm, ques] = await Promise.all([
+          get<Record<string, ServerStatus>>(`/session/status?${qDir}`),
+          get<PendingRequest[]>(`/permission?${qDir}`),
+          get<PendingRequest[]>(`/question?${qDir}`),
+        ])
+        return { d, status: st ?? {}, permissions: perm ?? [], questions: ques ?? [] }
+      } else {
+        const [st, perm, ques] = await Promise.all([
+          get<Record<string, ServerStatus>>(`/session/status?${qDir}`).catch(() => ({} as Record<string, ServerStatus>)),
+          get<PendingRequest[]>(`/permission?${qDir}`).catch(() => [] as PendingRequest[]),
+          get<PendingRequest[]>(`/question?${qDir}`).catch(() => [] as PendingRequest[]),
+        ])
+        return { d, status: st ?? {}, permissions: perm ?? [], questions: ques ?? [] }
+      }
+    })
+
+    const [roots, dirResults] = await Promise.all([sessionRootsPromise, Promise.all(dirResultsPromises)])
+
+    const status: Record<string, ServerStatus> = {}
+    const permMap = new Map<string, PendingRequest>()
+    const quesMap = new Map<string, PendingRequest>()
+    const idToDir = new Map<string, string>()
+
+    for (const s of roots ?? []) {
+      if (s?.id && s.directory) idToDir.set(s.id, s.directory)
+    }
+
+    for (const r of dirResults) {
+      if (r.status) {
+        for (const [sid, st] of Object.entries(r.status)) {
+          status[sid] = st
+          if (!idToDir.has(sid)) idToDir.set(sid, r.d)
+        }
+      }
+      if (r.permissions) {
+        for (const p of r.permissions) {
+          if (!permMap.has(p.id)) permMap.set(p.id, p)
+          if (!idToDir.has(p.sessionID)) idToDir.set(p.sessionID, r.d)
+        }
+      }
+      if (r.questions) {
+        for (const q of r.questions) {
+          if (!quesMap.has(q.id)) quesMap.set(q.id, q)
+          if (!idToDir.has(q.sessionID)) idToDir.set(q.sessionID, r.d)
+        }
+      }
+    }
+
+    const permissions = [...permMap.values()]
+    const questions = [...quesMap.values()]
+
     // Child sessions (subagents) that are running or waiting fold into their root: fetch the chain.
     const sessions = new Map((roots ?? []).map((s) => [s.id, s]))
-    let missing = [...Object.keys(status ?? {}), ...(permissions ?? []).map((p) => p.sessionID), ...(questions ?? []).map((p) => p.sessionID)]
+    let missing = [...Object.keys(status), ...permissions.map((p) => p.sessionID), ...questions.map((p) => p.sessionID)]
     for (let depth = 0; depth < 4 && missing.length; depth++) {
       const ids = [...new Set(missing)].filter((id) => !sessions.has(id)).slice(0, 50)
-      const got = await Promise.all(ids.map((id) => get<ServerSession>(`/session/${encodeURIComponent(id)}?${q}`).catch(() => undefined)))
+      const got = await Promise.all(
+        ids.map((id) => {
+          const d = idToDir.get(id) ?? directory
+          return get<ServerSession>(`/session/${encodeURIComponent(id)}?directory=${encodeURIComponent(d)}`).catch(() => undefined)
+        }),
+      )
       missing = []
       for (const s of got) {
         if (!s?.id) continue
         sessions.set(s.id, s)
-        if (s.parentID) missing.push(s.parentID)
+        if (s.parentID) {
+          if (!idToDir.has(s.parentID)) idToDir.set(s.parentID, s.directory || idToDir.get(s.id) || directory)
+          missing.push(s.parentID)
+        }
       }
     }
     if (token !== this.token) return

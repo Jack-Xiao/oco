@@ -1,0 +1,13 @@
+[PASS] draft-page-ui: {"draftPanel":true,"ready":true,"triggerText":"W\nws-x48iq","menuItems":["ws-x48iq"],"otherKnownProjects":4,"leaked":[],"addEntry":false}
+[PASS] draft-worktree-toggle: {"labelText":"New worktree","checked":false,"checkboxes":1,"oldMenuButtons":[],"oldMenuItems":0,"branch":"main","branchVisible":true,"bar":["Build","OCO Mock","W\nws-x48iq"]}
+[PASS] draft-no-session: {"before":0,"afterOpen":0}
+[PASS] draft-close-discards: {"before":0,"afterClose":0,"panels":0}
+[PASS] send-creates-session: {"delta":1,"directory":"workspace"}
+[PASS] send-reply-shown: {"replied":true,"userSaw":true,"assistantHasMarker":true,"frameFound":true}
+[PASS] send-promote-in-place: {"panels":1,"bound":true,"boundDirectory":true,"stillDraft":false,"sameGeneration":true,"switchReloads":0,"markerKept":true}
+[PASS] send-sidebar: {"sessionId":"ses_ec80a7dffffeVLBqLzJsNR2K0f"}
+[PASS] worktree-session: {"directory":"/Users/jarvis/Ai-Project/oco-card1/.oco-test/xdg/data/opencode/worktree/84e7ca16d08f000cdd7573790718193d4bc79ceb/shiny-rocket","underWorktreeRoot":true,"isWorkspace":false,"createdMs":933,"checkedBefore":false,"checkedAfter":true,"barAfterTick":["Build","OCO Mock","W\nws-x48iq"]}
+[PASS] worktree-reply-fast: {"replyMs":2953,"replyStored":true,"replyShown":true}
+[PASS] worktree-in-place: {"panels":1,"bound":true,"boundDirectory":true,"stillDraft":false,"sameGeneration":true,"switchReloads":0,"markerKept":true}
+[PASS] worktree-sidebar: {"sessionId":"ses_ec80a6fbaffek6MxyRCNz8oa6z"}
+[PASS] reload-drops-draft: {"draftPanels":1,"pinned":true,"draftFrame":true,"pinnedUp":true,"postPanels":["pinned"],"draftFramesAfter":0}

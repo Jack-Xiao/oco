@@ -95,7 +95,7 @@ function hdr(init: RequestInit): Record<string, string> {
 type TimerRec = { id: number; ms: number; fn: () => void }
 type Call = { url: string; init: RequestInit }
 
-function harness(opts: { stallMs?: number; directory?: string; noDirectory?: boolean } = {}) {
+function harness(opts: { stallMs?: number; directory?: string; noDirectory?: boolean; roots?: string[]; sameDirectory?: (a: string, b: string) => boolean } = {}) {
   let directory: string | undefined = opts.noDirectory ? undefined : (opts.directory ?? "/work")
   const owned = opts.directory ?? "/work"
   let connectionId = "c1"
@@ -105,7 +105,7 @@ function harness(opts: { stallMs?: number; directory?: string; noDirectory?: boo
   let timerSeq = 1
   let changes = 0
   const states: string[] = []
-  const store = new SessionStore((dir) => dir === owned)
+  const store = new SessionStore((dir) => (opts.roots ? opts.roots.includes(dir) : dir === owned))
   let handle: (url: string, init: RequestInit) => Response | Promise<Response> = () => {
     throw new Error("unexpected fetch")
   }
@@ -122,6 +122,8 @@ function harness(opts: { stallMs?: number; directory?: string; noDirectory?: boo
     },
     auth: async () => ({ authorization: "Basic test" }),
     directory: () => directory,
+    roots: opts.roots ? () => opts.roots! : undefined,
+    sameDirectory: opts.sameDirectory,
     trusted: () => true,
     store,
     onChange: () => {
@@ -1306,6 +1308,185 @@ describe("SessionFeed M02 todo handling", () => {
         await flush()
       }
       expect(maxConcurrent).toBe(4)
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+})
+
+describe("SessionFeed global event stream and multi-root", () => {
+  test("global stream filters by roots: worktree events enter, unrelated dropped, sync dropped, heartbeat without directory arms stall", async () => {
+    const dir = "/work"
+    const wtDir = "/work/wt"
+    const h = harness({ directory: dir, roots: [dir, wtDir], stallMs: 10_000 })
+    const stream = openStream()
+
+    h.handle = (url) => {
+      if (url.includes("/global/event")) return new Response(stream.stream, { status: 200 })
+      if (url.includes("/session/status")) return json({})
+      if (url.includes("/permission?")) return json([])
+      if (url.includes("/question?")) return json([])
+      if (url.includes("/session?")) return json([{ id: "s-root", directory: dir, title: "Root", time: { updated: 1 } }])
+      throw new Error("unexpected: " + url)
+    }
+
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected")
+
+      // 1. Worktree directory event enters
+      stream.push(
+        `data: ${JSON.stringify({
+          directory: wtDir,
+          payload: {
+            id: "e-wt",
+            type: "session.created",
+            properties: { info: { id: "s-wt", directory: wtDir, title: "Worktree Session", time: { updated: 20 } } },
+          },
+        })}\n\n`,
+      )
+      await until(() => h.store.has("s-wt"), h, "wt session created")
+      expect(h.store.has("s-wt")).toBe(true)
+
+      // 2. Unrelated directory event dropped
+      stream.push(
+        `data: ${JSON.stringify({
+          directory: "/unrelated/path",
+          payload: {
+            id: "e-unrelated",
+            type: "session.created",
+            properties: { info: { id: "s-unrelated", directory: "/unrelated/path", title: "Unrelated Session", time: { updated: 30 } } },
+          },
+        })}\n\n`,
+      )
+      await flush()
+      expect(h.store.has("s-unrelated")).toBe(false)
+
+      // 3. payload.type === 'sync' dropped
+      stream.push(
+        `data: ${JSON.stringify({
+          directory: wtDir,
+          payload: {
+            id: "e-sync",
+            type: "sync",
+            properties: {},
+          },
+        })}\n\n`,
+      )
+      await flush()
+
+      // 4. Heartbeat without directory resets stall watchdog without failing
+      const timerBefore = h.timers.find((t) => t.ms === 10_000)
+      expect(timerBefore).toBeDefined()
+      const timerIdBefore = timerBefore!.id
+
+      stream.push(`data: ${JSON.stringify({ payload: { type: "heartbeat" } })}\n\n`)
+      await flush()
+
+      const timerAfter = h.timers.find((t) => t.ms === 10_000)
+      expect(timerAfter).toBeDefined()
+      expect(timerAfter!.id).toBeGreaterThan(timerIdBefore)
+      expect(h.feed.state.state).toBe("connected")
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("falls back to /event when /global/event returns 404", async () => {
+    const dir = "/work"
+    const h = harness({ directory: dir })
+    const stream = openStream()
+
+    h.handle = (url) => {
+      if (url === `${ORIGIN}/global/event`) return new Response("Not Found", { status: 404 })
+      if (url === `${ORIGIN}/event`) return new Response(stream.stream, { status: 200 })
+      if (url.includes("/session/status")) return json({})
+      if (url.includes("/permission?")) return json([])
+      if (url.includes("/question?")) return json([])
+      if (url.includes("/session?")) return json([{ id: "s1", directory: dir, title: "S1", time: { updated: 1 } }])
+      throw new Error("unexpected: " + url)
+    }
+
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "fallback connected")
+      expect(h.calls.some((c) => c.url === `${ORIGIN}/global/event`)).toBe(true)
+      expect(h.calls.some((c) => c.url === `${ORIGIN}/event`)).toBe(true)
+      expect(h.feed.state.state).toBe("connected")
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("snapshot queries permission/question/status for multiple roots and merges; worktree failure does not break connection", async () => {
+    const dir = "/work"
+    const wtDir = "/work/wt"
+    const h = harness({ directory: dir, roots: [dir, wtDir] })
+    const stream = openStream()
+
+    h.handle = (url) => {
+      if (url.includes("/global/event")) return new Response(stream.stream, { status: 200 })
+      // worktree directory fails on status/permission/question
+      if (url.includes(encodeURIComponent(wtDir))) {
+        return new Response("worktree offline", { status: 500 })
+      }
+      if (url.includes("/session/status")) return json({ "s1": { type: "idle" } })
+      if (url.includes("/permission?")) return json([{ id: "perm-ws", sessionID: "s1", permission: "bash" }])
+      if (url.includes("/question?")) return json([{ id: "ques-ws", sessionID: "s1", questions: [{ question: "Allow?" }] }])
+      if (url.includes("/session?")) return json([{ id: "s1", directory: dir, title: "S1", time: { updated: 1 } }])
+      throw new Error("unexpected: " + url)
+    }
+
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected despite wt failure")
+      expect(h.feed.state.state).toBe("connected")
+      expect(h.store.getPending("perm-ws")).toBeDefined()
+      expect(h.store.getPending("ques-ws")).toBeDefined()
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("snapshot merges permissions and status across all roots and uses discovering directory for chain resolution", async () => {
+    const dir = "/work"
+    const wtDir = "/work/wt"
+    const encWs = encodeURIComponent(dir)
+    const encWt = encodeURIComponent(wtDir)
+    const h = harness({ directory: dir, roots: [dir, wtDir] })
+    const stream = openStream()
+
+    h.handle = (url) => {
+      if (url.includes("/global/event")) return new Response(stream.stream, { status: 200 })
+      if (url.includes(`/session/status?directory=${encWt}`)) return json({ "s-wt": { type: "busy" } })
+      if (url.includes(`/session/status?directory=${encWs}`)) return json({ "s-ws": { type: "idle" } })
+      if (url.includes(`/permission?directory=${encWt}`)) return json([{ id: "perm-wt", sessionID: "s-wt", permission: "read" }])
+      if (url.includes(`/permission?directory=${encWs}`)) return json([{ id: "perm-ws", sessionID: "s-ws", permission: "bash" }])
+      if (url.includes(`/question?directory=${encWt}`)) return json([])
+      if (url.includes(`/question?directory=${encWs}`)) return json([])
+      // roots endpoint only called for workspace directory
+      if (url.includes(`/session?directory=${encWs}&scope=project`)) {
+        return json([{ id: "s-ws", directory: dir, title: "WsSession", time: { updated: 1 } }])
+      }
+      // Chain fetch for s-wt must query with discovering directory (?directory=/work/wt)
+      if (url.includes(`/session/s-wt?directory=${encWt}`)) {
+        return json({ id: "s-wt", directory: wtDir, title: "WtSession", time: { updated: 2 } })
+      }
+      throw new Error("unexpected: " + url)
+    }
+
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected with merged roots")
+      expect(h.feed.state.state).toBe("connected")
+      expect(h.store.getPending("perm-ws")).toBeDefined()
+      expect(h.store.getPending("perm-wt")).toBeDefined()
+      expect(h.store.has("s-ws")).toBe(true)
+      expect(h.store.has("s-wt")).toBe(true)
     } finally {
       stream.close()
       h.feed.stop()

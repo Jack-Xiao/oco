@@ -1,0 +1,6 @@
+opencode binary: /tmp/oco-card1-bin/opencode (local)
+listening on http://127.0.0.1:4517 (user: opencode, password: see .oco-test/secret)
+model: mock (scripted, local only)
+mock LLM listening on http://127.0.0.1:4518/v1
+opencode server listening on http://127.0.0.1:4517
+Terminated: 15

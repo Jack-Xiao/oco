@@ -1,0 +1,13 @@
+[PASS] sidebar-list: {"state":"connected","items":4,"recent":4,"more":0,"loadMore":false,"serverRoots":4,"firstMatches":true,"groupsOk":true,"moreRowOk":true,"lastRows":null,"loadedAfterClick":null,"statusText":"$(warning) oco"}
+[PASS] single-view-header: {"containerTitle":"OCO: SESSIONS","connectionHeaders":0,"agentsHeaders":0,"newSession":true,"paneHeaders":["Sessions"]}
+[PASS] sidebar-create: {"sessionId":"ses_ec8081083ffe2bW7CX8ywzbYj2","listedFirst":true,"description":"now","group":"recent","activity":"idle","aria":"Mock: Reply with exactly: PLUS-created, now","serverDirectory":true}
+[PASS] sidebar-rename: {"serverTitle":true,"treeTitle":true,"tabTitle":true}
+[PASS] sidebar-search: {"matches":["ses_ec8080d2cffelAgyx3VIgg2PJ4"],"searchOpened":true,"flat":true,"rowVisible":true,"restoredCount":6,"total":6}
+[PASS] chain-draft: {"draftHead":"math.ts:1-4\n```typescript\nexport function add(a: number, b: number) {\n  return a","sentMessages":0}
+[PASS] chain-permission: {"requestId":"per_137f80d5c0019qF475qC7lNA46","sidebarActivity":"permission","aria":"oco-renamed-rjnqx, Waiting for permission, now","description":"now","waitingDot":"dot waiting","badge":1,"statusBar":"$(warning) oco $(bell-dot) 1","toolStatus":"completed","sidebarIdleAfter":true,"draftWasSent":true}
+[PASS] chain-stop: {"sidebarBusy":true,"error":"MessageAbortedError","sidebarIdleAfter":true,"sidebarActivity":"idle"}
+[PASS] sidebar-status-icons: {"runningClass":"dot running","runningStatus":"running","runningAnimation":"oco-pulse","waitingClass":"dot waiting","waitingStatus":"waiting"}
+[PASS] switch-restore: {"aRestored":true,"aDraftHasOwn":true,"aDraftHasB":false,"bDraftHasOwn":true,"bDraftHasA":false,"panelsA":1,"panelsB":1,"panelConnections":1,"sidebarState":"connected"}
+[PASS] focus-existing-group: {"visibleBefore":2,"panelsBefore":2,"panelsAfterClicks":[2,2],"visibleAfter":2,"activeTabIsA":true}
+[PASS] connection-switch: {"downState":"error","downItems":0,"downStatus":"$(debug-disconnect) oco: Not connected","downMessage":"Cannot connect to the OpenCode server (offline or wrong address). Retrying with backoff.\nCannot reach the server (offline or wrong address/port): fetch failed","upState":"connected","itemsBefore":7,"itemsAfter":7,"duplicates":0,"emptyFlash":false,"loadingSeen":false}
+[PASS] restricted-mode: {"trusted":false,"listed":1,"newSessionActionDisabled":true,"panelsOpenedByClick":0,"statusTooltipMentionsReadOnly":null}

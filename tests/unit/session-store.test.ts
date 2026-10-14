@@ -1723,3 +1723,35 @@ describe("M02: SessionStore todo and lastModel", () => {
   })
 })
 
+describe("SessionStore pendingDirectory", () => {
+  test("returns directory for pending permission and question, walking rootOf when row is absent", () => {
+    const store = new SessionStore((dir) => dir.startsWith("/work"))
+    store.applySnapshot({
+      sessions: [
+        session({ id: "root-1", directory: "/work/main", title: "Root 1" }),
+        session({ id: "child-1", parentID: "root-1", directory: "/work/wt1", title: "Child 1" }),
+      ],
+      status: {},
+      permissions: [
+        { id: "perm-child", sessionID: "child-1", permission: "read" },
+      ],
+      questions: [
+        { id: "ques-root", sessionID: "root-1", questions: [{ question: "Proceed?" }] },
+      ],
+    })
+
+    // Existing rows
+    expect(store.pendingDirectory("perm-child")).toBe("/work/wt1")
+    expect(store.pendingDirectory("ques-root")).toBe("/work/main")
+
+    // Unknown pending id
+    expect(store.pendingDirectory("non-existent")).toBeUndefined()
+
+    // Pending permission for an orphan session with no row
+    store.applyEvent(
+      ev("permission.asked", { id: "perm-orphan", sessionID: "orphan-session" }),
+    )
+    expect(store.pendingDirectory("perm-orphan")).toBeUndefined()
+  })
+})
+
