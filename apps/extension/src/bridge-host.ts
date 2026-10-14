@@ -2,6 +2,7 @@ import * as vscode from "vscode"
 import * as crypto from "node:crypto"
 import type { SessionBinding } from "@oco/contracts"
 import { BridgeCore, type CoreDeps, type Store } from "./bridge-core"
+import { isLoopbackHost } from "./endpoint"
 import { BridgePolicy } from "./bridge-policy"
 import type { Connection, SessionInfo } from "./connection"
 import { KvStore, type StoreContext } from "./host-store"
@@ -111,6 +112,7 @@ export function createBridge(opts: {
     serverLookup(opts.conn, opts.binding.directory),
     () => vscode.workspace.isTrusted,
     () => opts.conn.roots(), // draft panels only: workspace folders + their projects' worktrees
+    () => isLoopbackHost(opts.conn.endpoint().host), // realpath only for a local server's directories
   )
   const core = new BridgeCore({
     post: (m) => void opts.webview.postMessage(m),

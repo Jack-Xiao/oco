@@ -11,6 +11,8 @@ export type FollowModeDeps = {
   showTextDocument?: (uri: vscode.Uri, options: vscode.TextDocumentShowOptions) => Promise<unknown>
   getActiveTextEditor?: () => vscode.TextEditor | undefined
   getSessionDirectory?: (sessionId: string) => string | undefined
+  /** False once the session has no open oco panel; Follow then turns off for it. */
+  isOpen?: (sessionId: string) => boolean
   now?: () => number
 }
 
@@ -38,10 +40,13 @@ export class FollowModeManager implements vscode.Disposable {
     this.subs.push(
       this.statusBarItem,
       this.deps.panels.onDidChangeActiveSession(() => {
+        if (this.deps.isOpen) for (const id of [...this.followedSessions]) if (!this.deps.isOpen(id)) this.followedSessions.delete(id)
         this.updateUi()
       }),
       vscode.workspace.onDidChangeTextDocument((e) => {
-        if (e.contentChanges.length > 0) {
+        // The agent's disk writes reload documents without dirtying them; typing in the active editor does.
+        const active = (this.deps.getActiveTextEditor ?? (() => vscode.window.activeTextEditor))()
+        if (e.contentChanges.length > 0 && e.document.isDirty && active?.document === e.document) {
           this.lastUserEditTime = this.now()
         }
       }),
@@ -106,6 +111,11 @@ export class FollowModeManager implements vscode.Disposable {
 
     const sessionId = (part.sessionID ?? p.sessionID) as string | undefined
     if (!sessionId || !this.followedSessions.has(sessionId)) return
+    if (this.deps.isOpen && !this.deps.isOpen(sessionId)) {
+      this.followedSessions.delete(sessionId)
+      this.updateUi()
+      return
+    }
 
     const toolName = String(part.tool ?? part.name ?? "")
     if (!isEditTool(toolName)) return

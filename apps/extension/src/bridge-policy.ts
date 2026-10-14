@@ -62,7 +62,7 @@ export class BridgePolicy {
     private readonly trusted: () => boolean,
     /** Draft panels: the workspace folders and their projects' worktrees (Connection.roots()). */
     private readonly workspaceDirectories: () => string[] = () => [],
-    private readonly isLoopback: boolean | (() => boolean) = true,
+    private readonly isLoopback: boolean | (() => boolean) = false,
   ) {
     this.binding = { ...binding }
     this.allowed.add(binding.sessionId)

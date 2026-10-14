@@ -1,4 +1,5 @@
 import * as vscode from "vscode"
+import * as fs from "node:fs"
 import * as path from "node:path"
 import type { ReviewNotes, ReviewNote } from "./review-notes"
 import type { Entry } from "./panels"
@@ -72,6 +73,15 @@ export class ReviewThreadsController implements vscode.Disposable {
     this.sync()
   }
 
+  /** Notes keep `asRelativePath(uri, false)` paths: relative to their workspace folder, not to the session directory. */
+  private resolveNotePath(rel: string): string {
+    for (const f of vscode.workspace.workspaceFolders ?? []) {
+      const p = path.join(f.uri.fsPath, rel)
+      if (fs.existsSync(p)) return p
+    }
+    return path.resolve(this.workspaceRoot(), rel)
+  }
+
   private workspaceRoot(): string {
     if (this.deps.getWorkspaceRoot) return this.deps.getWorkspaceRoot() ?? ""
     return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? ""
@@ -102,8 +112,7 @@ export class ReviewThreadsController implements vscode.Disposable {
         continue
       }
 
-      const root = active.directory || this.workspaceRoot()
-      const fullPath = path.isAbsolute(note.path) ? note.path : path.resolve(root, note.path)
+      const fullPath = path.isAbsolute(note.path) ? note.path : this.resolveNotePath(note.path)
       const uri = vscode.Uri.file(fullPath)
       const startLine = Math.max(0, note.startLine - 1)
       const endLine = Math.max(startLine, note.endLine - 1)

@@ -106,6 +106,7 @@ export function activate(context: vscode.ExtensionContext) {
       return vscode.window.showTextDocument(doc, opts)
     },
     getSessionDirectory: (sid) => store.sessionStates().find((s) => s.id === sid)?.directory,
+    isOpen: (sid) => panels.list().some((e) => !e.binding.draft && e.binding.sessionId === sid),
   })
   followMode = followMgr
 

@@ -292,11 +292,9 @@ export class SessionsView implements vscode.Disposable {
     let changed = false
     const itemMap = new Map(items.map((i) => [i.id, i]))
     for (const [id, snoozedAt] of this.snoozed) {
+      // A session missing from this list (search, unloaded page, before the snapshot) keeps its snooze.
       const it = itemMap.get(id)
-      if (!it) {
-        this.snoozed.delete(id)
-        changed = true
-      } else if (it.updated > snoozedAt) {
+      if (it && it.updated > snoozedAt) {
         this.snoozed.delete(id)
         changed = true
       }
