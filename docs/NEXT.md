@@ -63,7 +63,7 @@
 - 用户要求「全部完成、不跑耗时测试、省 token」。范围与委派记录见 [roadmap-batch-2026-10-14](evidence/roadmap-batch-2026-10-14.md)：M06 (1a)(2)、M14 第二步 Label + Snooze、M03 片 1 + 片 2、M19 资源管理器徽标、M08 Follow、M13 第二步评论线程、M20 第二步标题行 pills（补丁 0024）、§2b P1-2 / N2 / N3 / P3-9 / P3-10（补丁 0025）、§3 的 bridge-policy realpath、懒取上限、E2E 助手两处、c4 / c5 真实模式放宽、夜间脚本。
 - 离线（25f3f9a）：typecheck 0；unit 422/0；vendor typecheck 0；build PASS；Grok 只读评审 5 处缺陷已修（snooze 丢失、非 loopback 也 realpath、评论线程路径基准、Follow 关面板后仍跟随、代理写盘被当成用户编辑）；本机已装 `oco-0.0.4-25f3f9a.vsix`。E2E 与真实模型目视全部 NOT RUN。
 
-### 卡 7：夜间验收（用户睡前开新会话粘贴；长测试，主线程只读 summary）
+### 卡 7：夜间验收（2026-10-14 改由 Mac mini 执行：提示词 [docs/mini/card7.md](mini/card7.md)，`scripts/mini/dispatch.sh card7`；下面的会话提示词作废，步骤以 card7.md 为准）
 
 开工提示词：
 
