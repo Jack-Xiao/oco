@@ -2,14 +2,14 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
-## M20 第一步：侧栏子代理聚合（2026-10-14，分支 `claude/m20-subagent-aggregation` 7388bce，未合入 main，未推送）
+## M20 第一步：侧栏子代理聚合（2026-10-14，已合入 main，合并提交 9222aa7，已推送 origin）
 
 - 有子会话（子代理）的父会话行显示徽标：分支图标 + `done/total`；子代理运行中时为 running 样式；有子会话等授权 / 等回答或报错时高亮；悬停说明如 `Subagents: 1 done, 2 running`。点击徽标展开 / 收起直接子会话列表（默认收起，展开状态存在 webview state），点子会话行打开该子会话；点徽标不切换当前会话。每个子项状态按其子树汇总（running > waiting > error > done）。
 - 数据：`SessionStore` 已有的子会话行（实时事件）+ 对可见行懒取 `GET /session/:id/children`（与 todo 同队列、同 epoch、同 401 处理，并发上限 4）；ADR-009 §2 已补一行。侧栏行内元素改按类名取，不再依赖子节点下标。
 - 验证（4634d4b / 7388bce）：typecheck 0；unit 393/0；build PASS；E2E（mock）c17-subagent-aggregate 5/0 连续 3 次（含重启 VS Code 后只靠懒取恢复 "1/1"）；回归 c16 5/0、c11 7/0/1、c6 5/0、p1b-sidebar 13/0。本机已装 `oco-0.0.4-7388bce.vsix`。证据 [m20-subagent-aggregation](evidence/m20-subagent-aggregation-2026-10-14.md)、[m20-e2e](evidence/m20-e2e.md)。
 - 未做 / NOT RUN：第二步（补丁扩 0017 标题行的子代理 pills 与 chord 键位）；attention 样式只有单测；嵌套 ≥2 层只在一层验收；真实模型目视。
 
-## 卡 2：侧栏停止 + 通知分级 + V2 识别（2026-10-14，已合入本机 main，合并提交 18cae65，未推送）
+## 卡 2：侧栏停止 + 通知分级 + V2 识别（2026-10-14，已合入 main，合并提交 18cae65，已推送 origin）
 
 - 侧栏一键停止（M10）：会话自身或任一子代理在服务端 busy（含等授权 / 等提问）时，行悬停出现 ■；多选栏 Stop；右键 Stop Session；状态栏 `$(debug-stop) N` → Stop All Running（模态确认一次）。四处共用一套「可停止」判定（`planStop`），状态栏计数与 Stop All 的确认数一致。宿主对每个会话按其自身目录 `POST /session/:id/abort`，发送前按服务端状态再核；停父会话前若有运行中的子代理先确认，再一并停。上游 abort 不清待处理的权限 / 提问，Stop 在 abort 成功后按会话目录 reject 它们，收件箱随之清空。Restricted Mode 下不可用。
 - 通知分级（M01 后半）：`oco.notify.needsMe`（等授权 / 等回答）与 `oco.notify.finished`（跑完 / 报错），各 off / windowNotFocused / always，默认 windowNotFocused。旧 `oco.sessions.notifyPending=false` 在新键未设置时视为两类都 off（只读，不改写设置）。完成通知只发根会话，结算后等 1.5 s 取结果摘要（文件数 · 耗时 · 花费 · 最后一句），同时完成的多个合并成一条；单条带 Open / Diff，报错带 Open。只弹 VS Code 窗口内通知。状态栏与标题徽标仍只数等授权 / 等提问。
@@ -17,7 +17,7 @@
 - 验证（d61dddf / eca230e）：typecheck 0；unit 385/0；build PASS；E2E（mock）第 3 轮 c16-sidebar-stop 5/0（row-stop、selection-stop、stop-all 模态、cascade-confirm、waiting-stop）、c6 5/0、c10 6/0；第 1 轮回归 c11 7/0/1、c13 6/0、p1b-sidebar 13/0、t015 4/0、t014 6/0（测试侧：401 拦截加 `/global/event`，卡 1 之后 feed 先连它）。本机已装 `oco-0.0.4-eca230e.vsix`。证据 [card2-stop-notify-v2](evidence/card2-stop-notify-v2-2026-10-14.md)、[card2-e2e](evidence/card2-e2e.md)。
 - 已知限制 / NOT RUN：通知在真实窗口前台 / 后台的弹出只有单测（Playwright 不能让窗口失焦）；真实模型下目视 ■ / 通知 / 状态栏 NOT RUN；V2 的 `/api/info` 形状按迁移评估假设，未对真实 V2 服务验证。
 
-## 卡 1 worktree 会话进收件箱 + 卡 3 审阅意见 / Fix with OpenCode（2026-10-13/14 在 Mac mini 完成；2026-10-14 合入本机 main `88b56c2`，未推送）
+## 卡 1 worktree 会话进收件箱 + 卡 3 审阅意见 / Fix with OpenCode（2026-10-13/14 在 Mac mini 完成；2026-10-14 合入 main `88b56c2`，已推送 origin）
 
 - 卡 1：侧栏实时事件改订阅 `/global/event`，按 `Connection.roots()`（工作区 ∪ sandboxes）过滤、丢弃 `sync`，服务端 404 时退回 `/event`；status / permission / question 快照按 root 分别取再合并；侧栏 Allow / Deny / 就地作答发往请求所属会话的目录（`pendingDirectory`）。worktree 会话等授权时进收件箱、计入状态栏，可在侧栏直接批复。ADR-009 §2 补一行数据源。
 - 卡 3：M13 首版：编辑器选区右键「Add to Review Notes」累积文件 / 行号 / 片段 / 意见（宿主内存 + workspaceState），侧栏行显示「N to send」，Send all 合成一条放进草稿，由用户发送（注明前像来自 Git 变更）。M05 第二片：终端最近一条命令输出（shell integration）、Problems / SCM 菜单、「Fix with OpenCode」灯泡，都走草稿投递。顺带修复 `panels.insertDraft` 在 reveal 时把同一条 draft.insert 投递两次（影响所有入草稿来源，`sentDrafts` 去重）。

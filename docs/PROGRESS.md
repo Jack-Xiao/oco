@@ -1076,5 +1076,5 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 
 - 卡 4 排期后的下一批（用户确认只做 M20）。主线程：契约与 ADR-009 §2 一行、评审（选择器与类名核对）、集成提交。Gemini：store / feed / 侧栏实现与单测；Claude 子代理（sonnet）：c17 新套件与回归。委派记录见 [m20-subagent-aggregation](evidence/m20-subagent-aggregation-2026-10-14.md)。
 - 验证：unit 393/0；c17 5/0 连续 3 次；c16 / c11 / c6 / p1b-sidebar 回归通过。本机已装 `oco-0.0.4-7388bce.vsix`。
-- 分支 `claude/m20-subagent-aggregation`，未合入 main，未推送。
+- 用户确认后合入 main（9222aa7），连同卡 1–3 一起推送 origin（用户要求：本批做完即推送，再让 Mac mini 更新到最新）。
 
