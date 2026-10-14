@@ -3,6 +3,7 @@ import type { ConnectionSummary, SessionActivity, SessionListItem } from "@oco/c
 import type { InboxEntry, InboxRow, SessionStore } from "./session-store"
 import { serverInfoLines, versionNote, type ServerInfo } from "./diagnostics"
 import { resolveLevel, type NotifySettingsInspect } from "./notify-policy"
+import { planStop, rootIds } from "./stop-sessions"
 import {
   compactTime,
   groupInbox,
@@ -72,6 +73,8 @@ export type WebRow = {
   tooltip: string
   aria: string
   pinned: boolean
+  /** Card 2 B: the session or a subagent is busy on the server (also while it waits for permission / an answer). Drives ■, the selection-bar Stop and the `running` context key. */
+  stoppable?: boolean
   notes?: number
   todo?: { done: number; total: number; items: Array<{ content: string; status: string }> }
 }
@@ -109,6 +112,8 @@ export class SessionsView implements vscode.Disposable {
   /** Card 2 B: "Stop all running", shown next to the connection item only while a session runs. */
   private readonly stopStatus: vscode.StatusBarItem
   private stopVisible = false
+  /** Root sessions Stop would act on, recomputed per render with the same plan the Stop command uses. */
+  private stoppable = new Set<string>()
   private readonly unread: UnreadTracker
   private readonly pinned = new Set<string>()
   private todoProbe?: (id: string) => void
@@ -269,6 +274,7 @@ export class SessionsView implements vscode.Disposable {
         )
       : inbox
     const groupedInbox = groupInbox(filteredRows)
+    this.stoppable = this.stoppableRoots()
     const pinned = g.connected ? g.pinned.map((i) => this.webRow(i, g.now)) : []
     const recent = g.connected ? g.recent.map((i) => this.webRow(i, g.now)) : []
     const more = g.connected ? g.more.map((i) => this.webRow(i, g.now)) : []
@@ -325,9 +331,17 @@ export class SessionsView implements vscode.Disposable {
       tooltip,
       aria: [i.title, statusText, time].filter(Boolean).join(", "),
       pinned: this.isPinned(i.id),
+      ...(this.stoppable.has(i.id) ? { stoppable: true } : {}),
       ...(notes > 0 ? { notes } : {}),
       todo: i.todo,
     }
+  }
+
+  /** Roots that are busy themselves or through a subagent, by server status (a session waiting for permission is busy too). Empty unless connected and trusted. */
+  private stoppableRoots(): Set<string> {
+    if (this.summary?.state !== "connected" || !vscode.workspace.isTrusted) return new Set()
+    const states = this.store.sessionStates()
+    return new Set(planStop(rootIds(states), states).targets.map((t) => t.id))
   }
 
   setSearch(q: string) {
@@ -459,7 +473,8 @@ export class SessionsView implements vscode.Disposable {
     const extra = serverInfoLines(this.info)
     if (extra.length) st.tooltip = `${typeof st.tooltip === "string" ? st.tooltip : ""}\n${extra.join("\n")}`
     st.show()
-    const running = s?.state === "connected" && vscode.workspace.isTrusted ? roots.filter((i) => i.activity === "busy" || i.activity === "retry").length : 0
+    this.stoppable = this.stoppableRoots()
+    const running = this.stoppable.size
     if (running > 0) {
       this.stopStatus.text = `$(debug-stop) ${running}`
       this.stopStatus.tooltip = `Stop all running sessions (${running})…`

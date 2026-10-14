@@ -317,7 +317,7 @@ function isSessionIdRunning(sessionId) {
   const sid = String(sessionId)
   const check = (arr) => {
     if (!Array.isArray(arr)) return false
-    return arr.some((r) => r && String(r.id) === sid && r.status === "running")
+    return arr.some((r) => r && String(r.id) === sid && r.stoppable === true)
   }
   return check(state.pinned) || check(state.recent) || check(state.more)
 }
@@ -328,7 +328,7 @@ function getSelectedRunningIds() {
   const check = (arr) => {
     if (!Array.isArray(arr)) return
     for (const r of arr) {
-      if (r && r.id != null && r.status === "running") {
+      if (r && r.id != null && r.stoppable === true) {
         runningSet.add(String(r.id))
       }
     }
@@ -501,7 +501,7 @@ function updateSessionRow(node, row) {
   const tip = row.tooltip == null ? "" : String(row.tooltip)
   const aria = row.aria == null ? "" : String(row.aria)
   const status = STAT.has(row.status) ? row.status : ""
-  const isRunning = status === "running"
+  const isRunning = row.stoppable === true
   const isPinned = Boolean(row.pinned)
   const isSelected = selectedSessions.has(id)
   const isCurrent = !!(state && state.current != null && String(state.current) === id)
@@ -880,7 +880,7 @@ function createInboxRow(row) {
   if (row.parentId) node.dataset.parentId = String(row.parentId)
   node.tabIndex = -1
   node.setAttribute("role", "option")
-  const isRunning = row.status === "running" || isSessionIdRunning(row.sessionId)
+  const isRunning = isSessionIdRunning(row.sessionId)
   node.setAttribute("data-vscode-context", JSON.stringify({
     webviewSection: "session",
     sessionId: String(row.sessionId),
@@ -925,7 +925,7 @@ function updateInboxRow(node, row) {
   if ((node.getAttribute("aria-selected") === "true") !== selected) node.setAttribute("aria-selected", selected ? "true" : "false")
   if (node.classList.contains("current") !== selected) node.classList.toggle("current", selected)
 
-  const isRunning = row.status === "running" || isSessionIdRunning(sessionId)
+  const isRunning = isSessionIdRunning(sessionId)
   const ctx = JSON.stringify({
     webviewSection: "session",
     sessionId: sessionId,

@@ -1029,11 +1029,32 @@ describe("waiting badge ignores errors", () => {
     view.setConnection(connected)
     await settle(view)
     expect(view.debugState().stopText).toBe("$(debug-stop) 2")
+    const rows = view.webModel()
+    const stoppable = [...(rows.pinned ?? []), ...(rows.recent ?? []), ...(rows.more ?? [])].filter((r) => r.stoppable).map((r) => r.id).sort()
+    expect(stoppable).toEqual(["s-idle", "s-run"])
 
     store.applyEvent({ type: "session.status", properties: { sessionID: "s-run", status: { type: "idle" } } })
     store.applyEvent({ type: "session.status", properties: { sessionID: "s-sub", status: { type: "idle" } } })
     await settle(view)
     expect(view.debugState().stopText).toBeNull()
+    view.dispose()
+  })
+
+  test("a session waiting for permission is busy on the server: stoppable and counted", async () => {
+    const store = new SessionStore(() => true)
+    store.applySnapshot({
+      sessions: [{ id: "s-wait", title: "Needs me", directory: "/work", time: { updated: 1 } }],
+      status: { "s-wait": { type: "busy" } },
+      permissions: [{ id: "p1", sessionID: "s-wait", permission: "bash" }],
+      questions: [],
+    })
+    const view = new SessionsView(store)
+    view.setConnection(connected)
+    await settle(view)
+    const row = view.webModel().recent?.find((r) => r.id === "s-wait")
+    expect(row?.status).toBe("waiting")
+    expect(row?.stoppable).toBe(true)
+    expect(view.debugState().stopText).toBe("$(debug-stop) 1")
     view.dispose()
   })
 
