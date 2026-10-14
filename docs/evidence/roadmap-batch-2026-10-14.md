@@ -29,6 +29,7 @@
 | b14-review | 只读：本批 diff + 补丁 0024 / 0025 | grok-worker | unknown | run-mv8815fa-opnc9k（9 次工具调用，14 分钟） | 已返回：5 处缺陷，主线程全部修复（25f3f9a） | 本节下方 | — |
 | mini-card7 | tests/e2e c18–c24、测试侧修复、Follow 与 0025 窄布局两处产品修复 | Mac mini 执行机（claude -p sonnet） | unknown | tmux mini-card7（约 4 小时） | 已返回并合入：21 mock 套件全过，p1b-narrow 10/10，c4 / c5 真实模式 BLOCKED（big-pickle 403），18 张目视图 | [mini-card7](mini-card7.md) | — |
 | mini-nested | tests/e2e c25 + mock 孙会话；子代理汇总 waiting 优先于 running | Mac mini 执行机（claude -p sonnet） | unknown | tmux mini-mini-nested | 已返回并合入：c25 3×6/0，c17 5/0、c23 2/0、c5 43/0；注意：pills 文件（属 0024）的修改被放进了 0025，功能等价，下次动 0024 时挪回；误停 oco-card1 遗留的 4518 mock 服务（已通知） | [mini-nested](mini-nested.md) | — |
+| mini-compat | 公共版 opencode 兼容评估 | Mac mini 执行机 | — | tmux mini-mini-compat | 失败：Mac mini `claude -p` 报 Not logged in（`~/.claude/.credentials.json` 无 claudeAiOauth），setup / build 正常 | ~/oco-mini-logs/mini-compat.log | 登录需用户在浏览器完成，代理不能代办；改由本机 claude-subagent/sonnet 接手（local-compat） |
 | b14-integrate | `file-decorations.ts` / `extension.ts` 两处 `as any` 改为 `SessionStore.changedFiles` / `SessionsView.isUnread`；评审修复；打包安装 | 主线程 | — | — | 完成 | a777993、25f3f9a | 集成与评审修复由主线程负责 |
 
 ## 评审修复（25f3f9a）
