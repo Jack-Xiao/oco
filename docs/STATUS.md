@@ -144,4 +144,5 @@
 
 ## 委派路线现状
 
+- 2026-10-14 起 E2E、真实模型、循环复现与长时间测量交 Mac mini 执行机（[MINI](MINI.md)，`scripts/mini/*.sh`；setup 在干净克隆上重放补丁 0001–0025 通过，typecheck 0、unit 422/0；通知走 OpenClaw Telegram main 群）。
 - 遵循 [AGENTS.md](../AGENTS.md)：Gemini（agy）优先，不可用时换 Grok，两路均不可用时由主线程接手并在证据文件中记录账本。

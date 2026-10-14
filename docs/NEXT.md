@@ -81,6 +81,19 @@
 - 卡 6 分支是否合入 main、是否推送（卡 7 通过后）。
 - 立项决策：M21 Git 动作（先补 ADR-009 §4）、M18 导出与分享、M15 Agents 视图、M04 回滚入口、Aider 式注释触发、T018 publisher 与许可证、M13 composer chip（需扩 DraftInsert 契约与补丁 0001）。
 
+### Mac mini 队列（2026-10-14 起；约定见 [MINI](MINI.md)，一次一个，提示词写到 `docs/mini/<任务>.md` 再 dispatch）
+
+- [运行中 2026-10-14 23:26] card7：卡 6 新功能 E2E（c18–c24）+ 13 套件回归 + p1b-narrow 循环 + c4 / c5 真实模式 + 目视截图。
+- mini-real：卡 7 修复合入后，真实模型全量 21 套件；含 c10 / c11 遗留 NOT RUN（模态确认的批量 delete / archive、真实模型压缩目视）。
+- mini-nested：mock 产生孙会话 + 嵌套 ≥2 层 E2E（运行视图、侧栏徽标、标题行 pills）。
+- mini-perf：数千行长会话滚动与数小时常驻内存趋势（先修 `perf.mjs` 按 `.oco-test/vscode/perf` 找进程、遇短路径失配的问题）；`test:bench` 端口 4096 / 3000 冲突。
+- mini-tools-k：轮末工具台 end 后 ≥2 s 采样复核。
+- mini-compat：对 npm 最新公共版 opencode（1.19.x）跑 mock 回归并列出差异，供「是否支持公共版」决策。
+- mini-remote：Mac mini 开远程登录后 VS Code Remote-SSH 连自身，解除 Remote 断网恢复 / Remote 窗口查看轨迹与运行视图的 BLOCKED（需用户确认开启 Remote Login）。
+- 常驻：每次合入 main 后跑一次 `overnight-e2e.sh` 默认回归。
+
+本机保留：卡 8 的决策、卡 7 产品缺陷的修复与合入、上游补丁与 vendor 升级、§3 / §4 的产品小项与 v0.1 项（T009 / T010 / T011 / T014）、推送与发布。
+
 ## 1. 真实模型回归（本批第二步）
 
 - [DONE 一轮] 真实模型全量 E2E：21 套件，首轮 16 套件无 FAIL；修测试后重跑 p1a-chat、p1a-identity 通过。见 [fail-diag](evidence/cleanup-2026-10-10-fail-diag.md)。
