@@ -1833,7 +1833,7 @@ describe("SessionStore subagents aggregation (M20)", () => {
     expect(store.subagents("root").items[0].title).toBe("Child 1 Updated")
   })
 
-  test("subagents rolls up 4 statuses with proper priority: running > waiting > error > done", () => {
+  test("subagents rolls up 4 statuses with proper priority: waiting > running > error > done", () => {
     const store = make()
     store.add(session({ id: "root", title: "Root" }))
     store.setChildren("root", [
@@ -1850,9 +1850,8 @@ describe("SessionStore subagents aggregation (M20)", () => {
     store.applyEvent(ev("session.error", { sessionID: "c-wait", error: { data: { message: "minor fail" } } }))
     store.applyEvent(ev("question.asked", { id: "q1", sessionID: "c-wait" }))
 
-    // c-run has status busy AND an error AND a pending permission (running should take priority over both)
+    // c-run has status busy AND an error (running should take priority over error)
     store.applyEvent(ev("session.error", { sessionID: "c-run", error: { data: { message: "another fail" } } }))
-    store.applyEvent(ev("permission.asked", { id: "p1", sessionID: "c-run" }))
     store.applyEvent(ev("session.status", { sessionID: "c-run", status: { type: "busy" } }))
 
     const sub = store.subagents("root")
@@ -1897,8 +1896,9 @@ describe("SessionStore subagents aggregation (M20)", () => {
     store.applyEvent(ev("session.status", { sessionID: "g1", status: { type: "idle" } }))
     expect(store.subagents("root").items[0].status).toBe("done")
 
-    // Grandchild has pending permission -> makes child waiting
+    // Grandchild has pending permission -> makes child waiting, even while the server still reports it busy
     store.applyEvent(ev("permission.asked", { id: "p-g1", sessionID: "g1" }))
+    store.applyEvent(ev("session.status", { sessionID: "g1", status: { type: "busy" } }))
     expect(store.subagents("root").items[0].status).toBe("waiting")
     expect(store.subagents("root").waiting).toBe(1)
   })

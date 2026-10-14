@@ -403,7 +403,7 @@ export class SessionStore {
 
   /**
    * Direct subagents of a root session with rollup status:
-   * running (self or any descendant busy/retry) > waiting (pending permission/question in subtree) > error (self error) > done (rest).
+   * waiting (pending permission/question in subtree; the server reports such a session as busy, so this must win) > running (self or any descendant busy/retry) > error (self error) > done (rest).
    * Direct subagents are sorted by created time ascending.
    * If there are no subagents, total is 0.
    */
@@ -460,14 +460,15 @@ export class SessionStore {
       if (!childRow) continue
       const subtree = getSubtree(childId)
 
-      // Priority 1: running (self or any descendant busy/retry)
-      const isRunning = subtree.some((id) => {
+      // Priority 1: waiting (pending permission/question in subtree). A session blocked on the user is reported busy by the
+      // server, so waiting has to outrank running or a grandchild's permission request would never surface on the root.
+      const isWaiting = subtree.some((id) => pendingSessionIds.has(id))
+
+      // Priority 2: running (self or any descendant busy/retry)
+      const isRunning = !isWaiting && subtree.some((id) => {
         const r = this.rows.get(id)
         return r?.status === "busy" || r?.status === "retry"
       })
-
-      // Priority 2: waiting (pending permission/question in subtree)
-      const isWaiting = !isRunning && subtree.some((id) => pendingSessionIds.has(id))
 
       // Priority 3: error (self error)
       const isError = !isRunning && !isWaiting && Boolean(childRow.error)

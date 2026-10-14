@@ -62,6 +62,16 @@ function planBase(body) {
   // "Use the read tool on missing file <path>" reads a file that does not exist; the tool reports an error.
   if (tools.has("read") && (m = /use the read tool on missing file (\S+)/i.exec(prompt)))
     return { tool: "read", args: { filePath: abs(m[1]) } }
+  // Nested subagents (>= 2 levels): NESTED-L1-<kind> (root) -> task "nested-child" with NESTED-L2-<kind> -> task "nested-grand" with
+  // NESTED-L3-<kind>. The "nested" agent (written by the c25 suite into the workspace: a subagent with `task: allow`; built-in
+  // subagents deny `task`) is what lets a child dispatch again. The leaf is SLOW (60 numbered sentences, ~9 s), PERM (a bash call that waits for permission) or FAST (one line).
+  if (tools.has("task") && (m = /NESTED-L([12])-(SLOW|PERM|FAST)/.exec(prompt))) {
+    const level = Number(m[1])
+    return { tool: "task", args: { subagent_type: "nested", description: level === 1 ? "nested-child" : "nested-grand", prompt: `NESTED-L${level + 1}-${m[2]}` } }
+  }
+  if (/NESTED-L3-SLOW/.test(prompt)) return { lines: Array.from({ length: 60 }, (_, i) => `${i + 1}. Mock line ${i + 1}.`), lineMs: SENTENCE_MS }
+  if (tools.has("bash") && /NESTED-L3-PERM/.test(prompt)) return { tool: "bash", args: { command: "echo nested-perm", description: "Run the nested command" } }
+  if (/NESTED-L3-/.test(prompt)) return { lines: ["nested-leaf-ok"] }
   if (tools.has("task") && (m = /use the task tool in the background without retrieving with the (\S+) agent:\s*(.+)$/im.exec(prompt)))
     return { tool: "task", args: { subagent_type: m[1], description: m[2].trim(), prompt: "Reply with exactly this line and nothing else: subagent-ok", run_in_background: true } }
   if (tools.has("task") && (m = /use the task tool in the background with the (\S+) agent:\s*(.+)$/im.exec(prompt)))
