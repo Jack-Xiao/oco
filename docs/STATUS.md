@@ -2,13 +2,20 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 卡 1 worktree 会话进收件箱 + 卡 3 审阅意见 / Fix with OpenCode（2026-10-13/14 在 Mac mini 完成；2026-10-14 合入本机 main `88b56c2`，未推送）
+
+- 卡 1：侧栏实时事件改订阅 `/global/event`，按 `Connection.roots()`（工作区 ∪ sandboxes）过滤、丢弃 `sync`，服务端 404 时退回 `/event`；status / permission / question 快照按 root 分别取再合并；侧栏 Allow / Deny / 就地作答发往请求所属会话的目录（`pendingDirectory`）。worktree 会话等授权时进收件箱、计入状态栏，可在侧栏直接批复。ADR-009 §2 补一行数据源。
+- 卡 3：M13 首版：编辑器选区右键「Add to Review Notes」累积文件 / 行号 / 片段 / 意见（宿主内存 + workspaceState），侧栏行显示「N to send」，Send all 合成一条放进草稿，由用户发送（注明前像来自 Git 变更）。M05 第二片：终端最近一条命令输出（shell integration）、Problems / SCM 菜单、「Fix with OpenCode」灯泡，都走草稿投递。顺带修复 `panels.insertDraft` 在 reveal 时把同一条 draft.insert 投递两次（影响所有入草稿来源，`sentDrafts` 去重）。
+- 合并验证（本机，88b56c2）：typecheck 0；unit 322/0；build PASS；补丁链 0001–0023 在干净 vendor HEAD 上重放 23/23；E2E（mock，首跑全过）c13 6/0、c14 6/0、c15 5/0、c6 5/0、c12 13/0、p1b-sidebar 13/0，见 [card2-merge-e2e](evidence/card2-merge-e2e.md)。c15 的 terminal-shell-integ 重跑一次为 NOT RUN（隔离 profile 下 shell integration 时有时无，与卡 3 记录一致）。本机已装 `oco-0.0.4-88b56c2.vsix`。
+- 已知限制 / NOT RUN：真实模型下目视收件箱（含 worktree 会话）、审阅意见、Fix with OpenCode；终端输出正向路径需真实终端目视；Problems 菜单的 marker 参数是 VS Code 内部结构，尽力解析，失败回退为当前文件的 Problems；worktree 会话的提问与 busy 计数只有单测；远程（非 loopback）服务端的目录比较不做 realpath。证据 [card1-worktree-inbox](evidence/card1-worktree-inbox-2026-10-13.md)、[card3-review-notes](evidence/card3-review-notes-2026-10-13.md)、[card3-e2e](evidence/card3-e2e-2026-10-14.md)。
+
 ## 新建会话草稿页 + New worktree 勾选框（2026-10-12，已合入 main 并推送，合并提交 cc1aebe）
 
 - New（侧栏 +、命令、恢复页按钮）不再立即 `POST /session`，改开草稿面板（`SessionBinding.draft`，`sessionId=draft-<uuid>`）：OpenCode 原生新建会话页，项目只列 VS Code 文件夹、无"添加项目"；关掉面板服务端无残留；VS Code 重启不恢复草稿面板。
 - 首条消息才建会话；桥从 `POST /session|/api/session` 响应放行新会话，宿主原地换绑（不重建桥、不重载）。worktree 只有一个"New worktree / 新建 worktree"勾选框（默认不勾 = 当前分支；勾选 = 发送时 `POST /experimental/worktree`），无"选择已有 worktree"（用户决定，参照 Claude Code / Copilot）。worktree 由用户自行删除。
 - 桥策略：草稿面板允许目录集合 = 工作区文件夹 ∪ 其项目 sandboxes ∪ 本面板新建 worktree；query 目录越界 403，v2 body `location.directory` 越界 403。侧栏列表加 `scope=project`，`Connection.roots()` 纳入 sandboxes，worktree 会话与普通会话混排显示；打开文件支持 worktree 路径。补丁 0023（8 文件 +84 -1）。
 - 验证：typecheck 0；vendor tsgo 0；unit 297/0；build PASS；E2E（mock）c12 13/13（`20261012-052504-c12-new-session-draft-d267`），p1b-sidebar、t007-multiroot 通过；旧套件经共享助手 `createAndOpenSession` 迁移后 mock 全量 23/24，p1b-main-panel 偶发失败一次（单独重跑 3×8/8）。真实模型 NOT RUN。
-- 已知限制：同一项目的多个工作区文件夹（同仓库克隆）会互见会话；worktree 会话的实时状态事件是否到达侧栏未验证；VS Code 打开的是仓库子目录时不识别其 worktree；t004 `cancel` mock 下失败未在基线定性。证据 [new-session-draft-eval](evidence/new-session-draft-eval.md)、[new-session-draft-e2e](evidence/new-session-draft-e2e.md)、[worktree-ai-tools-survey](evidence/worktree-ai-tools-survey.md)。
+- 已知限制：同一项目的多个工作区文件夹（同仓库克隆）会互见会话；worktree 会话的实时状态事件已由卡 1 接通（2026-10-14，见顶部）；VS Code 打开的是仓库子目录时不识别其 worktree；t004 `cancel` mock 下失败未在基线定性。证据 [new-session-draft-eval](evidence/new-session-draft-eval.md)、[new-session-draft-e2e](evidence/new-session-draft-e2e.md)、[worktree-ai-tools-survey](evidence/worktree-ai-tools-survey.md)。
 
 ## Roadmap 批次：M11 / M05 首片 / M07 / M02 / M14 Pin / 侧栏多选 / M12 调查（2026-10-11，已提交 main 并推送）
 
@@ -70,8 +77,8 @@
 ## 基线与版本
 
 - 上游基线：vendor OpenCode v1.18.33（提交 `51ef4be`，浅克隆；旧文档里的补丁基线 `deb241e` 已不存在，补丁再生成改用 `scripts/regen-patch.sh` 在临时 worktree 重建基线）。宿主 `VERIFIED_SERVERS` = 1.18.33、1.18.13（企业服务；前端保持 1.18.33，验收对着 1.18.13 服务端跑；切到 1.18.13 前端的方案停放在本地分支 `claude/opencode-1.18.13-baseline`）。
-- 补丁链：`patches/opencode/` 0001–0021 全部干净重放通过（`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡）。
-- 本机扩展：已装 `oco-0.0.4-461ec92.vsix`（main `f79297e` + c7 证据提交，vendor v1.18.33；2026-10-11 从停放的 1.18.13 基线工作区装回；extension.js sha256 `e14010b3…`；位于 `~/.vscode/extensions/oco-local-test.oco-0.0.4`，需 Reload Window）。
+- 补丁链：`patches/opencode/` 0001–0023 在干净 vendor HEAD `51ef4be` 上重放 23/23 通过（2026-10-14；`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡；`0022-oco-markdown-mermaid.patch` 为 Mermaid；`0023-oco-embedded-new-session-draft.patch` 为新建会话草稿页）。卡 1、卡 3 未改补丁。
+- 本机扩展：已装 `oco-0.0.4-88b56c2.vsix`（main `88b56c2` = 卡 1 + 卡 3 合并，vendor v1.18.33；2026-10-14；extension.js sha256 `f6236762…`；位于 `~/.vscode/extensions/oco-local-test.oco-0.0.4`，需 Reload Window）。
 
 ## 已合入 main 的能力
 
