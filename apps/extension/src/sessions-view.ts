@@ -22,6 +22,11 @@ export { PendingNotifier, type NotifierDeps, type PendingNotificationItem }
 
 const UNREAD_KEY = "oco.unreadSessions"
 const PINNED_KEY = "oco.pinnedSessions"
+const LABELS_KEY = "oco.sessionLabels"
+const SNOOZED_KEY = "oco.snoozedSessions"
+
+/** Upper limit on lazy probe requests for recent sessions to avoid network floods (M20 E2E caused 74–92 requests per connect). */
+const MAX_RECENT_PROBE_COUNT = 20
 
 /** Live inspect snapshot. A settings change applies on the next check; nothing is written back. */
 function readNotifySettings(): NotifySettingsInspect {
@@ -73,6 +78,8 @@ export type WebRow = {
   tooltip: string
   aria: string
   pinned: boolean
+  label?: string
+  snoozed?: boolean
   /** Card 2 B: the session or a subagent is busy on the server (also while it waits for permission / an answer). Drives ■, the selection-bar Stop and the `running` context key. */
   stoppable?: boolean
   notes?: number
@@ -99,11 +106,13 @@ export type WebListModel = {
   current?: string
   inbox: InboxEntry[]
   pinned: WebRow[]
+  labeled: Array<{ label: string; rows: WebRow[] }>
   recent: WebRow[]
   more: WebRow[]
   moreForcedOpen: boolean
   loadMore: boolean
   still: boolean
+  snoozed: WebRow[]
 }
 
 /**
@@ -128,6 +137,8 @@ export class SessionsView implements vscode.Disposable {
   private stoppable = new Set<string>()
   private readonly unread: UnreadTracker
   private readonly pinned = new Set<string>()
+  private readonly labels = new Map<string, string>()
+  private readonly snoozed = new Map<string, number>()
   private todoProbe?: (id: string) => void
   private childrenProbe?: (id: string) => void
   private noteCounter?: (sessionId: string) => number
@@ -147,6 +158,14 @@ export class SessionsView implements vscode.Disposable {
     this.unread = new UnreadTracker(memento?.get<string[]>(UNREAD_KEY) ?? [])
     const initialPinned = memento?.get<string[]>(PINNED_KEY) ?? []
     for (const id of initialPinned) this.pinned.add(id)
+    const initialLabels = memento?.get<Record<string, string>>(LABELS_KEY) ?? {}
+    for (const [id, lbl] of Object.entries(initialLabels)) {
+      if (typeof lbl === "string" && lbl.trim()) this.labels.set(id, lbl.trim().slice(0, 32))
+    }
+    const initialSnoozed = memento?.get<Record<string, number>>(SNOOZED_KEY) ?? {}
+    for (const [id, time] of Object.entries(initialSnoozed)) {
+      if (typeof time === "number") this.snoozed.set(id, time)
+    }
     const focusSessions = () => {
       void vscode.commands.executeCommand("oco.sessions.focus")
     }
@@ -226,6 +245,73 @@ export class SessionsView implements vscode.Disposable {
     this.refresh()
   }
 
+  setLabel(ids: string[], rawLabel: string | null): void {
+    const trimmed = rawLabel?.trim()
+    const label = trimmed && trimmed.length > 0 ? trimmed.slice(0, 32) : null
+    for (const id of ids) {
+      if (label) this.labels.set(id, label)
+      else this.labels.delete(id)
+    }
+    const record: Record<string, string> = {}
+    for (const [id, lbl] of this.labels) record[id] = lbl
+    void this.memento?.update(LABELS_KEY, record)
+    this.refresh()
+  }
+
+  getLabel(id: string): string | undefined {
+    return this.labels.get(id)
+  }
+
+  setSnooze(ids: string[], snoozed: boolean): void {
+    const list = this.store.list()
+    const map = new Map(list.map((s) => [s.id, s]))
+    for (const id of ids) {
+      if (snoozed) {
+        const session = map.get(id)
+        this.snoozed.set(id, session?.updated ?? 0)
+      } else {
+        this.snoozed.delete(id)
+      }
+    }
+    this.persistSnoozed()
+    this.refresh()
+  }
+
+  isSnoozed(id: string): boolean {
+    return this.snoozed.has(id)
+  }
+
+  private persistSnoozed(): void {
+    const record: Record<string, number> = {}
+    for (const [id, time] of this.snoozed) record[id] = time
+    void this.memento?.update(SNOOZED_KEY, record)
+  }
+
+  /** Auto-clear snooze when a session's time.updated has advanced. */
+  private checkSnoozeWake(items: SessionListItem[]): void {
+    let changed = false
+    const itemMap = new Map(items.map((i) => [i.id, i]))
+    for (const [id, snoozedAt] of this.snoozed) {
+      const it = itemMap.get(id)
+      if (!it) {
+        this.snoozed.delete(id)
+        changed = true
+      } else if (it.updated > snoozedAt) {
+        this.snoozed.delete(id)
+        changed = true
+      }
+    }
+    if (changed) this.persistSnoozed()
+  }
+
+  private isEffectivelySnoozed(item: SessionListItem): boolean {
+    if (!this.snoozed.has(item.id)) return false
+    if (item.activity === "permission" || item.activity === "question" || item.activity === "busy" || item.activity === "retry") {
+      return false
+    }
+    return true
+  }
+
   setTodoProbe(fn: (id: string) => void): void {
     this.todoProbe = fn
   }
@@ -242,6 +328,10 @@ export class SessionsView implements vscode.Disposable {
   setMoreOpen(open: boolean): void {
     this.moreOpen = open
     this.refresh()
+  }
+
+  isUnread(id: string): boolean {
+    return this.unread.has(id)
   }
 
   /** Drops one unread id. True when it was present; then the memento and the list update. */
@@ -277,7 +367,16 @@ export class SessionsView implements vscode.Disposable {
     const g = this.groups()
     const s = this.summary
     const still = vscode.workspace.getConfiguration("workbench").get("reduceMotion") === "on"
-    const inbox = g.connected ? this.store.inbox(this.current, (id) => this.unread.has(id)) : []
+    const rawInbox = g.connected ? this.store.inbox(this.current, (id) => this.unread.has(id)) : []
+    const inbox = rawInbox.filter((r) => {
+      if (r.kind === "permission" || r.kind === "question") return true
+      if (this.snoozed.has(r.sessionId)) {
+        const sess = this.store.list().find((item) => item.id === r.sessionId)
+        if (sess && !this.isEffectivelySnoozed(sess)) return true
+        return false
+      }
+      return true
+    })
     const q = this.query.trim().toLowerCase()
     const filteredRows = q
       ? inbox.filter(
@@ -293,31 +392,47 @@ export class SessionsView implements vscode.Disposable {
     const groupedInbox = groupInbox(filteredRows)
     this.stoppable = this.stoppableRoots()
     const pinned = g.connected ? g.pinned.map((i) => this.webRow(i, g.now)) : []
+    const labeled = g.connected
+      ? g.labeled.map((grp) => ({
+          label: grp.label,
+          rows: grp.rows.map((i) => this.webRow(i, g.now)),
+        }))
+      : []
     const recent = g.connected ? g.recent.map((i) => this.webRow(i, g.now)) : []
     const more = g.connected ? g.more.map((i) => this.webRow(i, g.now)) : []
-    const moreForcedOpen = !pinned.length && !recent.length
-    if (this.todoProbe && g.connected) {
-      for (const item of g.pinned) this.todoProbe(item.id)
-      for (const item of g.recent) this.todoProbe(item.id)
-      if (moreForcedOpen || this.moreOpen) {
-        for (const item of g.more) this.todoProbe(item.id)
+    const snoozed = g.connected ? g.snoozed.map((i) => this.webRow(i, g.now)) : []
+    const moreForcedOpen = !pinned.length && !labeled.length && !recent.length
+
+    if (g.connected && (this.todoProbe || this.childrenProbe)) {
+      const probeIds = new Set<string>()
+      for (const entry of groupedInbox) {
+        if (entry.kind === "group") {
+          for (const r of entry.rows) probeIds.add(r.sessionId)
+        } else {
+          probeIds.add(entry.sessionId)
+        }
+      }
+      for (const item of g.pinned) probeIds.add(item.id)
+      for (const item of g.recent.slice(0, MAX_RECENT_PROBE_COUNT)) probeIds.add(item.id)
+
+      if (this.todoProbe) {
+        for (const id of probeIds) this.todoProbe(id)
+      }
+      if (this.childrenProbe) {
+        for (const id of probeIds) this.childrenProbe(id)
       }
     }
-    if (this.childrenProbe && g.connected) {
-      for (const item of g.pinned) this.childrenProbe(item.id)
-      for (const item of g.recent) this.childrenProbe(item.id)
-      if (moreForcedOpen || this.moreOpen) {
-        for (const item of g.more) this.childrenProbe(item.id)
-      }
-    }
+
     const base = {
       query: this.query,
       current: this.current,
       // M11: groupedInbox preserves question rows' `questions` for in-place answering in webview
       inbox: groupedInbox,
       pinned,
+      labeled,
       recent,
       more,
+      snoozed,
       moreForcedOpen,
       loadMore: false,
       still,
@@ -325,14 +440,14 @@ export class SessionsView implements vscode.Disposable {
     const msg = listMessage({
       summary: s,
       connected: g.connected,
-      hasRows: groupedInbox.length > 0 || pinned.length > 0 || recent.length > 0 || more.length > 0 || g.loadMore,
+      hasRows: groupedInbox.length > 0 || pinned.length > 0 || labeled.length > 0 || recent.length > 0 || more.length > 0 || snoozed.length > 0 || g.loadMore,
       query: this.query,
       loading: this.store.size === 0 && !this.empty,
       trusted: vscode.workspace.isTrusted,
     })
     if (msg) return { ...base, view: "message", text: msg.text, actions: msg.actions }
     const notice = s?.state === "reconnecting" ? `Connection lost. Reconnecting (attempt ${s.attempt})… The list may be out of date.` : undefined
-    return { ...base, view: "list", notice, pinned, recent, more, moreForcedOpen, loadMore: g.loadMore }
+    return { ...base, view: "list", notice, pinned, labeled, recent, more, snoozed, moreForcedOpen, loadMore: g.loadMore }
   }
 
   private webRow(i: SessionListItem, now: number): WebRow {
@@ -363,6 +478,8 @@ export class SessionsView implements vscode.Disposable {
             })),
           }
         : undefined
+    const label = this.labels.get(i.id)
+    const isSnoozed = this.snoozed.has(i.id)
     return {
       id: i.id,
       title: i.title,
@@ -371,6 +488,8 @@ export class SessionsView implements vscode.Disposable {
       tooltip,
       aria: [i.title, statusText, time].filter(Boolean).join(", "),
       pinned: this.isPinned(i.id),
+      ...(label ? { label } : {}),
+      ...(isSnoozed ? { snoozed: true } : {}),
       ...(this.stoppable.has(i.id) ? { stoppable: true } : {}),
       ...(notes > 0 ? { notes } : {}),
       todo: i.todo,
@@ -412,28 +531,65 @@ export class SessionsView implements vscode.Disposable {
     // Not connected and nothing cached -> webModel() shows the state message instead of rows.
     const connected = !(s === "unconfigured" || (s !== "connected" && s !== "reconnecting" && this.store.size === 0))
     const items = this.items()
+    this.checkSnoozeWake(items)
     if (this.query) {
       return {
         pinned: [] as SessionListItem[],
+        labeled: [] as Array<{ label: string; rows: SessionListItem[] }>,
         recent: items,
         more: [] as SessionListItem[],
+        snoozed: [] as SessionListItem[],
         now,
         connected,
         loadMore: false,
       }
     }
-    const pinned: SessionListItem[] = []
-    const nonPinned: SessionListItem[] = []
+    const snoozed: SessionListItem[] = []
+    const active: SessionListItem[] = []
     for (const item of items) {
+      if (this.isEffectivelySnoozed(item)) snoozed.push(item)
+      else active.push(item)
+    }
+
+    const pinned: SessionListItem[] = []
+    const unpinned: SessionListItem[] = []
+    for (const item of active) {
       if (this.isPinned(item.id)) pinned.push(item)
-      else nonPinned.push(item)
+      else unpinned.push(item)
     }
     pinned.sort((a, b) => b.updated - a.updated || a.id.localeCompare(b.id))
-    const split = splitSessions(nonPinned, now, (id) => this.unread.has(id))
+
+    const labeledMap = new Map<string, SessionListItem[]>()
+    const unlabeled: SessionListItem[] = []
+    for (const item of unpinned) {
+      const lbl = this.labels.get(item.id)
+      if (lbl) {
+        let arr = labeledMap.get(lbl)
+        if (!arr) {
+          arr = []
+          labeledMap.set(lbl, arr)
+        }
+        arr.push(item)
+      } else {
+        unlabeled.push(item)
+      }
+    }
+
+    const sortedLabels = Array.from(labeledMap.keys()).sort((a, b) => a.localeCompare(b))
+    const labeled = sortedLabels.map((label) => ({
+      label,
+      rows: labeledMap.get(label)!,
+    }))
+
+    const split = splitSessions(unlabeled, now, (id) => this.unread.has(id))
+    snoozed.sort((a, b) => b.updated - a.updated || a.id.localeCompare(b.id))
+
     return {
       pinned,
+      labeled,
       recent: split.recent,
       more: split.more,
+      snoozed,
       now,
       connected,
       loadMore: this.store.limitReached,
@@ -553,7 +709,13 @@ export class SessionsView implements vscode.Disposable {
       items: (() => {
         const g = this.groups()
         const row = (group: string) => (i: SessionListItem) => ({ id: i.id, title: i.title, activity: i.activity, group, unread: this.unread.has(i.id), description: compactTime(i.updated, g.now) })
-        return [...g.pinned.map(row("pinned")), ...g.recent.map(row("recent")), ...g.more.map(row("more"))]
+        return [
+          ...g.pinned.map(row("pinned")),
+          ...g.labeled.flatMap((grp) => grp.rows.map(row(`labeled:${grp.label}`))),
+          ...g.recent.map(row("recent")),
+          ...g.more.map(row("more")),
+          ...g.snoozed.map(row("snoozed")),
+        ]
       })(),
       loadMore: this.groups().loadMore,
     }

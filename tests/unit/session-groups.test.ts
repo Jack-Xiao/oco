@@ -388,6 +388,24 @@ describe("groupInbox", () => {
     expect(entries[2]).toMatchObject({ id: "solo-1", at: 100 })
     expect(entries[3]).toMatchObject({ id: "solo-2", at: 200 })
   })
+
+  test("preserves always, patterns, and permission fields", () => {
+    const row = makeRow({
+      id: "perm-row",
+      kind: "permission",
+      permission: "doom_loop",
+      patterns: ["test/*"],
+      always: ["test/*", "build/*"],
+    })
+    const entries = groupInbox([row])
+    expect(entries).toHaveLength(1)
+    expect(entries[0]).toMatchObject({
+      id: "perm-row",
+      permission: "doom_loop",
+      patterns: ["test/*"],
+      always: ["test/*", "build/*"],
+    })
+  })
 })
 
 describe("PendingNotifier level gate", () => {

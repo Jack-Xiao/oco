@@ -36,6 +36,8 @@ type FromPage =
   | { type: "batch"; action: "archive" | "delete"; ids: string[] }
   | { type: "stop"; ids: string[] }
   | { type: "sendNotes"; id: string }
+  | { type: "label"; ids: string[]; label: string | null }
+  | { type: "snooze"; ids: string[]; snoozed: boolean }
 
 /**
  * The sidebar session list as a webview (time column, rounded selection, row height a native tree can't
@@ -146,6 +148,16 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
         return
       case "questionReply":
         void answerPending(this.client, this.list.sessionStore, () => this.list.refresh(), m.id, { kind: "questionReply", answers: m.answers })
+        return
+      case "label":
+        if (Array.isArray(m.ids)) {
+          this.list.setLabel(m.ids, typeof m.label === "string" ? m.label : null)
+        }
+        return
+      case "snooze":
+        if (Array.isArray(m.ids) && typeof m.snoozed === "boolean") {
+          this.list.setSnooze(m.ids, m.snoozed)
+        }
         return
     }
   }

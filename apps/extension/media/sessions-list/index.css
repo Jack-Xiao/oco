@@ -897,3 +897,283 @@ body.vscode-high-contrast .subagent-row:focus-visible {
   border-color: var(--vscode-contrastActiveBorder);
 }
 
+/* M06(1a) Always preview */
+.inbox-always-preview {
+  padding-left: 15px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--vscode-descriptionForeground);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+.inbox-always-label {
+  color: var(--vscode-descriptionForeground);
+}
+.inbox-always-code {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+  background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.15));
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: var(--vscode-textPreformat-foreground, inherit);
+}
+.inbox-always-more {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+/* M06 doom_loop */
+.dot.doom-loop {
+  background: transparent !important;
+  color: var(--vscode-editorWarning-foreground, var(--vscode-notificationsWarningIcon-foreground, #cca700)) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.dot.doom-loop svg {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+}
+
+/* M06(2) Deny with note */
+.deny-note-form {
+  padding-left: 15px;
+  margin-top: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.deny-note-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 11px;
+  padding: 4px 6px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 3px;
+  outline: none;
+  resize: vertical;
+}
+.deny-note-input:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+/* M14 Label */
+.label-head {
+  margin-top: 4px;
+}
+.label-chip {
+  flex: 0 1 auto;
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  line-height: 14px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--vscode-badge-background, rgba(127, 127, 127, 0.2));
+  color: var(--vscode-badge-foreground);
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.label-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 80ms linear;
+  flex: 0 0 18px;
+}
+.row:hover .label-btn,
+.row:focus-within .label-btn,
+.label-btn:focus-visible {
+  opacity: 0.7;
+  pointer-events: auto;
+}
+.label-btn:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground);
+}
+.label-btn:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+.inline-label-form {
+  flex-basis: 100%;
+  width: 100%;
+  padding: 2px 0 4px 14px;
+  box-sizing: border-box;
+}
+.inline-label-input {
+  width: 100%;
+  height: 22px;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 11px;
+  padding: 0 6px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 3px;
+  outline: none;
+}
+.inline-label-input:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+/* M14 Snooze */
+.snoozed-head {
+  margin-top: 8px;
+}
+.snooze-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 80ms linear;
+  flex: 0 0 18px;
+}
+.row:hover .snooze-btn,
+.row:focus-within .snooze-btn,
+.snooze-btn:focus-visible {
+  opacity: 0.7;
+  pointer-events: auto;
+}
+.snooze-btn:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground);
+}
+.snooze-btn:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+.unsnooze-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: auto !important;
+  height: 18px;
+  padding: 0 6px !important;
+  font-size: 10px !important;
+  line-height: 16px;
+  border-radius: 3px;
+  background: transparent;
+  border: 1px solid var(--vscode-button-secondaryBorder, color-mix(in srgb, var(--vscode-foreground) 20%, transparent));
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.8 !important;
+  pointer-events: auto !important;
+  flex: 0 0 auto !important;
+}
+.unsnooze-btn:hover {
+  opacity: 1 !important;
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+/* M03 Shortcuts modal */
+.shortcuts-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.shortcuts-modal[hidden] {
+  display: none !important;
+}
+.shortcuts-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+.shortcuts-card {
+  position: relative;
+  z-index: 1;
+  background: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.36);
+  padding: 12px 16px;
+  min-width: 240px;
+  max-width: 320px;
+}
+.shortcuts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.shortcuts-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+.shortcuts-close {
+  background: transparent;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.shortcuts-close:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+}
+.shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.shortcuts-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+}
+.shortcuts-key {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+  background: var(--vscode-keybindingLabel-background, rgba(127, 127, 127, 0.2));
+  color: var(--vscode-keybindingLabel-foreground, inherit);
+  border: 1px solid var(--vscode-keybindingLabel-border, rgba(127, 127, 127, 0.3));
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+.shortcuts-desc {
+  color: var(--vscode-descriptionForeground);
+}
+

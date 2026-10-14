@@ -1904,3 +1904,45 @@ describe("SessionStore subagents aggregation (M20)", () => {
   })
 })
 
+describe("SessionStore M06 permission always preview and doom loop", () => {
+  test("permission.asked maps always, patterns, and permission into PendingRequest and InboxRow", () => {
+    const store = make()
+    store.add(session({ id: "s1", title: "Session 1" }))
+
+    store.applyEvent(
+      ev("permission.asked", {
+        id: "perm-1",
+        sessionID: "s1",
+        permission: "bash",
+        patterns: ["bun test", "bun run build"],
+        always: ["bun test*", "bun run *"],
+      }),
+    )
+
+    const rows = store.inbox()
+    expect(rows).toHaveLength(1)
+    const row = rows[0]
+    expect(row.kind).toBe("permission")
+    expect(row.permission).toBe("bash")
+    expect(row.patterns).toEqual(["bun test", "bun run build"])
+    expect(row.always).toEqual(["bun test*", "bun run *"])
+  })
+
+  test("permission.asked with doom_loop maps permission field to doom_loop", () => {
+    const store = make()
+    store.add(session({ id: "s2", title: "Session 2" }))
+
+    store.applyEvent(
+      ev("permission.asked", {
+        id: "perm-2",
+        sessionID: "s2",
+        permission: "doom_loop",
+      }),
+    )
+
+    const rows = store.inbox()
+    expect(rows).toHaveLength(1)
+    expect(rows[0].permission).toBe("doom_loop")
+  })
+})
+
