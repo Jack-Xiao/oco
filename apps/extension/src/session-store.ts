@@ -516,6 +516,15 @@ export class SessionStore {
     return this.permissions.get(id) ?? this.questions.get(id)
   }
 
+  pendingDirectory(id: string): string | undefined {
+    const req = this.getPending(id)
+    if (!req) return undefined
+    const row = this.rows.get(req.sessionID)
+    if (row) return row.session.directory
+    const rootId = this.rootOf(req.sessionID)
+    return this.rows.get(rootId)?.session.directory
+  }
+
   private setPending(m: Map<string, PendingRequest>, req: PendingRequest): boolean {
     const prev = m.get(req.id)
     if (prev && prev.sessionID === req.sessionID) return false

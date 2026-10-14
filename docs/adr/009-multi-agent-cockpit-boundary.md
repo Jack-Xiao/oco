@@ -27,6 +27,7 @@ oco 不做：推理循环；执行工具或解释工具结果；自建权限规�
 ### 2. 「待处理」收件箱是宿主侧视图，不改桥契约
 
 - 数据源只有两处：session-feed 的快照（`/session`、`/session/status`、`/permission`、`/question`，以及 2026-10-11 为 M02 加入的 `/session/:id/todo`——只对 busy / 可见行懒取，与前四个 GET 同鉴权、epoch 与 401 处理）和它已经接收的 SSE 事件（含 `todo.updated`，按 id 去重、整表替换）。收件箱是 `SessionStore` 的另一种投影，与侧栏会话列表共用同一份状态，不单独轮询、不新开订阅。
+- 2026-10-14（卡 1）：事件源由工作区目录的 `/event` 改为一条 `/global/event`，按 `Connection.roots()`（工作区文件夹 + 项目 worktree）过滤载荷的 `directory`；`/session/status`、`/permission`、`/question` 快照按每个 root 各取一次后合并。服务端不支持 `/global/event` 时退回单目录 `/event`。批复请求发往该请求所属会话的目录。仍是同一条订阅，不按目录多开。
 - 批复从 Extension Host 直接调服务端，走 `Connection` 已有的请求通道；不经过 chat webview 的桥，所以 `bridge-policy` 与 `@oco/contracts` 的桥消息不变。
 - 每个批复动作必须绑定 `requestId` + `sessionID`（ARCHITECTURE §9）：按钮按下时先核对该请求仍在待批集合里，已过期的请求只提示「已处理」，不重发到新请求。
 - 子代理会话按自己的身份进入收件箱（显示父会话标题作为上下文），而不是只汇总到根会话计数；根会话行上的计数保持现状。

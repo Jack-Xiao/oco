@@ -111,7 +111,7 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
           return
         }
         if (!this.client) return
-        const dir = this.client.directory
+        const dir = this.list.sessionStore.pendingDirectory(m.id) ?? this.client.directory
         const q = dir ? `?directory=${encodeURIComponent(dir)}` : ""
         void (async () => {
           try {
@@ -153,7 +153,7 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
           return
         }
         if (!this.client) return
-        const dir = this.client.directory
+        const dir = this.list.sessionStore.pendingDirectory(m.id) ?? this.client.directory
         const q = dir ? `?directory=${encodeURIComponent(dir)}` : ""
         void (async () => {
           try {
@@ -173,7 +173,7 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
           return
         }
         if (!this.client) return
-        const dir = this.client.directory
+        const dir = this.list.sessionStore.pendingDirectory(m.id) ?? this.client.directory
         const q = dir ? `?directory=${encodeURIComponent(dir)}` : ""
         void (async () => {
           try {
