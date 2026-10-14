@@ -93,6 +93,24 @@ export type Snapshot = {
 }
 export type ServerEvent = { id?: string; type: string; properties?: Record<string, unknown> }
 
+export type SubagentStatus = "running" | "waiting" | "error" | "done"
+export type SubagentItem = {
+  id: string
+  title: string
+  status: SubagentStatus
+  time: number
+  created: number
+  updated: number
+}
+export type SubagentSummary = {
+  done: number
+  total: number
+  running: number
+  waiting: number
+  error: number
+  items: SubagentItem[]
+}
+
 type SummaryWatermark = { id: string; created: number; sealed: boolean }
 
 type Row = {
@@ -363,6 +381,134 @@ export class SessionStore {
     return changed
   }
 
+  /**
+   * Merge child sessions of a parent session (GET /session/:parentID/children).
+   * Follows add's ownership filter. Returns true if any row changed.
+   */
+  setChildren(parentID: string, sessions: ServerSession[]): boolean {
+    let changed = false
+    for (const session of sessions) {
+      if (!session?.id || typeof session.directory !== "string") continue
+      if (!this.owns(session.directory)) continue
+      const child: ServerSession = session.parentID ? session : { ...session, parentID }
+      if (this.upsert(child)) changed = true
+    }
+    return changed
+  }
+
+  /**
+   * Direct subagents of a root session with rollup status:
+   * running (self or any descendant busy/retry) > waiting (pending permission/question in subtree) > error (self error) > done (rest).
+   * Direct subagents are sorted by created time ascending.
+   * If there are no subagents, total is 0.
+   */
+  subagents(rootId: string): SubagentSummary {
+    const empty: SubagentSummary = { done: 0, total: 0, running: 0, waiting: 0, error: 0, items: [] }
+    if (!rootId) return empty
+
+    // Map parentID -> childIDs
+    const childrenByParent = new Map<string, string[]>()
+    for (const [id, r] of this.rows) {
+      const pid = r.session.parentID
+      if (pid) {
+        let list = childrenByParent.get(pid)
+        if (!list) {
+          list = []
+          childrenByParent.set(pid, list)
+        }
+        list.push(id)
+      }
+    }
+
+    const directChildIds = childrenByParent.get(rootId)
+    if (!directChildIds || directChildIds.length === 0) return empty
+
+    // Pending requests set
+    const pendingSessionIds = new Set<string>()
+    for (const p of this.permissions.values()) pendingSessionIds.add(p.sessionID)
+    for (const q of this.questions.values()) pendingSessionIds.add(q.sessionID)
+
+    // Helper to get all session IDs in a subtree rooted at startId (inclusive)
+    const getSubtree = (startId: string): string[] => {
+      const result: string[] = []
+      const queue = [startId]
+      const seen = new Set<string>([startId])
+      while (queue.length > 0) {
+        const cur = queue.pop()!
+        result.push(cur)
+        const kids = childrenByParent.get(cur)
+        if (kids) {
+          for (const kid of kids) {
+            if (!seen.has(kid)) {
+              seen.add(kid)
+              queue.push(kid)
+            }
+          }
+        }
+      }
+      return result
+    }
+
+    const items: SubagentItem[] = []
+    for (const childId of directChildIds) {
+      const childRow = this.rows.get(childId)
+      if (!childRow) continue
+      const subtree = getSubtree(childId)
+
+      // Priority 1: running (self or any descendant busy/retry)
+      const isRunning = subtree.some((id) => {
+        const r = this.rows.get(id)
+        return r?.status === "busy" || r?.status === "retry"
+      })
+
+      // Priority 2: waiting (pending permission/question in subtree)
+      const isWaiting = !isRunning && subtree.some((id) => pendingSessionIds.has(id))
+
+      // Priority 3: error (self error)
+      const isError = !isRunning && !isWaiting && Boolean(childRow.error)
+
+      // Priority 4: done
+      const status: SubagentStatus = isRunning ? "running" : isWaiting ? "waiting" : isError ? "error" : "done"
+
+      const created = childRow.session.time?.created ?? 0
+      const updated = childRow.session.time?.updated ?? created
+
+      items.push({
+        id: childId,
+        title: childRow.session.title?.trim() || childId,
+        status,
+        time: updated,
+        created,
+        updated,
+      })
+    }
+
+    if (items.length === 0) return empty
+
+    // Sort by created time ascending
+    items.sort((a, b) => a.created - b.created || a.id.localeCompare(b.id))
+
+    let done = 0
+    let running = 0
+    let waiting = 0
+    let error = 0
+    for (const item of items) {
+      if (item.status === "running") running++
+      else if (item.status === "waiting") waiting++
+      else if (item.status === "error") error++
+      else done++
+    }
+
+    return {
+      done,
+      total: items.length,
+      running,
+      waiting,
+      error,
+      items,
+    }
+  }
+
   has(id: string) {
     return this.rows.has(id)
   }
@@ -460,9 +606,27 @@ export class SessionStore {
       })
       return true
     }
+    const effectiveInfo = !info.parentID && row.session.parentID ? { ...info, parentID: row.session.parentID } : info
     // Out-of-order delivery: never replace newer info with older.
-    if ((info.time?.updated ?? 0) < (row.session.time?.updated ?? 0)) return false
-    row.session = info
+    if ((effectiveInfo.time?.updated ?? 0) < (row.session.time?.updated ?? 0)) {
+      if (!row.session.parentID && effectiveInfo.parentID) {
+        row.session = { ...row.session, parentID: effectiveInfo.parentID }
+        return true
+      }
+      return false
+    }
+    const prev = row.session
+    if (
+      prev.title === effectiveInfo.title &&
+      prev.parentID === effectiveInfo.parentID &&
+      prev.directory === effectiveInfo.directory &&
+      (prev.time?.created ?? 0) === (effectiveInfo.time?.created ?? 0) &&
+      (prev.time?.updated ?? 0) === (effectiveInfo.time?.updated ?? 0) &&
+      (prev.time?.archived ?? 0) === (effectiveInfo.time?.archived ?? 0)
+    ) {
+      return false
+    }
+    row.session = effectiveInfo
     return true
   }
 

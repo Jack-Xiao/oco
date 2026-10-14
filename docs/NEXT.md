@@ -2,7 +2,7 @@
 
 本文件是唯一的当前队列。状态只看 [STATUS](STATUS.md)。不要执行 HANDOFF 或 P1B-NEXT-STEPS 里的旧提示词。
 
-当前基线：main `18cae65`（2026-10-14 合入卡 1、卡 3、卡 2；本机 main 领先 origin，未推送。用户定：M20 做完后推送 origin，再把 Mac mini 更新到最新）。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
+当前基线：main `18cae65`（2026-10-14 合入卡 1、卡 3、卡 2；本机 main 领先 origin，未推送。用户定：M20 做完后推送 origin，再把 Mac mini 更新到最新）；M20 第一步在分支 `claude/m20-subagent-aggregation`（7388bce）。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
 
 ## 0. 本轮路线（2026-10-13 用户确认：按建议从前往后做，一个会话做一张卡）
 
@@ -54,6 +54,10 @@
 - 待用户决定：M12 会话内排队（调查已完成，上游是「暂时移除」而非缺陷；若立项，形态为一枚小补丁：embedded 下 followup 默认 queue，加载时置 paused）；是否也连公共版 opencode（npm 最新 1.19.0，未验证）；T018。
 - 候选：M03 键盘直达、M14 第二步 Label + Snooze、M20 子代理聚合、M21 结果卡 Git 动作（先补 ADR-009 §4）、§1 / §2b 的测试与目视欠账。
 
+### 卡 5：M20 子代理聚合第一步（S–M）[DONE 2026-10-14，分支 `claude/m20-subagent-aggregation` 7388bce，见 STATUS]
+
+- 剩余（另立项）：第二步——补丁扩 0017 标题行，子代理 pills（状态点，窄面板折叠为计数），点击走补丁 0016 既有会话链接 → 宿主 openSession；父 / 子 / 兄弟导航 chord 键位，when 限定 `activeWebviewPanelId == 'oco.chat'`。
+
 ## 1. 真实模型回归（本批第二步）
 
 - [DONE 一轮] 真实模型全量 E2E：21 套件，首轮 16 套件无 FAIL；修测试后重跑 p1a-chat、p1a-identity 通过。见 [fail-diag](evidence/cleanup-2026-10-10-fail-diag.md)。
@@ -101,6 +105,8 @@ oco 是 OpenCode 的客户端，不自建调度引擎。上游 1.18.33 已有 `t
 
 - `bridge-policy.ts:83-87` 目录比较是精确字符串：服务端数据目录路径含符号链接时，返回的 worktree 目录与会话目录拼写不同，worktree 新建会话被拒（卡 2 E2E 环境发现，既有问题）。修法：loopback 下比较前 realpath，或统一规范化。
 - E2E 共享助手偶发：`tests/e2e/vscode.mjs` 启动时 `clearNotifications` 的命令面板 `fill` 30 s 超时（c10 8 次中 2 次，重跑即过）。在嵌套 worktree 跑 E2E 时 `.oco-test` 路径过长会超过 macOS socket 103 字符上限，需指向短路径。
+
+- 子会话 / todo 懒取对每个可见 pinned / recent 行各发一次（M20 E2E：测试服务端每次连接 74–92 次，并发上限 4）；行很多时可只取前 N 行或空闲时再取。
 
 ## 4. 仍未做的 v0.1 项（按需单独立项）
 
