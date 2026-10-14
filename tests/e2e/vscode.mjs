@@ -166,8 +166,10 @@ export async function command(page, title, { input } = {}) {
     )
     .catch(() => page.waitForTimeout(500))
   // Newer VS Code lists fuzzy matches alphabetically, so the exact title may not be the focused row: click it.
-  const exact = page.locator(`.quick-input-list .monaco-list-row[aria-label="${title}"]`).first()
-  if (await exact.isVisible().catch(() => false)) await exact.click().catch(() => {})
+  const focusedLabel = await page.evaluate(() => document.querySelector(".quick-input-list .monaco-list-row.focused")?.getAttribute("aria-label") ?? "").catch(() => "")
+  const focusedIsTitle = focusedLabel === title || focusedLabel.startsWith(title + ",")
+  const exact = page.locator(`.quick-input-list .monaco-list-row[aria-label="${title}"], .quick-input-list .monaco-list-row[aria-label^="${title},"]`).first()
+  if (!focusedIsTitle && (await exact.isVisible().catch(() => false))) await exact.click().catch(() => {})
   else await page.keyboard.press("Enter")
   if (input !== undefined) await quickInput(page, input)
 }
@@ -311,12 +313,20 @@ export async function fitGroups(app, page, width, { tolerance = 4 } = {}) {
     widths = await measure()
     const avg = widths.reduce((a, b) => a + b, 0) / Math.max(1, widths.length)
     if (widths.length && widths.every((w) => Math.abs(w - width) <= tolerance)) break
-    await app.evaluate(({ BrowserWindow }, { d }) => {
-      const w = BrowserWindow.getAllWindows()[0]
-      const zoom = w.webContents.getZoomFactor()
-      const [x, y] = w.getContentSize()
-      w.setContentSize(Math.max(400, Math.round(x + d * zoom)), y)
-    }, { d: (width - avg) * widths.length })
+    // The evaluate can land while the workbench page navigates ("Execution context was destroyed"): retry it.
+    for (let a = 0; a < 4; a++) {
+      const done = await app
+        .evaluate(({ BrowserWindow }, { d }) => {
+          const w = BrowserWindow.getAllWindows()[0]
+          const zoom = w.webContents.getZoomFactor()
+          const [x, y] = w.getContentSize()
+          w.setContentSize(Math.max(400, Math.round(x + d * zoom)), y)
+          return true
+        }, { d: (width - avg) * widths.length })
+        .catch(() => false)
+      if (done) break
+      await page.waitForTimeout(1000)
+    }
     await page.waitForTimeout(800)
     await command(page, "View: Reset Editor Group Sizes")
     await page.waitForTimeout(800)

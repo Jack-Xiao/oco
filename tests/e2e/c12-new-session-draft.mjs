@@ -318,12 +318,15 @@ try {
     const keep = await sapi("POST", "/session", { title: `c12 pinned ${rand}` })
     await command(page, "oco: Open Session", { input: mainSession.id })
     await waitUntil(async () => (await state()).panels.some((p) => p.sessionId === mainSession.id && p.ready), 30000, 300)
+    await sleep(2500) // let the first panel settle; a pick typed too early is lost
     await command(page, "oco: Open in New Panel", { input: keep.id })
     const pinnedUp = await waitUntil(async () => (await state()).panels.some((p) => p.sessionId === keep.id && p.ready && p.role === "pinned"), 30000, 300)
-    if (!pinnedUp) await runShot(page, run, "5a-pinned-missing")
+    if (!pinnedUp) { await runShot(page, run, "5a-pinned-missing"); console.log("[diag] pinned missing", JSON.stringify((await state()).panels.map((p) => [String(p.sessionId).slice(-6), p.role, p.ready])), "keep", keep.id.slice(-6), await page.evaluate(() => [...document.querySelectorAll(".notifications-toasts .notification-list-item")].map((e) => e.innerText.slice(0, 150)))) }
     await command(page, "oco: New Session")
     const df = await draftFrame()
     const pre = await state()
+    run.log?.("pre panels " + JSON.stringify(pre.panels.map((p) => [String(p.sessionId).slice(-6), p.role, p.ready])))
+    console.log("[diag] pre panels", JSON.stringify(pre.panels.map((p) => [String(p.sessionId).slice(-6), p.role, p.ready])), "keep", keep.id.slice(-6), "main", mainSession.id.slice(-6))
     const preFacts = { draftPanels: pre.panels.filter((p) => isDraftId(p.sessionId)).length, pinned: pre.panels.some((p) => p.sessionId === keep.id), draftFrame: !!df }
     await command(page, "Developer: Reload Window")
     await waitUntil(async () => (await state().catch(() => null))?.activationId !== pre.activationId, 30000, 300)
