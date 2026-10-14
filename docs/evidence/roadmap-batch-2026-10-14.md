@@ -27,6 +27,7 @@
 | b14-tests | E2E 测试侧：助手超时 / socket 短路径、c4 / c5 modelMode、夜间运行脚本 | claude-subagent/sonnet | Claude Sonnet（自报 unknown） | afe3d392（44 次工具调用，约 6 分钟） | 已返回（node --check 5 文件过；bash -n 过；unit 35/0；E2E NOT RUN 待夜间） | [tests](roadmap-batch-2026-10-14-tests.md) | E2E 测试侧归 Claude 子代理；本批不跑长测试 |
 
 | b14-review | 只读：本批 diff + 补丁 0024 / 0025 | grok-worker | unknown | run-mv8815fa-opnc9k（9 次工具调用，14 分钟） | 已返回：5 处缺陷，主线程全部修复（25f3f9a） | 本节下方 | — |
+| mini-card7 | tests/e2e c18–c24、测试侧修复、Follow 与 0025 窄布局两处产品修复 | Mac mini 执行机（claude -p sonnet） | unknown | tmux mini-card7（约 4 小时） | 已返回并合入：21 mock 套件全过，p1b-narrow 10/10，c4 / c5 真实模式 BLOCKED（big-pickle 403），18 张目视图 | [mini-card7](mini-card7.md) | — |
 | b14-integrate | `file-decorations.ts` / `extension.ts` 两处 `as any` 改为 `SessionStore.changedFiles` / `SessionsView.isUnread`；评审修复；打包安装 | 主线程 | — | — | 完成 | a777993、25f3f9a | 集成与评审修复由主线程负责 |
 
 ## 评审修复（25f3f9a）
