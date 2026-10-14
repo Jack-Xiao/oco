@@ -1492,5 +1492,71 @@ describe("SessionFeed global event stream and multi-root", () => {
       h.feed.stop()
     }
   })
+
+  test("ensureChildren deduplicates within same epoch, writes to store, and triggers onChange", async () => {
+    const dir = "/work"
+    const h = harness({ directory: dir })
+    const stream = openStream()
+
+    h.handle = (url) => {
+      if (url.includes("/event")) return new Response(stream.stream, { status: 200 })
+      if (url.includes("/session/s1/children")) {
+        return json([
+          { id: "c1", directory: dir, title: "Child 1", time: { created: 10 } },
+        ])
+      }
+      return routeSnapshot(url, {
+        sessions: [{ id: "s1", directory: dir, title: "S1", time: { updated: 1 } }],
+        status: {},
+      })
+    }
+
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected")
+
+      const beforeChanges = h.changes
+      // Call ensureChildren 3 times concurrently
+      h.feed.ensureChildren("s1")
+      h.feed.ensureChildren("s1")
+      h.feed.ensureChildren("s1")
+
+      await until(() => h.store.has("c1"), h, "c1 loaded into store")
+      const calls = h.calls.filter((c) => c.url.includes("/session/s1/children"))
+      expect(calls).toHaveLength(1)
+      expect(h.store.has("c1")).toBe(true)
+      expect(h.store.subagents("s1").total).toBe(1)
+      expect(h.changes).toBeGreaterThan(beforeChanges)
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
+
+  test("ensureChildren 401 triggers unauthorized state consistent with todo", async () => {
+    const dir = "/work"
+    const h = harness({ directory: dir })
+    const stream = openStream()
+    h.handle = (url) => {
+      if (url.includes("/event")) return new Response(stream.stream, { status: 200 })
+      if (url.includes("/session/s1/children")) return new Response("Unauthorized", { status: 401 })
+      return routeSnapshot(url, {
+        sessions: [{ id: "s1", directory: dir, title: "S1", time: { updated: 1 } }],
+        status: {},
+      })
+    }
+
+    try {
+      h.feed.start()
+      await until(() => h.feed.state.state === "connected", h, "connected")
+      h.feed.ensureChildren("s1")
+      await until(() => h.feed.state.state === "unauthorized", h, "unauthorized state")
+      expect(h.feed.state.state).toBe("unauthorized")
+      expect(h.feed.state.error).toContain("Authentication failed")
+    } finally {
+      stream.close()
+      h.feed.stop()
+    }
+  })
 })
 

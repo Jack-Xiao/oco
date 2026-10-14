@@ -874,6 +874,119 @@ describe("M02: SessionsView Todo passthrough & probe", () => {
 
     view.dispose()
   })
+
+  test("WebRow.subagents appears when total >= 1 with correct rollup and compactTime, absent when total is 0", () => {
+    const store = new SessionStore(() => true)
+    store.applySnapshot({
+      sessions: [
+        { id: "s-parent", title: "Parent session", directory: "/work", time: { updated: 1000 } },
+        { id: "s-empty", title: "Empty session", directory: "/work", time: { updated: 1000 } },
+      ],
+      status: {},
+      permissions: [],
+      questions: [],
+    })
+    store.setChildren("s-parent", [
+      { id: "c-done", title: "Done Child", directory: "/work", time: { created: 10, updated: 10 } },
+      { id: "c-err", title: "Error Child", directory: "/work", time: { created: 20, updated: 20 } },
+      { id: "c-run", title: "Running Child", directory: "/work", time: { created: 30, updated: 30 } },
+    ])
+    store.applyEvent({
+      type: "session.error",
+      properties: { sessionID: "c-err", error: { data: { message: "boom" } } },
+    })
+    store.applyEvent({
+      type: "session.status",
+      properties: { sessionID: "c-run", status: { type: "busy" } },
+    })
+
+    const view = new SessionsView(store)
+    view.setConnection({
+      connectionId: "c1",
+      label: "local",
+      directory: "/work",
+      state: "connected",
+      attempt: 0,
+      trusted: true,
+    })
+
+    const model = view.webModel()
+    const parentRow = model.recent?.find((r) => r.id === "s-parent")
+    const emptyRow = model.recent?.find((r) => r.id === "s-empty")
+
+    // Empty row has no subagents field
+    expect(emptyRow?.subagents).toBeUndefined()
+
+    // Parent row has subagents field
+    expect(parentRow?.subagents).toBeDefined()
+    expect(parentRow?.subagents?.total).toBe(3)
+    expect(parentRow?.subagents?.done).toBe(1)
+    expect(parentRow?.subagents?.running).toBe(1)
+    expect(parentRow?.subagents?.attention).toBe(true) // error > 0
+    expect(parentRow?.subagents?.items).toHaveLength(3)
+
+    // Items check: status "" for done, and compactTime for time
+    const items = parentRow!.subagents!.items
+    expect(items[0].id).toBe("c-done")
+    expect(items[0].status).toBe("") // done mapped to ""
+    expect(typeof items[0].time).toBe("string")
+
+    expect(items[1].id).toBe("c-err")
+    expect(items[1].status).toBe("error")
+
+    expect(items[2].id).toBe("c-run")
+    expect(items[2].status).toBe("running")
+
+    view.dispose()
+  })
+
+  test("setChildrenProbe is called for visible session rows on webModel", () => {
+    const store = new SessionStore(() => true)
+    store.applySnapshot({
+      sessions: [
+        { id: "s-pinned", title: "Pinned session", directory: "/work", time: { updated: 1000 } },
+        { id: "s-recent", title: "Recent session", directory: "/work", time: { updated: 1000 } },
+        { id: "s-old", title: "Old session", directory: "/work", time: { updated: 10 } },
+      ],
+      status: {
+        "s-pinned": { type: "idle" },
+        "s-recent": { type: "busy" },
+        "s-old": { type: "idle" },
+      },
+      permissions: [],
+      questions: [],
+    })
+
+    const memento = new MemoryMemento({ ["oco.pinnedSessions"]: ["s-pinned"] })
+    const view = new SessionsView(store, memento)
+    view.setConnection({
+      connectionId: "c1",
+      label: "local",
+      directory: "/work",
+      state: "connected",
+      attempt: 0,
+      trusted: true,
+    })
+
+    const probed: string[] = []
+    view.setChildrenProbe((id) => probed.push(id))
+
+    view.webModel()
+    // When more is closed, s-old is not probed; s-pinned and s-recent are probed
+    expect(probed).toContain("s-pinned")
+    expect(probed).toContain("s-recent")
+    expect(probed).not.toContain("s-old")
+
+    // When more is open, s-old is also probed
+    probed.length = 0
+    view.setMoreOpen(true)
+    view.webModel()
+    expect(probed).toContain("s-pinned")
+    expect(probed).toContain("s-recent")
+    expect(probed).toContain("s-old")
+
+    view.dispose()
+  })
 })
 
 describe("M14: SessionsWebview FromPage message handling", () => {

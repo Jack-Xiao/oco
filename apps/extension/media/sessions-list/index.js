@@ -66,6 +66,8 @@ pinnedHead.append(pinnedLabel)
 const selectedSessions = new Set()
 let selectionAnchor = null
 const todoExpanded = new Set()
+const savedSubagentsExpanded = Array.isArray(saved && saved.subagentsExpanded) ? saved.subagentsExpanded : []
+const subagentsExpanded = new Set(savedSubagentsExpanded)
 
 const selectionBar = el("div", "selection-bar")
 selectionBar.setAttribute("data-selection-bar", "")
@@ -244,14 +246,15 @@ function save() {
         moreOpen: moreOpen,
         scrollTop: scroll.scrollTop,
         query: search.value,
-        collapsed: { inbox: inboxCollapsed, sessions: sessionsCollapsed }
+        collapsed: { inbox: inboxCollapsed, sessions: sessionsCollapsed },
+        subagentsExpanded: Array.from(subagentsExpanded),
       })
     } catch (_) {}
   }
 }
 
 function expanded() { return !!(state && (state.moreForcedOpen || moreOpen)) }
-function focusables() { return Array.from(list.querySelectorAll(".section-head, .row, .more-head, .inbox-group-head")) }
+function focusables() { return Array.from(list.querySelectorAll(".section-head, .row, .more-head, .inbox-group-head, .subagent-row")) }
 
 function focusRow(node) {
   if (!node || !node.isConnected) return
@@ -427,6 +430,16 @@ function getTodoStatusIcon(status) {
   }
 }
 
+const BRANCH_ICON_SVG = '<svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25zM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0z"/></svg>'
+
+function getSubagentsBadgeLabel(sub) {
+  const parts = [`${sub.done} done`]
+  if (sub.running > 0) parts.push(`${sub.running} running`)
+  if (sub.waiting > 0) parts.push(`${sub.waiting} needs you`)
+  if (sub.error > 0) parts.push(`${sub.error} failed`)
+  return `Subagents: ${parts.join(", ")}`
+}
+
 function syncSession(row) {
   const id = String(row.id)
   let node = pool.get(id)
@@ -449,6 +462,17 @@ function syncSession(row) {
       e.stopPropagation()
       if (todoExpanded.has(id)) todoExpanded.delete(id)
       else todoExpanded.add(id)
+      renderList()
+    })
+
+    const subagentsBadge = document.createElement("button")
+    subagentsBadge.type = "button"
+    subagentsBadge.className = "subagents-badge"
+    subagentsBadge.addEventListener("click", (e) => {
+      e.stopPropagation()
+      if (subagentsExpanded.has(id)) subagentsExpanded.delete(id)
+      else subagentsExpanded.add(id)
+      save()
       renderList()
     })
 
@@ -486,7 +510,10 @@ function syncSession(row) {
     const todoList = el("div", "todo-list")
     todoList.setAttribute("data-todo-list", "")
 
-    node.append(dot, pinMark, title, todoBadge, notesBadge, pinBtn, stopBtn, time, todoList)
+    const subagentsList = el("div", "subagents-list")
+    subagentsList.setAttribute("data-subagents-list", "")
+
+    node.append(dot, pinMark, title, todoBadge, subagentsBadge, notesBadge, pinBtn, stopBtn, time, todoList, subagentsList)
     pool.set(id, node)
   }
   updateSessionRow(node, row)
@@ -530,15 +557,17 @@ function updateSessionRow(node, row) {
     node.setAttribute("data-vscode-context", ctx)
   }
 
-  const dot = node.children[0]
-  const pinMark = node.children[1]
-  const titleEl = node.children[2]
-  const todoBadge = node.children[3]
-  const notesBadge = node.children[4]
-  const pinBtn = node.children[5]
-  const stopBtn = node.children[6]
-  const timeEl = node.children[7]
-  const todoList = node.children[8]
+  const dot = node.querySelector(":scope > .dot")
+  const pinMark = node.querySelector(":scope > .pin-mark")
+  const titleEl = node.querySelector(":scope > .title")
+  const todoBadge = node.querySelector(":scope > .todo-badge")
+  const subagentsBadge = node.querySelector(":scope > .subagents-badge")
+  const notesBadge = node.querySelector(":scope > .notes-badge")
+  const pinBtn = node.querySelector(":scope > .pin-btn")
+  const stopBtn = node.querySelector(":scope > .stop-btn")
+  const timeEl = node.querySelector(":scope > .time")
+  const todoList = node.querySelector(":scope > .todo-list")
+  const subagentsList = node.querySelector(":scope > .subagents-list")
 
   if (titleEl.textContent !== title) titleEl.textContent = title
   if (timeEl.textContent !== time) timeEl.textContent = time
@@ -592,6 +621,76 @@ function updateSessionRow(node, row) {
     todoBadge.hidden = true
     todoList.hidden = true
     while (todoList.firstChild) todoList.removeChild(todoList.firstChild)
+  }
+
+  if (row.subagents && typeof row.subagents.total === "number" && row.subagents.total >= 1) {
+    subagentsBadge.hidden = false
+    const isExpanded = subagentsExpanded.has(id)
+    const isRunningSub = row.subagents.running > 0
+    const hasAttention = Boolean(row.subagents.attention)
+    subagentsBadge.classList.toggle("running", isRunningSub)
+    subagentsBadge.classList.toggle("attention", hasAttention)
+    subagentsBadge.setAttribute("aria-expanded", isExpanded ? "true" : "false")
+
+    const badgeText = `${row.subagents.done}/${row.subagents.total}`
+    const badgeLabel = getSubagentsBadgeLabel(row.subagents)
+    if (subagentsBadge.getAttribute("title") !== badgeLabel) subagentsBadge.setAttribute("title", badgeLabel)
+    if (subagentsBadge.getAttribute("aria-label") !== badgeLabel) subagentsBadge.setAttribute("aria-label", badgeLabel)
+
+    const wantHtml = `${BRANCH_ICON_SVG}<span>${badgeText}</span>`
+    if (subagentsBadge.innerHTML !== wantHtml) subagentsBadge.innerHTML = wantHtml
+
+    if (isExpanded && Array.isArray(row.subagents.items) && row.subagents.items.length > 0) {
+      subagentsList.hidden = false
+      while (subagentsList.firstChild) subagentsList.removeChild(subagentsList.firstChild)
+      for (const item of row.subagents.items) {
+        if (!item) continue
+        const itemEl = document.createElement("button")
+        itemEl.type = "button"
+        itemEl.className = "subagent-row"
+        itemEl.dataset.id = String(item.id)
+        itemEl.tabIndex = -1
+        const itemTitle = item.title == null ? "" : String(item.title)
+        const itemTime = item.time == null ? "" : String(item.time)
+        const itemStatus = item.status ? String(item.status) : "done"
+        itemEl.setAttribute("title", itemTitle)
+        itemEl.setAttribute("aria-label", [itemTitle, itemStatus, itemTime].filter(Boolean).join(", "))
+
+        const dotEl = el("span", "dot " + itemStatus)
+        const titleSpan = el("span", "subagent-title")
+        titleSpan.textContent = itemTitle
+        const timeSpan = el("span", "subagent-time")
+        timeSpan.textContent = itemTime
+
+        itemEl.append(dotEl, titleSpan, timeSpan)
+        itemEl.addEventListener("click", (e) => {
+          e.stopPropagation()
+          postOpen(item.id, e.metaKey || e.ctrlKey)
+        })
+        itemEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+            e.preventDefault()
+            e.stopPropagation()
+            postOpen(item.id, false)
+          }
+        })
+        itemEl.addEventListener("auxclick", (e) => {
+          if (e.button === 1) {
+            e.preventDefault()
+            e.stopPropagation()
+            postOpen(item.id, true)
+          }
+        })
+        subagentsList.appendChild(itemEl)
+      }
+    } else {
+      subagentsList.hidden = true
+      while (subagentsList.firstChild) subagentsList.removeChild(subagentsList.firstChild)
+    }
+  } else {
+    subagentsBadge.hidden = true
+    subagentsList.hidden = true
+    while (subagentsList.firstChild) subagentsList.removeChild(subagentsList.firstChild)
   }
 
   if (typeof row.notes === "number" && row.notes > 0) {
@@ -1366,6 +1465,9 @@ function applyState(next) {
   }
   for (const id of todoExpanded) {
     if (!validIds.has(id)) todoExpanded.delete(id)
+  }
+  for (const id of subagentsExpanded) {
+    if (!validIds.has(id)) subagentsExpanded.delete(id)
   }
   document.body.classList.toggle("still", !!next.still)
   layout()

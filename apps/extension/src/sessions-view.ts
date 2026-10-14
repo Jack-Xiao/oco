@@ -77,6 +77,18 @@ export type WebRow = {
   stoppable?: boolean
   notes?: number
   todo?: { done: number; total: number; items: Array<{ content: string; status: string }> }
+  subagents?: {
+    done: number
+    total: number
+    running: number
+    attention: boolean
+    items: Array<{
+      id: string
+      title: string
+      status: "" | "running" | "waiting" | "error"
+      time: string
+    }>
+  }
 }
 export type WebListModel = {
   view: "list" | "message"
@@ -117,6 +129,7 @@ export class SessionsView implements vscode.Disposable {
   private readonly unread: UnreadTracker
   private readonly pinned = new Set<string>()
   private todoProbe?: (id: string) => void
+  private childrenProbe?: (id: string) => void
   private noteCounter?: (sessionId: string) => number
   private moreOpen = false
   private readonly clock: ReturnType<typeof setInterval>
@@ -217,6 +230,10 @@ export class SessionsView implements vscode.Disposable {
     this.todoProbe = fn
   }
 
+  setChildrenProbe(fn: (id: string) => void): void {
+    this.childrenProbe = fn
+  }
+
   setNoteCounter(fn: (sessionId: string) => number): void {
     this.noteCounter = fn
     this.refresh()
@@ -286,6 +303,13 @@ export class SessionsView implements vscode.Disposable {
         for (const item of g.more) this.todoProbe(item.id)
       }
     }
+    if (this.childrenProbe && g.connected) {
+      for (const item of g.pinned) this.childrenProbe(item.id)
+      for (const item of g.recent) this.childrenProbe(item.id)
+      if (moreForcedOpen || this.moreOpen) {
+        for (const item of g.more) this.childrenProbe(item.id)
+      }
+    }
     const base = {
       query: this.query,
       current: this.current,
@@ -323,6 +347,22 @@ export class SessionsView implements vscode.Disposable {
       : unread ? "unread" : ""
     const tooltip = [i.title, statusText, i.updated ? `Updated ${new Date(i.updated).toLocaleString()}` : "", i.directory, i.error ? `Error: ${i.error}` : ""].filter(Boolean).join("\n")
     const notes = this.noteCounter?.(i.id) ?? 0
+    const sub = this.store.subagents(i.id)
+    const subagents: WebRow["subagents"] =
+      sub.total >= 1
+        ? {
+            done: sub.done,
+            total: sub.total,
+            running: sub.running,
+            attention: sub.waiting > 0 || sub.error > 0,
+            items: sub.items.map((item) => ({
+              id: item.id,
+              title: item.title,
+              status: item.status === "done" ? "" : item.status,
+              time: compactTime(item.updated, now),
+            })),
+          }
+        : undefined
     return {
       id: i.id,
       title: i.title,
@@ -334,6 +374,7 @@ export class SessionsView implements vscode.Disposable {
       ...(this.stoppable.has(i.id) ? { stoppable: true } : {}),
       ...(notes > 0 ? { notes } : {}),
       todo: i.todo,
+      ...(subagents ? { subagents } : {}),
     }
   }
 

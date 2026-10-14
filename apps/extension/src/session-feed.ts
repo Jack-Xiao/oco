@@ -96,6 +96,8 @@ export class SessionFeed {
   readonly stats = { attempts: 0, connects: 0, superseded: 0, stalls: 0 }
   private todoEpoch = 0
   private todoFetched = new Set<string>()
+  private childrenEpoch = 0
+  private childrenFetched = new Set<string>()
   private todoQueue: Array<() => Promise<void>> = []
   private todoRunning = 0
   private activeContext?: {
@@ -183,6 +185,8 @@ export class SessionFeed {
     const token = ++this.token
     this.todoEpoch = token
     this.todoFetched.clear()
+    this.childrenEpoch = token
+    this.childrenFetched.clear()
     const abort = (this.abort = new AbortController())
     let ep: { origin: string; connectionId: string }
     const directory = this.d.directory()
@@ -478,6 +482,42 @@ export class SessionFeed {
           return
         }
         this.d.log?.(`feed: GET /session/${sessionID}/todo failed (${e instanceof Error ? e.message : String(e)})`)
+      }
+    })
+  }
+
+  /**
+   * Ensure child sessions are loaded for a parent session (GET /session/:id/children).
+   * Fetched at most once per session per epoch; deduplicates in-flight requests.
+   * Shares the queue and 401 handling with ensureTodo.
+   */
+  ensureChildren(sessionID: string): void {
+    if (this.stopped || !sessionID) return
+    if (this.childrenEpoch !== this.token) {
+      this.childrenEpoch = this.token
+      this.childrenFetched.clear()
+    }
+    if (this.childrenFetched.has(sessionID)) return
+    this.childrenFetched.add(sessionID)
+
+    this.enqueueTodo(async () => {
+      const ctx = this.activeContext
+      if (!ctx || ctx.token !== this.token) return
+      try {
+        const children = await ctx.get<ServerSession[]>(`/session/${encodeURIComponent(sessionID)}/children`)
+        if (ctx.token !== this.token) return
+        if (Array.isArray(children)) {
+          if (this.d.store.setChildren(sessionID, children)) {
+            this.d.onChange()
+          }
+        }
+      } catch (e) {
+        if (ctx.token !== this.token) return
+        if (e instanceof HttpError && e.status === 401) {
+          this.handleUnauthorized(ctx.origin, ctx.abort)
+          return
+        }
+        this.d.log?.(`feed: GET /session/${sessionID}/children failed (${e instanceof Error ? e.message : String(e)})`)
       }
     })
   }

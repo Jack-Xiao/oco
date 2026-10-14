@@ -1788,3 +1788,119 @@ describe("pendingOf (card 2 stop)", () => {
   })
 })
 
+describe("SessionStore subagents aggregation (M20)", () => {
+  test("subagents returns total 0 when there are no child sessions", () => {
+    const store = make()
+    store.add(session({ id: "root", title: "Root", time: { updated: 10 } }))
+    const sub = store.subagents("root")
+    expect(sub).toEqual({
+      done: 0,
+      total: 0,
+      running: 0,
+      waiting: 0,
+      error: 0,
+      items: [],
+    })
+  })
+
+  test("setChildren merges owned children, sets parentID, filters unowned, and returns changed", () => {
+    const store = make()
+    store.add(session({ id: "root", title: "Root" }))
+
+    // Add children (one owned without explicit parentID, one foreign)
+    const changed1 = store.setChildren("root", [
+      { id: "c1", directory: WORK, title: "Child 1", time: { created: 10, updated: 10 } },
+      { id: "foreign", directory: "/unowned", title: "Foreign" },
+    ])
+    expect(changed1).toBe(true)
+    expect(store.has("c1")).toBe(true)
+    expect(store.has("foreign")).toBe(false)
+    const sub1 = store.subagents("root")
+    expect(sub1.total).toBe(1)
+    expect(sub1.items[0].id).toBe("c1")
+
+    // Calling again with identical children returns false
+    const changed2 = store.setChildren("root", [
+      { id: "c1", directory: WORK, title: "Child 1", time: { created: 10, updated: 10 } },
+    ])
+    expect(changed2).toBe(false)
+
+    // Updating a child returns true
+    const changed3 = store.setChildren("root", [
+      { id: "c1", directory: WORK, title: "Child 1 Updated", time: { created: 10, updated: 20 } },
+    ])
+    expect(changed3).toBe(true)
+    expect(store.subagents("root").items[0].title).toBe("Child 1 Updated")
+  })
+
+  test("subagents rolls up 4 statuses with proper priority: running > waiting > error > done", () => {
+    const store = make()
+    store.add(session({ id: "root", title: "Root" }))
+    store.setChildren("root", [
+      session({ id: "c-done", title: "Done Child", time: { created: 10 } }),
+      session({ id: "c-err", title: "Error Child", time: { created: 20 } }),
+      session({ id: "c-wait", title: "Wait Child", time: { created: 30 } }),
+      session({ id: "c-run", title: "Run Child", time: { created: 40 } }),
+    ])
+
+    // c-err has error
+    store.applyEvent(ev("session.error", { sessionID: "c-err", error: { data: { message: "fail" } } }))
+
+    // c-wait has pending question AND an error (waiting should take priority over error)
+    store.applyEvent(ev("session.error", { sessionID: "c-wait", error: { data: { message: "minor fail" } } }))
+    store.applyEvent(ev("question.asked", { id: "q1", sessionID: "c-wait" }))
+
+    // c-run has status busy AND an error AND a pending permission (running should take priority over both)
+    store.applyEvent(ev("session.error", { sessionID: "c-run", error: { data: { message: "another fail" } } }))
+    store.applyEvent(ev("permission.asked", { id: "p1", sessionID: "c-run" }))
+    store.applyEvent(ev("session.status", { sessionID: "c-run", status: { type: "busy" } }))
+
+    const sub = store.subagents("root")
+    expect(sub.total).toBe(4)
+    expect(sub.running).toBe(1)
+    expect(sub.waiting).toBe(1)
+    expect(sub.error).toBe(1)
+    expect(sub.done).toBe(1)
+
+    // Check items order (created time ascending: c-done, c-err, c-wait, c-run)
+    expect(sub.items.map((i) => `${i.id}:${i.status}`)).toEqual([
+      "c-done:done",
+      "c-err:error",
+      "c-wait:waiting",
+      "c-run:running",
+    ])
+  })
+
+  test("grandchild busy or retry makes child item running", () => {
+    const store = make()
+    store.add(session({ id: "root", title: "Root" }))
+    store.setChildren("root", [
+      session({ id: "c1", title: "Child 1", time: { created: 10 } }),
+    ])
+    // Grandchild belongs to c1
+    store.setChildren("c1", [
+      session({ id: "g1", title: "Grandchild 1", time: { created: 20 } }),
+    ])
+
+    expect(store.subagents("root").items[0].status).toBe("done")
+
+    // Grandchild becomes busy
+    store.applyEvent(ev("session.status", { sessionID: "g1", status: { type: "busy" } }))
+    expect(store.subagents("root").items[0].status).toBe("running")
+    expect(store.subagents("root").running).toBe(1)
+
+    // Grandchild transitions to retry
+    store.applyEvent(ev("session.status", { sessionID: "g1", status: { type: "retry" } }))
+    expect(store.subagents("root").items[0].status).toBe("running")
+
+    // Grandchild returns to idle
+    store.applyEvent(ev("session.status", { sessionID: "g1", status: { type: "idle" } }))
+    expect(store.subagents("root").items[0].status).toBe("done")
+
+    // Grandchild has pending permission -> makes child waiting
+    store.applyEvent(ev("permission.asked", { id: "p-g1", sessionID: "g1" }))
+    expect(store.subagents("root").items[0].status).toBe("waiting")
+    expect(store.subagents("root").waiting).toBe(1)
+  })
+})
+

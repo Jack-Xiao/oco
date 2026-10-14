@@ -83,6 +83,7 @@ export function activate(context: vscode.ExtensionContext) {
   })
   // M02: visible sidebar rows ask the feed for their todo list once per epoch (busy sessions are fetched on snapshot anyway).
   view.setTodoProbe((id) => feed.ensureTodo(id))
+  view.setChildrenProbe((id) => feed.ensureChildren(id))
   const reviewNotes = new ReviewNotes(context.workspaceState)
   view.setNoteCounter((sessionId) => reviewNotes.count(conn.id, sessionId))
   context.subscriptions.push(reviewNotes, reviewNotes.onDidChange(() => view.refresh()))
