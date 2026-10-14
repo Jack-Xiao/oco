@@ -93,6 +93,20 @@
         "enablement": "isWorkspaceTrusted"
       },
       {
+        "command": "oco.sessions.stop",
+        "title": "Stop Session",
+        "category": "oco",
+        "icon": "$(debug-stop)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "oco.sessions.stopAllRunning",
+        "title": "Stop All Running Sessions…",
+        "category": "oco",
+        "icon": "$(debug-stop)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
         "command": "oco.addToDraft",
         "title": "Add to Draft… (Problems / Git diff)",
         "category": "oco",
@@ -245,6 +259,11 @@
           "group": "0_open@1"
         },
         {
+          "command": "oco.sessions.stop",
+          "when": "webviewId == 'oco.sessions' && webviewSection == 'session' && running",
+          "group": "0_run@1"
+        },
+        {
           "command": "oco.renameSession",
           "when": "webviewId == 'oco.sessions' && webviewSection == 'session'",
           "group": "1_edit@1"
@@ -300,6 +319,10 @@
         {
           "command": "oco.selectFolder",
           "when": "oco.multiRoot"
+        },
+        {
+          "command": "oco.sessions.stop",
+          "when": "false"
         }
       ],
       "terminal/context": [
@@ -372,7 +395,40 @@
           "type": "boolean",
           "default": true,
           "scope": "machine",
-          "markdownDescription": "Show a desktop warning notification when background sessions or subagents are waiting for permission or an answer."
+          "markdownDescription": "Show a desktop warning notification when background sessions or subagents are waiting for permission or an answer.",
+          "markdownDeprecationMessage": "Replaced by `#oco.notify.needsMe#` and `#oco.notify.finished#`. If this is set to `false` and neither new setting is set, both stay off."
+        },
+        "oco.notify.needsMe": {
+          "type": "string",
+          "enum": [
+            "off",
+            "windowNotFocused",
+            "always"
+          ],
+          "enumDescriptions": [
+            "Never.",
+            "Only when this VS Code window is not focused.",
+            "Always, except for the session you have in front of you."
+          ],
+          "default": "windowNotFocused",
+          "scope": "machine",
+          "markdownDescription": "Notify when a background session or subagent needs you: waiting for permission or an answer. Notifications appear inside VS Code, not in the system notification center."
+        },
+        "oco.notify.finished": {
+          "type": "string",
+          "enum": [
+            "off",
+            "windowNotFocused",
+            "always"
+          ],
+          "enumDescriptions": [
+            "Never.",
+            "Only when this VS Code window is not focused.",
+            "Always, except for the session you have in front of you."
+          ],
+          "default": "windowNotFocused",
+          "scope": "machine",
+          "markdownDescription": "Notify when a background session finishes or fails, with a one-line result summary and Open / Diff. Notifications appear inside VS Code, not in the system notification center."
         }
       }
     },
