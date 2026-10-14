@@ -2,7 +2,7 @@
 
 本文件是唯一的当前队列。状态只看 [STATUS](STATUS.md)。不要执行 HANDOFF 或 P1B-NEXT-STEPS 里的旧提示词。
 
-当前基线：main `9222aa7`（2026-10-14 合入卡 1、卡 3、卡 2 与 M20 第一步，已推送 origin）。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
+当前基线：main `9c54524`；卡 6 在分支 `claude/roadmap-batch-2026-10-14`（未合入 main，新增补丁 0024 / 0025，待卡 7 夜间验收后由用户决定合入）。上一批基线：main `9222aa7`（2026-10-14 合入卡 1、卡 3、卡 2 与 M20 第一步，已推送 origin）。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
 
 ## 0. 本轮路线（2026-10-13 用户确认：按建议从前往后做，一个会话做一张卡）
 
@@ -49,20 +49,43 @@
 - 两项都走草稿投递路径，按顺序做或合成一个实现任务，不要并行改同一批文件。
 - 验收：各一条 mock E2E；typecheck、unit、build；VSIX 已安装。
 
-### 卡 4：和用户一起重新排期 [DONE 2026-10-14：下一批只做 M20 子代理聚合；M12 暂不做；做完 M20 推送 origin 并让 Mac mini 更新到最新]
+### 卡 4：和用户一起重新排期 [DONE 2026-10-14：下一批只做 M20 子代理聚合；M12 暂不做；做完 M20 推送 origin 并让 Mac mini 更新到最新；2026-10-14 核对 Mac mini 已在 main 9c54524]
 
 - 待用户决定：M12 会话内排队（调查已完成，上游是「暂时移除」而非缺陷；若立项，形态为一枚小补丁：embedded 下 followup 默认 queue，加载时置 paused）；是否也连公共版 opencode（npm 最新 1.19.0，未验证）；T018。
 - 候选：M03 键盘直达、M14 第二步 Label + Snooze、M20 子代理聚合、M21 结果卡 Git 动作（先补 ADR-009 §4）、§1 / §2b 的测试与目视欠账。
 
 ### 卡 5：M20 子代理聚合第一步（S–M）[DONE 2026-10-14，合入 main 9222aa7，见 STATUS]
 
-- 剩余（另立项）：第二步——补丁扩 0017 标题行，子代理 pills（状态点，窄面板折叠为计数），点击走补丁 0016 既有会话链接 → 宿主 openSession；父 / 子 / 兄弟导航 chord 键位，when 限定 `activeWebviewPanelId == 'oco.chat'`。
+- [DONE 代码，卡 6] 剩余第二步——补丁扩 0017 标题行，子代理 pills（状态点，窄面板折叠为计数），点击走补丁 0016 既有会话链接 → 宿主 openSession；父 / 子 / 兄弟导航 chord 键位，when 限定 `activeWebviewPanelId == 'oco.chat'`。
+
+### 卡 6：路线图剩余可做项一次做完（2026-10-14）[DONE 代码 + 离线检查，E2E / 目视待卡 7]
+
+- 用户要求「全部完成、不跑耗时测试、省 token」。范围与委派记录见 [roadmap-batch-2026-10-14](evidence/roadmap-batch-2026-10-14.md)：M06 (1a)(2)、M14 第二步 Label + Snooze、M03 片 1 + 片 2、M19 资源管理器徽标、M08 Follow、M13 第二步评论线程、M20 第二步标题行 pills（补丁 0024）、§2b P1-2 / N2 / N3 / P3-9 / P3-10（补丁 0025）、§3 的 bridge-policy realpath、懒取上限、E2E 助手两处、c4 / c5 真实模式放宽、夜间脚本。
+- 离线（25f3f9a）：typecheck 0；unit 422/0；vendor typecheck 0；build PASS；Grok 只读评审 5 处缺陷已修（snooze 丢失、非 loopback 也 realpath、评论线程路径基准、Follow 关面板后仍跟随、代理写盘被当成用户编辑）；本机已装 `oco-0.0.4-25f3f9a.vsix`。E2E 与真实模型目视全部 NOT RUN。
+
+### 卡 7：夜间验收（用户睡前开新会话粘贴；长测试，主线程只读 summary）
+
+开工提示词：
+
+> 项目 oco，分支 claude/roadmap-batch-2026-10-14。按 AGENTS.md，只做 docs/NEXT.md §0 的「卡 7」，开工只读 AGENTS.md、§0 卡 6 / 卡 7 和卡里点名的文件。授权：本地按路径提交，不推送、不合入 main。用户在睡觉，不要提问；需要决定的事记进卡 8。委派按 §0 固定做法，E2E 交 Claude 子代理（model: "sonnet"，难题 "opus"）。
+
+1. 新 mock E2E（Claude 子代理写并跑，套件各自独立，读 [tests 证据](evidence/roadmap-batch-2026-10-14-tests.md) 和 c10 / c16 / c17 的写法）：c18-permission-note（Always 预览文字、Deny with note 后 `GET /permission` 为空且服务端收到 message）、c19-label-snooze（加标签进分区；snooze 隐藏 / Unsnooze；新消息到达自动唤醒；等授权行不被隐藏、状态栏计数不变）、c20-inbox-nav（`oco.inbox.next` 打开并 Enter 直达；侧栏 j / k / Enter / ?）、c21-follow（开 Follow 后 agent 编辑的文件以 preview 打开且焦点不离开面板）、c22-review-threads（Add to Review Notes 后编辑器出现评论线程，Send all 后消失）、c23-subagent-pills（父会话面板标题行出现 pills，点 pill 打开子会话）、c24-runtime-question（运行视图环心点选项即回答，`GET /question` 为空）。M19 徽标若 Playwright 取不到，单测已覆盖，记 N/A。
+2. 回归：`bash scripts/overnight-e2e.sh`（默认 13 个套件，mock）+ 上面新套件；`bash scripts/overnight-e2e.sh --loop 10 p1b-narrow` 判定竞态；`bash scripts/overnight-e2e.sh c4-trajectory c5-runtime --real`。
+3. 失败：测试侧直接修；产品侧修两轮不过就记进卡 8，不硬磕。
+4. 真实模型目视预备：对下列项各截 1 张图放 `docs/evidence/runs/overnight-*/visual/`，在证据里列清单，留给用户早上看：收件箱 / worktree 会话、侧栏停止、通知、审阅意见与评论线程、Fix with OpenCode、子代理徽标与标题行 pills、Always 预览 / Deny with note、标签 / Snooze 分区、运行视图提问态与窄布局、亮色主题下侧栏分区。
+5. 收尾：更新 STATUS / PROGRESS / 本节，按路径提交，打包并本机安装 VSIX。
+
+### 卡 8：需要用户决定（不阻塞，早上看）
+
+- 默认键位：`oco.inbox.next`、`oco.session.parent / child / nextSibling / previousSibling / recent`、`oco.follow.toggle` 现在都不绑定；要不要给 chord 默认值（when 限定 `activeWebviewPanelId == 'oco.chat'` 或 oco 视图焦点）。
+- 卡 6 分支是否合入 main、是否推送（卡 7 通过后）。
+- 立项决策：M21 Git 动作（先补 ADR-009 §4）、M18 导出与分享、M15 Agents 视图、M04 回滚入口、Aider 式注释触发、T018 publisher 与许可证、M13 composer chip（需扩 DraftInsert 契约与补丁 0001）。
 
 ## 1. 真实模型回归（本批第二步）
 
 - [DONE 一轮] 真实模型全量 E2E：21 套件，首轮 16 套件无 FAIL；修测试后重跑 p1a-chat、p1a-identity 通过。见 [fail-diag](evidence/cleanup-2026-10-10-fail-diag.md)。
-- [TODO] p1b-narrow「新面板未出现」：两次落在不同宽度（320、260），先用 mock 模式循环复现，判定是否为产品侧打开新面板的竞态。
-- [TODO，测试侧] c4 live-update / subagent-row、c5 tool-turn / tool-fail / retry：按 `modelMode` 把依赖 mock 口令或模型时序的断言改判 N/A 或放宽采样；c5 真实模式外层超时调到 ≥ 30 分钟。
+- [TODO，卡 7 `overnight-e2e.sh --loop 10 p1b-narrow`] p1b-narrow「新面板未出现」：两次落在不同宽度（320、260），先用 mock 模式循环复现，判定是否为产品侧打开新面板的竞态。
+- [DONE 代码 522c08b，NOT RUN 待卡 7] c4 live-update / subagent-row、c5 tool-turn / tool-fail / retry：按 `modelMode` 把依赖 mock 口令或模型时序的断言改判 N/A 或放宽采样；c5 真实模式外层超时调到 ≥ 30 分钟。
 - [DONE 2026-10-10] 真实模型新对话运行视图：阶段序列与流式递增正常；轮末 tools-k 复核见第 3 节。
 - [NOT RUN] 嵌套 ≥2 层子代理：big-pickle 两次提示都只派一层；要验证得给 mock 补孙会话再加 E2E，或换会递归派发的模型。
 - [DONE 2026-10-10] 亮色主题目视：仅轨迹时间线圆点对比度偏低（第 3 节小项）。
@@ -84,9 +107,9 @@ oco 是 OpenCode 的客户端，不自建调度引擎。上游 1.18.33 已有 `t
 ## 2b. 运行视图 M5 设计评审（2026-10-10 第一批已落地；剩余另立项）
 
 - 已落地（样稿 + 补丁 0020，见 [STATUS](STATUS.md) 与 [runtime-m5-review-2026-10-10](evidence/runtime-m5-review-2026-10-10.md)）：P1-1 顶栏阶段 / 对象 / 已等时长 + 慢调用琥珀；P1-3 后半忽略态收敛；P2-5 计数合并；P2-6 去重；P2-8 疑似循环提示；P3-9 浮层文案；P3-10 刻度图例。不采用：P2-4、P2-7、空闲标签改短格式。
-- [TODO，单独立项] P1-2 提问态：环心卡片 = 问题 + 选项整行，点选项即回答。前提是产品里接通回答通道（现状：「你」卡片选项无 onClick，运行视图内无输入框，live 只有 Dismiss 按钮走 REST；见 [investigation](evidence/runtime-m5-review-2026-10-10-investigation.md) P1-2）。
-- [TODO，合成一轮] 窄布局（< 980）：N2 环心卡片是右侧整列高框（`ring-geo.ts` 窄布局几何），改成环占满宽度、卡片贴环下方；N3 空工具台在窄布局不收缩（`dk` 只进宽布局）。N1「模型框被站牌压住」在产品里不成立，不做。
-- [TODO，小] P3-10 剩余：进度条标签避让红 / 黄刻度（`trackLabelsAt` 目前不看刻度位置）。P3-9 剩余：结果浮层「← 3/4 →」翻同一请求其他结果。
+- [DONE 代码 补丁 0025，目视待卡 7] P1-2 提问态：环心卡片 = 问题 + 选项整行，点选项即回答。前提是产品里接通回答通道（现状：「你」卡片选项无 onClick，运行视图内无输入框，live 只有 Dismiss 按钮走 REST；见 [investigation](evidence/runtime-m5-review-2026-10-10-investigation.md) P1-2）。
+- [DONE 代码 补丁 0025，目视待卡 7] 窄布局（< 980）：N2 环心卡片是右侧整列高框（`ring-geo.ts` 窄布局几何），改成环占满宽度、卡片贴环下方；N3 空工具台在窄布局不收缩（`dk` 只进宽布局）。N1「模型框被站牌压住」在产品里不成立，不做。
+- [DONE 代码 补丁 0025] P3-10 剩余：进度条标签避让红 / 黄刻度（`trackLabelsAt` 目前不看刻度位置）。P3-9 剩余：结果浮层「← 3/4 →」翻同一请求其他结果。
 - [TODO] 真实模型下目视本批顶栏文案与慢调用琥珀（并入第 1 节真实模型回归）。
 
 ## 3. 小项（按需）
@@ -103,10 +126,10 @@ oco 是 OpenCode 的客户端，不自建调度引擎。上游 1.18.33 已有 `t
 - 真实「断连」需宿主新增消息（改桥契约），v1 不做。
 - 补丁 0020 体量（58 个文件，多为新文件）：可选把纯新增文件移出补丁改为构建时叠加目录，只在 vendor 升级吃力时再做。
 
-- `bridge-policy.ts:83-87` 目录比较是精确字符串：服务端数据目录路径含符号链接时，返回的 worktree 目录与会话目录拼写不同，worktree 新建会话被拒（卡 2 E2E 环境发现，既有问题）。修法：loopback 下比较前 realpath，或统一规范化。
-- E2E 共享助手偶发：`tests/e2e/vscode.mjs` 启动时 `clearNotifications` 的命令面板 `fill` 30 s 超时（c10 8 次中 2 次，重跑即过）。在嵌套 worktree 跑 E2E 时 `.oco-test` 路径过长会超过 macOS socket 103 字符上限，需指向短路径。
+- [DONE 代码 卡 6，loopback 下 realpath] `bridge-policy.ts:83-87` 目录比较是精确字符串：服务端数据目录路径含符号链接时，返回的 worktree 目录与会话目录拼写不同，worktree 新建会话被拒（卡 2 E2E 环境发现，既有问题）。修法：loopback 下比较前 realpath，或统一规范化。
+- [DONE 代码 522c08b，NOT RUN 待卡 7] E2E 共享助手偶发：`tests/e2e/vscode.mjs` 启动时 `clearNotifications` 的命令面板 `fill` 30 s 超时（c10 8 次中 2 次，重跑即过）。在嵌套 worktree 跑 E2E 时 `.oco-test` 路径过长会超过 macOS socket 103 字符上限，需指向短路径。
 
-- 子会话 / todo 懒取对每个可见 pinned / recent 行各发一次（M20 E2E：测试服务端每次连接 74–92 次，并发上限 4）；行很多时可只取前 N 行或空闲时再取。
+- [DONE 代码 卡 6：只对收件箱、pinned 与 recent 前 20 行] 子会话 / todo 懒取对每个可见 pinned / recent 行各发一次（M20 E2E：测试服务端每次连接 74–92 次，并发上限 4）；行很多时可只取前 N 行或空闲时再取。
 
 ## 4. 仍未做的 v0.1 项（按需单独立项）
 

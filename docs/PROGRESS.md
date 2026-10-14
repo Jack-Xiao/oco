@@ -1078,3 +1078,8 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 验证：unit 393/0；c17 5/0 连续 3 次；c16 / c11 / c6 / p1b-sidebar 回归通过。本机已装 `oco-0.0.4-7388bce.vsix`。
 - 用户确认后合入 main（9222aa7），连同卡 1–3 一起推送 origin（用户要求：本批做完即推送，再让 Mac mini 更新到最新）。
 
+
+## 2026-10-14 卡 6：路线图剩余可做项
+
+- 用户要求「全部完成、不跑耗时测试、省 token」。主线程：契约（`answerPending` 共用回复、`FeedDeps.onEvent`）、补丁 0024 / 0025 生成、集成（两处 `as any` 改公共方法）、评审修复 5 处、文档与卡 7 夜间提示词。Gemini ×2：侧栏与宿主命令；Grok ×3：两项 vendor 改动与只读评审；Claude 子代理（sonnet）：E2E 测试侧与夜间脚本。委派记录见 [roadmap-batch-2026-10-14](evidence/roadmap-batch-2026-10-14.md)。
+- 验证：typecheck 0；unit 422/0；vendor typecheck 0；build PASS；E2E NOT RUN（卡 7）。本机已装 `oco-0.0.4-25f3f9a.vsix`。Mac mini 核对已在 main 9c54524。分支未合入 main、未推送。
