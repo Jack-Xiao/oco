@@ -353,10 +353,25 @@ try {
     await runShot(page, run, "5-waiting-hover-stop")
     const t0 = Date.now()
     await btn.click({ timeout: 8000 })
-    const within = async (fn) => ((await waitUntil(fn, Math.max(500, STOP_WITHIN_MS - (Date.now() - t0)), 200)) ? Date.now() - t0 : null)
-    const stoppedMs = await within(async () => !(await isRunning(s.id)))
-    const permissionGoneMs = await within(async () => (await pending()).length === 0)
-    const inboxGoneMs = await within(async () => (await inboxRow.count()) === 0)
+    // Sample until 3 s after the click (and until all three milestones are seen, at most 15 s): when the session first reads
+    // idle, when its permission and its inbox row go, and whether the session ever runs again after being idle (rejecting the
+    // permission after the abort must not restart it).
+    let stoppedMs = null
+    let permissionGoneMs = null
+    let inboxGoneMs = null
+    let restartedSamples = 0
+    let samples = 0
+    while (Date.now() - t0 < STOP_WITHIN_MS && (Date.now() - t0 < 3000 || stoppedMs === null || permissionGoneMs === null || inboxGoneMs === null)) {
+      const running = await isRunning(s.id)
+      if (!running && stoppedMs === null) stoppedMs = Date.now() - t0
+      if (running && stoppedMs !== null) restartedSamples++
+      if (permissionGoneMs === null && (await pending()).length === 0) permissionGoneMs = Date.now() - t0
+      if (inboxGoneMs === null && (await inboxRow.count()) === 0) inboxGoneMs = Date.now() - t0
+      samples++
+      await new Promise((r) => setTimeout(r, 100))
+    }
+    const idleAtEnd = !(await isRunning(s.id))
+    const heldIdleMs = Date.now() - t0
     const dotCleared = !!(await waitUntil(async () => {
       const d = await dotStatus(title)
       return d !== null && d !== "waiting" && d !== "running" ? true : null
@@ -364,8 +379,8 @@ try {
     const counterGone = !!(await waitUntil(async () => ((await sidebar()).stopText === null ? true : null), 15000, 400))
     const lastAssistantError = (await lastAssistant(s.id))?.info?.error?.name ?? null
     await runShot(page, run, "5-waiting-stopped")
-    rec("waiting-stop", asked && busyWhileWaiting && waitingDot && inboxShown && counted && shownOnHover && stoppedMs !== null && permissionGoneMs !== null && inboxGoneMs !== null && dotCleared && counterGone,
-      { asked, busyWhileWaiting, waitingDot, inboxShown, counted, stopTextWhileWaiting, shownOnHover, stoppedMs, permissionGoneMs, inboxGoneMs, withinMs: STOP_WITHIN_MS, dotCleared, counterGone, permissionStillPending: (await pending()).length, lastAssistantError })
+    rec("waiting-stop", asked && busyWhileWaiting && waitingDot && inboxShown && counted && shownOnHover && stoppedMs !== null && permissionGoneMs !== null && inboxGoneMs !== null && dotCleared && counterGone && restartedSamples === 0 && idleAtEnd,
+      { asked, busyWhileWaiting, waitingDot, inboxShown, counted, stopTextWhileWaiting, shownOnHover, stoppedMs, permissionGoneMs, inboxGoneMs, withinMs: STOP_WITHIN_MS, restartedSamples, samples, heldIdleMs, idleAtEnd, dotCleared, counterGone, permissionStillPending: (await pending()).length, lastAssistantError })
   } catch (e) {
     rec("waiting-stop", false, { error: errMsg(e) })
   }
