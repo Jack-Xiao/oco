@@ -240,10 +240,18 @@ export class PanelRegistry {
     await this.context.workspaceState.update(this.pendingKey(e), list.length ? list : undefined)
   }
 
+  /** Draft ids already posted to a page and not yet acknowledged; a view-state change must not re-post them (the page appends on every insert). */
+  private readonly sentDrafts = new WeakMap<Entry, Set<string>>()
+
   private flushDrafts(e: Entry) {
     if (!e.ready || !e.panel.visible || e.binding.draft) return
-    for (const d of this.pending(e))
+    const sent = this.sentDrafts.get(e) ?? new Set<string>()
+    this.sentDrafts.set(e, sent)
+    for (const d of this.pending(e)) {
+      if (sent.has(d.id)) continue
+      sent.add(d.id)
       e.bridge.core.sendCurrent({ type: "draft.insert", id: d.id, sessionId: e.binding.sessionId, text: d.text, source: d.source })
+    }
   }
 
   /** Used by open() and by the serializer after Reload Window. */
@@ -330,6 +338,7 @@ export class PanelRegistry {
               entry.pendingReview = undefined
             }
             this.log.info(`panel ready ${entry.binding.sessionId} gen ${entry.bridge.core.generation}`)
+            this.sentDrafts.delete(entry) // a (re)loaded page has seen none of them
             this.flushDrafts(entry)
             this.sendConnection(entry)
             const b = entry.binding
@@ -340,6 +349,7 @@ export class PanelRegistry {
             return
           }
           case "draft.ack": {
+            this.sentDrafts.get(entry)?.delete(msg.id)
             if (msg.ok) entry.stats.draftAcks++
             else {
               // The page refused (e.g. not showing the bound session): surface it, never retarget.

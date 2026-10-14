@@ -36,6 +36,7 @@ export type WebRow = {
   tooltip: string
   aria: string
   pinned: boolean
+  notes?: number
   todo?: { done: number; total: number; items: Array<{ content: string; status: string }> }
 }
 export type WebListModel = {
@@ -72,6 +73,7 @@ export class SessionsView implements vscode.Disposable {
   private readonly unread: UnreadTracker
   private readonly pinned = new Set<string>()
   private todoProbe?: (id: string) => void
+  private noteCounter?: (sessionId: string) => number
   private moreOpen = false
   private readonly clock: ReturnType<typeof setInterval>
   readonly notifier: PendingNotifier
@@ -147,6 +149,11 @@ export class SessionsView implements vscode.Disposable {
 
   setTodoProbe(fn: (id: string) => void): void {
     this.todoProbe = fn
+  }
+
+  setNoteCounter(fn: (sessionId: string) => number): void {
+    this.noteCounter = fn
+    this.refresh()
   }
 
   setMoreOpen(open: boolean): void {
@@ -248,6 +255,7 @@ export class SessionsView implements vscode.Disposable {
       : i.activity === "busy" || i.activity === "retry" ? "running"
       : unread ? "unread" : ""
     const tooltip = [i.title, statusText, i.updated ? `Updated ${new Date(i.updated).toLocaleString()}` : "", i.directory, i.error ? `Error: ${i.error}` : ""].filter(Boolean).join("\n")
+    const notes = this.noteCounter?.(i.id) ?? 0
     return {
       id: i.id,
       title: i.title,
@@ -256,6 +264,7 @@ export class SessionsView implements vscode.Disposable {
       tooltip,
       aria: [i.title, statusText, time].filter(Boolean).join(", "),
       pinned: this.isPinned(i.id),
+      ...(notes > 0 ? { notes } : {}),
       todo: i.todo,
     }
   }

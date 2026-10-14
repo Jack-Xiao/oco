@@ -13,6 +13,9 @@ import { BlobStore } from "./bridge-host"
 import { KvStore } from "./host-store"
 import { PanelRegistry, VIEW_TYPE, type Entry } from "./panels"
 import { registerAddToDraft } from "./add-to-draft"
+import { registerTerminalOutput } from "./terminal-output"
+import { registerFixWithOpenCode } from "./fix-with-opencode"
+import { ReviewNotes, registerReviewNotesCommands } from "./review-notes"
 import { registerCompactSession } from "./compact-session"
 import { ManagedServer } from "./managed-server"
 import { redactValue, VERIFIED_SERVERS } from "./diagnostics"
@@ -78,6 +81,9 @@ export function activate(context: vscode.ExtensionContext) {
   })
   // M02: visible sidebar rows ask the feed for their todo list once per epoch (busy sessions are fetched on snapshot anyway).
   view.setTodoProbe((id) => feed.ensureTodo(id))
+  const reviewNotes = new ReviewNotes(context.workspaceState)
+  view.setNoteCounter((sessionId) => reviewNotes.count(conn.id, sessionId))
+  context.subscriptions.push(reviewNotes, reviewNotes.onDidChange(() => view.refresh()))
   panels.onChange = () => {
     const e = panels.active
     view.setCurrent(e && e.binding.connectionId === feed.state.connectionId ? e.binding.sessionId : undefined)
@@ -338,6 +344,9 @@ export function activate(context: vscode.ExtensionContext) {
       if (targets.length) view.markUnread(targets.map((s) => s.id))
     }),
     registerAddToDraft(panels), // M05 first slice: Problems / Git diff → draft (oco.addToDraft)
+    registerTerminalOutput(panels), // M05: last terminal command → draft
+    registerFixWithOpenCode(panels), // M05: Fix with OpenCode → draft
+    ...registerReviewNotesCommands(panels, reviewNotes, conn), // M13: Review notes → draft (oco.addToReviewNotes)
     // M07 (1): oco.compactSession — POST /session/:id/summarize with the session's last assistant model, after a modal confirm.
     registerCompactSession({
       request: (method, path, body, directory) => conn.request(method, path, body, directory),

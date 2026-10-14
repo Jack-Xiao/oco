@@ -6,7 +6,7 @@ import { describe, expect, mock, test } from "bun:test"
 
 // The module imports "vscode" at load time (used only inside the command); the pure functions under test never touch it.
 mock.module("vscode", () => ({}))
-import { DRAFT_MAX_LINES, formatGitDiff, formatProblems, isExcluded, truncateTail } from "../../apps/extension/src/add-to-draft"
+import { DRAFT_MAX_LINES, formatGitDiff, formatProblems, isExcluded, parseProblemMarker, parseProblemMarkers, truncateTail } from "../../apps/extension/src/add-to-draft"
 
 describe("truncateTail", () => {
   test("exactly maxLines is unchanged", () => {
@@ -128,6 +128,54 @@ describe("formatGitDiff", () => {
     expect(text.startsWith("Git staged diff (1 file)\n```diff\n")).toBe(true)
     expect(text).toContain("+b")
     expect(source).toEqual({ kind: "gitDiff", scope: "staged", files: 1, truncated: false })
+  })
+})
+
+describe("parseProblemMarker", () => {
+  test("prefers arg.marker and maps MarkerSeverity", () => {
+    const got = parseProblemMarker({
+      message: "outer",
+      resource: { fsPath: "/ws/outer.ts" },
+      marker: {
+        resource: { fsPath: "/ws/src/a.ts", path: "/src/a.ts", scheme: "file" },
+        startLineNumber: 10,
+        startColumn: 2,
+        message: "Cannot find name",
+        severity: 8,
+        source: "ts",
+        code: "2304",
+      },
+    })
+    expect(got).toEqual({
+      path: "/ws/src/a.ts",
+      line: 10,
+      column: 2,
+      message: "Cannot find name",
+      severity: "error",
+      source: "ts",
+      code: "2304",
+    })
+  })
+  test("reads the arg itself, a code object, and warning severity", () => {
+    const got = parseProblemMarker({
+      resource: { path: "/src/b.ts" },
+      startLineNumber: 3,
+      startColumn: 1,
+      message: "unused",
+      severity: 4,
+      code: { value: 6133, target: { fsPath: "/docs" } },
+    })
+    expect(got).toEqual({ path: "/src/b.ts", line: 3, column: 1, message: "unused", severity: "warning", code: "6133" })
+    expect(parseProblemMarker({ resource: { fsPath: "/a.ts" }, startLineNumber: 1, startColumn: 1, message: "hint", severity: "Hint" })?.severity).toBe("hint")
+    expect(parseProblemMarker({ resource: { fsPath: "/a.ts" }, message: "info", severity: 2 })?.severity).toBe("info")
+  })
+  test("returns undefined when the message or resource is missing", () => {
+    expect(parseProblemMarker(undefined)).toBeUndefined()
+    expect(parseProblemMarker({ resource: { fsPath: "/a.ts" }, startLineNumber: 1 })).toBeUndefined()
+    expect(parseProblemMarker({ marker: { message: "x" } })).toBeUndefined()
+    expect(parseProblemMarkers([{ message: "no path" }, { resource: { fsPath: "/a.ts" }, message: "ok", severity: 0, startLineNumber: 4, startColumn: 1 }])).toEqual([
+      { path: "/a.ts", line: 4, column: 1, message: "ok", severity: "error" },
+    ])
   })
 })
 

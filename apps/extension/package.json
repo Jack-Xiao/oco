@@ -99,6 +99,26 @@
         "icon": "$(add)"
       },
       {
+        "command": "oco.addTerminalOutputToDraft",
+        "title": "Add Terminal Output to Session Draft",
+        "category": "oco"
+      },
+      {
+        "command": "oco.addProblemToDraft",
+        "title": "Add Problem to Session Draft",
+        "category": "oco"
+      },
+      {
+        "command": "oco.addGitDiffToDraft",
+        "title": "Add Git Diff to Session Draft",
+        "category": "oco"
+      },
+      {
+        "command": "oco.fixWithOpenCode",
+        "title": "Fix with OpenCode",
+        "category": "oco"
+      },
+      {
         "command": "oco.searchSessions",
         "title": "Search Sessions",
         "category": "oco",
@@ -130,6 +150,21 @@
       {
         "command": "oco.addSelectionToDraft",
         "title": "Add Selection to Session Draft",
+        "category": "oco"
+      },
+      {
+        "command": "oco.addToReviewNotes",
+        "title": "Add to Review Notes",
+        "category": "oco"
+      },
+      {
+        "command": "oco.reviewNotes.sendAll",
+        "title": "Send Review Notes to Draft",
+        "category": "oco"
+      },
+      {
+        "command": "oco.reviewNotes.clear",
+        "title": "Clear Review Notes",
         "category": "oco"
       },
       {
@@ -247,6 +282,14 @@
       ],
       "commandPalette": [
         {
+          "command": "oco.addProblemToDraft",
+          "when": "false"
+        },
+        {
+          "command": "oco.fixWithOpenCode",
+          "when": "false"
+        },
+        {
           "command": "oco.loadMoreSessions",
           "when": "false"
         },
@@ -259,10 +302,34 @@
           "when": "oco.multiRoot"
         }
       ],
+      "terminal/context": [
+        {
+          "command": "oco.addTerminalOutputToDraft",
+          "group": "oco"
+        }
+      ],
+      "problems/context": [
+        {
+          "command": "oco.addProblemToDraft",
+          "group": "oco"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "oco.addGitDiffToDraft",
+          "when": "scmProvider == git",
+          "group": "navigation"
+        }
+      ],
       "editor/context": [
         {
           "command": "oco.addSelectionToDraft",
           "group": "oco@1"
+        },
+        {
+          "command": "oco.addToReviewNotes",
+          "when": "editorHasSelection",
+          "group": "oco@2"
         }
       ]
     },

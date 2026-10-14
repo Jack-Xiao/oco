@@ -1,4 +1,4 @@
-// "oco: Add to Draft…" — Problems and Git diff into a session draft.
+// "oco: Add to Draft…" — Problems, Git diff, and (via a bound reader) the active terminal into a session draft.
 // Pure formatters are separated from the vscode command so unit tests do not need the extension host.
 // Exclusion is a simplified gitignore: *, **, trailing-slash directories, leading-/ anchor, and ! negation
 // (later matching rules override earlier ones). files.exclude is applied before .gitignore lines.
@@ -33,13 +33,25 @@ export type ProblemItem = {
 
 export type ExcludeRules = { filesExclude: string[]; gitignore: string[] }
 
-type Panels = {
+export type DraftPanels = {
   list(): Entry[]
   active: Entry | undefined
   insertDraft(entry: Entry, text: string, source: DraftSource): Promise<void>
 }
 
-type SourceId = "problems-file" | "problems-all" | "git-working" | "git-staged"
+export type PreparedDraft = { text: string; source: DraftSource }
+
+/** Shown when the active terminal has no finished shell-integration command. */
+export const NO_FINISHED_TERMINAL = "oco: No finished command in the active terminal (shell integration required)"
+
+type SourceId = "problems-file" | "problems-all" | "git-working" | "git-staged" | "terminal"
+
+let readTerminalDraft: () => PreparedDraft | "missing" = () => "missing"
+
+/** Terminal capture registers this. Kept as a callback so this module does not import the capture module. */
+export function bindTerminalDraftSource(read: () => PreparedDraft | "missing"): void {
+  readTerminalDraft = read
+}
 
 /** Count logical lines. A single trailing newline does not add an empty line. */
 function splitLines(text: string): string[] {
@@ -300,7 +312,7 @@ export function formatGitDiff(
   }
 }
 
-function filesExcludePatterns(): string[] {
+export function filesExcludePatterns(): string[] {
   const value = vs().workspace.getConfiguration("files").get("exclude")
   if (!value || typeof value !== "object") return []
   return Object.entries(value as Record<string, unknown>)
@@ -308,7 +320,7 @@ function filesExcludePatterns(): string[] {
     .map(([pattern]) => pattern)
 }
 
-function gitignoreLines(): string[] {
+export function gitignoreLines(): string[] {
   const root = vs().workspace.workspaceFolders?.[0]?.uri.fsPath
   if (!root) return []
   try {
@@ -318,8 +330,12 @@ function gitignoreLines(): string[] {
   }
 }
 
-function asRel(uri: Uri | string): string {
+export function workspaceRelative(uri: Uri | string): string {
   return vs().workspace.asRelativePath(uri, false).replace(/\\/g, "/")
+}
+
+function asRel(uri: Uri | string): string {
+  return workspaceRelative(uri)
 }
 
 function severityOf(severity: Diagnostic["severity"]): ProblemItem["severity"] {
@@ -418,17 +434,116 @@ async function collectDiff(staged: boolean, rules: ExcludeRules): Promise<{ diff
   }
 }
 
+// Problems-view marker nodes are an unstable internal shape. MarkerSeverity (not DiagnosticSeverity) is
+// 1 hint / 2 info / 4 warning / 8 error. DiagnosticSeverity.Error is 0 and Hint is 3, so those two still map.
+export type ParsedProblemMarker = {
+  path: string
+  line: number
+  column: number
+  message: string
+  severity: ProblemItem["severity"]
+  source?: string
+  code?: string
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined
+  return value as Record<string, unknown>
+}
+
+function looksLikeMarker(rec: Record<string, unknown>): boolean {
+  return typeof rec.message === "string" || rec.resource !== undefined || typeof rec.startLineNumber === "number"
+}
+
+function resourcePath(resource: unknown): string | undefined {
+  if (typeof resource === "string" && resource.trim()) return resource
+  const rec = asRecord(resource)
+  if (!rec) return undefined
+  if (typeof rec.fsPath === "string" && rec.fsPath) return rec.fsPath
+  if (typeof rec.path === "string" && rec.path) return rec.path
+  if (typeof rec.external === "string" && rec.external) return rec.external
+  return undefined
+}
+
+export function markerSeverity(value: unknown): ProblemItem["severity"] {
+  if (typeof value === "string") {
+    const name = value.toLowerCase()
+    if (name === "error") return "error"
+    if (name === "warning" || name === "warn") return "warning"
+    if (name === "info" || name === "information") return "info"
+    if (name === "hint") return "hint"
+    return "info"
+  }
+  if (typeof value === "number") {
+    if (value === 8 || value === 0) return "error"
+    if (value === 4) return "warning"
+    if (value === 2) return "info"
+    if (value === 1 || value === 3) return "hint"
+  }
+  return "info"
+}
+
+function markerCode(code: unknown): string | undefined {
+  if (typeof code === "string" && code) return code
+  if (typeof code === "number") return String(code)
+  const rec = asRecord(code)
+  if (!rec) return undefined
+  if (typeof rec.value === "string" && rec.value) return rec.value
+  if (typeof rec.value === "number") return String(rec.value)
+  return undefined
+}
+
+function markerPosition(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 1 ? Math.floor(value) : 1
+}
+
+/** One Problems-view node: `arg.marker` when present, otherwise `arg` itself. */
+export function parseProblemMarker(arg: unknown): ParsedProblemMarker | undefined {
+  const rec = asRecord(arg)
+  if (!rec) return undefined
+  const nested = asRecord(rec.marker)
+  const node = nested && looksLikeMarker(nested) ? nested : rec
+  if (!looksLikeMarker(node) || typeof node.message !== "string" || !node.message) return undefined
+  const path = resourcePath(node.resource)
+  if (!path) return undefined
+  const item: ParsedProblemMarker = {
+    path,
+    line: markerPosition(node.startLineNumber),
+    column: markerPosition(node.startColumn),
+    message: node.message,
+    severity: markerSeverity(node.severity),
+  }
+  if (typeof node.source === "string" && node.source) item.source = node.source
+  const code = markerCode(node.code)
+  if (code) item.code = code
+  return item
+}
+
+export function parseProblemMarkers(arg: unknown): ParsedProblemMarker[] {
+  if (Array.isArray(arg)) {
+    const items: ParsedProblemMarker[] = []
+    for (const entry of arg) {
+      const one = parseProblemMarker(entry)
+      if (one) items.push(one)
+    }
+    return items
+  }
+  const one = parseProblemMarker(arg)
+  return one ? [one] : []
+}
+
 async function pickSource(): Promise<SourceId | undefined> {
   const choices: (QuickPickItem & { id: SourceId })[] = [
     { label: "Problems: current file", id: "problems-file" },
     { label: "Problems: all files", id: "problems-all" },
     { label: "Git: working tree diff", id: "git-working" },
     { label: "Git: staged diff", id: "git-staged" },
+    { label: "Terminal: last command output", id: "terminal" },
   ]
   return (await vs().window.showQuickPick(choices, { placeHolder: "Add to Draft…" }))?.id
 }
 
-async function pickPanel(panels: Panels, targetSessionId: unknown): Promise<Entry | undefined> {
+export async function pickPanel(panels: DraftPanels, targetSessionId: unknown): Promise<Entry | undefined> {
   const open = panels.list()
   if (open.length === 0) {
     void vs().window.showWarningMessage("oco: Open a session tab first")
@@ -445,33 +560,96 @@ async function pickPanel(panels: Panels, targetSessionId: unknown): Promise<Entr
   return target
 }
 
-export function registerAddToDraft(panels: Panels): Disposable {
-  return vs().commands.registerCommand("oco.addToDraft", async (targetSessionId?: unknown) => {
-    const kind = await pickSource()
-    if (!kind) return
-    const target = await pickPanel(panels, targetSessionId)
-    if (!target) return
-    const rules = { filesExclude: filesExcludePatterns(), gitignore: gitignoreLines() }
-    if (kind === "problems-file" || kind === "problems-all") {
-      const scope = kind === "problems-file" ? "file" : "all"
-      const items = collectProblems(scope, rules)
-      if (!items) return
-      if (items.length === 0) {
-        void vs().window.showWarningMessage("oco: No problems to add")
+function excludeRules(): ExcludeRules {
+  return { filesExclude: filesExcludePatterns(), gitignore: gitignoreLines() }
+}
+
+function scopeOf(items: ProblemItem[]): "file" | "all" {
+  const first = items[0]?.path
+  return items.every((item) => item.path === first) ? "file" : "all"
+}
+
+function problemsFromMarkers(arg: unknown, rules: ExcludeRules): ProblemItem[] | undefined {
+  const parsed = parseProblemMarkers(arg)
+  if (!parsed.length) return undefined
+  return parsed.map((item) => {
+    const rel = workspaceRelative(item.path)
+    const problem: ProblemItem = {
+      path: rel,
+      line: item.line,
+      column: item.column,
+      severity: item.severity,
+      message: item.message,
+      excluded: isExcluded(rel, rules),
+    }
+    if (item.source) problem.source = item.source
+    if (item.code) problem.code = item.code
+    return problem
+  })
+}
+
+async function insertProblems(panels: DraftPanels, target: Entry, items: ProblemItem[] | undefined, scope: "file" | "all"): Promise<void> {
+  if (!items) return
+  if (items.length === 0) {
+    void vs().window.showWarningMessage("oco: No problems to add")
+    return
+  }
+  const formatted = formatProblems(items, scope)
+  await panels.insertDraft(target, formatted.text, formatted.source)
+}
+
+async function insertGit(panels: DraftPanels, target: Entry, staged: boolean): Promise<void> {
+  const git = await collectDiff(staged, excludeRules())
+  if (!git) return
+  if (!git.diff.trim()) {
+    void vs().window.showWarningMessage(staged ? "oco: Staged diff is empty" : "oco: Working tree diff is empty")
+    return
+  }
+  const formatted = formatGitDiff({ diff: git.diff, files: git.files, scope: staged ? "staged" : "working" })
+  await panels.insertDraft(target, formatted.text, formatted.source)
+}
+
+export function registerAddToDraft(panels: DraftPanels): Disposable {
+  const vscode = vs()
+  return vscode.Disposable.from(
+    vscode.commands.registerCommand("oco.addToDraft", async (targetSessionId?: unknown) => {
+      const kind = await pickSource()
+      if (!kind) return
+      const target = await pickPanel(panels, targetSessionId)
+      if (!target) return
+      if (kind === "terminal") {
+        const prepared = readTerminalDraft()
+        if (prepared === "missing") {
+          void vscode.window.showWarningMessage(NO_FINISHED_TERMINAL)
+          return
+        }
+        await panels.insertDraft(target, prepared.text, prepared.source)
         return
       }
-      const formatted = formatProblems(items, scope)
-      await panels.insertDraft(target, formatted.text, formatted.source)
-      return
-    }
-    const staged = kind === "git-staged"
-    const git = await collectDiff(staged, rules)
-    if (!git) return
-    if (!git.diff.trim()) {
-      void vs().window.showWarningMessage(staged ? "oco: Staged diff is empty" : "oco: Working tree diff is empty")
-      return
-    }
-    const formatted = formatGitDiff({ diff: git.diff, files: git.files, scope: staged ? "staged" : "working" })
-    await panels.insertDraft(target, formatted.text, formatted.source)
-  })
+      const rules = excludeRules()
+      if (kind === "problems-file" || kind === "problems-all") {
+        const scope = kind === "problems-file" ? "file" : "all"
+        await insertProblems(panels, target, collectProblems(scope, rules), scope)
+        return
+      }
+      await insertGit(panels, target, kind === "git-staged")
+    }),
+    vscode.commands.registerCommand("oco.addProblemToDraft", async (arg?: unknown) => {
+      const target = await pickPanel(panels, undefined)
+      if (!target) return
+      const rules = excludeRules()
+      const picked = problemsFromMarkers(arg, rules)
+      if (picked) {
+        await insertProblems(panels, target, picked, scopeOf(picked))
+        return
+      }
+      await insertProblems(panels, target, collectProblems("file", rules), "file")
+    }),
+    vscode.commands.registerCommand("oco.addGitDiffToDraft", async (arg?: unknown) => {
+      // scm/title passes the source-control provider, not a session id.
+      const target = await pickPanel(panels, typeof arg === "string" ? arg : undefined)
+      if (!target) return
+      await insertGit(panels, target, false)
+    }),
+  )
 }

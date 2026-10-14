@@ -405,6 +405,12 @@ function syncSession(row) {
       renderList()
     })
 
+    const notesBadge = el("span", "notes-badge")
+    notesBadge.addEventListener("click", (e) => {
+      e.stopPropagation()
+      post({ type: "sendNotes", id: id })
+    })
+
     const pinBtn = document.createElement("button")
     pinBtn.type = "button"
     pinBtn.className = "pin-btn"
@@ -421,7 +427,7 @@ function syncSession(row) {
     const todoList = el("div", "todo-list")
     todoList.setAttribute("data-todo-list", "")
 
-    node.append(dot, pinMark, title, todoBadge, pinBtn, time, todoList)
+    node.append(dot, pinMark, title, todoBadge, notesBadge, pinBtn, time, todoList)
     pool.set(id, node)
   }
   updateSessionRow(node, row)
@@ -467,9 +473,10 @@ function updateSessionRow(node, row) {
   const pinMark = node.children[1]
   const titleEl = node.children[2]
   const todoBadge = node.children[3]
-  const pinBtn = node.children[4]
-  const timeEl = node.children[5]
-  const todoList = node.children[6]
+  const notesBadge = node.children[4]
+  const pinBtn = node.children[5]
+  const timeEl = node.children[6]
+  const todoList = node.children[7]
 
   if (titleEl.textContent !== title) titleEl.textContent = title
   if (timeEl.textContent !== time) timeEl.textContent = time
@@ -518,6 +525,16 @@ function updateSessionRow(node, row) {
     todoBadge.hidden = true
     todoList.hidden = true
     while (todoList.firstChild) todoList.removeChild(todoList.firstChild)
+  }
+
+  if (typeof row.notes === "number" && row.notes > 0) {
+    notesBadge.hidden = false
+    const badgeText = `${row.notes} to send`
+    if (notesBadge.textContent !== badgeText) notesBadge.textContent = badgeText
+    const badgeTitle = `Send ${row.notes} review notes to the draft`
+    if (notesBadge.getAttribute("title") !== badgeTitle) notesBadge.setAttribute("title", badgeTitle)
+  } else {
+    notesBadge.hidden = true
   }
 }
 
@@ -1358,7 +1375,7 @@ search.addEventListener("blur", () => layout())
 list.addEventListener("mousedown", (event) => { if (event.button === 1) event.preventDefault() })
 
 list.addEventListener("click", (event) => {
-  if (event.target.closest("button, .section-head, [data-question-form], .todo-badge")) return
+  if (event.target.closest("button, .section-head, [data-question-form], .todo-badge, .notes-badge")) return
   const groupHead = event.target.closest(".inbox-group-head")
   if (groupHead && list.contains(groupHead) && event.button === 0) {
     focusRow(groupHead)

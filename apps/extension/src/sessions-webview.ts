@@ -33,6 +33,7 @@ type FromPage =
   | { type: "pin"; id: string; pinned: boolean }
   | { type: "markUnread"; ids: string[] }
   | { type: "batch"; action: "archive" | "delete"; ids: string[] }
+  | { type: "sendNotes"; id: string }
 
 /**
  * The sidebar session list as a webview (time column, rounded selection, row height a native tree can't
@@ -146,6 +147,9 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
           const cmd = m.action === "archive" ? "oco.archiveSession" : "oco.deleteSession"
           void vscode.commands.executeCommand(cmd, { sessionId: m.ids[0], selection: m.ids })
         }
+        return
+      case "sendNotes":
+        if (typeof m.id === "string") void vscode.commands.executeCommand("oco.reviewNotes.sendAll", m.id)
         return
       case "questionReject": {
         if (!this.list.sessionStore.hasPending(m.id)) {
