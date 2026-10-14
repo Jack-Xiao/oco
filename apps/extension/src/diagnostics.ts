@@ -1,6 +1,7 @@
 // T015 diagnostics and connection presentation (pure; unit-tested). Nothing here may carry a password,
 // an authorization header or message text: the export is meant to be pasted into an issue.
 import type { ManagedState } from "./managed-server"
+import { v2UnsupportedMessage } from "./server-version"
 
 /** Server versions this build was verified against: the vendored v1.18.33 baseline and the enterprise
  * v1.18.13 service (E2E 2026-10-06 / 2026-10-11). Others work but are flagged. */
@@ -8,6 +9,7 @@ export const VERIFIED_SERVERS = ["1.18.33", "1.18.13"]
 
 export function versionNote(version: string | undefined): string | undefined {
   if (!version) return undefined
+  if (/^2\./.test(version)) return v2UnsupportedMessage(version)
   if (!/^1\./.test(version)) return `Server ${version} is not OpenCode v1. oco has not verified it; some features may be unavailable`
   if (!VERIFIED_SERVERS.includes(version)) return `Server ${version} is not verified by oco (verified: ${VERIFIED_SERVERS.join(", ")})`
   return undefined
@@ -44,7 +46,7 @@ export type ServerInfo = { version?: string; mode: "attached" | "managed"; manag
 export function serverInfoLines(info: ServerInfo | undefined): string[] {
   if (!info) return []
   const lines = [`Mode: ${info.mode === "managed" ? "Managed (opencode serve started by oco)" : "Attached server"}`]
-  if (info.version) lines.push(`Server version: ${info.version}`)
+  if (info.version) lines.push(`Server version: ${info.version}${/^2\./.test(info.version) ? " (unsupported)" : ""}`)
   const note = versionNote(info.version)
   if (note) lines.push(`Note: ${note}`)
   if (info.mode === "managed" && info.managed) {

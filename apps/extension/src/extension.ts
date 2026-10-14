@@ -17,8 +17,10 @@ import { registerTerminalOutput } from "./terminal-output"
 import { registerFixWithOpenCode } from "./fix-with-opencode"
 import { ReviewNotes, registerReviewNotesCommands } from "./review-notes"
 import { registerCompactSession } from "./compact-session"
+import { registerStopSessions } from "./stop-sessions"
 import { ManagedServer } from "./managed-server"
 import { redactValue, VERIFIED_SERVERS } from "./diagnostics"
+import { probeServerVersion, v2UnsupportedMessage } from "./server-version"
 
 let managedServer: ManagedServer | undefined
 
@@ -133,12 +135,15 @@ export function activate(context: vscode.ExtensionContext) {
     const st = feed.state
     if (st.state !== "connected" || !st.connectionId || versionFor === st.connectionId) return
     versionFor = st.connectionId
-    try {
-      serverVersion = (await conn.request<{ version?: string }>("GET", "/global/health")).version
-    } catch {
-      serverVersion = undefined
+    // /global/health first; a V2 server has no such route, so /api/info tells it apart (card 2).
+    const probe = await probeServerVersion((method, path) => conn.request(method, path))
+    serverVersion = probe.version
+    log.info(`server version ${serverVersion ?? "unknown"}${probe.source === "info" ? " (from /api/info)" : ""} (verified ${VERIFIED_SERVERS.join(", ")})`)
+    if (probe.generation === "v2" && probe.version) {
+      void vscode.window.showErrorMessage(`oco: ${v2UnsupportedMessage(probe.version)}`, "Open Settings").then((choice) => {
+        if (choice) void vscode.commands.executeCommand("oco.openSettings")
+      })
     }
-    log.info(`server version ${serverVersion ?? "unknown"} (verified ${VERIFIED_SERVERS.join(", ")})`)
     pushInfo()
   }
 
@@ -359,6 +364,16 @@ export function activate(context: vscode.ExtensionContext) {
       pickSession,
       requireTrust,
       onDone: () => view.refresh(),
+    }),
+    // Card 2 B (M10): stop from the sidebar (row ■, selection bar, context menu) and stop all running; POST /session/:id/abort per session directory.
+    ...registerStopSessions({
+      request: (method, path, body, directory) => conn.request(method, path, body, directory),
+      sessions: () => store.sessionStates(),
+      confirm: async (message, detail) => (await vscode.window.showWarningMessage(message, { modal: true, detail }, "Stop")) === "Stop",
+      info: (message) => void vscode.window.showInformationMessage(message),
+      warn: (message) => void vscode.window.showWarningMessage(message),
+      requireTrust,
+      pending: (ids) => store.pendingOf(ids),
     }),
     vscode.commands.registerCommand("oco.setServerPassword", async () => {
       try {

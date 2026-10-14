@@ -382,6 +382,15 @@ export class SessionStore {
     return cur
   }
 
+  /** Every loaded session (roots and subagents) with its own server status, not rolled up to the root (host actions such as Stop). */
+  sessionStates(): { id: string; parentID?: string; status: ServerStatus["type"]; directory: string; title: string }[] {
+    const out: { id: string; parentID?: string; status: ServerStatus["type"]; directory: string; title: string }[] = []
+    for (const [id, row] of this.rows) {
+      out.push({ id, parentID: row.session.parentID, status: row.status, directory: row.session.directory, title: row.session.title?.trim() || id })
+    }
+    return out
+  }
+
   /** Root sessions, newest first. `query` matches title or id, case-insensitively. */
   list(query?: string): SessionListItem[] {
     const perm = this.countByRoot(this.permissions)
@@ -514,6 +523,16 @@ export class SessionStore {
 
   getPending(id: string): PendingRequest | undefined {
     return this.permissions.get(id) ?? this.questions.get(id)
+  }
+
+  /** Pending permission / question requests of these sessions, each with the directory to answer it in (Stop clears them: abort alone leaves them pending). */
+  pendingOf(sessionIds: Iterable<string>): { id: string; kind: "permission" | "question"; sessionID: string; directory?: string }[] {
+    const ids = new Set(sessionIds)
+    const out: { id: string; kind: "permission" | "question"; sessionID: string; directory?: string }[] = []
+    for (const [kind, map] of [["permission", this.permissions], ["question", this.questions]] as const) {
+      for (const [id, req] of map) if (ids.has(req.sessionID)) out.push({ id, kind, sessionID: req.sessionID, directory: this.pendingDirectory(id) })
+    }
+    return out
   }
 
   pendingDirectory(id: string): string | undefined {

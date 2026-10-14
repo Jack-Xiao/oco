@@ -25,7 +25,7 @@ describe("connection settings contribution", () => {
   test("unauthorized offers the password command; password is not a setting", () => {
     expect(commands(welcome("unauthorized"))).toContain("oco.setServerPassword")
     const props = Object.keys(c.configuration.properties)
-    expect(props.sort()).toEqual(["oco.opencodePath", "oco.serverMode", "oco.serverUrl", "oco.serverUsername", "oco.sessions.notifyPending"])
+    expect(props.sort()).toEqual(["oco.notify.finished", "oco.notify.needsMe", "oco.opencodePath", "oco.serverMode", "oco.serverUrl", "oco.serverUsername", "oco.sessions.notifyPending"])
     expect(props.some((k) => /pass|secret|token/i.test(k))).toBe(false)
   })
   test("all settings stay machine scoped and are documented in English", () => {
@@ -38,6 +38,11 @@ describe("connection settings contribution", () => {
     expect(c.configuration.properties["oco.serverUsername"].markdownDescription).toContain("Set Server Password")
     expect(c.configuration.properties["oco.serverMode"].default).toBe("attached")
     expect(c.configuration.properties["oco.serverMode"].enum).toEqual(["attached", "managed"])
+    for (const k of ["oco.notify.needsMe", "oco.notify.finished"]) {
+      expect(c.configuration.properties[k].enum).toEqual(["off", "windowNotFocused", "always"])
+      expect(c.configuration.properties[k].default).toBe("windowNotFocused")
+    }
+    expect(c.configuration.properties["oco.sessions.notifyPending"].markdownDeprecationMessage).toContain("oco.notify.needsMe")
   })
   test("one webview Sessions view (its title row merges into the container's); no Connection or Agents view", () => {
     expect(c.views.oco).toEqual([{ type: "webview", id: "oco.sessions", name: "Sessions", contextualTitle: "oco" }])
@@ -46,7 +51,7 @@ describe("connection settings contribution", () => {
     expect(JSON.stringify(pkg)).not.toContain("onView:oco.connection")
     // Search is a title-bar button; row actions live in the webview's context menu.
     expect(c.menus["view/title"].map((m: any) => m.command)).toEqual(expect.arrayContaining(["oco.newSession", "oco.searchSessions", "oco.reconnect"]))
-    expect(c.menus["webview/context"].map((m: any) => m.command)).toEqual(["oco.openSessionInNewPanel", "oco.renameSession", "oco.archiveSession", "oco.deleteSession", "oco.compactSession", "oco.pinSession", "oco.unpinSession", "oco.markSessionsUnread"])
+    expect(c.menus["webview/context"].map((m: any) => m.command)).toEqual(["oco.openSessionInNewPanel", "oco.sessions.stop", "oco.renameSession", "oco.archiveSession", "oco.deleteSession", "oco.compactSession", "oco.pinSession", "oco.unpinSession", "oco.markSessionsUnread"])
     for (const m of c.menus["webview/context"]) expect(m.when).toContain("webviewId == 'oco.sessions' && webviewSection == 'session'")
     expect(c.menus["view/title"].find((m: any) => m.command === "oco.selectFolder")?.when).toContain("oco.multiRoot")
     for (const id of ["oco.selectFolder", "oco.exportDiagnostics", "oco.showLog", "oco.restartManagedServer", "oco.stopManagedServer"]) expect(c.commands.some((x: any) => x.command === id)).toBe(true)

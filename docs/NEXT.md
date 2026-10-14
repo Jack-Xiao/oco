@@ -2,7 +2,7 @@
 
 本文件是唯一的当前队列。状态只看 [STATUS](STATUS.md)。不要执行 HANDOFF 或 P1B-NEXT-STEPS 里的旧提示词。
 
-当前基线：main `88b56c2`（2026-10-14 合入卡 1、卡 3；本机 main 领先 origin 8 个提交，未推送）。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
+当前基线：main `88b56c2`（2026-10-14 合入卡 1、卡 3；本机 main 领先 origin 9 个提交，未推送）；卡 2 在分支 `claude/card2-stop-notify-v2`（eca230e），待用户决定是否合入。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
 
 ## 0. 本轮路线（2026-10-13 用户确认：按建议从前往后做，一个会话做一张卡）
 
@@ -33,7 +33,7 @@
   4. 新增 mock E2E `c13-worktree-inbox`：两个 worktree 会话同时等授权 → 不开面板，在侧栏全部 Allow → `GET /permission` 为空、计数归零。回归 c6-inbox、c12-new-session-draft、p1b-sidebar。
 - 验收：c13 通过；typecheck 0、unit 全过、build PASS；VSIX 已安装。如果复现时已经能收到，只补 c13 和 STATUS，可以在同一会话接着做卡 2。
 
-### 卡 2：侧栏停止 + 通知分级 + V2 识别（各 S）[进行中：合并已完成；B / C / V2 在分支 `claude/card2-stop-notify-v2`]
+### 卡 2：侧栏停止 + 通知分级 + V2 识别（各 S）[DONE 2026-10-14，分支 `claude/card2-stop-notify-v2` eca230e，待用户决定是否合入 main；见 STATUS]
 
 - [DONE 2026-10-14：本机 ssh fetch Mac mini 分支后合入 = 88b56c2，c13 / c14 / c15 / c6 / c12 / p1b-sidebar 全过，见 [card2-merge-e2e](evidence/card2-merge-e2e.md)；Mac mini 上两个 worktree 待卡 2 收尾时移除] 开工先合并：确认卡 1、卡 3 两个会话都已结束，只读两份证据文件的结论段；把 `claude/card1-worktree-inbox`、`claude/card3-review-notes` 依次合进 main，冲突以卡 1 的按会话目录逻辑为准；合并后跑 typecheck、unit、build 和两边新增的 E2E。收尾时一并 `git worktree remove` 两个 worktree。
 - B 侧栏一键停止（M10，`roadmap-research-2026-10-10.md:333`）。现在侧栏没有停止入口，`oco.stopManagedServer` 停的是整个托管服务。计划：运行中的行悬停出现 ■，多选栏加 Stop，状态栏「Stop all running」先确认一次；宿主 `POST /session/:id/abort`，发送前核对仍是 busy；停父会话时提示会连带停后台子代理。mock E2E：busy 会话从侧栏 Stop → 回到 idle、转圈消失。
@@ -98,6 +98,9 @@ oco 是 OpenCode 的客户端，不自建调度引擎。上游 1.18.33 已有 `t
 - M07 后续：收件箱「压缩中」行与 `session.compacted` 订阅（现在按请求 resolve 即结束）。
 - 真实「断连」需宿主新增消息（改桥契约），v1 不做。
 - 补丁 0020 体量（58 个文件，多为新文件）：可选把纯新增文件移出补丁改为构建时叠加目录，只在 vendor 升级吃力时再做。
+
+- `bridge-policy.ts:83-87` 目录比较是精确字符串：服务端数据目录路径含符号链接时，返回的 worktree 目录与会话目录拼写不同，worktree 新建会话被拒（卡 2 E2E 环境发现，既有问题）。修法：loopback 下比较前 realpath，或统一规范化。
+- E2E 共享助手偶发：`tests/e2e/vscode.mjs` 启动时 `clearNotifications` 的命令面板 `fill` 30 s 超时（c10 8 次中 2 次，重跑即过）。在嵌套 worktree 跑 E2E 时 `.oco-test` 路径过长会超过 macOS socket 103 字符上限，需指向短路径。
 
 ## 4. 仍未做的 v0.1 项（按需单独立项）
 

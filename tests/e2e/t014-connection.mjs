@@ -13,7 +13,8 @@ const run = createRun({ suite: "t014-connection", required: CASES, scriptPath: f
 const DIRECT = process.env.OCO_TEST_URL ?? "http://127.0.0.1:4517"
 const proxy = await startProxy({ target: DIRECT })
 let deny401 = false
-proxy.intercept((method, url) => (deny401 && url.pathname === "/event" ? { status: 401, json: { error: "unauthorized" } } : undefined))
+// The feed opens /global/event first (card 1) and falls back to /event only on 404: deny both so the 401 reaches it.
+proxy.intercept((method, url) => (deny401 && (url.pathname === "/event" || url.pathname === "/global/event") ? { status: 401, json: { error: "unauthorized" } } : undefined))
 let app
 run.installCrashHandlers(async () => {
   await app?.close().catch(() => {})

@@ -1755,3 +1755,36 @@ describe("SessionStore pendingDirectory", () => {
   })
 })
 
+describe("sessionStates (card 2 stop)", () => {
+  test("lists roots and subagents with their own status, not rolled up", () => {
+    const store = new SessionStore(() => true)
+    store.add({ id: "p", title: "Parent", directory: "/w" })
+    store.add({ id: "c", title: "Child", directory: "/w", parentID: "p" })
+    store.applyEvent({ type: "session.status", properties: { sessionID: "c", status: { type: "busy" } } } as any)
+    const states = store.sessionStates()
+    expect(states.find((s) => s.id === "p")?.status).toBe("idle")
+    expect(states.find((s) => s.id === "c")).toEqual({ id: "c", parentID: "p", status: "busy", directory: "/w", title: "Child" })
+    expect(store.list().find((i) => i.id === "p")?.activity).toBe("busy")
+  })
+})
+
+describe("pendingOf (card 2 stop)", () => {
+  test("returns permissions and questions of the given sessions with their directories", () => {
+    const store = new SessionStore(() => true)
+    store.applySnapshot({
+      sessions: [
+        { id: "s1", title: "One", directory: "/w" },
+        { id: "s2", title: "Two", directory: "/w2" },
+      ],
+      status: {},
+      permissions: [{ id: "p1", sessionID: "s1", permission: "bash" }, { id: "p2", sessionID: "s2", permission: "bash" }],
+      questions: [{ id: "q1", sessionID: "s1", questions: [{ question: "ok?" }] }],
+    } as any)
+    expect(store.pendingOf(["s1"])).toEqual([
+      { id: "p1", kind: "permission", sessionID: "s1", directory: "/w" },
+      { id: "q1", kind: "question", sessionID: "s1", directory: "/w" },
+    ])
+    expect(store.pendingOf([])).toEqual([])
+  })
+})
+

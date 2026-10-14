@@ -629,6 +629,13 @@ body.vscode-high-contrast .question-option-btn.selected {
 .selection-btn:hover {
   background: var(--vscode-toolbar-hoverBackground);
 }
+.selection-btn-danger {
+  color: var(--vscode-errorForeground, #f14c4c);
+  border-color: color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 40%, transparent);
+}
+.selection-btn-danger:hover {
+  background: color-mix(in srgb, var(--vscode-errorForeground, #f14c4c) 15%, transparent);
+}
 .selection-btn:focus-visible {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: -1px;
@@ -678,6 +685,40 @@ body.vscode-high-contrast .question-option-btn.selected {
   background: var(--vscode-toolbar-hoverBackground);
 }
 .pin-btn:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+/* Stop button for running sessions */
+.stop-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  color: var(--vscode-errorForeground, #f14c4c);
+  cursor: pointer;
+  border-radius: 3px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 80ms linear;
+  flex: 0 0 18px;
+}
+.row:hover .stop-btn,
+.row:focus-within .stop-btn,
+.stop-btn:focus-visible {
+  opacity: 0.85;
+  pointer-events: auto;
+}
+.stop-btn:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground);
+}
+.stop-btn:focus-visible {
   outline: 1px solid var(--vscode-focusBorder);
   outline-offset: -1px;
 }
