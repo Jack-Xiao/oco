@@ -10,6 +10,9 @@
 //                    "Stop all 2 running sessions?", Cancel keeps everything running, Stop aborts all and clears the counter.
 //   cascade-confirm  a running parent with a running subagent: ■ asks `Stop "<title>"?` naming the subagents, and the
 //                    confirm stops parent and child (optional: NOT RUN when the 9 s subagent window is missed).
+//   waiting-stop     a session blocked on a bash permission (busy on the server, "waiting" in the sidebar) still gets the row ■
+//                    and counts in the status-bar stop counter; ■ aborts it (<= 15 s), clears its pending permission and its
+//                    inbox row.
 // The modal confirms are rendered into the DOM (window.dialogStyle=custom) so Playwright can click them.
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
@@ -17,8 +20,8 @@ import { launch, command, waitUntil, runShot, hostState, clearNotifications, cre
 import { api, MODEL, status, lastAssistant, textOf } from "./server.mjs"
 import { sessionsFrame, sessionRow } from "./lib/sessions-web.mjs"
 
-const CASES = ["row-stop", "selection-stop", "stop-all", "cascade-confirm"]
-const run = createRun({ suite: "c16-sidebar-stop", required: ["row-stop", "selection-stop", "stop-all"], scriptPath: fileURLToPath(import.meta.url) })
+const CASES = ["row-stop", "selection-stop", "stop-all", "cascade-confirm", "waiting-stop"]
+const run = createRun({ suite: "c16-sidebar-stop", required: ["row-stop", "selection-stop", "stop-all", "waiting-stop"], scriptPath: fileURLToPath(import.meta.url) })
 const health = await api("GET", "/global/health").catch(() => null)
 run.setEnv({ serverVersion: health?.version ?? null, modelMode: MODEL.mode })
 
@@ -317,12 +320,63 @@ try {
     await dialogDismiss().catch(() => {})
     rec("cascade-confirm", false, { error: errMsg(e) })
   }
+
+  // ---- 5. waiting-stop ------------------------------------------------------------------------------------
+  // The mock server asks for bash permission, so the session stays busy on the server while the sidebar shows it as
+  // "waiting" (and lists it in the inbox). It must still be stoppable: row ■, counted by the status-bar counter.
+  try {
+    for (const p of (await api("GET", "/permission")) ?? []) await api("POST", `/permission/${p.id}/reply`, { reply: "reject" }).catch(() => {})
+    await settle()
+    await clearSelection()
+    const title = `c16-wait-${rand}`
+    const s = await api("POST", "/session", { title })
+    if (!s?.id) throw new Error("waiting session create failed")
+    created.push(s.id)
+    await rowVisible(title)
+    await api("POST", `/session/${s.id}/prompt_async`, { model: MODEL_REF, parts: [{ type: "text", text: `Use the bash tool to run exactly: echo c16-wait-${rand}` }] })
+    const pending = async () => ((await api("GET", "/permission")) ?? []).filter((p) => p.sessionID === s.id)
+    const asked = !!(await waitUntil(async () => ((await pending()).length > 0 ? true : null), 30000, 200))
+    const busyWhileWaiting = await isRunning(s.id)
+    const waitingDot = !!(await waitUntil(async () => ((await dotStatus(title)) === "waiting" ? true : null), 20000, 200))
+    const frame = await sessionsFrame(page)
+    const inboxRow = frame.locator(`section[data-group="inbox"] .row[data-kind="permission"][data-session-id="${s.id}"]`)
+    const inboxShown = !!(await waitUntil(async () => ((await inboxRow.count()) > 0 ? true : null), 20000, 200))
+    const counted = !!(await waitUntil(async () => ((await sidebar()).stopText === "$(debug-stop) 1" ? true : null), 20000, 300))
+    const stopTextWhileWaiting = (await sidebar()).stopText
+    const row = await sessionRow(page, title)
+    await row.hover()
+    const btn = row.locator("[data-stop]")
+    const shownOnHover = !!(await waitUntil(async () => btn.evaluate((el) => {
+      const cs = getComputedStyle(el)
+      return !el.hidden && cs.display !== "none" && cs.pointerEvents !== "none" && parseFloat(cs.opacity) >= 0.5
+    }), 3000, 100))
+    await runShot(page, run, "5-waiting-hover-stop")
+    const t0 = Date.now()
+    await btn.click({ timeout: 8000 })
+    const within = async (fn) => ((await waitUntil(fn, Math.max(500, STOP_WITHIN_MS - (Date.now() - t0)), 200)) ? Date.now() - t0 : null)
+    const stoppedMs = await within(async () => !(await isRunning(s.id)))
+    const permissionGoneMs = await within(async () => (await pending()).length === 0)
+    const inboxGoneMs = await within(async () => (await inboxRow.count()) === 0)
+    const dotCleared = !!(await waitUntil(async () => {
+      const d = await dotStatus(title)
+      return d !== null && d !== "waiting" && d !== "running" ? true : null
+    }, 10000, 200))
+    const counterGone = !!(await waitUntil(async () => ((await sidebar()).stopText === null ? true : null), 15000, 400))
+    const lastAssistantError = (await lastAssistant(s.id))?.info?.error?.name ?? null
+    await runShot(page, run, "5-waiting-stopped")
+    rec("waiting-stop", asked && busyWhileWaiting && waitingDot && inboxShown && counted && shownOnHover && stoppedMs !== null && permissionGoneMs !== null && inboxGoneMs !== null && dotCleared && counterGone,
+      { asked, busyWhileWaiting, waitingDot, inboxShown, counted, stopTextWhileWaiting, shownOnHover, stoppedMs, permissionGoneMs, inboxGoneMs, withinMs: STOP_WITHIN_MS, dotCleared, counterGone, permissionStillPending: (await pending()).length, lastAssistantError })
+  } catch (e) {
+    rec("waiting-stop", false, { error: errMsg(e) })
+  }
 } catch (e) {
   if (!String(e?.message).includes("not a mock server")) {
     run.record("run", "FAIL", { error: errMsg(e) })
     if (page) await runShot(page, run, "error").catch(() => {})
   }
 } finally {
+  // A permission a stopped session left pending would show up in later suites' inboxes: reject this run's leftovers.
+  for (const p of (await api("GET", "/permission").catch(() => [])) ?? []) if (created.includes(p.sessionID)) await api("POST", `/permission/${p.id}/reply`, { reply: "reject" }).catch(() => {})
   for (const id of created) await api("POST", `/session/${id}/abort`).catch(() => {})
   if (app) await app.close().catch(() => {})
   process.exit(run.finish())

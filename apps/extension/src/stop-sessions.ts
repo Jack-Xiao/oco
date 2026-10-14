@@ -19,6 +19,9 @@ export type StopPlan = {
   targets: StopSessionItem[]
 }
 
+/** A pending permission / question of a session being stopped. */
+export type StopPendingItem = { id: string; kind: "permission" | "question"; directory?: string }
+
 export type StopSessionsDeps = {
   request: <T = unknown>(method: string, path: string, body?: unknown, directory?: string) => Promise<T>
   sessions: () => StopSessionItem[]
@@ -27,6 +30,8 @@ export type StopSessionsDeps = {
   warn: (message: string) => void
   /** Restricted Mode gate; false cancels before anything is sent. */
   requireTrust?: (what: string) => boolean
+  /** Pending requests of the given sessions. The server's abort idles a session but leaves its permission / question pending, so Stop rejects them afterwards. */
+  pending?: (sessionIds: string[]) => StopPendingItem[]
 }
 
 export type StopFailure = {
@@ -39,6 +44,8 @@ export type StopSessionsResult = {
   stopped: string[]
   failed: StopFailure[]
   cancelled: boolean
+  /** Pending request ids rejected after the aborts. */
+  cleared?: string[]
 }
 
 export function isSessionRunning(status?: string): boolean {
@@ -216,12 +223,29 @@ export async function stopSessions(
     }
   }
 
+  // Only sessions whose abort went through: their pending permissions / questions would otherwise linger in the inbox.
+  const pending = stopped.length && deps.pending ? deps.pending(stopped) : []
+  const cleared: string[] = []
+  const clearErrors: string[] = []
+  const rejects = await Promise.allSettled(
+    pending.map((p) =>
+      p.kind === "permission"
+        ? deps.request("POST", `/permission/${encodeURIComponent(p.id)}/reply`, { reply: "reject" }, p.directory)
+        : deps.request("POST", `/question/${encodeURIComponent(p.id)}/reject`, undefined, p.directory),
+    ),
+  )
+  rejects.forEach((res, i) => {
+    if (res.status === "fulfilled") cleared.push(pending[i].id)
+    else clearErrors.push(res.reason instanceof Error ? res.reason.message : String(res.reason))
+  })
+
   if (failed.length > 0) {
     const details = failed.map((f) => `"${f.title}": ${f.error}`).join("; ")
     deps.warn(`oco: Failed to stop ${failed.length} session(s): ${details}`)
   }
+  if (clearErrors.length > 0) deps.warn(`oco: Stopped, but ${clearErrors.length} pending request(s) could not be cleared: ${clearErrors.join("; ")}`)
 
-  return { stopped, failed, cancelled: false }
+  return { stopped, failed, cancelled: false, cleared }
 }
 
 /** Sessions whose parent is not loaded: the sidebar's top-level rows. Stop-all targets these and cascades. */

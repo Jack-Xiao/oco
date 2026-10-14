@@ -525,6 +525,16 @@ export class SessionStore {
     return this.permissions.get(id) ?? this.questions.get(id)
   }
 
+  /** Pending permission / question requests of these sessions, each with the directory to answer it in (Stop clears them: abort alone leaves them pending). */
+  pendingOf(sessionIds: Iterable<string>): { id: string; kind: "permission" | "question"; sessionID: string; directory?: string }[] {
+    const ids = new Set(sessionIds)
+    const out: { id: string; kind: "permission" | "question"; sessionID: string; directory?: string }[] = []
+    for (const [kind, map] of [["permission", this.permissions], ["question", this.questions]] as const) {
+      for (const [id, req] of map) if (ids.has(req.sessionID)) out.push({ id, kind, sessionID: req.sessionID, directory: this.pendingDirectory(id) })
+    }
+    return out
+  }
+
   pendingDirectory(id: string): string | undefined {
     const req = this.getPending(id)
     if (!req) return undefined

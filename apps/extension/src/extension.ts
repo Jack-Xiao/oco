@@ -373,6 +373,7 @@ export function activate(context: vscode.ExtensionContext) {
       info: (message) => void vscode.window.showInformationMessage(message),
       warn: (message) => void vscode.window.showWarningMessage(message),
       requireTrust,
+      pending: (ids) => store.pendingOf(ids),
     }),
     vscode.commands.registerCommand("oco.setServerPassword", async () => {
       try {

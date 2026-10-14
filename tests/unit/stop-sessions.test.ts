@@ -218,7 +218,7 @@ describe("stopSessions", () => {
       body: undefined,
       directory: "/custom/worktree",
     })
-    expect(res).toEqual({ stopped: ["s1"], failed: [], cancelled: false })
+    expect(res).toEqual({ stopped: ["s1"], failed: [], cancelled: false, cleared: [] })
   })
 
   test("single target with descendants asks for confirmation with detail", async () => {
@@ -278,6 +278,52 @@ describe("stopSessions", () => {
     const res = await stopSessions(["s1"], { ...fixture.deps, requireTrust: () => false })
     expect(res).toEqual({ stopped: [], failed: [], cancelled: true })
     expect(fixture.requests).toEqual([])
+  })
+
+  test("after the aborts, rejects pending permissions and questions of the stopped sessions in their directories", async () => {
+    const fixture = createFixture([
+      { id: "p", status: "busy", title: "Parent", directory: "/w" },
+      { id: "c", parentID: "p", status: "busy", title: "Child", directory: "/w/.wt" },
+    ])
+    const pending = mock((ids: string[]) => {
+      expect(ids.sort()).toEqual(["c", "p"])
+      return [
+        { id: "perm1", kind: "permission" as const, directory: "/w" },
+        { id: "q1", kind: "question" as const, directory: "/w/.wt" },
+      ]
+    })
+    const res = await stopSessions(["p"], { ...fixture.deps, pending })
+    expect(fixture.requests.slice(2)).toEqual([
+      { method: "POST", path: "/permission/perm1/reply", body: { reply: "reject" }, directory: "/w" },
+      { method: "POST", path: "/question/q1/reject", body: undefined, directory: "/w/.wt" },
+    ])
+    expect(res.cleared).toEqual(["perm1", "q1"])
+    expect(fixture.warnCalls).toEqual([])
+  })
+
+  test("a session whose abort failed keeps its pending requests; a failed reject warns once", async () => {
+    const fixture = createFixture([
+      { id: "a", status: "busy", title: "A", directory: "/w" },
+      { id: "b", status: "busy", title: "B", directory: "/w" },
+    ])
+    const request = mock(async (method: string, path: string, body?: unknown, directory?: string) => {
+      fixture.requests.push({ method, path, body, directory })
+      if (path === "/session/b/abort" || path.startsWith("/permission/")) throw new Error("nope")
+      return {} as any
+    })
+    const seen: string[][] = []
+    const res = await stopSessions(["a", "b"], {
+      ...fixture.deps,
+      request: request as any,
+      pending: (ids) => {
+        seen.push(ids)
+        return [{ id: "perm-a", kind: "permission", directory: "/w" }]
+      },
+    })
+    expect(seen).toEqual([["a"]])
+    expect(res.cleared).toEqual([])
+    expect(fixture.warnCalls.length).toBe(2)
+    expect(fixture.warnCalls[1]).toContain("could not be cleared")
   })
 
   test("declining confirmation cancels stopping", async () => {
