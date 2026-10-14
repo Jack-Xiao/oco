@@ -1065,3 +1065,10 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 卡 1（worktree 会话进收件箱）与卡 3（审阅意见发回 agent、Fix with OpenCode）由规划会话在 Mac mini 上并行完成，分支与 Mac mini main `81aff36` 都未推到 origin。本机经 ssh fetch 取回，main 快进到 81aff36 后依次 `--no-ff` 合入 = `88b56c2`，无冲突；重叠的 `extension.ts`、`sessions-webview.ts` 自动合并后复核语义。
 - 验证：typecheck 0；unit 322/0；build PASS；补丁链 0001–0023 干净重放 23/23；E2E（mock，Claude 子代理 sonnet，约 15 分钟）c13 / c14 / c15 / c6 / c12 / p1b-sidebar 全部首跑通过，测试与产品均未改动，见 [card2-merge-e2e](evidence/card2-merge-e2e.md)。本机已装 `oco-0.0.4-88b56c2.vsix`。
 - 未推送。卡 2 在分支 `claude/card2-stop-notify-v2` 继续。
+
+## 2026-10-14 卡 2：侧栏停止 + 通知分级 + V2 识别
+
+- 主线程：契约（命令、设置、清单测试）、`extension.ts` 接线、状态栏 Stop all 项、统一「可停止」判定、评审修复 3 处（父会话空闲时 ■ 无效、等授权会话不可停且计数不一致、Stop 后待处理请求残留）。Gemini：侧栏停止；Grok：通知分级、V2 识别；Claude 子代理（sonnet）：c16 新套件与回归共 3 轮。委派记录见 [card2-stop-notify-v2](evidence/card2-stop-notify-v2-2026-10-14.md)。
+- 验证：unit 385/0；c16 5/0、c6 5/0、c10 6/0（第 3 轮），c11 / c13 / p1b-sidebar / t015 / t014 第 1 轮通过（t014 测试侧修复）。本机已装 `oco-0.0.4-eca230e.vsix`。
+- 分支 `claude/card2-stop-notify-v2`，未合入 main，未推送。
+
