@@ -89,7 +89,7 @@
 - mini-perf：数千行长会话滚动与数小时常驻内存趋势（先修 `perf.mjs` 按 `.oco-test/vscode/perf` 找进程、遇短路径失配的问题）；`test:bench` 端口 4096 / 3000 冲突。
 - mini-tools-k：轮末工具台 end 后 ≥2 s 采样复核。
 - mini-compat：对 npm 最新公共版 opencode（1.19.x）跑 mock 回归并列出差异，供「是否支持公共版」决策。
-- mini-remote：Mac mini 开远程登录后 VS Code Remote-SSH 连自身，解除 Remote 断网恢复 / Remote 窗口查看轨迹与运行视图的 BLOCKED（需用户确认开启 Remote Login）。
+- mini-remote（提示词 [docs/mini/mini-remote.md](mini/mini-remote.md)，card7 结束后派发）：VS Code Remote-SSH 连 Mac mini 自身，解除 Remote 断网恢复 / Remote 窗口查看轨迹与运行视图的 BLOCKED。2026-10-14 用户同意；前提是用户手动给 Mac mini 加自连 ssh key（安全配置不由代理改）。
 - 常驻：每次合入 main 后跑一次 `overnight-e2e.sh` 默认回归。
 
 本机保留：卡 8 的决策、卡 7 产品缺陷的修复与合入、上游补丁与 vendor 升级、§3 / §4 的产品小项与 v0.1 项（T009 / T010 / T011 / T014）、推送与发布。
