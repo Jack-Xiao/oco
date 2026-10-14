@@ -1,0 +1,907 @@
+diff --git a/packages/app/src/components/session/session-runtime-i18n.test.ts b/packages/app/src/components/session/session-runtime-i18n.test.ts
+index c20dbd6..f7b4feb 100644
+--- a/packages/app/src/components/session/session-runtime-i18n.test.ts
++++ b/packages/app/src/components/session/session-runtime-i18n.test.ts
+@@ -32,7 +32,7 @@ describe("ring copy", () => {
+   const zh = runtimeText({ locale: () => "zh", intl: () => "zh-CN" })
+ 
+   test("the three dictionaries add the same ring keys", () => {
+-    expect(ring(d.en).length).toBe(256)
++    expect(ring(d.en).length).toBe(264)
+     expect(ring(d.zh).sort()).toEqual(ring(d.en).sort())
+     expect(ring(d.zht).sort()).toEqual(ring(d.en).sort())
+   })
+diff --git a/packages/app/src/components/session/session-runtime-i18n.ts b/packages/app/src/components/session/session-runtime-i18n.ts
+index 4f908d1..e485fa3 100644
+--- a/packages/app/src/components/session/session-runtime-i18n.ts
++++ b/packages/app/src/components/session/session-runtime-i18n.ts
+@@ -174,8 +174,11 @@ const en = {
+   "ring.card.return.chars": "{{n}} chars returned",
+   "ring.card.noOutput": "(no output)",
+   "ring.card.waiting.pre": "Still waiting for {{n}}:",
+-  "ring.card.ask.wide": "{{n}} options under “You” on the left · answer in the input box",
+-  "ring.card.ask.narrow": "{{n}} options under “You” above",
++  "ring.card.ask.wide": "{{n}} options · pick one on this card",
++  "ring.card.ask.narrow": "{{n}} options · pick one on this card",
++  "ring.ask.chat": "Answer in chat",
++  "ring.card.pager.prev": "Previous result",
++  "ring.card.pager.next": "Next result",
+   "ring.card.permission.meta": "Approve or reject below the input box",
+   "ring.card.rejected.body": "You rejected the {{tool}} permission request.",
+   "ring.card.receipt.body": "Request {{m}} done: receipt {{total}} total (in {{in}} · out {{out}}) · {{cost}}",
+@@ -213,7 +216,7 @@ const en = {
+   "ring.you.round.narrow": "Round {{n}}, you said: {{text}}",
+   "ring.you.ask.head": "Question · {{header}} · {{n}} options",
+   "ring.you.ask.narrow": "Question · {{header}}",
+-  "ring.you.ask.hint": "Full question in the centre card · answer in the input box below (display only)",
++  "ring.you.ask.hint": "Answer on the centre card",
+   "ring.you.dismissed.line": "⊘ Last question dismissed {{at}} · waited {{dur}} ▸",
+   "ring.you.dismissed.hint": "Round {{n}} ends here · waiting for your next message",
+   "ring.you.dismissed.title": "Question “{{header}}” · options: {{options}}",
+@@ -495,8 +498,11 @@ const zh: Record<Key, string> = {
+   "ring.card.return.chars": "返回 {{n}} 字",
+   "ring.card.noOutput": "（无输出）",
+   "ring.card.waiting.pre": "还在等 {{n}} 个：",
+-  "ring.card.ask.wide": "{{n}} 个选项见左侧「你」· 在输入框回答",
+-  "ring.card.ask.narrow": "{{n}} 个选项见上方「你」",
++  "ring.card.ask.wide": "{{n}} 个选项 · 在这张卡片上点选",
++  "ring.card.ask.narrow": "{{n}} 个选项 · 在这张卡片上点选",
++  "ring.ask.chat": "到输入区回答",
++  "ring.card.pager.prev": "上一个结果",
++  "ring.card.pager.next": "下一个结果",
+   "ring.card.permission.meta": "在下方输入框批准或拒绝",
+   "ring.card.rejected.body": "你拒绝了 {{tool}} 的授权。",
+   "ring.card.receipt.body": "第 {{m}} 次请求完成：回执 合计 {{total}}（入 {{in}} · 出 {{out}}）· {{cost}}",
+@@ -534,7 +540,7 @@ const zh: Record<Key, string> = {
+   "ring.you.round.narrow": "第 {{n}} 轮你说：{{text}}",
+   "ring.you.ask.head": "提问 · {{header}} · {{n}} 个选项",
+   "ring.you.ask.narrow": "提问 · {{header}}",
+-  "ring.you.ask.hint": "问题全文见中间卡片 · 在下方输入框回答（此处只显示）",
++  "ring.you.ask.hint": "在中间卡片点选项回答",
+   "ring.you.dismissed.line": "⊘ 上次提问已忽略 {{at}} · 等了 {{dur}} ▸",
+   "ring.you.dismissed.hint": "第 {{n}} 轮到此结束 · 等你下一条消息",
+   "ring.you.dismissed.title": "提问「{{header}}」· 选项：{{options}}",
+@@ -812,8 +818,11 @@ const zht: Record<Key, string> = {
+   "ring.card.return.chars": "回傳 {{n}} 字",
+   "ring.card.noOutput": "（無輸出）",
+   "ring.card.waiting.pre": "還在等 {{n}} 個：",
+-  "ring.card.ask.wide": "{{n}} 個選項見左側「你」· 在輸入框回答",
+-  "ring.card.ask.narrow": "{{n}} 個選項見上方「你」",
++  "ring.card.ask.wide": "{{n}} 個選項 · 在這張卡片上點選",
++  "ring.card.ask.narrow": "{{n}} 個選項 · 在這張卡片上點選",
++  "ring.ask.chat": "到輸入區回答",
++  "ring.card.pager.prev": "上一個結果",
++  "ring.card.pager.next": "下一個結果",
+   "ring.card.permission.meta": "在下方輸入框批准或拒絕",
+   "ring.card.rejected.body": "你拒絕了 {{tool}} 的授權。",
+   "ring.card.receipt.body": "第 {{m}} 次請求完成：回執 合計 {{total}}（入 {{in}} · 出 {{out}}）· {{cost}}",
+@@ -851,7 +860,7 @@ const zht: Record<Key, string> = {
+   "ring.you.round.narrow": "第 {{n}} 輪你說：{{text}}",
+   "ring.you.ask.head": "提問 · {{header}} · {{n}} 個選項",
+   "ring.you.ask.narrow": "提問 · {{header}}",
+-  "ring.you.ask.hint": "問題全文見中間卡片 · 在下方輸入框回答（此處只顯示）",
++  "ring.you.ask.hint": "在中間卡片點選項回答",
+   "ring.you.dismissed.line": "⊘ 上次提問已忽略 {{at}} · 等了 {{dur}} ▸",
+   "ring.you.dismissed.hint": "第 {{n}} 輪到此結束 · 等你下一條訊息",
+   "ring.you.dismissed.title": "提問「{{header}}」· 選項：{{options}}",
+diff --git a/packages/app/src/components/session/session-runtime-ring-geo.test.ts b/packages/app/src/components/session/session-runtime-ring-geo.test.ts
+index 1cfdb3b..55a8ab4 100644
+--- a/packages/app/src/components/session/session-runtime-ring-geo.test.ts
++++ b/packages/app/src/components/session/session-runtime-ring-geo.test.ts
+@@ -245,25 +245,31 @@ describe("geoOf layout", () => {
+       }
+   })
+ 
+-  test("1d. zh output keeps the mockup values where they fit (pay width 2(R-44), ctr 1.12R, spine 44 px past the ring)", () => {
++  test("1d. zh wide keeps the mockup pay width; narrow centres the ring and puts the card under it", () => {
+     const wide = geo(1100, 720, 1)
+     expect(wide.pay.w).toBe(Math.round(2 * (wide.R - 44)))
+     const narrow = geo(760, 720, 1)
+-    expect(narrow.ctr.w).toBeCloseTo(1.12 * narrow.R, 6)
+-    expect(narrow.busO).toBeCloseTo(narrow.cx + narrow.R + 44 - 4, 6)
+-    expect(narrow.cx).toBeCloseTo(66 + narrow.R, 6)
++    expect(Math.abs(narrow.cx - narrow.W / 2)).toBeLessThan(1)
++    expect(narrow.pay.y).toBeGreaterThan(narrow.cy + narrow.R * 0.8)
++    expect(narrow.pay.x + narrow.pay.w).toBeGreaterThan(narrow.W * 0.9)
++    expect(narrow.ctr.x + narrow.ctr.w / 2).toBeCloseTo(narrow.cx, 6)
++    expect(narrow.tools.y).toBeGreaterThan(narrow.pay.y + narrow.pay.h - 1)
++    expect(narrow.lane.y).toBeGreaterThan(narrow.tools.y)
+   })
+ 
+-  test("1e. narrow keeps a usable counter box and payload column in every locale", () => {
++  test("1e. narrow ring is full width and the card is a full-width row under it, in every locale", () => {
+     for (const [name, L] of LOCALES)
+       for (const w of [560, 760, 979])
+         for (const h of HEIGHTS)
+           for (const k of KS) {
+             const g = geo(w, h, k, L)
+             const tag = `${name} ${w}x${h} k=${k}`
+-            expect(g.ctr.w, tag).toBeGreaterThanOrEqual(g.R - 1e-6) // at least R wide (half the radius either side)
+-            expect(g.pay.w, tag).toBeGreaterThanOrEqual(170)
+-            expect(Math.abs(g.ctr.x + g.ctr.w / 2 - g.cx), tag).toBeLessThan(1e-9)
++            expect(Math.abs(g.cx - g.W / 2), tag).toBeLessThan(1)
++            expect(g.pay.w, tag).toBeGreaterThan(g.W * 0.7)
++            expect(g.pay.y, tag).toBeGreaterThan(g.cy)
++            expect(g.pay.x + g.pay.w / 2, tag).toBeCloseTo(g.W / 2, 0)
++            expect(Math.abs(g.ctr.x + g.ctr.w / 2 - g.cx), tag).toBeLessThan(1e-6)
++            expect(g.ctr.w, tag).toBeGreaterThan(0)
+           }
+   })
+ 
+@@ -283,16 +289,15 @@ describe("geoOf layout", () => {
+         for (const k of [0, 1]) clean(geo(w, h, k, L), `${name} ${w}x${h} k=${k}`)
+   })
+ 
+-  test("1b. collapsed tools dock (dk 0 / 0.5) stays clean; wide docks shrink to the header strip, narrow ones keep their size", () => {
++  test("1b. collapsed tools dock (dk 0 / 0.5) stays clean; both layouts shrink, dk 0 is the header strip", () => {
+     for (const [w, h] of [[560, 470], [760, 720], [980, 470], [1100, 720], [1600, 1000]] as const)
+       for (const k of [0, 1])
+         for (const dk of [0, 0.5]) {
+           const g = geo(w, h, k, ZH, dk)
+           clean(g, `${w}x${h} k=${k} dk=${dk}`)
+           const full = geo(w, h, k, ZH, 1)
+-          if (g.mode === "wide") expect(g.tools.h).toBeLessThan(full.tools.h)
+-          else expect(g.tools).toEqual(full.tools)
+-          if (g.mode === "wide" && dk === 0) expect(g.tools.h).toBe(30)
++          expect(g.tools.h).toBeLessThan(full.tools.h)
++          if (dk === 0) expect(g.tools.h).toBe(30)
+         }
+   })
+ 
+@@ -303,13 +308,17 @@ describe("geoOf layout", () => {
+         expect(geo(w, h, 1).lane.h).toBeGreaterThan(RING.STRIP_H + 60)
+       }
+     }
+-    const sig = (g: RingGeoX) =>
+-      JSON.stringify([
++    const sig = (g: RingGeoX) => {
++      const rowAt = (i: number) => (g.rows.length ? Math.min(i, g.rows.length - 1) : -1)
++      const toolPts = (fn: (i: number) => { pts: unknown }) =>
++        [0, 1, 4].flatMap((i) => (rowAt(i) < 0 ? [] : [fn(rowAt(i)).pts]))
++      return JSON.stringify([
+         g.lane, g.tools, g.pay, g.sd, g.cells, g.obst, g.pill, g.rows,
+-        [0, 1, 4].map((i) => g.toolOut(i).pts), [2].map((i) => g.toolBack(i).pts),
++        toolPts(g.toolOut), toolPts(g.toolBack),
+         [0, 5].map((i) => g.subOut(i).pts), [0, 5].map((i) => g.subBack(i).pts), [0, 5].map((i) => g.subBack(i).hold),
+         g.pYou.pts, g.pAsk.pts, g.pAskBack.pts, g.dock(3),
+       ])
++    }
+     for (const [w, h, k] of [[1100, 720, 0.37], [560, 720, 0.8]] as const) expect(sig(geo(w, h, k))).toBe(sig(geo(w, h, k)))
+   })
+ 
+diff --git a/packages/app/src/components/session/session-runtime-ring-geo.ts b/packages/app/src/components/session/session-runtime-ring-geo.ts
+index dd324b1..083c037 100644
+--- a/packages/app/src/components/session/session-runtime-ring-geo.ts
++++ b/packages/app/src/components/session/session-runtime-ring-geo.ts
+@@ -138,10 +138,17 @@ function spread(R: number, pw: Record<PillId, number>, side: boolean): Spread {
+     dx.call = call
+     ctrHalf = clamp(Math.min(R - pw.asm / 2 + asm, R - pw.call / 2 + call) - GAP, 6, 0.56 * R)
+   }
++  // Split the extra gap by room, not equally: a long label beside a short one must take most of the shift.
+   const pair = (a: PillId, b: PillId) => {
+-    const s = Math.min(room(pw[a]), room(pw[b]), Math.max(0, ((pw[a] + pw[b]) / 2 + GAP - (ax(b) - ax(a))) / 2))
+-    dx[a] = -s
+-    dx[b] = s
++    const need = Math.max(0, (pw[a] + pw[b]) / 2 + GAP - (ax(b) - ax(a)))
++    const ra = room(pw[a])
++    const rb = room(pw[b])
++    const give = Math.min(need, ra + rb)
++    let sb = Math.min(rb, give / 2)
++    let sa = Math.min(ra, give - sb)
++    sb = Math.min(rb, give - sa)
++    dx[a] = -sa
++    dx[b] = sb
+   }
+   pair("think", "out")
+   pair("next", "wait")
+@@ -205,41 +212,64 @@ function baseWide(W: number, H: number, k: number, sideHalf: number, dk: number)
+   }
+ }
+ 
+-function baseNarrow(W: number, H: number, k: number, pw: Record<PillId, number>): Base {
++function baseNarrow(W: number, H: number, k: number, pw: Record<PillId, number>, dk: number): Base {
+   const pad = 8
+-  const you = { x: pad, y: pad, w: W - 2 * pad, h: 70 }
+-  const ringTop = you.y + you.h + 10
+-  const dockH = clamp(H - pad - ringTop - 8 - (72 + 2 * 100), 168, 196)
+-  const zoneH = H - pad - dockH - 8 - ringTop
+-  // Label-aware: the mockup puts the ring centre 58 px + R from the left and the spine 44 px past the ring. Wider labels
+-  // (English) push both out; the ring then shrinks (never below 70) until the payload column is back to the mockup's 198 px.
+-  const cxOf = (R: number, sp: Spread) => Math.max(pad + 58 + R, pad + 24 + sp.left)
+-  const spineOf = (R: number, sp: Spread) => cxOf(R, sp) + Math.max(R + 44, sp.right + 16)
+-  let R = clamp(Math.min((W - 330) / 2, (zoneH - 72) / 2), 70, 100)
+-  let sp = spread(R, pw, true)
+-  while (R > 70 && W - pad - spineOf(R, sp) - 14 < 198) {
+-    R = Math.max(70, R - 1)
+-    sp = spread(R, pw, true)
++  const gap = 8
++  // Short stages stack a smaller you bar, dock and lane so the ring can still sit full-width above the card.
++  const short = H < 560
++  const youH = short ? 44 : 52
++  const modelH = short ? 28 : 32
++  const toolsFull = short ? 58 : 120
++  const toolsH = Math.round(lerp(30, toolsFull, dk))
++  const laneFull = short ? 64 : clamp(Math.round(H * 0.18), 110, 160)
++  const laneH = Math.round(lerp(RING.STRIP_H, laneFull, k))
++
++  const you = { x: pad, y: pad, w: W - 2 * pad, h: youH }
++  const lane = { x: pad, y: H - pad - laneH, w: W - 2 * pad, h: laneH }
++  const tools = { x: pad, y: lane.y - gap - toolsH, w: W - 2 * pad, h: toolsH }
++  const top = you.y + you.h + gap
++  const bottom = tools.y - gap
++
++  const fitsW = (R: number) => {
++    const sp = spread(R, pw, true)
++    const cx = W / 2
++    return cx - sp.left >= pad - 0.5 && cx + sp.right <= W - pad + 0.5
+   }
+-  const cx = cxOf(R, sp)
+-  const cy = ringTop + 36 + 12 + R
+-  const spine = spineOf(R, sp)
+-  const mw = 2 * R + 64
+-  const model = { x: clamp(cx - mw / 2, pad + 16, spine - 10 - mw), y: ringTop, w: mw, h: 36 }
+-  const ringBot = cy + R + 24
+-  // lane collapsed (k=0): the lower right is a single line, the freed height goes to the payload card
+-  const pay = { x: spine + 14, y: ringTop, w: W - pad - spine - 14, h: lerp(zoneH + dockH - RING.STRIP_H, zoneH, k) }
+-  const ctr = { x: cx - sp.ctrHalf, y: cy - 0.6 * R, w: 2 * sp.ctrHalf, h: 1.16 * R }
+-  const dockY = ringTop + zoneH + 8
+-  const rowH = 23
+-  const tools = { x: pad, y: dockY, w: spine - 12 - pad, h: dockH }
+-  const toolCap = clamp(Math.floor((dockH - 26) / (rowH + 3)), 4, 6)
++  // Clearance outside the ring so station pills stay off the model box and the card (obst grows 3 px a side).
++  const pillPad = (R: number) => Math.max(gap, 11 + gap - 0.134 * R)
++  const payMin = short ? 72 : 96
++  const payMax = short ? 120 : 168
++  let R = Math.min(150, (bottom - top) / 2)
++  R = Math.max(52, Math.floor(R))
++  while (R > 52 && !fitsW(R)) R -= 1
++  let payH = clamp(Math.floor((bottom - top) * 0.34), payMin, payMax)
++  const block = (r: number, pay: number) => modelH + pillPad(r) + 2 * r + pillPad(r) + pay
++  while (R > 52 && block(R, payH) > bottom - top) R -= 1
++  while (payH > 64 && block(R, payH) > bottom - top) payH -= 2
++  if (block(R, payH) > bottom - top) payH = Math.max(48, bottom - top - (block(R, 0)))
++
++  const sp = spread(R, pw, true)
++  const cx = W / 2
++  const slack = Math.max(0, bottom - top - block(R, payH))
++  const modelY = top + slack / 2
++  const cy = modelY + modelH + pillPad(R) + R
++  const mw = Math.min(W - 2 * pad, Math.max(140, Math.round(2 * R)))
++  const model = { x: clamp(cx - mw / 2, pad, W - pad - mw), y: modelY, w: mw, h: modelH }
++  const pay = { x: pad, y: cy + R + pillPad(R), w: W - 2 * pad, h: payH }
++  // Counter stays inside the ring, inside the band the top and bottom pills leave free.
++  const safeTop = cy - 0.866 * R + 17
++  const safeBot = cy + 0.866 * R - 17
++  const ctrH = Math.max(20, Math.min(1.16 * R, safeBot - safeTop))
++  const ctr = { x: cx - sp.ctrHalf, y: safeTop + (safeBot - safeTop - ctrH) / 2, w: 2 * sp.ctrHalf, h: ctrH }
++  const rowH = 22
++  const toolCap = toolsH < 48 ? 0 : clamp(Math.floor((toolsH - 24) / (rowH + 4)), 1, 4)
+   const rows: Box[] = []
+-  for (let i = 0; i < toolCap; i++) rows.push({ x: pad + 6, y: dockY + 23 + i * (rowH + 3), w: tools.w - 12, h: rowH })
+-  const lane = { x: spine + 12, y: dockY + lerp(dockH - RING.STRIP_H, 0, k), w: W - pad - spine - 12, h: lerp(RING.STRIP_H, dockH, k) }
++  for (let i = 0; i < toolCap; i++) rows.push({ x: tools.x + 6, y: tools.y + 24 + i * (rowH + 4), w: tools.w - 12, h: rowH })
++  const busO = Math.min(cx + R, W - pad - 10)
++  const busB = Math.min(busO + 6, W - pad - 4)
+   return {
+-    mode: "narrow", k, W, H, R, cx, cy, pad, busO: spine - 4, busB: spine + 4,
+-    you, model, ctr, pay, tools, lane, rows, toolCap, laneCols: 2, laneRows: 3, ringBot,
++    mode: "narrow", k, W, H, R, cx, cy, pad, busO, busB,
++    you, model, ctr, pay, tools, lane, rows, toolCap, laneCols: 3, laneRows: 2, ringBot: pay.y - 4,
+   }
+ }
+ 
+@@ -269,7 +299,7 @@ export function geoOf(
+   }
+   // half-width of the widest pill sitting on the horizontal axis (asm left, call right)
+   const sideHalf = Math.max(pw.asm, pw.call) / 2
+-  const b = W >= RING.WIDE_MIN ? baseWide(W, H, k, sideHalf, dk) : baseNarrow(W, H, k, pw)
++  const b = W >= RING.WIDE_MIN ? baseWide(W, H, k, sideHalf, dk) : baseNarrow(W, H, k, pw, dk)
+   const { cx, cy, R, busO, busB, mode } = b
+   const wide = mode === "wide"
+ 
+@@ -362,8 +392,9 @@ export function geoOf(
+     const rail = b.pad + 6
+     pYou = poly([P(rail, b.you.y + b.you.h), P(rail, cy), asmL])
+     const ax = pill.wait.x - 4 // down the left of the pill, clear of the small text under it
+-    const ringBot = b.ringBot ?? cy + R + 24
+-    askArc = [P(pill.wait.x, pill.wait.cy), P(ax, pill.wait.cy), P(ax, ringBot - 6), P(rail, ringBot - 6), P(rail, b.you.y + b.you.h)]
++    // Stop above the card (it sits under the ring) and run up the left rail to "you".
++    const ringBot = b.ringBot ?? b.pay.y - 4
++    askArc = [P(pill.wait.x, pill.wait.cy), P(ax, pill.wait.cy), P(ax, ringBot), P(rail, ringBot), P(rail, b.you.y + b.you.h)]
+   }
+   const pAsk = poly(askArc)
+   const pAskBack = poly(askArc.slice().reverse())
+diff --git a/packages/app/src/components/session/session-runtime-ring-track.test.ts b/packages/app/src/components/session/session-runtime-ring-track.test.ts
+index 2265f84..a59a9df 100644
+--- a/packages/app/src/components/session/session-runtime-ring-track.test.ts
++++ b/packages/app/src/components/session/session-runtime-ring-track.test.ts
+@@ -234,9 +234,11 @@ describe("labels never reveal the future", () => {
+         for (let i = 1; i < spans.length; i++) expect(spans[i][0]).toBeGreaterThanOrEqual(spans[i - 1][1] + 6 - 1e-6)
+       }
+     }
+-    const narrow = trackLabelsAt(map, input, KEY.k10, 160, measureWith(zh)).map((l) => l.text.key)
++    const measure = measureWith(zh)
++    const narrow = trackLabelsAt(map, input, KEY.k10, 160, measure)
+     expect(narrow.length).toBeGreaterThan(0)
+-    expect(narrow.some((k) => k.endsWith(".short") || k === "ring.track.round")).toBe(true)
++    // 160 px still holds the long idle label once it shifts off a hot tick; anything wider than the track is dropped
++    for (const l of narrow) expect(measure(l.text) + 2).toBeLessThanOrEqual(160)
+   })
+   test("long gaps keep an hour tier in the short form", () => {
+     const input = fixture()
+@@ -261,6 +263,32 @@ describe("ticks", () => {
+     expect(ticksAt(input, ASK.start - 1).some((k) => k.cls === "a")).toBe(false)
+     expect(ticksAt(input, KEY.k08).some((k) => k.cls === "a")).toBe(true)
+   })
++  test("a red or yellow tick moves a label off itself; a plain or round tick does not", () => {
++    const input = fixture()
++    const map = trackMap(input)
++    const width = 900
++    const measure = measureWith(zh)
++    const base = trackLabelsAt(map, input, KEY.j04, width, measure)
++    const idle = base.find((l) => zh.phrase(l.text).includes("2 小时 6 分"))
++    expect(idle).toBeDefined()
++    const w = measure(idle!.text) + 2
++    const midV = ((idle!.x + w / 2) / width) * map.total
++    const tickT = map.tOf(midV)
++    const tickX = (map.vOf(tickT) / map.total) * width
++    const covers = (labels: typeof base) =>
++      labels.some((l) => {
++        const x1 = l.x + measure(l.text) + 2
++        return tickX > l.x - 4 && tickX < x1 + 4
++      })
++    expect(covers(base)).toBe(true)
++    const place = (cls: "" | "r" | "e" | "a") =>
++      trackLabelsAt(map, { ...input, ticks: [...input.ticks, { t: tickT, cls }] }, KEY.j04, width, measure)
++    expect(covers(place("e"))).toBe(false)
++    expect(covers(place("a"))).toBe(false)
++    const sig = (labels: typeof base) => labels.map((l) => [l.x, l.text.key])
++    expect(sig(place(""))).toEqual(sig(base))
++    expect(sig(place("r"))).toEqual(sig(base))
++  })
+   test("the playhead's round is the last one started", () => {
+     const input = fixture()
+     expect(trackRoundAt(input, T0)).toBeUndefined()
+diff --git a/packages/app/src/components/session/session-runtime-ring-track.ts b/packages/app/src/components/session/session-runtime-ring-track.ts
+index ac7355b..d0c56f4 100644
+--- a/packages/app/src/components/session/session-runtime-ring-track.ts
++++ b/packages/app/src/components/session/session-runtime-ring-track.ts
+@@ -198,17 +198,49 @@ export function trackLabelsAt(
+     const x0 = Math.max(0, Math.min(c.start ? c.x : c.x - w / 2, W - w))
+     return [x0, x0 + w]
+   }
++  // Red (failed) and yellow (question) ticks. A label that would cover one shifts aside, or is dropped.
++  const TICK_PAD = 4
++  const hotXs = input.ticks.filter((k) => k.t <= t && (k.cls === "e" || k.cls === "a")).map((k) => px(map.vOf(k.t)))
++  const blocked = (sp: [number, number]) => hotXs.some((x) => x > sp[0] - TICK_PAD && x < sp[1] + TICK_PAD)
++  const dodge = (sp: [number, number]): [number, number] | undefined => {
++    if (!blocked(sp)) return sp
++    const w = sp[1] - sp[0]
++    let best: [number, number] | undefined
++    let bestD = Infinity
++    const consider = (x0: number) => {
++      if (x0 < -1e-6 || x0 + w > W + 1e-6) return
++      const s: [number, number] = [x0, x0 + w]
++      if (blocked(s)) return
++      const d = Math.abs(x0 - sp[0])
++      if (d < bestD) {
++        best = s
++        bestD = d
++      }
++    }
++    for (const x of hotXs) {
++      consider(x - TICK_PAD - w)
++      consider(x + TICK_PAD)
++    }
++    return best
++  }
+   const free = (sp: [number, number], used: [number, number][]) =>
+     !used.some((u) => sp[0] < u[1] + LABEL_GAP && sp[1] > u[0] - LABEL_GAP)
++  const fitted = (c: Cand, extra: [number, number][]) => {
++    const raw = span(c)
++    if (!raw) return undefined
++    const sp = dodge(raw)
++    if (!sp || !free(sp, extra)) return undefined
++    return sp
++  }
+   const used: [number, number][] = []
+   const pick = new Map<Item, { c: Cand; sp: [number, number] }>()
+   // the first two (ongoing gap, current round) choose their forms together so both fit when possible
+   if (items.length > 1) {
+     outer: for (const c0 of items[0].c)
+       for (const c1 of items[1].c) {
+-        const a = span(c0)
+-        const b = span(c1)
+-        if (a && b && free(a, [b])) {
++        const a = fitted(c0, [])
++        const b = a && fitted(c1, [a])
++        if (a && b) {
+           pick.set(items[0], { c: c0, sp: a })
+           pick.set(items[1], { c: c1, sp: b })
+           used.push(a, b)
+@@ -221,8 +253,8 @@ export function trackLabelsAt(
+     let hit = pick.get(item)
+     if (!hit) {
+       for (const c of item.c) {
+-        const sp = span(c)
+-        if (sp && free(sp, used)) {
++        const sp = fitted(c, used)
++        if (sp) {
+           hit = { c, sp }
+           break
+         }
+diff --git a/packages/app/src/components/session/session-runtime-ring-types.ts b/packages/app/src/components/session/session-runtime-ring-types.ts
+index b566af5..4127167 100644
+--- a/packages/app/src/components/session/session-runtime-ring-types.ts
++++ b/packages/app/src/components/session/session-runtime-ring-types.ts
+@@ -31,7 +31,12 @@ export type PillId = "asm" | "think" | "out" | "call" | "wait" | "next"
+ // ---------- index (built once from full data; every query reads only fields at or before t) ----------
+ export type RingSpan = { partID: string; start: number; end?: number; text: string }
+ export type RingTodo = { text: string; status: "pending" | "in_progress" | "completed" | "cancelled" }
+-export type RingQuestion = { header: string; question: string; options: { label: string; description: string }[] }
++export type RingQuestion = {
++  header: string; question: string; options: { label: string; description: string }[]
++  multiple?: boolean
++  /** One single-choice question with options: the centre card can reply by clicking a row. */
++  inline?: boolean
++}
+ export type RingTool = {
+   id: string; callID: string; messageID: string
+   name: string; kind: "tool" | "task" | "question"
+@@ -138,7 +143,7 @@ export type RingYou = {
+   state: "pre" | "idle" | "sent" | "writing" | "need" | "dismissed" | "permission"
+   status: Phrase
+   round?: { n: number; agent: string; text: string }
+-  ask?: { header: string; question: string; options: { label: string; description: string }[]; waitedMs: number }
++  ask?: { header: string; question: string; options: { label: string; description: string }[]; waitedMs: number; inline?: boolean }
+   dismissed?: { header: string; options: string[]; waitedMs: number; at: number }
+   permission?: { permission: string; patterns: string[] }
+ }
+diff --git a/packages/app/src/components/session/session-runtime-ring-view.tsx b/packages/app/src/components/session/session-runtime-ring-view.tsx
+index 01e6722..ab4c434 100644
+--- a/packages/app/src/components/session/session-runtime-ring-view.tsx
++++ b/packages/app/src/components/session/session-runtime-ring-view.tsx
+@@ -2,7 +2,7 @@
+ // fixed boxes (you, model, counter, centre card, tools), the packet / label layer, the subagent dock mount and the
+ // card's full-text overlay. Reads only `frame` (facts at t) and the pure geometry of session-runtime-ring-geo.ts;
+ // copy comes from text.phrase() / text.t() or verbatim data; colours are var(--rt-*) only.
+-import { createEffect, createMemo, For, Index, Match, onCleanup, onMount, Show, Switch, type Accessor, type JSX } from "solid-js"
++import { createEffect, createMemo, createSignal, For, Index, Match, onCleanup, onMount, Show, Switch, type Accessor, type JSX } from "solid-js"
+ import { createStore } from "solid-js/store"
+ import type { RuntimeText } from "./session-runtime-i18n"
+ import { keyed } from "./session-runtime-keyed"
+@@ -22,6 +22,7 @@ import {
+   type RingPacket,
+   type RingWire,
+ } from "./session-runtime-ring-geo"
++import { resultPagesAt, type RingResultPage } from "./session-runtime-ring"
+ import { RingSubView } from "./session-runtime-ring-sub-view"
+ import { LOOP_SAME, RING } from "./session-runtime-ring-types"
+ import type {
+@@ -43,9 +44,14 @@ export type RingResult = {
+   files: { file: string }[]
+   open: (file?: string) => void
+ }
++/** Live question the centre card can answer with the composer's question.reply call. */
++export type RingAskReply = { requestID: string; sessionID: string; inline: boolean }
+ export type RingViewProps = {
+   index: Accessor<RingIndex>; frame: Accessor<RingFrame>; t: Accessor<number>
+   result?: Accessor<RingResult | undefined>   // result card: shown on the end / abort card, live only
++  /** Pending question request matching the ask on stage. Absent in replay and when nothing is waiting. */
++  askReply?: Accessor<RingAskReply | undefined>
++  onReply?: (target: RingAskReply, label: string) => Promise<void> | void
+   mode: Accessor<"live" | "replay">; reduced: Accessor<boolean>; text: RuntimeText
+   childLoad: (sessionID: string) => "ready" | "loading" | "failed"
+   onLoadChild: (sessionID: string) => void; onRetryChild: (sessionID: string) => void
+@@ -53,6 +59,14 @@ export type RingViewProps = {
+   onGeo?: (g: RingGeo) => void          // integration reads lane-k / layout
+ }
+ 
++function focusComposer() {
++  const dock = document.querySelector("[data-component='session-prompt-dock']")
++  const el = dock?.querySelector<HTMLElement>("[data-slot='question-option'], [data-slot='question-custom-input'], textarea")
++  const target = el ?? (dock instanceof HTMLElement ? dock : undefined)
++  target?.scrollIntoView({ block: "center" })
++  target?.focus()
++}
++
+ // ---------- constants (mockup CV / STC / STATIONS / NUM / PLAN_G) ----------
+ const TONE: Record<Tone, string> = {
+   faint: "var(--rt-faint)", main: "var(--rt-main)", sub: "var(--rt-sub)", tool: "var(--rt-tool)", acc: "var(--rt-accent)",
+@@ -386,6 +400,51 @@ export function RingView(props: RingViewProps): JSX.Element {
+     const cap = Math.max(innerW * 0.5, lines * innerW * 0.92 - preW)
+     return { lines, plan, text: c.body ? fitText(c.body, c.bodyMode, cap, c.mono ? 12 : 12.5) : "" }
+   })
++  // Ask on the centre card: one single-choice question is a column of options; multi-select or free text jumps to the composer.
++  const askChoices = createMemo(() => {
++    const a = f().you.ask
++    if (!a || f().stage.st !== "ask") return undefined
++    const live = props.askReply?.()
++    return { ...a, inline: live ? live.inline : a.inline === true }
++  })
++  const [sending, setSending] = createSignal(false)
++  const choose = (label: string) => {
++    if (props.mode() !== "live") return
++    const live = props.askReply?.()
++    if (!live || !props.onReply) {
++      focusComposer()
++      return
++    }
++    if (sending()) return
++    setSending(true)
++    void Promise.resolve(props.onReply(live, label)).finally(() => setSending(false))
++  }
++  const pages = createMemo((): RingResultPage[] => {
++    const kind = card().kind
++    if (kind !== "result" && kind !== "failed" && kind !== "return") return []
++    return resultPagesAt(f().stage.request, props.t())
++  })
++  const [page, setPage] = createSignal(0)
++  let pageKey = ""
++  createEffect(() => {
++    const list = pages()
++    const key = list.map((p) => p.id).join("|")
++    if (key === pageKey) {
++      if (page() > list.length - 1) setPage(Math.max(0, list.length - 1))
++      return
++    }
++    pageKey = key
++    const body = card().body
++    const i = list.findIndex((p) => p.body === body)
++    setPage(i >= 0 ? i : Math.max(0, list.length - 1))
++  })
++  const pageAt = () => pages()[Math.min(page(), Math.max(0, pages().length - 1))]
++  const shownFull = () => (pages().length > 1 ? pageAt()?.body ?? card().full ?? card().body : card().full ?? card().body)
++  const stepPage = (dir: -1 | 1) => {
++    const n = pages().length
++    if (n < 2) return
++    setPage((p) => Math.max(0, Math.min(n - 1, p + dir)))
++  }
+   const closePanel = () => {
+     const opener = ui.panel === "plan" ? planBtn : expandBtn
+     setUi("panel", "")
+@@ -854,7 +913,7 @@ export function RingView(props: RingViewProps): JSX.Element {
+             data-oco-runtime-card-expand
+             data-oco-runtime-card-kind={card().kind}
+             data-oco-runtime-card-tone={card().tone}
+-            role="button"
++            role={askChoices() && props.mode() === "live" ? undefined : "button"}
+             tabIndex={canExpand() ? 0 : -1}
+             aria-disabled={canExpand() ? undefined : "true"}
+             aria-haspopup="dialog"
+@@ -890,6 +949,82 @@ export function RingView(props: RingViewProps): JSX.Element {
+                 {`${say(card().from)} → ${say(card().to)}`}
+               </span>
+             </div>
++            <Show when={askChoices()}>
++              {(ask) => (
++                <div
++                  data-oco-runtime-ask={ask().inline ? "options" : "chat"}
++                  style={{ flex: "1", "min-height": "0", overflow: "auto", "font-size": "12.5px", "line-height": "1.45" }}
++                >
++                  <div style={{ "white-space": "normal", "overflow-wrap": "anywhere" }}>{ask().question}</div>
++                  <Show
++                    when={ask().inline}
++                    fallback={
++                      <Show when={props.mode() === "live"}>
++                        <button
++                          type="button"
++                          data-oco-runtime-ask-chat
++                          onClick={(e) => {
++                            e.stopPropagation()
++                            e.preventDefault()
++                            focusComposer()
++                          }}
++                          style={{
++                            display: "block", width: "100%", "margin-top": "6px", padding: "4px 8px", "text-align": "left",
++                            border: "1px solid var(--rt-attn)", "border-radius": "4px", background: "transparent",
++                            color: "var(--rt-attn)", cursor: "pointer", "font-family": "inherit", "font-size": "12px",
++                          }}
++                        >
++                          {text.t("ring.ask.chat")}
++                        </button>
++                      </Show>
++                    }
++                  >
++                    <Index each={ask().options}>
++                      {(o, i) => {
++                        const row = {
++                          display: "block", width: "100%", "margin-top": "4px", padding: "4px 6px", "text-align": "left",
++                          "border-radius": "4px", border: "1px solid var(--rt-line-strong)", background: "transparent",
++                          color: "inherit", "font-family": "inherit", "font-size": "12px", "white-space": "normal",
++                        } as JSX.CSSProperties
++                        const label = () => `${NUM[i] ?? String(i + 1)} ${o().label}`
++                        const note = () => o().description
++                        return (
++                          <Show
++                            when={props.mode() === "live"}
++                            fallback={
++                              <div data-oco-runtime-ask-option={i + 1} style={row}>
++                                <b style={{ "font-weight": 600 }}>{label()}</b>
++                                <Show when={note()}>
++                                  <span style={{ display: "block", color: "var(--rt-faint)", "font-size": "11px", "line-height": "1.4" }}>{note()}</span>
++                                </Show>
++                              </div>
++                            }
++                          >
++                            <button
++                              type="button"
++                              data-oco-runtime-ask-option={i + 1}
++                              disabled={sending()}
++                              onClick={(e) => {
++                                e.stopPropagation()
++                                e.preventDefault()
++                                choose(o().label)
++                              }}
++                              style={{ ...row, cursor: sending() ? "default" : "pointer" }}
++                            >
++                              <b style={{ "font-weight": 600 }}>{label()}</b>
++                              <Show when={note()}>
++                                <span style={{ display: "block", color: "var(--rt-faint)", "font-size": "11px", "line-height": "1.4" }}>{note()}</span>
++                              </Show>
++                            </button>
++                          </Show>
++                        )
++                      }}
++                    </Index>
++                  </Show>
++                </div>
++              )}
++            </Show>
++            <Show when={!askChoices()}>
+             <div
+               data-oco-runtime-card-body
+               style={{
+@@ -957,6 +1092,7 @@ export function RingView(props: RingViewProps): JSX.Element {
+                 </ul>
+               </Show>
+             </div>
++            </Show>
+             <Show when={card().post}>
+               <span style={{ ...ell, display: "block", flex: "none", color: "var(--rt-faint)", "font-size": "11px", "line-height": `${LH}px` }}>
+                 {say(card().post)}
+@@ -1202,6 +1338,13 @@ export function RingView(props: RingViewProps): JSX.Element {
+           role="dialog"
+           aria-label={ui.panel === "plan" ? text.t("ring.card.who.plan") : text.t(`ring.card.kind.${card().kind}` as const)}
+           onKeyDown={(e) => {
++            if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
++              if (pages().length < 2 || ui.panel !== "card") return
++              e.preventDefault()
++              e.stopPropagation()
++              stepPage(e.key === "ArrowLeft" ? -1 : 1)
++              return
++            }
+             if (e.key !== "Escape") return
+             e.preventDefault()
+             e.stopPropagation()
+@@ -1230,6 +1373,32 @@ export function RingView(props: RingViewProps): JSX.Element {
+             <span style={{ ...ell, "font-weight": 700, color: ui.panel === "plan" ? TONE.main : TONE[card().tone] }}>
+               {ui.panel === "plan" ? planChip() : `${say(card().from)} → ${say(card().to)}`}
+             </span>
++            <Show when={ui.panel === "card" && pages().length > 1}>
++              <span
++                data-oco-runtime-card-pager={`${page() + 1}/${pages().length}`}
++                style={{ flex: "none", display: "inline-flex", "align-items": "center", gap: "4px", "margin-left": "4px" }}
++              >
++                <button
++                  type="button"
++                  aria-label={text.t("ring.card.pager.prev")}
++                  disabled={page() <= 0}
++                  onClick={() => stepPage(-1)}
++                  style={{ ...resultBtn, width: "22px", padding: "0" }}
++                >
++                  ←
++                </button>
++                <span style={{ "font-variant-numeric": "tabular-nums" }}>{`${page() + 1}/${pages().length}`}</span>
++                <button
++                  type="button"
++                  aria-label={text.t("ring.card.pager.next")}
++                  disabled={page() >= pages().length - 1}
++                  onClick={() => stepPage(1)}
++                  style={{ ...resultBtn, width: "22px", padding: "0" }}
++                >
++                  →
++                </button>
++              </span>
++            </Show>
+             <button
+               type="button"
+               ref={(el) => queueMicrotask(() => el.isConnected && el.focus())}
+@@ -1261,7 +1430,10 @@ export function RingView(props: RingViewProps): JSX.Element {
+                     when={card().full || card().body || !card().streaming}
+                     fallback={<span style={{ color: "var(--rt-faint)" }}>{text.t("ring.card.streaming")}</span>}
+                   >
+-                    {card().full ?? card().body}
++                    <Show when={pages().length > 1 && pageAt()}>
++                      <div style={{ color: "var(--rt-weak)", "margin-bottom": "4px" }}>{pageAt()?.name}</div>
++                    </Show>
++                    {shownFull()}
+                   </Show>
+                   <Show when={card().plan?.items.length}>
+                     <ul style={{ margin: "0", padding: "0", "list-style": "none", "white-space": "normal" }}>
+diff --git a/packages/app/src/components/session/session-runtime-ring.test.ts b/packages/app/src/components/session/session-runtime-ring.test.ts
+index 694a6a3..125b761 100644
+--- a/packages/app/src/components/session/session-runtime-ring.test.ts
++++ b/packages/app/src/components/session/session-runtime-ring.test.ts
+@@ -4,6 +4,7 @@ import { backgroundNoticesOf } from "./session-runtime-model"
+ import {
+   buildRingIndex,
+   frameAt,
++  resultPagesAt,
+   SLOW_MS,
+   laneOpen,
+   liveTime,
+@@ -15,7 +16,7 @@ import {
+ import { loadM5Fixture } from "./session-runtime-ring.fixture"
+ import { SessionBuilder } from "./session-runtime-ring-perf.fixture"
+ import { subDetailAt, subStateAt } from "./session-runtime-ring-sub"
+-import type { RingFrame, RingIndex, RingIndexInput, RingLiveInput, RingSource, RingStageId, RingStepTimes } from "./session-runtime-ring-types"
++import type { RingFrame, RingIndex, RingIndexInput, RingLiveInput, RingRequest, RingSource, RingStageId, RingStepTimes, RingTool } from "./session-runtime-ring-types"
+ import { addStepPart } from "./session-runtime-step-times"
+ import { idTime } from "./session-trajectory-model"
+ 
+@@ -816,3 +817,43 @@ test("16 step side table (D21): step parts fed through the side table equal the
+   const latePts = reqs(late).flatMap((q) => (q.stepStart === undefined ? [] : [q.stepStart - 1, q.stepStart, q.stepStart + 1, q.stepStart + 200, q.stepStart + 201]))
+   expectNoLeak(lateIn, [...pts.slice(0, 90), ...latePts])
+ })
++
++test("result overlay pages the finished tools of one request", () => {
++  const tool = (p: Partial<RingTool> & Pick<RingTool, "id" | "kind" | "name" | "status">): RingTool => ({
++    callID: p.id,
++    messageID: "m",
++    created: 1,
++    input: {},
++    arg: "",
++    key: "",
++    chars: 0,
++    slot: 0,
++    ...p,
++  })
++  const req = {
++    tools: [
++      tool({ id: "q", kind: "question", name: "question", status: "completed", end: 10, output: "A" }),
++      tool({ id: "run", kind: "tool", name: "bash", status: "running", output: "not yet" }),
++      tool({ id: "dec", kind: "tool", name: "bash", status: "error", end: 10, declined: "rejected", error: "no" }),
++      tool({ id: "ok", kind: "tool", name: "bash", status: "completed", end: 10, output: "<stdout>hello</stdout>" }),
++      tool({ id: "blank", kind: "tool", name: "bash", status: "completed", end: 10, output: "  " }),
++      tool({ id: "err", kind: "tool", name: "read", status: "error", end: 10, error: "nope" }),
++      tool({
++        id: "task",
++        kind: "task",
++        name: "task",
++        status: "completed",
++        end: 10,
++        output: "raw",
++        sub: { num: 2, name: "finder", result: "found it" } as RingTool["sub"],
++      }),
++    ],
++  } as RingRequest
++  expect(resultPagesAt(req, 9)).toEqual([])
++  expect(resultPagesAt(req, 10)).toEqual([
++    { id: "ok", name: "bash", body: "hello" },
++    { id: "err", name: "read", body: "nope" },
++    { id: "task", name: "#2 finder", body: "found it" },
++  ])
++  expect(resultPagesAt(undefined, 10)).toEqual([])
++})
+diff --git a/packages/app/src/components/session/session-runtime-ring.ts b/packages/app/src/components/session/session-runtime-ring.ts
+index 45cc373..ea068d4 100644
+--- a/packages/app/src/components/session/session-runtime-ring.ts
++++ b/packages/app/src/components/session/session-runtime-ring.ts
+@@ -157,16 +157,23 @@ function todosOf(input: Record<string, unknown>): RingTodo[] {
+   })
+ }
+ function questionOf(input: Record<string, unknown>): RingQuestion | undefined {
+-  const first = Array.isArray(input.questions) ? (input.questions[0] as Record<string, unknown> | undefined) : undefined
++  const list = Array.isArray(input.questions) ? input.questions : []
++  const first = list[0] as Record<string, unknown> | undefined
+   if (!first) return undefined
+   const options = Array.isArray(first.options) ? first.options : []
++  const multiple = first.multiple === true
++  const mapped = options.map((o) => {
++    const rec = (o ?? {}) as Record<string, unknown>
++    return { label: str(rec.label) ?? "", description: str(rec.description) ?? "" }
++  })
++  // Multi-select, several questions, or no choices (free text) stay in the composer. One single-choice question is inline.
++  const inline = list.length === 1 && !multiple && mapped.length > 0
+   return {
+     header: str(first.header) ?? "",
+     question: str(first.question) ?? "",
+-    options: options.map((o) => {
+-      const rec = (o ?? {}) as Record<string, unknown>
+-      return { label: str(rec.label) ?? "", description: str(rec.description) ?? "" }
+-    }),
++    options: mapped,
++    ...(multiple ? { multiple: true } : {}),
++    inline,
+   }
+ }
+ function argOf(input: Record<string, unknown>): string {
+@@ -235,6 +242,22 @@ function toolStateAt(x: RingTool, t: number): ToolRowState | undefined {
+ }
+ const declinedAt = (x: RingTool, t: number) => (at(x.end, t) ? x.declined : undefined)
+ 
++/** Finished tool / task bodies of one request at t, in call order. The result overlay pages through these. */
++export type RingResultPage = { id: string; name: string; body: string }
++export function resultPagesAt(request: RingRequest | undefined, t: number): RingResultPage[] {
++  if (!request) return []
++  const out: RingResultPage[] = []
++  for (const x of request.tools) {
++    if (x.kind === "question" || !at(x.end, t) || x.declined) continue
++    const raw = x.kind === "task" ? (x.sub?.result ?? stripTags(x.output)) : x.status === "error" ? (x.error ?? "") : stripTags(x.output)
++    const body = raw.trim()
++    if (!body) continue
++    const name = x.kind === "task" && x.sub ? `#${x.sub.num} ${x.sub.name}`.trim() : x.name
++    out.push({ id: x.id, name, body })
++  }
++  return out
++}
++
+ // ---------- subagents ----------
+ const SUBAGENT_N = /^\s*subagent\s*\d+\s*/i
+ function resultOf(output: string | undefined): string | undefined {
+@@ -1606,6 +1629,7 @@ function youOf(S: RingStage, F: Facts, t: number): RingYou {
+         question: qq?.question ?? "",
+         options: (qq?.options ?? []).map((o) => ({ label: o.label, description: o.description })),
+         waitedMs: t - x.start!,
++        inline: qq?.inline === true,
+       },
+     }
+   }
+diff --git a/packages/app/src/components/session/session-runtime.tsx b/packages/app/src/components/session/session-runtime.tsx
+index 25e42c1..b707923 100644
+--- a/packages/app/src/components/session/session-runtime.tsx
++++ b/packages/app/src/components/session/session-runtime.tsx
+@@ -10,6 +10,7 @@ import { useSync } from "@/context/sync"
+ import { useSDK } from "@/context/sdk"
+ import { useServerSync } from "@/context/server-sync"
+ import { useLanguage } from "@/context/language"
++import { showToast } from "@/utils/toast"
+ import { useProviders } from "@/hooks/use-providers"
+ import { getSessionContext } from "./session-context-metrics"
+ import { trajectoryText } from "./session-trajectory-i18n"
+@@ -33,7 +34,7 @@ import { buildRingIndex, frameAt, liveTime, roundAt, trackInputOf } from "./sess
+ import { stepTimesOf } from "./session-runtime-step-times"
+ import { navStep, trackMap } from "./session-runtime-ring-track"
+ import { RingTrack } from "./session-runtime-ring-track-view"
+-import { RingView, type RingResult } from "./session-runtime-ring-view"
++import { RingView, type RingAskReply, type RingResult } from "./session-runtime-ring-view"
+ import { diffs as reviewDiffs } from "@/utils/diffs"
+ import { selectVisibleUserMessages } from "@/pages/session/timeline/model"
+ import {
+@@ -406,6 +407,26 @@ export function SessionRuntime(props: {
+     return { files: [...files].map((file) => ({ file })), open }
+   })
+ 
++  // Centre-card question reply: the same question.reply call as the composer dock. Multi-select and free text stay in the dock.
++  const askReply = createMemo((): RingAskReply | undefined => {
++    if (mode() !== "live") return undefined
++    const tool = stage().ask
++    if (!tool) return undefined
++    const req = shownRequests().questions.find((q) => q.tool?.callID === tool.callID)
++    if (!req) return undefined
++    const first = req.questions[0]
++    const inline = req.questions.length === 1 && first?.multiple !== true && (first?.options.length ?? 0) > 0
++    return { requestID: req.id, sessionID: req.sessionID, inline }
++  })
++  const replyAsk = (target: RingAskReply, label: string) =>
++    sdk()
++      .api.question.reply({ sessionID: target.sessionID, requestID: target.requestID, answers: [[label]] })
++      .then(() => undefined)
++      .catch((err: unknown) => {
++        const message = err instanceof Error ? err.message : String(err)
++        showToast({ title: language.t("common.requestFailed"), description: message })
++      })
++
+   // ---------- playback ----------
+   let playV = 0
+   let raf: number | undefined
+@@ -1104,6 +1125,8 @@ export function SessionRuntime(props: {
+             onEnterChild={onEnterChild}
+             onGeo={(g) => setGeoMode(g.mode)}
+             result={ringResult}
++            askReply={askReply}
++            onReply={replyAsk}
+           />
+         </div>
+ 

@@ -1,0 +1,351 @@
+diff --git a/packages/app/src/components/session/session-child-pills.tsx b/packages/app/src/components/session/session-child-pills.tsx
+new file mode 100644
+index 0000000..6be2c33
+--- /dev/null
++++ b/packages/app/src/components/session/session-child-pills.tsx
+@@ -0,0 +1,282 @@
++// oco: embedded session-title pills for direct child sessions. Data is the sync store only
++// (session / session_status / permission / question, plus an assistant message.error already in the
++// store — session.error is not persisted there). Clicks go through navigateToSession (patch 0016),
++// which the embedded host turns into openSession. No <a href>.
++import { DropdownMenu } from "@opencode-ai/ui/dropdown-menu"
++import { useData } from "@opencode-ai/session-ui/context"
++import type { Message, Session, SessionStatus } from "@opencode-ai/sdk/v2/client"
++import { createEffect, createMemo, createSignal, For, onCleanup, onMount, Show } from "solid-js"
++import { usePlatform } from "@/context/platform"
++import { useSettings } from "@/context/settings"
++import { useSync } from "@/context/sync"
++import { sessionTitle } from "@/utils/session-title"
++
++export type ChildPillStatus = "running" | "waiting" | "error" | "done"
++
++export type ChildPill = {
++  id: string
++  title: string
++  status: ChildPillStatus
++}
++
++const STATUS_COLOR: Record<ChildPillStatus, string> = {
++  running: "var(--icon-interactive-base)",
++  waiting: "var(--icon-warning-base)",
++  error: "var(--icon-critical-base)",
++  done: "var(--icon-weak-base)",
++}
++
++const TITLE_RESERVE = 120
++
++type SessionNode = {
++  id: string
++  parentID?: string
++  title?: string
++  time?: { created?: number; archived?: number }
++}
++
++function pillTitle(session: SessionNode) {
++  const cleaned = (sessionTitle(session.title) ?? session.title ?? "")
++    .replace(/\s+\(@[^)]+ subagent\)$/, "")
++    .trim()
++  return cleaned || session.id
++}
++
++function subtree(root: string, byParent: Map<string, string[]>) {
++  const out: string[] = []
++  const queue = [root]
++  const seen = new Set<string>([root])
++  while (queue.length > 0) {
++    const current = queue.pop()!
++    out.push(current)
++    for (const child of byParent.get(current) ?? []) {
++      if (seen.has(child)) continue
++      seen.add(child)
++      queue.push(child)
++    }
++  }
++  return out
++}
++
++/** Direct children of `sessionID`, oldest first. Status matches the host subagent badge:
++ * running (self or descendant busy/retry) > waiting (pending permission or question in the subtree) > error (self) > done.
++ */
++export function directChildPills(input: {
++  sessionID: string
++  sessions: readonly SessionNode[]
++  running: (id: string) => boolean
++  waiting: (id: string) => boolean
++  errored: (id: string) => boolean
++}): ChildPill[] {
++  const live = input.sessions.filter((session) => !session.time?.archived)
++  const byParent = new Map<string, string[]>()
++  for (const session of live) {
++    const parentID = session.parentID
++    if (!parentID) continue
++    const list = byParent.get(parentID)
++    if (list) list.push(session.id)
++    else byParent.set(parentID, [session.id])
++  }
++  const children = live.filter((session) => session.parentID === input.sessionID)
++  children.sort((a, b) => (a.time?.created ?? 0) - (b.time?.created ?? 0) || a.id.localeCompare(b.id))
++  return children.map((session) => {
++    const ids = subtree(session.id, byParent)
++    let status: ChildPillStatus = "done"
++    if (ids.some((id) => input.running(id))) status = "running"
++    else if (ids.some((id) => input.waiting(id))) status = "waiting"
++    else if (input.errored(session.id)) status = "error"
++    return { id: session.id, title: pillTitle(session), status }
++  })
++}
++
++function isRunning(status: SessionStatus | undefined) {
++  const type = status?.type
++  return type === "busy" || type === "retry"
++}
++
++function hasPending(list: readonly unknown[] | undefined) {
++  return (list?.length ?? 0) > 0
++}
++
++/** Latest assistant message already in the store. Abort is not a failure; a missing message is not an error. */
++export function assistantFailed(messages: readonly Message[] | undefined) {
++  if (!messages) return false
++  for (let index = messages.length - 1; index >= 0; index--) {
++    const message = messages[index]
++    if (!message || message.role !== "assistant") continue
++    if (!message.error) return false
++    return message.error.name !== "MessageAbortedError"
++  }
++  return false
++}
++
++function StatusDot(props: { status: ChildPillStatus }) {
++  return (
++    <span
++      aria-hidden="true"
++      class="size-1.5 shrink-0 rounded-full"
++      style={{ background: STATUS_COLOR[props.status] }}
++    />
++  )
++}
++
++function pillClass(v2: boolean) {
++  return v2
++    ? "inline-flex items-center gap-1 h-6 max-w-36 min-w-0 shrink-0 rounded-md px-1.5 text-[12px] font-[530] leading-4 tracking-[-0.04px] text-v2-text-text-muted hover:bg-v2-overlay-simple-overlay-hover"
++    : "inline-flex items-center gap-1 h-6 max-w-36 min-w-0 shrink-0 rounded-md px-1.5 text-12-regular text-text-weak hover:bg-surface-base-hover"
++}
++
++function PillFace(props: { item: ChildPill }) {
++  return (
++    <>
++      <StatusDot status={props.item.status} />
++      <span class="truncate">{props.item.title}</span>
++    </>
++  )
++}
++
++function headerWidth(root: HTMLElement) {
++  return root.closest<HTMLElement>("[data-oco-session-header]")?.clientWidth ?? root.parentElement?.clientWidth ?? 0
++}
++
++function freeWidth(root: HTMLElement) {
++  const row = root.parentElement
++  if (!row) return Number.POSITIVE_INFINITY
++  const style = getComputedStyle(row)
++  const gap = Number.parseFloat(style.columnGap || "0") || 0
++  const pad = (Number.parseFloat(style.paddingLeft) || 0) + (Number.parseFloat(style.paddingRight) || 0)
++  let reserved = 0
++  for (const child of Array.from(row.children)) {
++    if (child === root) continue
++    const el = child as HTMLElement
++    const grow = Number.parseFloat(getComputedStyle(el).flexGrow) || 0
++    const canShrink = getComputedStyle(el).flexShrink !== "0"
++    reserved += grow > 0 || canShrink ? TITLE_RESERVE : el.offsetWidth
++  }
++  const gaps = gap * Math.max(0, row.children.length - 1)
++  return row.clientWidth - pad - reserved - gaps
++}
++
++function ChildPillBar(props: { items: ChildPill[]; open: (id: string) => void }) {
++  const settings = useSettings()
++  const v2 = () => !!settings.general.newLayoutDesigns()
++  const [collapsed, setCollapsed] = createSignal(true)
++  let root: HTMLDivElement | undefined
++  let measure: HTMLDivElement | undefined
++
++  const done = createMemo(() => props.items.filter((item) => item.status === "done").length)
++  const countLabel = () => `\u2442 ${done()}/${props.items.length}`
++
++  const fit = () => {
++    if (!root || !measure) return
++    const container = headerWidth(root)
++    const natural = measure.offsetWidth
++    const next = container < 480 || natural > freeWidth(root) + 1
++    setCollapsed(next)
++  }
++
++  onMount(() => {
++    const header = root?.closest<HTMLElement>("[data-oco-session-header]")
++    const observer = new ResizeObserver(() => fit())
++    if (header) observer.observe(header)
++    if (root?.parentElement) observer.observe(root.parentElement)
++    if (measure) observer.observe(measure)
++    fit()
++    onCleanup(() => observer.disconnect())
++  })
++
++  createEffect(() => {
++    props.items
++    queueMicrotask(fit)
++  })
++
++  return (
++    <div ref={root} data-oco-child-pills data-oco-child-pills-mode={collapsed() ? "count" : "pills"} class="relative shrink-0">
++      <div ref={measure} aria-hidden="true" class="pointer-events-none fixed top-0 -left-[10000px] flex w-max flex-nowrap gap-1">
++        <For each={props.items}>
++          {(item) => (
++            <div class={pillClass(v2())}>
++              <PillFace item={item} />
++            </div>
++          )}
++        </For>
++      </div>
++      <Show
++        when={collapsed()}
++        fallback={
++          <div class="flex flex-nowrap items-center gap-1">
++            <For each={props.items}>
++              {(item) => (
++                <button
++                  type="button"
++                  class={pillClass(v2())}
++                  data-oco-child-pill={item.id}
++                  data-oco-child-status={item.status}
++                  title={item.title}
++                  aria-label={`${item.title}, ${item.status}`}
++                  onClick={() => props.open(item.id)}
++                >
++                  <PillFace item={item} />
++                </button>
++              )}
++            </For>
++          </div>
++        }
++      >
++        <DropdownMenu gutter={4} placement="bottom-end">
++          <DropdownMenu.Trigger
++            type="button"
++            class={pillClass(v2())}
++            data-oco-child-pills-count
++            aria-label={countLabel()}
++          >
++            {countLabel()}
++          </DropdownMenu.Trigger>
++          <DropdownMenu.Portal>
++            <DropdownMenu.Content class="max-h-72 max-w-72 overflow-y-auto" data-oco-child-pills-menu>
++              <For each={props.items}>
++                {(item) => (
++                  <DropdownMenu.Item
++                    data-oco-child-pill={item.id}
++                    data-oco-child-status={item.status}
++                    aria-label={`${item.title}, ${item.status}`}
++                    onSelect={() => props.open(item.id)}
++                  >
++                    <span class="flex min-w-0 items-center gap-2">
++                      <StatusDot status={item.status} />
++                      <DropdownMenu.ItemLabel class="truncate">{item.title}</DropdownMenu.ItemLabel>
++                    </span>
++                  </DropdownMenu.Item>
++                )}
++              </For>
++            </DropdownMenu.Content>
++          </DropdownMenu.Portal>
++        </DropdownMenu>
++      </Show>
++    </div>
++  )
++}
++
++export function SessionChildPills(props: { sessionID?: string }) {
++  const platform = usePlatform()
++  const sync = useSync()
++  const data = useData()
++  const items = createMemo(() => {
++    const sessionID = props.sessionID
++    if (!platform.embedded || !sessionID) return []
++    const store = sync().data
++    return directChildPills({
++      sessionID,
++      sessions: store.session as Session[],
++      running: (id) => isRunning(store.session_status[id]),
++      waiting: (id) => hasPending(store.permission[id]) || hasPending(store.question[id]),
++      errored: (id) => assistantFailed(store.message[id]),
++    })
++  })
++
++  return (
++    <Show when={items().length > 0}>
++      <ChildPillBar items={items()} open={(id) => data.navigateToSession?.(id)} />
++    </Show>
++  )
++}
+diff --git a/packages/app/src/components/session/session-trajectory.tsx b/packages/app/src/components/session/session-trajectory.tsx
+index d76148d..6ce8db7 100644
+--- a/packages/app/src/components/session/session-trajectory.tsx
++++ b/packages/app/src/components/session/session-trajectory.tsx
+@@ -19,6 +19,7 @@ import {
+ import type { JSX } from "solid-js"
+ import { createStore } from "solid-js/store"
+ import type { Message, Part } from "@opencode-ai/sdk/v2/client"
++import { SessionChildPills } from "@/components/session/session-child-pills"
+ import { useSync } from "@/context/sync"
+ import { useSDK } from "@/context/sdk"
+ import { useLanguage } from "@/context/language"
+@@ -496,8 +497,11 @@ export function SessionTrajectory(props: { sessionID: string; onView: (view: Ses
+ 
+   return (
+     <div ref={root} data-oco-trajectory class="relative flex flex-col h-full min-h-0">
+-      <div class="shrink-0 h-12 flex items-center justify-between gap-2 pl-4 pr-3">
+-        <div class="min-w-0 truncate text-14-medium text-text-strong">{info()?.title ?? ""}</div>
++      <div data-oco-session-header class="shrink-0 h-12 flex items-center justify-between gap-2 pl-4 pr-3">
++        <div class="flex items-center gap-2 min-w-0 flex-1">
++          <div class="min-w-0 truncate text-14-medium text-text-strong">{info()?.title ?? ""}</div>
++          <SessionChildPills sessionID={props.sessionID} />
++        </div>
+         <div class="shrink-0 flex items-center gap-2">
+           <SessionViewToggle value="trajectory" onChange={(value) => value !== "trajectory" && props.onView(value)} />
+           {props.actions}
+diff --git a/packages/app/src/pages/session/timeline/message-timeline.tsx b/packages/app/src/pages/session/timeline/message-timeline.tsx
+index 337006b..1a21700 100644
+--- a/packages/app/src/pages/session/timeline/message-timeline.tsx
++++ b/packages/app/src/pages/session/timeline/message-timeline.tsx
+@@ -60,6 +60,7 @@ import { normalize } from "@opencode-ai/session-ui/session-diff"
+ import { useFileComponent } from "@opencode-ai/ui/context/file"
+ import { shouldMarkBoundaryGesture, normalizeWheelDelta } from "@/pages/session/message-gesture"
+ import { SessionContextUsage } from "@/components/session-context-usage"
++import { SessionChildPills } from "@/components/session/session-child-pills"
+ import { useDialog } from "@opencode-ai/ui/context/dialog"
+ import { useLanguage } from "@/context/language"
+ import { useSessionKey } from "@/pages/session/session-layout"
+@@ -1442,14 +1443,14 @@ export function MessageTimeline(props: {
+               "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered && !settings.general.newLayoutDesigns(),
+             }}
+           >
+-            <div class="h-12 w-full flex items-center justify-between gap-2">
++            <div data-oco-session-header class="h-12 w-full flex items-center justify-between gap-2">
+               <div
+                 classList={{
+                   "flex items-center gap-1 min-w-0 flex-1": true,
+                   "pr-3": !settings.general.newLayoutDesigns(),
+                 }}
+               >
+-                <div class="flex items-center min-w-0 flex-1 w-full">
++                <div class="flex items-center min-w-0 flex-1">
+                   <Show when={parentID()}>
+                     <button
+                       type="button"
+@@ -1522,6 +1523,7 @@ export function MessageTimeline(props: {
+                     </Show>
+                   </Show>
+                 </div>
++                <SessionChildPills sessionID={sessionID()} />
+               </div>
+               <Show when={sessionID()} keyed>
+                 {(id) => (
