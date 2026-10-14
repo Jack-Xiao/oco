@@ -92,7 +92,13 @@
 - mini-remote（提示词 [docs/mini/mini-remote.md](mini/mini-remote.md)，card7 结束后派发）：VS Code Remote-SSH 连 Mac mini 自身，解除 Remote 断网恢复 / Remote 窗口查看轨迹与运行视图的 BLOCKED。2026-10-14 用户同意；前提是用户手动给 Mac mini 加自连 ssh key（安全配置不由代理改）。
 - 常驻：每次合入 main 后跑一次 `overnight-e2e.sh` 默认回归。
 
-本机保留：卡 8 的决策、卡 7 产品缺陷的修复与合入、上游补丁与 vendor 升级、§3 / §4 的产品小项与 v0.1 项（T009 / T010 / T011 / T014）、推送与发布。
+本机保留（按省 token 排，每项一个新会话，开工只读 AGENTS.md + 对应卡）：
+1. 早上第一件（小会话）：用 AskUserQuestion 一次问完卡 8（默认键位、合入 / 推送、M21 / M18 / M15 / M04 / Aider / T018 / M13 chip 立项），零调查成本。
+2. 卡 7 与夜间 Mac mini 任务的产品缺陷：夜里能修的已由 Mac mini（mini-fix7，Opus）修并合进卡 6 分支；剩下的主线程只定方案，实现交 Gemini / Grok，回归交 Mac mini。全绿后按用户决定合入 main、推送。
+3. 上游补丁与 vendor 升级：以 mini-compat 的差异报告为输入，主线程定升级与否；升级时 Grok 改 vendor、`regen-patch.sh` 再生成补丁，Mac mini 全量回归。
+4. §3 / §4 产品小项与 T009 / T010 / T011：按文件归属合成 1–2 张卡，Gemini 实现，Mac mini 写 E2E；T014 管理页外壳先写 ADR 与用户确认（AGENTS.md：未经验证不批量开发管理页面）。
+5. 立项的新功能（如 M21）：主线程先写 ADR / 契约，实现交 Gemini，E2E 交 Mac mini。
+6. 推送与发布：只在用户明确要求时做。
 
 ## 1. 真实模型回归（本批第二步）
 

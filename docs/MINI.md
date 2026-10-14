@@ -22,4 +22,5 @@
 - 同一时间只跑一个 `mini-*` 任务（dispatch 会拒绝）；E2E 仍用 `/tmp/oco-e2e.lock`。
 - 与本机共用同一个 Claude 账号，额度共享：默认 Sonnet，提示词写明轮数 / 时间预算，报告 ≤15 行。
 - 通知走 Mac mini 的 OpenClaw Telegram，目标只写在 Mac mini 的 `~/.oco-mini.env`（`OCO_NOTIFY_TARGET=…`），不进仓库。
+- 看门狗：Mac mini tmux `watch-mini` 跑 `scripts/mini/watchdog.sh`（零 token），任务 75 分钟无文件更新即 Telegram 报警；本机会话用 `scripts/mini/patrol.sh <任务>` 定时巡检（每 30 分钟，保持缓存不过期）。
 - 已有的 Remote Control 会话（tmux `rc-mini-oco`）供用户从 Claude App 手动接管或追问，不由脚本使用。
