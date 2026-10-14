@@ -85,7 +85,7 @@ index 4f908d1..e485fa3 100644
    "ring.you.dismissed.hint": "第 {{n}} 輪到此結束 · 等你下一條訊息",
    "ring.you.dismissed.title": "提問「{{header}}」· 選項：{{options}}",
 diff --git a/packages/app/src/components/session/session-runtime-ring-geo.test.ts b/packages/app/src/components/session/session-runtime-ring-geo.test.ts
-index 1cfdb3b..55a8ab4 100644
+index 1cfdb3b..9c4101b 100644
 --- a/packages/app/src/components/session/session-runtime-ring-geo.test.ts
 +++ b/packages/app/src/components/session/session-runtime-ring-geo.test.ts
 @@ -245,25 +245,31 @@ describe("geoOf layout", () => {
@@ -169,8 +169,22 @@ index 1cfdb3b..55a8ab4 100644
      for (const [w, h, k] of [[1100, 720, 0.37], [560, 720, 0.8]] as const) expect(sig(geo(w, h, k))).toBe(sig(geo(w, h, k)))
    })
  
+@@ -453,6 +462,13 @@ const tOf = (len: number) => len / RING.V // ms to travel len px
+ describe("packetsAt", () => {
+   const g = geo(1100, 720, 1)
+ 
++  test("6b. a stage with no dock rows (toolCap 0) draws no tool packets instead of throwing", () => {
++    const frame = frameWith([toolOf({ id: "prt_a", slot: 0, start: 1000, status: "running" })])
++    const noRows = { ...g, toolCap: 0, rows: [] }
++    expect(() => packetsAt(noRows, EMPTY_INDEX, frame, 1500, false)).not.toThrow()
++    expect(packetsAt(noRows, EMPTY_INDEX, frame, 1500, false).some((p) => p.id.includes("prt_a"))).toBe(false)
++  })
++
+   test("6. a running tool's packet stops at its row door (parked); the result packet follows; reduced has no mid positions", () => {
+     const run = toolOf({ id: "prt_a", slot: 1, start: 1000, status: "running" })
+     const done = toolOf({ id: "prt_b", slot: 0, start: 1000, end: 1400, status: "completed" })
 diff --git a/packages/app/src/components/session/session-runtime-ring-geo.ts b/packages/app/src/components/session/session-runtime-ring-geo.ts
-index dd324b1..083c037 100644
+index dd324b1..22b8eea 100644
 --- a/packages/app/src/components/session/session-runtime-ring-geo.ts
 +++ b/packages/app/src/components/session/session-runtime-ring-geo.ts
 @@ -138,10 +138,17 @@ function spread(R: number, pw: Record<PillId, number>, side: boolean): Spread {
@@ -311,6 +325,14 @@ index dd324b1..083c037 100644
    }
    const pAsk = poly(askArc)
    const pAskBack = poly(askArc.slice().reverse())
+@@ -631,6 +662,7 @@ export function packetsAt(g: RingGeo, index: RingIndex, frame: RingFrame, t: num
+     for (const x of q.tools) {
+       if (x.kind === "tool") {
+         if (q.messageID !== cur || !at(x.start, t)) continue
++        if (g.toolCap < 1) continue // a stage too short for the dock has no rows to probe
+         const i = Math.min(x.slot, g.toolCap - 1)
+         const running = !at(x.end, t)
+         plans.push({
 diff --git a/packages/app/src/components/session/session-runtime-ring-track.test.ts b/packages/app/src/components/session/session-runtime-ring-track.test.ts
 index 2265f84..a59a9df 100644
 --- a/packages/app/src/components/session/session-runtime-ring-track.test.ts
