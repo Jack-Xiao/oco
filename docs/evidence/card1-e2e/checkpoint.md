@@ -1,0 +1,4 @@
+- start: reading done; writing c13 test; lock not taken
+- build ok, c13 written, repro deleted; lock taken 09:09; starting server
+- c13 PASS exit0; running regressions
+- all done; lock released; server stopped

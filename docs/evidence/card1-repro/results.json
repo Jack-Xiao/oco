@@ -1,0 +1,248 @@
+{
+  "mockIsRealServe": true,
+  "mockEvidence": [
+    "scripts/test-server.sh:44 runs '$BIN serve' (real opencode); mock only replaces the model provider (test-server.mock.opencode.json, tests/e2e/lib/mock-llm.mjs)",
+    "live /global/health={\"healthy\":true,\"version\":\"local\"} /config model=oco-mock/mock"
+  ],
+  "worktreeDir": "/Users/jarvis/Ai-Project/oco-card1/.oco-test/xdg/data/opencode/worktree/1878a053707397c3a80fd0aea5c0d5d6f9ccc16b/eager-knight",
+  "workspaceDir": "/Users/jarvis/Ai-Project/oco-card1/.oco-test/c13/ws-dpiqh",
+  "errors": [],
+  "serverVersion": "local",
+  "configModel": "oco-mock/mock",
+  "worktreeIsUnderWorktreeRoot": true,
+  "worktreeSessionId": "ses_ec81a41efffeVinplY5d5qxfum",
+  "worktree": {
+    "label": "worktree",
+    "sessionId": "ses_ec81a41efffeVinplY5d5qxfum",
+    "dir": "/Users/jarvis/Ai-Project/oco-card1/.oco-test/xdg/data/opencode/worktree/1878a053707397c3a80fd0aea5c0d5d6f9ccc16b/eager-knight",
+    "inboxShown": false,
+    "anyInboxRows": 0,
+    "sessionListedInSidebar": 1,
+    "statusBar": [
+      {
+        "aria": "warning  oco, oco: Connected to http://127.0.0.1:4517\n/Users/jarvis/Ai-Project/oco-card1/.oco-test/c13/ws-dpiqh\nMode: Attached server\nServer version: local\nNote: Server local is not OpenCode v1. oco has not verified it; some features may be unavailable",
+        "text": "oco",
+        "bell": false
+      }
+    ],
+    "statusCount": 0,
+    "openPanels": 0,
+    "hostSidebar": {
+      "connection": {
+        "state": "connected",
+        "attempt": 0,
+        "label": "http://127.0.0.1:4517",
+        "trusted": true
+      },
+      "search": "",
+      "selected": null,
+      "folderLabel": null,
+      "description": null,
+      "badge": 0,
+      "statusText": "$(warning) oco",
+      "statusTooltip": "oco: Connected to http://127.0.0.1:4517\n/Users/jarvis/Ai-Project/oco-card1/.oco-test/c13/ws-dpiqh\nMode: Attached server\nServer version: local\nNote: Server local is not OpenCode v1. oco has not verified it; some features may be unavailable",
+      "items": [
+        {
+          "id": "ses_ec81a41efffeVinplY5d5qxfum",
+          "title": "New session - 2026-10-14T00:52:45.712Z",
+          "activity": "idle",
+          "group": "recent",
+          "unread": false,
+          "description": "now"
+        }
+      ],
+      "loadMore": false,
+      "visible": true,
+      "message": null,
+      "feed": {
+        "attempts": 2,
+        "connects": 2,
+        "superseded": 1,
+        "stalls": 0
+      },
+      "store": {
+        "snapshots": 3,
+        "events": 69,
+        "duplicates": 0,
+        "ignored": 0
+      },
+      "webList": {
+        "resolved": true,
+        "visible": true,
+        "view": "list",
+        "text": null,
+        "notice": null,
+        "resolves": 1,
+        "posts": 2,
+        "readyMs": [
+          111
+        ]
+      }
+    },
+    "permissionApi": {
+      "withSessionDir": [
+        {
+          "id": "per_137e5c227001c4UcDK5i1tGf1V",
+          "sessionID": "ses_ec81a41efffeVinplY5d5qxfum",
+          "permission": "bash",
+          "tool": {
+            "messageID": "msg_137e5bffb001Q5iMdcyJG05nPD",
+            "callID": "call_mhxqbe85oqg"
+          }
+        }
+      ],
+      "withWorkspaceDir": [],
+      "noDirectoryHeader": []
+    }
+  },
+  "workspace": {
+    "label": "workspace",
+    "sessionId": "ses_ec819dd72ffebzraZpKjGFMWzW",
+    "dir": "/Users/jarvis/Ai-Project/oco-card1/.oco-test/c13/ws-dpiqh",
+    "inboxShown": true,
+    "anyInboxRows": 1,
+    "sessionListedInSidebar": 1,
+    "statusBar": [
+      {
+        "aria": "warning  oco  bell-dot  1, oco: Connected to http://127.0.0.1:4517\n/Users/jarvis/Ai-Project/oco-card1/.oco-test/c13/ws-dpiqh\nMode: Attached server\nServer version: local\nNote: Server local is not OpenCode v1. oco has not verified it; some features may be unavailable",
+        "text": "oco 1",
+        "bell": true
+      }
+    ],
+    "statusCount": 1,
+    "openPanels": 0,
+    "hostSidebar": {
+      "connection": {
+        "state": "connected",
+        "attempt": 0,
+        "label": "http://127.0.0.1:4517",
+        "trusted": true
+      },
+      "search": "",
+      "selected": null,
+      "folderLabel": null,
+      "description": null,
+      "badge": 1,
+      "statusText": "$(warning) oco $(bell-dot) 1",
+      "statusTooltip": "oco: Connected to http://127.0.0.1:4517\n/Users/jarvis/Ai-Project/oco-card1/.oco-test/c13/ws-dpiqh\nMode: Attached server\nServer version: local\nNote: Server local is not OpenCode v1. oco has not verified it; some features may be unavailable",
+      "items": [
+        {
+          "id": "ses_ec819dd72ffebzraZpKjGFMWzW",
+          "title": "c13-ws-dpiqh",
+          "activity": "permission",
+          "group": "recent",
+          "unread": false,
+          "description": "now"
+        },
+        {
+          "id": "ses_ec81a41efffeVinplY5d5qxfum",
+          "title": "New session - 2026-10-14T00:52:45.712Z",
+          "activity": "idle",
+          "group": "recent",
+          "unread": false,
+          "description": "now"
+        }
+      ],
+      "loadMore": false,
+      "visible": true,
+      "message": null,
+      "feed": {
+        "attempts": 2,
+        "connects": 2,
+        "superseded": 1,
+        "stalls": 0
+      },
+      "store": {
+        "snapshots": 3,
+        "events": 133,
+        "duplicates": 0,
+        "ignored": 0
+      },
+      "webList": {
+        "resolved": true,
+        "visible": true,
+        "view": "list",
+        "text": null,
+        "notice": null,
+        "resolves": 1,
+        "posts": 4,
+        "readyMs": [
+          111
+        ]
+      }
+    },
+    "permissionApi": {
+      "withSessionDir": [
+        {
+          "id": "per_137e62439001Ti9mdo0BgGD5eB",
+          "sessionID": "ses_ec819dd72ffebzraZpKjGFMWzW",
+          "permission": "bash",
+          "tool": {
+            "messageID": "msg_137e62297001VVmR6zKVbhwDV9",
+            "callID": "call_iqos083h0ur"
+          }
+        }
+      ],
+      "withWorkspaceDir": [
+        {
+          "id": "per_137e62439001Ti9mdo0BgGD5eB",
+          "sessionID": "ses_ec819dd72ffebzraZpKjGFMWzW",
+          "permission": "bash",
+          "tool": {
+            "messageID": "msg_137e62297001VVmR6zKVbhwDV9",
+            "callID": "call_iqos083h0ur"
+          }
+        }
+      ],
+      "noDirectoryHeader": []
+    }
+  },
+  "worktreeInboxShown": false,
+  "worktreeStatusCount": 0,
+  "workspaceInboxShown": true,
+  "workspaceStatusCount": 1,
+  "permissionApi": {
+    "worktree": {
+      "withSessionDir": [
+        {
+          "id": "per_137e5c227001c4UcDK5i1tGf1V",
+          "sessionID": "ses_ec81a41efffeVinplY5d5qxfum",
+          "permission": "bash",
+          "tool": {
+            "messageID": "msg_137e5bffb001Q5iMdcyJG05nPD",
+            "callID": "call_mhxqbe85oqg"
+          }
+        }
+      ],
+      "withWorkspaceDir": [],
+      "noDirectoryHeader": []
+    },
+    "workspace": {
+      "withSessionDir": [
+        {
+          "id": "per_137e62439001Ti9mdo0BgGD5eB",
+          "sessionID": "ses_ec819dd72ffebzraZpKjGFMWzW",
+          "permission": "bash",
+          "tool": {
+            "messageID": "msg_137e62297001VVmR6zKVbhwDV9",
+            "callID": "call_iqos083h0ur"
+          }
+        }
+      ],
+      "withWorkspaceDir": [
+        {
+          "id": "per_137e62439001Ti9mdo0BgGD5eB",
+          "sessionID": "ses_ec819dd72ffebzraZpKjGFMWzW",
+          "permission": "bash",
+          "tool": {
+            "messageID": "msg_137e62297001VVmR6zKVbhwDV9",
+            "callID": "call_iqos083h0ur"
+          }
+        }
+      ],
+      "noDirectoryHeader": []
+    }
+  },
+  "command": "OCO_E2E_MODEL=mock OCO_OPENCODE_BIN=/tmp/oco-card1-bin/opencode bash scripts/test-server.sh (bg); OCO_VSCODE_BIN=\".../Visual Studio Code.app/Contents/MacOS/Electron\" node tests/e2e/c13-repro-worktree-inbox.mjs",
+  "exitCode": 0
+}

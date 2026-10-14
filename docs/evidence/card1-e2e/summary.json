@@ -1,0 +1,7 @@
+{"env":"mock model, server /tmp/oco-card1-bin/opencode via scripts/test-server.sh, OCO_VSCODE_BIN=/Applications/Visual Studio Code.app/Contents/MacOS/Electron",
+"cases":[
+{"name":"c13-worktree-inbox","result":"pass","exitCode":0,"results":"docs/evidence/runs/20261014-010919-c13-worktree-inbox-43ef/results.json","command":"node tests/e2e/c13-worktree-inbox.mjs"},
+{"name":"c6-inbox","result":"pass","exitCode":0,"results":"docs/evidence/runs/20261014-010939-c6-inbox-3a4b/results.json","command":"node tests/e2e/c6-inbox.mjs"},
+{"name":"c12-new-session-draft","result":"pass","exitCode":0,"results":"docs/evidence/runs/20261014-010947-c12-new-session-draft-d2cb/results.json","command":"node tests/e2e/c12-new-session-draft.mjs"},
+{"name":"p1b-sidebar","result":"fail","exitCode":1,"results":"docs/evidence/runs/20261014-011012-p1b-sidebar-41fb/results.json","command":"node tests/e2e/p1b-sidebar.mjs","note":"only single-view-header failed: containerTitle 'OCO: SESSIONS' vs case-sensitive includes('Sessions') at tests/e2e/p1b-sidebar.mjs:~228; unrelated to feed change"}
+]}

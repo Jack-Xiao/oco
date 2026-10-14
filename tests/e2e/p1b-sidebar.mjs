@@ -224,7 +224,7 @@ try {
     await revealSessionsActions()
     const newSession = await titleAction(page, "New Session").isVisible().catch(() => false)
     await runShot(page, run, "1b-single-view")
-    run.record("single-view-header", connectionHeaders === 0 && agentsHeaders === 0 && containerTitle.includes("Sessions") && newSession ? "PASS" : "FAIL", {
+    run.record("single-view-header", connectionHeaders === 0 && agentsHeaders === 0 && /sessions/i.test(containerTitle) && newSession ? "PASS" : "FAIL", {
       containerTitle,
       connectionHeaders,
       agentsHeaders,
