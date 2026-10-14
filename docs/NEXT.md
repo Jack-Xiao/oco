@@ -2,7 +2,7 @@
 
 本文件是唯一的当前队列。状态只看 [STATUS](STATUS.md)。不要执行 HANDOFF 或 P1B-NEXT-STEPS 里的旧提示词。
 
-当前基线：main `3808026`。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
+当前基线：main `88b56c2`（2026-10-14 合入卡 1、卡 3；本机 main 领先 origin 8 个提交，未推送）。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
 
 ## 0. 本轮路线（2026-10-13 用户确认：按建议从前往后做，一个会话做一张卡）
 
@@ -23,7 +23,7 @@
 
 执行方式（2026-10-13 用户要求并行）：卡 1 和卡 3 由规划会话同时开启，各在自己的 worktree 分支上做（`claude/card1-worktree-inbox`、`claude/card3-review-notes`）。并行期间两边都不改 STATUS / NEXT / PROGRESS，结果和委派记录写进各自的 `docs/evidence/card<N>-*.md`；跑 E2E 前用 `/tmp/oco-e2e.lock` 互斥；不打包、不安装、不推送。卡 2 和两边都有文件重叠，还要用到卡 1 的按会话目录逻辑，所以等两边结束后再开，由卡 2 会话先合并、再开发、最后统一收尾。
 
-### 卡 1：worktree 会话进收件箱（验证 S，修复 M）[TODO]
+### 卡 1：worktree 会话进收件箱（验证 S，修复 M）[DONE 2026-10-14，合入 main 88b56c2，见 STATUS]
 
 - 现在：0023 之后，worktree 会话会出现在 SESSIONS 列表（`scope=project`，`Connection.roots()` 含 sandboxes）。但 `apps/extension/src/session-feed.ts` 只订阅工作区目录的 `/event`（`x-opencode-directory` 为工作区目录），快照也按这个目录取。worktree 会话等授权、等提问或 busy 时能不能进收件箱和状态栏计数，STATUS 记为未验证；按代码推断大概率收不到。调研把它列为 M17 的前置改造（`roadmap-research-2026-10-10.md:316`）。
 - 步骤：
@@ -33,16 +33,16 @@
   4. 新增 mock E2E `c13-worktree-inbox`：两个 worktree 会话同时等授权 → 不开面板，在侧栏全部 Allow → `GET /permission` 为空、计数归零。回归 c6-inbox、c12-new-session-draft、p1b-sidebar。
 - 验收：c13 通过；typecheck 0、unit 全过、build PASS；VSIX 已安装。如果复现时已经能收到，只补 c13 和 STATUS，可以在同一会话接着做卡 2。
 
-### 卡 2：侧栏停止 + 通知分级 + V2 识别（各 S）[TODO]
+### 卡 2：侧栏停止 + 通知分级 + V2 识别（各 S）[进行中：合并已完成；B / C / V2 在分支 `claude/card2-stop-notify-v2`]
 
-- 开工先合并：确认卡 1、卡 3 两个会话都已结束，只读两份证据文件的结论段；把 `claude/card1-worktree-inbox`、`claude/card3-review-notes` 依次合进 main，冲突以卡 1 的按会话目录逻辑为准；合并后跑 typecheck、unit、build 和两边新增的 E2E。收尾时一并 `git worktree remove` 两个 worktree。
+- [DONE 2026-10-14：本机 ssh fetch Mac mini 分支后合入 = 88b56c2，c13 / c14 / c15 / c6 / c12 / p1b-sidebar 全过，见 [card2-merge-e2e](evidence/card2-merge-e2e.md)；Mac mini 上两个 worktree 待卡 2 收尾时移除] 开工先合并：确认卡 1、卡 3 两个会话都已结束，只读两份证据文件的结论段；把 `claude/card1-worktree-inbox`、`claude/card3-review-notes` 依次合进 main，冲突以卡 1 的按会话目录逻辑为准；合并后跑 typecheck、unit、build 和两边新增的 E2E。收尾时一并 `git worktree remove` 两个 worktree。
 - B 侧栏一键停止（M10，`roadmap-research-2026-10-10.md:333`）。现在侧栏没有停止入口，`oco.stopManagedServer` 停的是整个托管服务。计划：运行中的行悬停出现 ■，多选栏加 Stop，状态栏「Stop all running」先确认一次；宿主 `POST /session/:id/abort`，发送前核对仍是 busy；停父会话时提示会连带停后台子代理。mock E2E：busy 会话从侧栏 Stop → 回到 idle、转圈消失。
 - C 通知分级（M01 后半，同文件第 305、335 行）。现在只有 `oco.sessions.notifyPending`：`sessions-view.ts` 里用 `showWarningMessage`，不判断窗口是否在前台，会话完成也不提醒。计划：「需要我」「已完成」两类设置，各三档 off / windowNotFocused / always，默认 windowNotFocused；旧 `notifyPending=false` 迁为两类都 off；完成通知带一行摘要和 Open / Diff；报错不进状态栏计数。只弹 VS Code 内通知，不接系统通知中心。验收：窗口在前台、不在前台各触发一次，用单测或 E2E 覆盖。
 - V2 识别：连接时探测 `/api/info`，返回 2.x 就提示「此 oco 只支持 OpenCode V1，请在 oco.opencodePath 指定 V1 可执行文件」，不再显示版本未知；单测 mock 一个 V2 的 `/api/info`。依据：分支 `claude/opencode-v2-roadmap-h17kw7` 上 V2 迁移评估的 §5 第 1 步（未合入 main，需要时用 `git show` 读）。
 - 委派：B 交 Gemini，C 和 V2 交 Grok，并行。两边都可能改 `sessions-view.ts` 和 `package.json`：派发前先划清文件归属，重叠的接线、命令和设置声明由主线程合并。
 - 验收：typecheck 0、unit 全过、build PASS、B 的 E2E 通过；VSIX 已安装。
 
-### 卡 3：审阅意见发回 agent + Fix with OpenCode（S + S–M）[TODO]
+### 卡 3：审阅意见发回 agent + Fix with OpenCode（S + S–M）[DONE 2026-10-14，合入 main 88b56c2，见 STATUS]
 
 - M13 首版（`roadmap-research-2026-10-10.md:314`）：编辑器选区右键「Add to Review Notes」，累积文件、行号、片段和意见（宿主内存 + workspaceState）；侧栏该会话行显示「N 条待发」；「Send all」合成一条文本，经 `draft.insert` 放进草稿，由用户发送。注明前像来自 Git 变更，可能含非本会话的改动。
 - M05 第二片（同文件第 308 行）：终端最近命令输出（shell integration）、Problems / SCM 菜单贡献点、「Fix with OpenCode」灯泡；沿用 `oco.addToDraft` 的截断和排除规则。

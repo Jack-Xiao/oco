@@ -1059,3 +1059,9 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 用户要求 New 与 OpenCode 原生一致（先出草稿页，取消不建会话）并支持 worktree；随后改为单一"New worktree"勾选框。评估、设计、委派记录见 [new-session-draft-eval](evidence/new-session-draft-eval.md)。
 - 主线程：契约、桥策略/核心、面板转正、webview 守卫、补丁 0023。Gemini：Connection sandboxes、桥策略单测、worktree 工具调研；Grok：上游调查；Claude 子代理（sonnet）：c12 E2E、旧套件迁移与 mock 全量。
 - 验证：unit 297/0；c12 13/13；mock 全量 23/24（p1b-main-panel 偶发）。已合入 main（cc1aebe）并推送。
+
+## 2026-10-14 卡 1 / 卡 3 合并到本机 main
+
+- 卡 1（worktree 会话进收件箱）与卡 3（审阅意见发回 agent、Fix with OpenCode）由规划会话在 Mac mini 上并行完成，分支与 Mac mini main `81aff36` 都未推到 origin。本机经 ssh fetch 取回，main 快进到 81aff36 后依次 `--no-ff` 合入 = `88b56c2`，无冲突；重叠的 `extension.ts`、`sessions-webview.ts` 自动合并后复核语义。
+- 验证：typecheck 0；unit 322/0；build PASS；补丁链 0001–0023 干净重放 23/23；E2E（mock，Claude 子代理 sonnet，约 15 分钟）c13 / c14 / c15 / c6 / c12 / p1b-sidebar 全部首跑通过，测试与产品均未改动，见 [card2-merge-e2e](evidence/card2-merge-e2e.md)。本机已装 `oco-0.0.4-88b56c2.vsix`。
+- 未推送。卡 2 在分支 `claude/card2-stop-notify-v2` 继续。
