@@ -5,6 +5,9 @@
 // panel, one of the workspace's own directories), and side-effecting requests must target the bound session
 // (or a verified child session, or a session this panel created).
 
+import * as fs from "node:fs"
+
+
 /** `draft`: a new-session page with no session yet (patches/opencode/0023). It may create a session (and a
  *  worktree) in the workspace's directories; the session it creates becomes writable. */
 export type PolicyBinding = { directory: string; sessionId: string; draft?: boolean }
@@ -59,6 +62,7 @@ export class BridgePolicy {
     private readonly trusted: () => boolean,
     /** Draft panels: the workspace folders and their projects' worktrees (Connection.roots()). */
     private readonly workspaceDirectories: () => string[] = () => [],
+    private readonly isLoopback: boolean | (() => boolean) = true,
   ) {
     this.binding = { ...binding }
     this.allowed.add(binding.sessionId)
@@ -66,6 +70,21 @@ export class BridgePolicy {
 
   get draft() {
     return !!this.binding.draft
+  }
+
+  private norm(p: string): string {
+    const loopback = typeof this.isLoopback === "function" ? this.isLoopback() : !!this.isLoopback
+    if (!loopback) return p
+    try {
+      return fs.realpathSync.native(p)
+    } catch {
+      return p
+    }
+  }
+
+  private sameDir(a: string, b: string): boolean {
+    if (a === b) return true
+    return this.norm(a) === this.norm(b)
   }
 
   /** The panel now shows another session (ADR-007; or a draft panel's new session, possibly in a worktree):
@@ -81,9 +100,15 @@ export class BridgePolicy {
 
   /** Directories requests may target: the binding's, plus, for a draft, the workspace's own. */
   private directoryAllowed(dir: string) {
-    if (dir === this.binding.directory) return true
+    if (this.sameDir(dir, this.binding.directory)) return true
     if (!this.binding.draft) return false
-    return this.worktrees.has(dir) || this.workspaceDirectories().includes(dir)
+    for (const w of this.worktrees) {
+      if (this.sameDir(dir, w)) return true
+    }
+    for (const d of this.workspaceDirectories()) {
+      if (this.sameDir(dir, d)) return true
+    }
+    return false
   }
 
   /** A successful response the page asked for: sessions and worktrees a draft creates become usable. */
@@ -117,7 +142,7 @@ export class BridgePolicy {
     let cur = id
     for (let i = 0; i < 8; i++) {
       const info = await this.lookup.sessionParent(cur)
-      if (!info.exists || (info.directory !== undefined && info.directory !== this.binding.directory)) return false
+      if (!info.exists || (info.directory !== undefined && !this.sameDir(info.directory, this.binding.directory))) return false
       if (!info.parentID) return false
       if (this.allowed.has(info.parentID)) {
         this.allowed.add(id)
@@ -163,7 +188,7 @@ export class BridgePolicy {
       return ok
     }
     if (m === "POST" && WORKTREE_CREATE.test(pathname)) {
-      if (!this.binding.draft || !this.workspaceDirectories().includes(directory)) return this.reject(403, "worktrees are created from a new-session page only")
+      if (!this.binding.draft || !this.workspaceDirectories().some((d) => this.sameDir(directory, d))) return this.reject(403, "worktrees are created from a new-session page only")
       return ok
     }
     if (WRITE_ALLOW.some((r) => r.method === m && r.re.test(pathname))) return ok

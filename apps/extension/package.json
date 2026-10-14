@@ -217,6 +217,60 @@
         "title": "Select Workspace Folder",
         "category": "oco",
         "icon": "$(root-folder)"
+      },
+      {
+        "command": "oco.inbox.next",
+        "title": "Inbox: Next Action",
+        "category": "oco"
+      },
+      {
+        "command": "oco.session.parent",
+        "title": "Open Parent Session",
+        "category": "oco"
+      },
+      {
+        "command": "oco.session.child",
+        "title": "Open Child Session",
+        "category": "oco"
+      },
+      {
+        "command": "oco.session.nextSibling",
+        "title": "Open Next Sibling Session",
+        "category": "oco"
+      },
+      {
+        "command": "oco.session.previousSibling",
+        "title": "Open Previous Sibling Session",
+        "category": "oco"
+      },
+      {
+        "command": "oco.session.recent",
+        "title": "Switch to Recent Session",
+        "category": "oco"
+      },
+      {
+        "command": "oco.follow.toggle",
+        "title": "Toggle Follow Mode",
+        "category": "oco",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "oco.follow.toggleOff",
+        "title": "Toggle Follow Mode",
+        "category": "oco",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "oco.reviewNotes.removeNote",
+        "title": "Remove Note",
+        "category": "oco",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "oco.reviewNotes.createNote",
+        "title": "Add Review Note",
+        "category": "oco",
+        "icon": "$(check)"
       }
     ],
     "menus": {
@@ -323,6 +377,45 @@
         {
           "command": "oco.sessions.stop",
           "when": "false"
+        },
+        {
+          "command": "oco.follow.toggleOff",
+          "when": "false"
+        },
+        {
+          "command": "oco.reviewNotes.removeNote",
+          "when": "false"
+        },
+        {
+          "command": "oco.reviewNotes.createNote",
+          "when": "false"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "oco.follow.toggle",
+          "when": "activeWebviewPanelId == 'oco.chat' && !oco.follow.active",
+          "group": "navigation"
+        },
+        {
+          "command": "oco.follow.toggleOff",
+          "when": "activeWebviewPanelId == 'oco.chat' && oco.follow.active",
+          "group": "navigation"
+        }
+      ],
+      "comments/commentThread/title": [
+        {
+          "command": "oco.reviewNotes.removeNote",
+          "title": "Remove Note",
+          "when": "commentThread == oco.reviewNote",
+          "group": "navigation"
+        }
+      ],
+      "comments/commentThread/context": [
+        {
+          "command": "oco.reviewNotes.createNote",
+          "title": "Add Review Note",
+          "group": "inline"
         }
       ],
       "terminal/context": [
@@ -359,6 +452,12 @@
     "configuration": {
       "title": "oco",
       "properties": {
+        "oco.decorations.changedFiles": {
+          "type": "boolean",
+          "default": true,
+          "scope": "machine",
+          "markdownDescription": "Show badges on files modified in the active OpenCode session's most recent diff."
+        },
         "oco.serverMode": {
           "type": "string",
           "enum": [

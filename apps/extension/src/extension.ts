@@ -21,6 +21,10 @@ import { registerStopSessions } from "./stop-sessions"
 import { ManagedServer } from "./managed-server"
 import { redactValue, VERIFIED_SERVERS } from "./diagnostics"
 import { probeServerVersion, v2UnsupportedMessage } from "./server-version"
+import { registerInboxNavCommands, SessionMruTracker } from "./inbox-nav"
+import { registerFileDecorations } from "./file-decorations"
+import { registerFollowMode, type FollowModeManager } from "./follow-mode"
+import { registerReviewThreads } from "./review-threads"
 
 let managedServer: ManagedServer | undefined
 
@@ -48,6 +52,9 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(log)
 
   let refreshVersionLater = async () => {}
+  let followMode: FollowModeManager | undefined
+  let fileDecProvider: { refresh: () => void } | undefined
+
   // Native sidebar: one host-side event stream + snapshot per window (P1b-1).
   const store = new SessionStore((dir) => {
     try {
@@ -66,7 +73,11 @@ export function activate(context: vscode.ExtensionContext) {
     sameDirectory: (a, b) => sameDirectory(a, b, isLoopbackHost(conn.endpoint().host)),
     trusted: () => vscode.workspace.isTrusted,
     store,
-    onChange: () => view.refresh(),
+    onChange: () => {
+      view.refresh()
+      fileDecProvider?.refresh()
+    },
+    onEvent: (e) => void followMode?.onEvent(e),
     onState: (st) => {
       view.setConnection(st)
       panels.setConnection(st)
@@ -87,10 +98,35 @@ export function activate(context: vscode.ExtensionContext) {
   const reviewNotes = new ReviewNotes(context.workspaceState)
   view.setNoteCounter((sessionId) => reviewNotes.count(conn.id, sessionId))
   context.subscriptions.push(reviewNotes, reviewNotes.onDidChange(() => view.refresh()))
+
+  const { manager: followMgr, disposables: followDisposables } = registerFollowMode({
+    panels,
+    showTextDocument: async (uri, opts) => {
+      const doc = await vscode.workspace.openTextDocument(uri)
+      return vscode.window.showTextDocument(doc, opts)
+    },
+    getSessionDirectory: (sid) => store.sessionStates().find((s) => s.id === sid)?.directory,
+  })
+  followMode = followMgr
+
+  const { provider: decProvider, disposables: fileDecDisposables } = registerFileDecorations({
+    store,
+    panels,
+  })
+  fileDecProvider = decProvider
+
+  const { disposables: reviewThreadsDisposables } = registerReviewThreads({
+    reviewNotes,
+    panels,
+  })
+
+  context.subscriptions.push(panels, ...followDisposables, ...fileDecDisposables, ...reviewThreadsDisposables)
+
   panels.onChange = () => {
     const e = panels.active
     view.setCurrent(e && e.binding.connectionId === feed.state.connectionId ? e.binding.sessionId : undefined)
     view.refresh()
+    fileDecProvider?.refresh()
   }
 
   // T007 managed mode + T015 server version. One managed process per window, shared by every panel.
@@ -207,6 +243,23 @@ export function activate(context: vscode.ExtensionContext) {
     const s = await conn.request<SessionInfo>("GET", `/session/${encodeURIComponent(sessionId)}`)
     return openSession({ connectionId: conn.id, directory: s.directory, sessionId: s.id, title: s.title || s.id, review }, newPanel)
   }
+
+  const sessionMru = new SessionMruTracker(panels)
+  const inboxNavDisposables = registerInboxNavCommands(
+    {
+      store,
+      panels,
+      client: () => conn,
+      refreshView: () => view.refresh(),
+      markRead: (id) => view.markRead(id),
+      openSession: async (id) => {
+        await openById(id)
+      },
+      unreadIds: (id) => view.isUnread(id),
+    },
+    sessionMru,
+  )
+  context.subscriptions.push(sessionMru, ...inboxNavDisposables)
 
   // A page asked to show another session (internal tab, child session link, shortcut...): the host
   // decides, and only for a session of the same connection and project. The main panel switches to it
