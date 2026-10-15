@@ -13,6 +13,10 @@ if ! { bun run setup && bun run build; } >"$LOG.setup" 2>&1; then
 $(tail -c 800 "$LOG.setup")"
   exit 1
 fi
+if ! claude auth status 2>/dev/null | grep -q '"loggedIn": true'; then
+  bash scripts/mini/notify.sh "oco mini: $ID 未执行：这个 tmux 服务器读不到钥匙串（多半由 SSH 启动），不是登出；见 mac-mini skill"
+  exit 1
+fi
 caffeinate -dims claude -p "$(cat "$PROMPT")" --model "${OCO_MINI_MODEL:-sonnet}" --dangerously-skip-permissions >"$LOG" 2>&1
 RC=$?
 bash scripts/mini/notify.sh "oco mini: $ID 结束 rc=$RC head=$(git rev-parse --short HEAD)
