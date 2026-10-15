@@ -1096,3 +1096,8 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 验证：typecheck 0；unit 439/0；build PASS；本机已装 `oco-0.0.4-25f9a76.vsix`。E2E 交 Mac mini `mini-ccfeat`（c26–c28 + c3 / c7 / c11 / c16 + 默认 mock 回归），结果早上见 STATUS 与 [mini-ccfeat](evidence/mini-ccfeat.md)。
 - Mac mini 运维：tmux 服务器再次丢失，按用户「权限卡住就绕开」授权经 SSH 加载已备好的 `com.jarvis.tmux-gui` LaunchAgent（回退 `launchctl bootout gui/501/com.jarvis.tmux-gui`）；`mini-regress` 因任务 shell 找不到 opencode 中止 0/13，`run-task.sh` 改为自动使用 `~/oco-bin/opencode` 包装脚本（MINI.md 已记）。
 - 结果（03:40）：Mac mini mini-ccfeat 新套件 c26–c28 6/6、受影响回归过、c3-fork 测试竞态修复；默认回归 13 套件 11 过，c5-runtime think-card 经 main 基线对照确认为既有抖动，p1b-narrow 归因 HUD 多触发整表重渲染并修复（`refreshHud()`），mini-narrow ×5 全过 → 合并提交 `1f5c6fb` 推送 origin，Mac mini 拉取，本机已装 `oco-0.0.4-1f5c6fb.vsix`。
+
+## 2026-10-16 上午：卡 9 回退入口 + 真实模型解封
+
+- 卡 9：Grok 调查发现上游已有用户消息「Revert message」；Sonnet 子代理写 c29-rewind 证实嵌入模式可用（4/4 ×2，c27 / c3 回归过），不加补丁 0026。
+- 真实模型：官方 opencode 1.18.33 二进制（`~/oco-bin/official/`）绕过 403；big-pickle 等免费模型限流，`opencode/nemotron-3.5-lightning-free` 可用。真实回归与归因见 [real-model-2026-10-16](evidence/real-model-2026-10-16.md)。
