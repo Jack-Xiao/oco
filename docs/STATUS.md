@@ -2,7 +2,7 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
-## Claude Code 对照批次：会话导出 + 状态栏 HUD（2026-10-16 夜间，分支 claude/cc-features-2026-10-16，未合入 main；E2E 由 Mac mini 执行中）
+## Claude Code 对照批次：会话导出 + 状态栏 HUD（2026-10-16 夜间，已合入 main，合并提交 `1f5c6fb`，已推送 origin）
 
 - 前置已完成：卡 6 + 卡 7 分支合入 main（合并提交 `3f89430`，2026-10-16 00:05，已推送 origin）；Mac mini `~/Ai-Project/oco` 与 worktree `oco-mini` 同步到 `3f89430`。
 - F1 会话导出（M18 第一片，对应 Claude Code `/export`）：`oco.exportSession` 把会话渲染成 Markdown 开在 untitled 编辑器，`oco.exportSessionToFile` 走保存对话框；入口为侧栏行右键菜单与命令面板。渲染器 `renderSessionMarkdown`（`export-session.ts`，纯函数）：标题 / 元数据（id、时间、模型、总花费、总 token）、每条消息一节、工具调用折叠为 `<details>`（输入 2000 / 输出 4000 字符截断）、reasoning 默认省略、`revert` 之后的消息省略并注明条数、未知 part 不抛错。数据：`GET /session/:id` + `GET /session/:id/message`。
@@ -12,8 +12,8 @@
 - c27 的产品结论：todo dock 只在轮次运行中显示（上游 `todoDockAtBoundary` 设计）；嵌入模式没有逐条消息回退按钮，回退入口只有 composer 斜杠命令 `/undo`，Restore 走 revert dock → 卡 9（M04 回退入口）成立。未覆盖：侧栏行菜单导出入口、`oco.exportSessionToFile` 的系统保存对话框。
 - 上游能力核对（vendor 1.18.33）：revert dock（回退检查点）、todo dock（任务列表）、slash 命令浮层上游已有，嵌入模式可见性与逐条消息回退入口待 c27 结论；宿主已有终端输出 / Problems / Git diff / 选区入草稿与分屏打开。对照表、取舍与下一批候选见 [cc-features-2026-10-16](evidence/cc-features-2026-10-16.md) 与 NEXT §0b。
 - Mac mini：`com.jarvis.tmux-gui` LaunchAgent 00:12 加载（此前 tmux 服务器丢失导致 dispatch 拒绝派发）；`mini-regress`（合入后默认回归）因任务 shell 找不到 opencode 中止 0/13（mini 没装 opencode，E2E 一直用 card7 留下的 `~/oco-bin/opencode` 包装脚本），`run-task.sh` 已改为自动设 `OCO_OPENCODE_BIN`，默认回归并入 mini-ccfeat 末尾。
-- 基线对照（Mac mini `mini-baseline`，main 3f89430）：c5-runtime think-card 抖动在 main 上 2/2 复现 → 既有问题；p1b-narrow 在 main 上 12/12 通过 → 本分支 2 次失败归因为 HUD 布线在 `/provider` 返回等时机多触发一次侧栏整表重渲染（`view.refresh()`），已改为只刷状态栏的 `refreshHud()`（75c0be9）；Mac mini `mini-narrow` 正在跑 p1b-narrow ×5 + c28 / c6 复核，5/5 才合入。
-- 本机已装 `oco-0.0.4-75c0be9.vsix`（需 Reload Window）。
+- 基线对照（Mac mini `mini-baseline`，main 3f89430）：c5-runtime think-card 抖动在 main 上 2/2 复现 → 既有问题；p1b-narrow 在 main 上 12/12 通过 → 本分支 2 次失败归因为 HUD 布线在 `/provider` 返回等时机多触发一次侧栏整表重渲染（`view.refresh()`），已改为只刷状态栏的 `refreshHud()`（75c0be9）；Mac mini `mini-narrow` 复核：p1b-narrow 5/5（每次 12/12）、c28 2/2、c6 5/5（[mini-narrow](evidence/mini-narrow.md)）→ 合入。
+- 本机已装 `oco-0.0.4-1f5c6fb.vsix`（需 Reload Window）。
 
 ## 卡 6：路线图剩余可做项（2026-10-14，分支 claude/roadmap-batch-2026-10-14，未合入 main，未推送）
 
@@ -113,7 +113,7 @@
 
 - 上游基线：vendor OpenCode v1.18.33（提交 `51ef4be`，浅克隆；旧文档里的补丁基线 `deb241e` 已不存在，补丁再生成改用 `scripts/regen-patch.sh` 在临时 worktree 重建基线）。宿主 `VERIFIED_SERVERS` = 1.18.33、1.18.13（企业服务；前端保持 1.18.33，验收对着 1.18.13 服务端跑；切到 1.18.13 前端的方案停放在本地分支 `claude/opencode-1.18.13-baseline`）。
 - 补丁链：`patches/opencode/` 0001–0025（0024 / 0025 只在卡 6 分支）在干净 vendor HEAD `51ef4be` 上重放通过（2026-10-14 生成 0025 时以 0001–0024 为基线校验；`0024-oco-embedded-subagent-pills.patch` 标题行子代理 pills；`0025-oco-runtime-view-followups.patch` 运行视图 M5 遗留；`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡；`0022-oco-markdown-mermaid.patch` 为 Mermaid；`0023-oco-embedded-new-session-draft.patch` 为新建会话草稿页）。卡 1、卡 3 未改补丁。
-- 本机扩展：已装 `oco-0.0.4-75c0be9.vsix`（分支 `claude/cc-features-2026-10-16` 75c0be9 = main 3f89430 + 会话导出 + 状态栏 HUD + HUD 只刷状态栏修复，vendor v1.18.33 + 补丁 0001–0025；2026-10-16 03:05；extension.js sha256 `d7617ec9…`；需 Reload Window）。
+- 本机扩展：已装 `oco-0.0.4-1f5c6fb.vsix`（main 1f5c6fb = 3f89430 + 会话导出 + 状态栏 HUD（只刷状态栏），vendor v1.18.33 + 补丁 0001–0025；2026-10-16 03:40；extension.js sha256 `d7617ec9…`；需 Reload Window）。
 
 ## 已合入 main 的能力
 

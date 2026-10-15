@@ -2,7 +2,7 @@
 
 本文件是唯一的当前队列。状态只看 [STATUS](STATUS.md)。不要执行 HANDOFF 或 P1B-NEXT-STEPS 里的旧提示词。
 
-当前基线：main `9c54524`；卡 6 在分支 `claude/roadmap-batch-2026-10-14`（未合入 main，新增补丁 0024 / 0025，待卡 7 夜间验收后由用户决定合入）。上一批基线：main `9222aa7`（2026-10-14 合入卡 1、卡 3、卡 2 与 M20 第一步，已推送 origin）。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
+当前基线：main `1f5c6fb`（2026-10-16 夜间：卡 6 + 卡 7 合并提交 `3f89430`，Claude Code 对照批次合并提交 `1f5c6fb`，均已推送 origin；补丁 0024 / 0025 随之进入 main）。上一批基线：main `9222aa7`（2026-10-14 合入卡 1、卡 3、卡 2 与 M20 第一步，已推送 origin）。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
 
 ## 0. 本轮路线（2026-10-13 用户确认：按建议从前往后做，一个会话做一张卡）
 
@@ -110,8 +110,8 @@
 - F1 会话导出 Markdown（= M18 第一片；Claude Code `/export`）：`oco.exportSession`（untitled 编辑器）、`oco.exportSessionToFile`（保存对话框），侧栏行菜单 + 命令面板；渲染器纯函数 + 单测。[DONE 代码 25f9a76；E2E c26 2/2]
 - F2 状态栏 HUD（= Claude Code status line / claude-hud）：`oco.hud` 显示聚焦会话的 模型 · 上下文 % · 花费，运行 / 等待前缀，tooltip 带 token 分项；设置 `oco.statusBar.hud`。[DONE 代码 25f9a76；E2E c28 2/2]
 - F3 验证上游已有的「回退检查点」（revert dock）与「任务列表」（todo dock）在嵌入模式可用：Mac mini 写 c26-export、c27-docks、c28-status-hud 并跑受影响回归。[DONE：c27 2/2，todo dock 仅轮次运行中可见（上游设计）；嵌入模式回退只有 `/undo`，无逐条消息按钮 → 卡 9 成立]
-- 常驻：合入 main 后默认 mock 回归。[mini-regress 因 opencode 包装脚本不在 PATH 中止 0/13（已修 run-task）；mini-ccfeat 末尾重跑 13 套件 11 过，p1b-narrow / c5-runtime 两次失败未归因 → mini-baseline 在 main 上对照中]
-- 收尾：全绿则合入 main 并推送、打包安装 VSIX；不绿留在分支并在 STATUS 写明。
+- 常驻：合入 main 后默认 mock 回归。[DONE：mini-ccfeat 13 套件 11 过；c5-runtime think-card 为 main 既有抖动（mini-baseline 2/2 复现，见 §1）；p1b-narrow 归因 HUD 布线多触发整表重渲染，改 `refreshHud()` 后 mini-narrow ×5 全过]
+- 收尾：[DONE 合并提交 `1f5c6fb` 已推送；本机已装 `oco-0.0.4-1f5c6fb.vsix`；Mac mini 已拉取]
 
 下一批候选（按价值 / 成本排序，早上确认后按 §0 固定做法一张卡一个会话）：
 
@@ -125,6 +125,8 @@
 
 ## 1. 真实模型回归（本批第二步）
 
+- [既有，待修] c5-runtime think-card：思考卡片宽度 337→342→344 抖动，main 3f89430 基线 2/2 复现（[mini-baseline](evidence/mini-baseline.md)），与 cc-features 无关；和 mini-card7 记的舞台高度抖动同类，需在运行视图里定位宽度来源（补丁 0020 / 0025 的几何）。
+- [DONE 2026-10-16] p1b-narrow deny-260 / question-260：根因是 HUD 布线在 `/provider` 返回等时机多触发一次侧栏整表重渲染；改为只刷状态栏的 `refreshHud()` 后 ×5 全过（[mini-narrow](evidence/mini-narrow.md)）。教训：状态栏类更新不要走 `view.refresh()`。
 - [DONE 一轮] 真实模型全量 E2E：21 套件，首轮 16 套件无 FAIL；修测试后重跑 p1a-chat、p1a-identity 通过。见 [fail-diag](evidence/cleanup-2026-10-10-fail-diag.md)。
 - [TODO，卡 7 `overnight-e2e.sh --loop 10 p1b-narrow`] p1b-narrow「新面板未出现」：两次落在不同宽度（320、260），先用 mock 模式循环复现，判定是否为产品侧打开新面板的竞态。
 - [DONE 代码 522c08b，NOT RUN 待卡 7] c4 live-update / subagent-row、c5 tool-turn / tool-fail / retry：按 `modelMode` 把依赖 mock 口令或模型时序的断言改判 N/A 或放宽采样；c5 真实模式外层超时调到 ≥ 30 分钟。

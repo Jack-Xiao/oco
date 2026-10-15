@@ -89,3 +89,12 @@ mini-ccfeat 的 c26–c28、受影响套件与默认回归全绿（偶发重跑�
 - mini-baseline（临时分支 401fdff = main + run-task 修复；提交 d5cbca6 → cherry-pick f60ffd1，证据 [mini-baseline](mini-baseline.md)）：c5-runtime think-card 337→342→344 抖动在 main 上 2/2 复现 → 既有问题，与本批无关，记 NEXT §1；p1b-narrow 在 main 上 1 次 12/12 通过（含 deny-260 / question-260）→ 本分支的 2 次失败不能归为既有偶发。
 - 归因（主线程读码，推测但机制明确）：Gemini 的 HUD 布线在 `/provider` 返回、主面板会话切换、设置变化时都调用 `view.refresh()`，而 `refresh()` 是 150 ms 去抖后的侧栏整表重渲染（`updateChrome()` + `rendered.fire()`）。于是连接建立后一小段时间内多出一次与用户操作无关的整表重渲染，撞上 260px 下测试正在点的 Deny / 提问选项 → deny-260 / question-260 这类随机用例失败，与 mini-card7 记录的 p1b-narrow「fitGroups 上下文销毁」同一类。main 没有这条额外重渲染，所以基线通过。
 - 修复：`sessions-view.ts` 把 HUD 块抽成 `renderHud()`，新增 `refreshHud()` 只刷状态栏项；`extension.ts` 三处（limits 到达、`onDidChangeActiveSession`、`oco.statusBar.hud` 设置变化）改调 `refreshHud()`，不再触发整表重渲染。typecheck 0、unit 439/0。验证交 Mac mini `mini-narrow`：本分支 p1b-narrow ×5 + c28 / c6 各一次；5/5 才合入。
+
+## 更新 03:40：mini-narrow 结果与合入
+
+| task_id | requested_route | actual | run_id | 状态 | 结果 |
+| --- | --- | --- | --- | --- | --- |
+| mini-baseline | Mac mini（临时分支 401fdff = main + run-task 修复，Sonnet） | claude-subagent/sonnet（mini） | tmux `mini-mini-baseline`，01:57–02:10 | 已返回 | p1b-narrow 12/12 PASS；c5-runtime think-card 2/2 FAIL（既有）；提交 d5cbca6 → f60ffd1 |
+| mini-narrow | Mac mini（分支 claude/cc-features-2026-10-16 75c0be9，Sonnet） | claude-subagent/sonnet（mini） | tmux `mini-mini-narrow`，03:08–03:30 | 已返回，验收通过 | p1b-narrow 5/5（各 12/12，96–98 s）、c28 2/2、c6 5/5；提交 fb69a2d → 99373a8 |
+
+合入：`git merge --no-ff claude/cc-features-2026-10-16` → main `1f5c6fb`，已推送 origin；本机已装 `oco-0.0.4-1f5c6fb.vsix`（extension.js sha256 d7617ec9…，与 75c0be9 相同产物）；Mac mini `~/Ai-Project/oco` 拉到 `1f5c6fb`。临时分支 claude/baseline-3f89430 已删（本机与 mini）。
