@@ -101,6 +101,28 @@
 5. 立项的新功能（如 M21）：主线程先写 ADR / 契约，实现交 Gemini，E2E 交 Mac mini。
 6. 推送与发布：只在用户明确要求时做。
 
+## 0b. Claude Code 对照批次（2026-10-16 夜间，用户授权无人值守；分支 claude/cc-features-2026-10-16）
+
+来源：用户 2026-10-15 夜要求「评估 Claude Code 新版本里适合 oco 的特性并加进来，与 Mac mini 分工，注意 token 与时间」。对照表与委派记录在 [cc-features-2026-10-16](evidence/cc-features-2026-10-16.md)。分工：本机主线程只做范围、契约、集成、合入与文档；实现交 Gemini（探测 OK）；只读调查交 Grok；E2E 与回归交 Mac mini（tmux-gui 守护已于 00:12 加载，见 mac-mini skill 案例库）。
+
+本批（夜间执行，状态早上以 STATUS 为准）：
+
+- F1 会话导出 Markdown（= M18 第一片；Claude Code `/export`）：`oco.exportSession`（untitled 编辑器）、`oco.exportSessionToFile`（保存对话框），侧栏行菜单 + 命令面板；渲染器纯函数 + 单测。[实现中：Gemini]
+- F2 状态栏 HUD（= Claude Code status line / claude-hud）：`oco.hud` 显示聚焦会话的 模型 · 上下文 % · 花费，运行 / 等待前缀，tooltip 带 token 分项；设置 `oco.statusBar.hud`。[实现中：Gemini]
+- F3 验证上游已有的「回退检查点」（revert dock）与「任务列表」（todo dock）在嵌入模式可用：Mac mini 写 c26-export、c27-docks、c28-status-hud 并跑受影响回归。[待 F1/F2 提交后派发：docs/mini/mini-ccfeat.md]
+- 常驻：合入 main 后默认 mock 回归（Mac mini `mini-regress`，基线 3f89430）。[运行中]
+- 收尾：全绿则合入 main 并推送、打包安装 VSIX；不绿留在分支并在 STATUS 写明。
+
+下一批候选（按价值 / 成本排序，早上确认后按 §0 固定做法一张卡一个会话）：
+
+- 卡 9 M04 回退入口：若 c27(b) 证明嵌入模式没有逐条消息的回退入口，补丁 0026 在 fork 按钮旁加「Rewind to here」（走 `POST /session/:id/revert`，恢复由上游 revert dock 的 Restore 完成）。S–M。
+- 卡 10 章节目录：核实上游 `pages/session/timeline/` 在嵌入模式是否可见；不可见则打开或做紧凑「跳到某轮」侧轨（Claude Code mark_chapter 的等价物）。S。
+- 卡 11 M21 Git 动作 v1：先补 ADR-009 §4 边界（oco 不自己执行 git），只做「让 agent 提交 / 开 PR」提示模板 + 打开 SCM 视图；不做 CI 监视与自动合并。S + ADR。
+- 卡 12 消息级书签（Claude Code 2.1.286 Bookmarks 侧栏）：钉住某条回复，侧栏会话下方列出，点击走上游 `useSessionHashScroll` 定位。M。
+- 卡 13 M13 composer chip + 「自动附带编辑器选区」设置（Claude Code 2.1.300 `attachSelection`）：需扩 DraftInsert 契约与补丁 0001。M。
+- 不做（已评估）：收尾框 / 回复按钮、提议卡、PR 绑定与 CI 自动修复、Remote Control / 云会话 / 定时任务、Artifacts、浏览器面板、idle compaction（服务端概念）。
+- 仍需用户决定（卡 8 不变）：默认键位 chord、真实模型凭据、1.19.0 进 VERIFIED_SERVERS、M15 Agents 视图、T018 publisher / 许可证、Aider 式注释触发。
+
 ## 1. 真实模型回归（本批第二步）
 
 - [DONE 一轮] 真实模型全量 E2E：21 套件，首轮 16 套件无 FAIL；修测试后重跑 p1a-chat、p1a-identity 通过。见 [fail-diag](evidence/cleanup-2026-10-10-fail-diag.md)。
