@@ -77,3 +77,8 @@ Grok 的 Top 5：idle compaction；权限队列 “2 of 5” + 最旧优先；Qu
 ## 合入规则（夜间）
 
 mini-ccfeat 的 c26–c28、受影响套件与默认回归全绿（偶发重跑通过算绿）→ 合入 main 并推送、Mac mini 拉取、打包安装；有稳定失败 → 留在分支，失败清单写 STATUS / NEXT §0b，早上由用户决定。
+
+## 更新 01:55：mini-ccfeat 结果与基线对照
+
+- mini-ccfeat 已返回（tmux `mini-mini-ccfeat`，00:45–01:40，提交 `3ed2d17` → cherry-pick `4f24750`）：c26 2/2、c27 2/2、c28 2/2；c7 6/6、c16 5/5、c11 6 PASS + 2 既有 NOT RUN；c3-fork 测试侧竞态修一处后 3×4/4；默认回归 13 套件 11 过，p1b-narrow（deny-260 → 重跑 question-260）与 c5-runtime（think-card 337→344）两次失败，关掉 `oco.statusBar.hud` 仍失败。产品缺陷 0。副产物：mini 上 `~/oco-bin/env.sh` 的 `OCO_VSCODE_BIN` 指向不存在的 `MacOS/Electron`，主线程已改为 `MacOS/Code`（`tests/e2e/vscode.mjs` 默认值即 Code，不 source 该文件也可）。
+- 两个失败均为 webview 内几何 / 动画用例，本批未改 vendor 与补丁；mini-card7 也记录过同两处偶发。为了不把既有偶发当本批回归、也不把本批回归当偶发，派 `mini-baseline`（临时分支 `claude/baseline-3f89430` = main + run-task 修复，产品代码与 main 相同）在 main 上各跑这两套件 ≤2 次。规则：main 同样失败 → 合入；main 两次都过 → 不合入、留分支。

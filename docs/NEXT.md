@@ -107,10 +107,10 @@
 
 本批（夜间执行，状态早上以 STATUS 为准）：
 
-- F1 会话导出 Markdown（= M18 第一片；Claude Code `/export`）：`oco.exportSession`（untitled 编辑器）、`oco.exportSessionToFile`（保存对话框），侧栏行菜单 + 命令面板；渲染器纯函数 + 单测。[实现中：Gemini]
-- F2 状态栏 HUD（= Claude Code status line / claude-hud）：`oco.hud` 显示聚焦会话的 模型 · 上下文 % · 花费，运行 / 等待前缀，tooltip 带 token 分项；设置 `oco.statusBar.hud`。[实现中：Gemini]
-- F3 验证上游已有的「回退检查点」（revert dock）与「任务列表」（todo dock）在嵌入模式可用：Mac mini 写 c26-export、c27-docks、c28-status-hud 并跑受影响回归。[待 F1/F2 提交后派发：docs/mini/mini-ccfeat.md]
-- 常驻：合入 main 后默认 mock 回归（Mac mini `mini-regress`，基线 3f89430）。[运行中]
+- F1 会话导出 Markdown（= M18 第一片；Claude Code `/export`）：`oco.exportSession`（untitled 编辑器）、`oco.exportSessionToFile`（保存对话框），侧栏行菜单 + 命令面板；渲染器纯函数 + 单测。[DONE 代码 25f9a76；E2E c26 2/2]
+- F2 状态栏 HUD（= Claude Code status line / claude-hud）：`oco.hud` 显示聚焦会话的 模型 · 上下文 % · 花费，运行 / 等待前缀，tooltip 带 token 分项；设置 `oco.statusBar.hud`。[DONE 代码 25f9a76；E2E c28 2/2]
+- F3 验证上游已有的「回退检查点」（revert dock）与「任务列表」（todo dock）在嵌入模式可用：Mac mini 写 c26-export、c27-docks、c28-status-hud 并跑受影响回归。[DONE：c27 2/2，todo dock 仅轮次运行中可见（上游设计）；嵌入模式回退只有 `/undo`，无逐条消息按钮 → 卡 9 成立]
+- 常驻：合入 main 后默认 mock 回归。[mini-regress 因 opencode 包装脚本不在 PATH 中止 0/13（已修 run-task）；mini-ccfeat 末尾重跑 13 套件 11 过，p1b-narrow / c5-runtime 两次失败未归因 → mini-baseline 在 main 上对照中]
 - 收尾：全绿则合入 main 并推送、打包安装 VSIX；不绿留在分支并在 STATUS 写明。
 
 下一批候选（按价值 / 成本排序，早上确认后按 §0 固定做法一张卡一个会话）：
