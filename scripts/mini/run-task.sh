@@ -6,6 +6,11 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 ID=$1 PROMPT=$2 LOG="$HOME/oco-mini-logs/$ID.log"
 export PATH="$HOME/.bun/bin:$HOME/.local/bin:/opt/homebrew/bin:$PATH"
+# The mini has no installed opencode: card7 (2026-10-14) left a wrapper at ~/oco-bin/opencode that runs the vendored source.
+# The launchd-started tmux server has a narrow PATH, so point the E2E test server at the wrapper explicitly (mini-regress
+# 2026-10-16 aborted 0/13 with "opencode not found" without this). OCO_OPENCODE_BIN set by the caller still wins.
+if [ -z "${OCO_OPENCODE_BIN:-}" ] && [ -x "$HOME/oco-bin/opencode" ]; then export OCO_OPENCODE_BIN="$HOME/oco-bin/opencode"; fi
+export PATH="$HOME/oco-bin:$PATH"
 cd "$ROOT"
 bash scripts/mini/notify.sh "oco mini: $ID 开始（$(git rev-parse --short HEAD)）"
 if ! { bun run setup && bun run build; } >"$LOG.setup" 2>&1; then
