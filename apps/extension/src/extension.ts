@@ -113,7 +113,7 @@ export function activate(context: vscode.ExtensionContext) {
       .then((resp) => {
         cachedLimits = parseModelLimits(resp)
         cachedLimitsConnId = currentConnId
-        view.refresh()
+        view.refreshHud()
       })
       .catch(() => {
         cachedLimits = undefined
@@ -195,7 +195,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(panels, ...followDisposables, ...fileDecDisposables, ...reviewThreadsDisposables)
   if (panels.onDidChangeActiveSession) {
-    context.subscriptions.push(panels.onDidChangeActiveSession(() => view.refresh()))
+    context.subscriptions.push(panels.onDidChangeActiveSession(() => view.refreshHud()))
   }
 
   panels.onChange = () => {
@@ -610,7 +610,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (!e.affectsConfiguration("oco")) return
       if (e.affectsConfiguration("oco.statusBar.hud")) {
-        view.refresh()
+        view.refreshHud()
         return
       }
       versionFor = undefined

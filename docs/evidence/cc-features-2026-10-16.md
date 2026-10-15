@@ -83,3 +83,9 @@ mini-ccfeat 的 c26–c28、受影响套件与默认回归全绿（偶发重跑�
 - mini-ccfeat 已返回（tmux `mini-mini-ccfeat`，00:45–01:40，提交 `3ed2d17` → cherry-pick `4f24750`）：c26 2/2、c27 2/2、c28 2/2；c7 6/6、c16 5/5、c11 6 PASS + 2 既有 NOT RUN；c3-fork 测试侧竞态修一处后 3×4/4；默认回归 13 套件 11 过，p1b-narrow（deny-260 → 重跑 question-260）与 c5-runtime（think-card 337→344）两次失败，关掉 `oco.statusBar.hud` 仍失败。产品缺陷 0。副产物：mini 上 `~/oco-bin/env.sh` 的 `OCO_VSCODE_BIN` 指向不存在的 `MacOS/Electron`，主线程已改为 `MacOS/Code`（`tests/e2e/vscode.mjs` 默认值即 Code，不 source 该文件也可）。
 - 两个失败均为 webview 内几何 / 动画用例，本批未改 vendor 与补丁；mini-card7 也记录过同两处偶发。为了不把既有偶发当本批回归、也不把本批回归当偶发，派 `mini-baseline`（临时分支 `claude/baseline-3f89430` = main + run-task 修复，产品代码与 main 相同）在 main 上各跑这两套件 ≤2 次。规则：main 同样失败 → 合入；main 两次都过 → 不合入、留分支。
 - 02:05 mini-baseline 派发记录：第一次临时分支 cherry-pick 9c6f4a4 在 main 上冲突（docs/mini/mini-ccfeat.md 不存在），管道掩盖了退出码，结果把纯 main（无 run-task 修复）派了出去；发现后 kill 该 tmux 会话（run-task.sh 58061 / claude -p 58340），临时分支改为只取 `scripts/mini/run-task.sh`（401fdff）重派，`started mini-mini-baseline on claude/baseline-3f89430`。提示词存 docs/mini/mini-baseline.md。
+
+## 更新 02:58：基线对照结果、归因与修复
+
+- mini-baseline（临时分支 401fdff = main + run-task 修复；提交 d5cbca6 → cherry-pick f60ffd1，证据 [mini-baseline](mini-baseline.md)）：c5-runtime think-card 337→342→344 抖动在 main 上 2/2 复现 → 既有问题，与本批无关，记 NEXT §1；p1b-narrow 在 main 上 1 次 12/12 通过（含 deny-260 / question-260）→ 本分支的 2 次失败不能归为既有偶发。
+- 归因（主线程读码，推测但机制明确）：Gemini 的 HUD 布线在 `/provider` 返回、主面板会话切换、设置变化时都调用 `view.refresh()`，而 `refresh()` 是 150 ms 去抖后的侧栏整表重渲染（`updateChrome()` + `rendered.fire()`）。于是连接建立后一小段时间内多出一次与用户操作无关的整表重渲染，撞上 260px 下测试正在点的 Deny / 提问选项 → deny-260 / question-260 这类随机用例失败，与 mini-card7 记录的 p1b-narrow「fitGroups 上下文销毁」同一类。main 没有这条额外重渲染，所以基线通过。
+- 修复：`sessions-view.ts` 把 HUD 块抽成 `renderHud()`，新增 `refreshHud()` 只刷状态栏项；`extension.ts` 三处（limits 到达、`onDidChangeActiveSession`、`oco.statusBar.hud` 设置变化）改调 `refreshHud()`，不再触发整表重渲染。typecheck 0、unit 439/0。验证交 Mac mini `mini-narrow`：本分支 p1b-narrow ×5 + c28 / c6 各一次；5/5 才合入。

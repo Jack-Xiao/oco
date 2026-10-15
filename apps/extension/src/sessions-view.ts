@@ -697,6 +697,20 @@ export class SessionsView implements vscode.Disposable {
     } else this.stopStatus.hide()
     this.stopVisible = running > 0
 
+    this.renderHud()
+  }
+
+
+  /**
+   * Status bar HUD only. Called from updateChrome() and directly (refreshHud) when the model limits arrive, the focused
+   * panel changes or the setting flips: those must not re-render the session list (an extra webview render mid-interaction
+   * is what the narrow-width E2E races on).
+   */
+  refreshHud() {
+    this.renderHud()
+  }
+
+  private renderHud() {
     // Feature B: Status bar HUD
     const hudEnabled = vscode.workspace.getConfiguration("oco").get<boolean>("statusBar.hud", true)
     const focusedId = this.hudDeps?.focusedSession?.() ?? this.current
