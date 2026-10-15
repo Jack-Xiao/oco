@@ -63,7 +63,7 @@
 - 用户要求「全部完成、不跑耗时测试、省 token」。范围与委派记录见 [roadmap-batch-2026-10-14](evidence/roadmap-batch-2026-10-14.md)：M06 (1a)(2)、M14 第二步 Label + Snooze、M03 片 1 + 片 2、M19 资源管理器徽标、M08 Follow、M13 第二步评论线程、M20 第二步标题行 pills（补丁 0024）、§2b P1-2 / N2 / N3 / P3-9 / P3-10（补丁 0025）、§3 的 bridge-policy realpath、懒取上限、E2E 助手两处、c4 / c5 真实模式放宽、夜间脚本。
 - 离线（25f3f9a）：typecheck 0；unit 422/0；vendor typecheck 0；build PASS；Grok 只读评审 5 处缺陷已修（snooze 丢失、非 loopback 也 realpath、评论线程路径基准、Follow 关面板后仍跟随、代理写盘被当成用户编辑）；本机已装 `oco-0.0.4-25f3f9a.vsix`。E2E 与真实模型目视全部 NOT RUN。
 
-### 卡 7：夜间验收（2026-10-14 改由 Mac mini 执行：提示词 [docs/mini/card7.md](mini/card7.md)，`scripts/mini/dispatch.sh card7`；下面的会话提示词作废，步骤以 card7.md 为准）
+### 卡 7：夜间验收 [DONE 2026-10-15：mock 全过，3 处产品缺陷已修，真实模型 BLOCKED（big-pickle 403）；见 STATUS 卡 6 与 evidence/mini-card7.md] （2026-10-14 改由 Mac mini 执行：提示词 [docs/mini/card7.md](mini/card7.md)，`scripts/mini/dispatch.sh card7`；下面的会话提示词作废，步骤以 card7.md 为准）
 
 开工提示词：
 
@@ -77,18 +77,19 @@
 
 ### 卡 8：需要用户决定（不阻塞，早上看）
 
+- 夜间新增：真实模型怎么跑（提供模型凭据 / 用官方 OpenCode 二进制）；是否把 opencode 1.19.0 加进 VERIFIED_SERVERS（mock 41 套件全过，真实模型未跑）；两处窄布局观感（矮舞台工具行只剩「+N」；窄布局未打标签的行紧跟最后一个标签组、没有自己的分区头）；先看 18 张目视截图。
 - 默认键位：`oco.inbox.next`、`oco.session.parent / child / nextSibling / previousSibling / recent`、`oco.follow.toggle` 现在都不绑定；要不要给 chord 默认值（when 限定 `activeWebviewPanelId == 'oco.chat'` 或 oco 视图焦点）。
 - 卡 6 分支是否合入 main、是否推送（卡 7 通过后）。
 - 立项决策：M21 Git 动作（先补 ADR-009 §4）、M18 导出与分享、M15 Agents 视图、M04 回滚入口、Aider 式注释触发、T018 publisher 与许可证、M13 composer chip（需扩 DraftInsert 契约与补丁 0001）。
 
 ### Mac mini 队列（2026-10-14 起；约定见 [MINI](MINI.md)，一次一个，提示词写到 `docs/mini/<任务>.md` 再 dispatch）
 
-- [运行中 2026-10-14 23:26] card7：卡 6 新功能 E2E（c18–c24）+ 13 套件回归 + p1b-narrow 循环 + c4 / c5 真实模式 + 目视截图。
-- mini-real：卡 7 修复合入后，真实模型全量 21 套件；含 c10 / c11 遗留 NOT RUN（模态确认的批量 delete / archive、真实模型压缩目视）。
-- mini-nested：mock 产生孙会话 + 嵌套 ≥2 层 E2E（运行视图、侧栏徽标、标题行 pills）。
-- mini-perf：数千行长会话滚动与数小时常驻内存趋势（先修 `perf.mjs` 按 `.oco-test/vscode/perf` 找进程、遇短路径失配的问题）；`test:bench` 端口 4096 / 3000 冲突。
-- mini-tools-k：轮末工具台 end 后 ≥2 s 采样复核。
-- mini-compat：对 npm 最新公共版 opencode（1.19.x）跑 mock 回归并列出差异，供「是否支持公共版」决策。
+- [DONE 6885865] card7：卡 6 新功能 E2E（c18–c24）+ 13 套件回归 + p1b-narrow 循环 + c4 / c5 真实模式 + 目视截图。
+- [BLOCKED：big-pickle 403，需真实模型凭据或官方 OpenCode 二进制] mini-real：卡 7 修复合入后，真实模型全量 21 套件；含 c10 / c11 遗留 NOT RUN（模态确认的批量 delete / archive、真实模型压缩目视）。
+- [DONE d7fe378] mini-nested：mock 产生孙会话 + 嵌套 ≥2 层 E2E（运行视图、侧栏徽标、标题行 pills）。
+- [部分 aaa22a0：perf.mjs 匹配修复 4/4、bench 端口改包装脚本（单元 43/0、Playwright 61/65，3 个失败待在干净上游检出上区分来源）；数小时内存与数千行滚动仍 TODO] mini-perf：数千行长会话滚动与数小时常驻内存趋势（先修 `perf.mjs` 按 `.oco-test/vscode/perf` 找进程、遇短路径失配的问题）；`test:bench` 端口 4096 / 3000 冲突。
+- [DONE aaa22a0，本机子代理] mini-tools-k：轮末工具台 end 后 ≥2 s 采样复核（0.6 / 2.6 / 3.6 s 均为 0）。
+- [DONE 71bfce4，本机子代理：1.19.0 mock 41 套件 0 失败] mini-compat：对 npm 最新公共版 opencode（1.19.x）跑 mock 回归并列出差异，供「是否支持公共版」决策。
 - mini-remote（提示词 [docs/mini/mini-remote.md](mini/mini-remote.md)，card7 结束后派发）：VS Code Remote-SSH 连 Mac mini 自身，解除 Remote 断网恢复 / Remote 窗口查看轨迹与运行视图的 BLOCKED。2026-10-14 用户同意；前提是用户手动给 Mac mini 加自连 ssh key（安全配置不由代理改）。
 - 常驻：每次合入 main 后跑一次 `overnight-e2e.sh` 默认回归。
 

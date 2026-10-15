@@ -1083,3 +1083,9 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 
 - 用户要求「全部完成、不跑耗时测试、省 token」。主线程：契约（`answerPending` 共用回复、`FeedDeps.onEvent`）、补丁 0024 / 0025 生成、集成（两处 `as any` 改公共方法）、评审修复 5 处、文档与卡 7 夜间提示词。Gemini ×2：侧栏与宿主命令；Grok ×3：两项 vendor 改动与只读评审；Claude 子代理（sonnet）：E2E 测试侧与夜间脚本。委派记录见 [roadmap-batch-2026-10-14](evidence/roadmap-batch-2026-10-14.md)。
 - 验证：typecheck 0；unit 422/0；vendor typecheck 0；build PASS；E2E NOT RUN（卡 7）。本机已装 `oco-0.0.4-25f3f9a.vsix`。Mac mini 核对已在 main 9c54524。分支未合入 main、未推送。
+
+## 2026-10-15 夜间：Mac mini 执行机 + 卡 7
+
+- 用户决定把 E2E 与长任务交给 Mac mini（约定 [MINI](MINI.md)，`scripts/mini/*`：dispatch / run-task / notify（OpenClaw Telegram main 群）/ watchdog / patrol / collect）；主会话每 30 分钟巡检，完成即合入并派下一个。
+- 结果：card7（c18–c24、21 mock 套件全过、p1b-narrow 10/10、2 处产品修复）、mini-nested（c25、汇总优先级修复）合入；04:53 mini-compat 因 SSH 起的 tmux 服务器读不到钥匙串报 Not logged in（并非登出，主线程起初误判），改由本机 Sonnet 子代理完成 compat（1.19.0 无不兼容）与 probe（tools-k、perf、bench）。dispatch / run-task 已加守卫。
+- 验证：typecheck 0；unit 423/0；本机已装 `oco-0.0.4-2846f66.vsix`。真实模型 BLOCKED（big-pickle 403）；mini-remote 待用户加自连 ssh key。分支未推送、未合 main。
