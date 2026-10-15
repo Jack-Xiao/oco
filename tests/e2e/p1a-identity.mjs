@@ -251,7 +251,9 @@ try {
   const editorLines = page.locator(".editor-group-container.active .monaco-editor .view-lines").first()
   await editorLines.waitFor({ timeout: 20000 })
   await sleep(300)
-  await editorLines.click()
+  // Click near the top-left corner: with three chat panels open the editor group is narrow and the centre of .view-lines
+  // sits under the vertical scrollbar slider, which intercepts a centred click (observed on 1.18.33 and 1.19.0 alike).
+  await editorLines.click({ position: { x: 8, y: 8 } })
   await page.keyboard.press("Meta+ArrowDown")
   await page.keyboard.type("\n// unsaved-ident-555\n")
   await page.keyboard.press("Meta+a")

@@ -8,11 +8,15 @@ let moreOpen = !!saved.moreOpen
 const savedCollapsed = saved && typeof saved.collapsed === "object" && saved.collapsed !== null ? saved.collapsed : {}
 let inboxCollapsed = Boolean(savedCollapsed.inbox)
 let sessionsCollapsed = Boolean(savedCollapsed.sessions)
+let snoozedCollapsed = Boolean(savedCollapsed.snoozed !== undefined ? savedCollapsed.snoozed : true)
 let state = null
 let searchTimer = 0
 let scrollTimer = 0
 let persistReady = false
 let restoredScroll = false
+let activeLabelRowId = null
+let shortcutsModalVisible = false
+const denyNoteForms = new Set()
 
 const scroll = el("div", "scroll")
 const searchWrap = el("div", "search-wrap")
@@ -62,6 +66,24 @@ pinnedHead.setAttribute("role", "button")
 const pinnedLabel = el("span", "section-label")
 pinnedLabel.textContent = "Pinned"
 pinnedHead.append(pinnedLabel)
+
+const labelHeads = new Map()
+
+const snoozedHead = el("div", "section-head snoozed-head")
+snoozedHead.dataset.group = "snoozed"
+snoozedHead.tabIndex = 0
+snoozedHead.setAttribute("role", "button")
+snoozedHead.setAttribute("aria-expanded", "false")
+const snoozedChevron = el("span", "chevron")
+snoozedChevron.setAttribute("aria-hidden", "true")
+const snoozedLabel = el("span", "section-label")
+snoozedLabel.textContent = "Snoozed"
+const snoozedCount = el("span", "section-count")
+snoozedHead.append(snoozedChevron, snoozedLabel, snoozedCount)
+
+const SYNC_ICON_SVG = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M13.46 3.66a6.99 6.99 0 0 0-9.84.42L2.5 2.96v4.03h4.03L4.9 5.36a5.5 5.5 0 0 1 7.73-.34 5.5 5.5 0 0 1 .6 7.76l1.1 1.1a7 7 0 0 0-.87-10.22zm-10.92 8.68a6.99 6.99 0 0 0 9.84-.42l1.12 1.12V8.97H9.47l1.63 1.63a5.5 5.5 0 0 1-7.73.34 5.5 5.5 0 0 1-.6-7.76l-1.1-1.1a7 7 0 0 0 .87 10.26z"/></svg>'
+const TAG_ICON_SVG = '<svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1 2a1 1 0 0 1 1-1h5.586a1 1 0 0 1 .707.293l7.414 7.414a1 1 0 0 1 0 1.414l-5.586 5.586a1 1 0 0 1-1.414 0L1.707 9.293A1 1 0 0 1 1.414 8.586V2H1zm3.5 3a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>'
+const SNOOZE_ICON_SVG = '<svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm.5 2.5v3.293l2.146 2.147-.707.707-2.439-2.44V5h1z"/></svg>'
 
 const selectedSessions = new Set()
 let selectionAnchor = null
@@ -153,7 +175,46 @@ btnClear.addEventListener("click", (e) => {
   renderList()
 })
 
-selectionBarActions.append(btnStop, btnArchive, btnDelete, btnUnread, btnPin, btnClear)
+function openInlineLabel(id, node) {
+  activeLabelRowId = id
+  renderList()
+  const targetNode = node || pool.get(id)
+  const form = targetNode ? targetNode.querySelector(".inline-label-form") : null
+  if (form) {
+    const input = form.querySelector(".inline-label-input")
+    if (input) {
+      input.focus()
+      input.select()
+    }
+  }
+}
+
+const btnLabel = document.createElement("button")
+btnLabel.type = "button"
+btnLabel.className = "selection-btn"
+btnLabel.dataset.batch = "label"
+btnLabel.textContent = "Label…"
+btnLabel.setAttribute("aria-label", "Label selected sessions")
+btnLabel.addEventListener("click", (e) => {
+  e.stopPropagation()
+  if (selectedSessions.size === 0) return
+  const firstId = selectedSessions.values().next().value
+  openInlineLabel(firstId, pool.get(firstId))
+})
+
+const btnSnooze = document.createElement("button")
+btnSnooze.type = "button"
+btnSnooze.className = "selection-btn"
+btnSnooze.dataset.batch = "snooze"
+btnSnooze.textContent = "Snooze"
+btnSnooze.setAttribute("aria-label", "Snooze selected sessions")
+btnSnooze.addEventListener("click", (e) => {
+  e.stopPropagation()
+  if (selectedSessions.size === 0) return
+  post({ type: "snooze", ids: Array.from(selectedSessions), snoozed: true })
+})
+
+selectionBarActions.append(btnStop, btnArchive, btnDelete, btnUnread, btnPin, btnLabel, btnSnooze, btnClear)
 selectionBar.append(selectionBarText, selectionBarActions)
 
 const inboxPool = new Map()
@@ -194,6 +255,13 @@ function bindSectionHead(node, toggleFn) {
 bindSectionHead(inboxHead, toggleInboxCollapse)
 bindSectionHead(sessionsHead, toggleSessionsCollapse)
 
+function toggleSnoozedCollapse() {
+  snoozedCollapsed = !snoozedCollapsed
+  save()
+  renderList()
+}
+bindSectionHead(snoozedHead, toggleSnoozedCollapse)
+
 search.type = "search"
 search.className = "search"
 search.placeholder = "Search"
@@ -229,7 +297,64 @@ const loadTitle = el("span", "title")
 loadTitle.textContent = "Load more…"
 loadMore.append(loadDot, loadTitle)
 
-scroll.append(searchWrap, message, list)
+const shortcutsModal = el("div", "shortcuts-modal")
+shortcutsModal.hidden = true
+shortcutsModal.setAttribute("role", "dialog")
+shortcutsModal.setAttribute("aria-label", "Keyboard shortcuts")
+
+const shortcutsBackdrop = el("div", "shortcuts-backdrop")
+const shortcutsCard = el("div", "shortcuts-card")
+const shortcutsHeader = el("div", "shortcuts-header")
+const shortcutsTitle = el("div", "shortcuts-title")
+shortcutsTitle.textContent = "Keyboard Shortcuts"
+const shortcutsClose = document.createElement("button")
+shortcutsClose.type = "button"
+shortcutsClose.className = "shortcuts-close"
+shortcutsClose.textContent = "✕"
+shortcutsClose.setAttribute("aria-label", "Close shortcuts")
+shortcutsClose.addEventListener("click", () => toggleShortcutsModal(false))
+shortcutsHeader.append(shortcutsTitle, shortcutsClose)
+
+const shortcutsList = el("div", "shortcuts-list")
+const SHORTCUTS = [
+  { key: "j / ↓", desc: "Next item" },
+  { key: "k / ↑", desc: "Previous item" },
+  { key: "Enter", desc: "Open item" },
+  { key: "Esc", desc: "Clear selection / close" },
+  { key: "?", desc: "Toggle this cheat sheet" },
+]
+for (const sc of SHORTCUTS) {
+  const row = el("div", "shortcuts-row")
+  const k = el("kbd", "shortcuts-key")
+  k.textContent = sc.key
+  const d = el("span", "shortcuts-desc")
+  d.textContent = sc.desc
+  row.append(k, d)
+  shortcutsList.appendChild(row)
+}
+
+shortcutsCard.append(shortcutsHeader, shortcutsList)
+shortcutsModal.append(shortcutsBackdrop, shortcutsCard)
+shortcutsBackdrop.addEventListener("click", () => toggleShortcutsModal(false))
+shortcutsModal.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" || e.key === "?") {
+    e.preventDefault()
+    e.stopPropagation()
+    toggleShortcutsModal(false)
+  }
+})
+
+function toggleShortcutsModal(show) {
+  shortcutsModalVisible = typeof show === "boolean" ? show : !shortcutsModalVisible
+  shortcutsModal.hidden = !shortcutsModalVisible
+  if (shortcutsModalVisible) {
+    shortcutsClose.focus()
+  } else {
+    ensureTabStop()
+  }
+}
+
+scroll.append(searchWrap, message, list, shortcutsModal)
 
 function el(tag, className) {
   const node = document.createElement(tag)
@@ -246,7 +371,7 @@ function save() {
         moreOpen: moreOpen,
         scrollTop: scroll.scrollTop,
         query: search.value,
-        collapsed: { inbox: inboxCollapsed, sessions: sessionsCollapsed },
+        collapsed: { inbox: inboxCollapsed, sessions: sessionsCollapsed, snoozed: snoozedCollapsed },
         subagentsExpanded: Array.from(subagentsExpanded),
       })
     } catch (_) {}
@@ -291,6 +416,7 @@ function activate(node) {
   if (!node || !list.contains(node)) return
   if (node === inboxHead || node.classList.contains("inbox-head")) toggleInboxCollapse()
   else if (node === sessionsHead || node.classList.contains("sessions-head")) toggleSessionsCollapse()
+  else if (node === snoozedHead || node.classList.contains("snoozed-head")) toggleSnoozedCollapse()
   else if (node.classList.contains("inbox-group-head")) postOpen(node.dataset.parentId, false)
   else if (node.dataset.kind === "more") toggleMore()
   else if (node.dataset.kind === "load") post({ type: "loadMore" })
@@ -322,7 +448,11 @@ function isSessionIdRunning(sessionId) {
     if (!Array.isArray(arr)) return false
     return arr.some((r) => r && String(r.id) === sid && r.stoppable === true)
   }
-  return check(state.pinned) || check(state.recent) || check(state.more)
+  if (check(state.pinned)) return true
+  if (Array.isArray(state.labeled)) {
+    for (const grp of state.labeled) if (grp && check(grp.rows)) return true
+  }
+  return check(state.recent) || check(state.more) || check(state.snoozed)
 }
 
 function getSelectedRunningIds() {
@@ -337,8 +467,12 @@ function getSelectedRunningIds() {
     }
   }
   check(state.pinned)
+  if (Array.isArray(state.labeled)) {
+    for (const grp of state.labeled) if (grp) check(grp.rows)
+  }
   check(state.recent)
   check(state.more)
+  check(state.snoozed)
   const result = []
   for (const id of selectedSessions) {
     if (runningSet.has(id)) result.push(id)
@@ -357,9 +491,6 @@ function updateSelectionBar() {
 
 function getVisibleSessionIds() {
   if (!state) return []
-  const pinned = Array.isArray(state.pinned) ? state.pinned : []
-  const recent = Array.isArray(state.recent) ? state.recent : []
-  const more = Array.isArray(state.more) ? state.more : []
   const ids = []
   const seen = new Set()
   const add = (r) => {
@@ -371,9 +502,15 @@ function getVisibleSessionIds() {
       }
     }
   }
-  pinned.forEach(add)
-  recent.forEach(add)
-  if (expanded()) more.forEach(add)
+  ;(state.pinned || []).forEach(add)
+  if (Array.isArray(state.labeled)) {
+    for (const grp of state.labeled) {
+      if (grp && Array.isArray(grp.rows)) grp.rows.forEach(add)
+    }
+  }
+  ;(state.recent || []).forEach(add)
+  if (expanded()) (state.more || []).forEach(add)
+  if (!snoozedCollapsed) (state.snoozed || []).forEach(add)
   return ids
 }
 
@@ -384,8 +521,14 @@ function areAllSelectedPinned() {
     for (const r of state.pinned) if (r && r.id != null) pinnedSet.add(String(r.id))
   }
   if (state) {
+    if (Array.isArray(state.labeled)) {
+      for (const grp of state.labeled) {
+        for (const r of (grp && grp.rows) || []) if (r && r.id != null && r.pinned) pinnedSet.add(String(r.id))
+      }
+    }
     for (const r of (state.recent || [])) if (r && r.id != null && r.pinned) pinnedSet.add(String(r.id))
     for (const r of (state.more || [])) if (r && r.id != null && r.pinned) pinnedSet.add(String(r.id))
+    for (const r of (state.snoozed || [])) if (r && r.id != null && r.pinned) pinnedSet.add(String(r.id))
   }
   for (const id of selectedSessions) {
     if (!pinnedSet.has(id)) return false
@@ -440,6 +583,68 @@ function getSubagentsBadgeLabel(sub) {
   return `Subagents: ${parts.join(", ")}`
 }
 
+function getLabelHead(label, count) {
+  let head = labelHeads.get(label)
+  if (!head) {
+    head = el("div", "section-head label-head")
+    head.dataset.group = "label"
+    head.dataset.label = label
+    head.tabIndex = -1
+    head.setAttribute("role", "button")
+    head.setAttribute("title", "Local label: stored on this machine, not synced")
+    const lbl = el("span", "section-label")
+    lbl.textContent = label
+    const cnt = el("span", "section-count")
+    head.append(lbl, cnt)
+    labelHeads.set(label, head)
+  }
+  const cnt = head.querySelector(".section-count")
+  if (cnt && count !== undefined) cnt.textContent = String(count)
+  return head
+}
+
+function syncSnoozedHead(collapsed, count) {
+  const open = !collapsed
+  const exp = open ? "true" : "false"
+  const countText = `(${count})`
+  const aria = `Snoozed, ${count}`
+  if (snoozedCount.textContent !== countText) snoozedCount.textContent = countText
+  if (snoozedHead.getAttribute("aria-expanded") !== exp) snoozedHead.setAttribute("aria-expanded", exp)
+  if (snoozedHead.getAttribute("aria-label") !== aria) snoozedHead.setAttribute("aria-label", aria)
+  if (snoozedHead.classList.contains("open") !== open) snoozedHead.classList.toggle("open", open)
+}
+
+const labelDatalist = document.createElement("datalist")
+labelDatalist.id = "oco-labels-datalist"
+document.body.appendChild(labelDatalist)
+
+function updateLabelDatalist() {
+  const labels = new Set()
+  const collect = (arr) => {
+    if (Array.isArray(arr)) {
+      for (const r of arr) if (r && r.label) labels.add(String(r.label))
+    }
+  }
+  if (state) {
+    collect(state.pinned)
+    if (Array.isArray(state.labeled)) {
+      for (const grp of state.labeled) {
+        if (grp && grp.label) labels.add(grp.label)
+        collect(grp.rows)
+      }
+    }
+    collect(state.recent)
+    collect(state.more)
+    collect(state.snoozed)
+  }
+  while (labelDatalist.firstChild) labelDatalist.removeChild(labelDatalist.firstChild)
+  for (const lbl of Array.from(labels).sort((a, b) => a.localeCompare(b))) {
+    const opt = document.createElement("option")
+    opt.value = lbl
+    labelDatalist.appendChild(opt)
+  }
+}
+
 function syncSession(row) {
   const id = String(row.id)
   let node = pool.get(id)
@@ -456,6 +661,9 @@ function syncSession(row) {
     pinMark.innerHTML = '<svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M4.5 1a.5.5 0 0 0-.5.5v2.8a.5.5 0 0 0 .15.35L5.5 6v3.3l-1.85 1.85a.5.5 0 0 0 .35.85H7.5V15a.5.5 0 0 0 1 0v-3h3.5a.5.5 0 0 0 .35-.85L10.5 9.3V6l1.35-1.35a.5.5 0 0 0 .15-.35V1.5a.5.5 0 0 0-.5-.5h-7z"/></svg>'
 
     const title = el("span", "title")
+
+    const labelChip = el("span", "label-chip")
+    labelChip.hidden = true
 
     const todoBadge = el("span", "todo-badge")
     todoBadge.addEventListener("click", (e) => {
@@ -482,6 +690,26 @@ function syncSession(row) {
       post({ type: "sendNotes", id: id })
     })
 
+    const labelBtn = document.createElement("button")
+    labelBtn.type = "button"
+    labelBtn.className = "label-btn"
+    labelBtn.dataset.label = ""
+    labelBtn.innerHTML = TAG_ICON_SVG
+    labelBtn.setAttribute("aria-label", "Label session")
+    labelBtn.setAttribute("title", "Label…")
+    labelBtn.addEventListener("click", (e) => {
+      e.stopPropagation()
+      openInlineLabel(id, node)
+    })
+
+    const snoozeBtn = document.createElement("button")
+    snoozeBtn.type = "button"
+    snoozeBtn.className = "snooze-btn"
+    snoozeBtn.dataset.snooze = ""
+    snoozeBtn.innerHTML = SNOOZE_ICON_SVG
+    snoozeBtn.setAttribute("aria-label", "Snooze session")
+    snoozeBtn.setAttribute("title", "Snooze session")
+
     const pinBtn = document.createElement("button")
     pinBtn.type = "button"
     pinBtn.className = "pin-btn"
@@ -507,13 +735,16 @@ function syncSession(row) {
 
     const time = el("span", "time")
 
+    const inlineLabelForm = el("div", "inline-label-form")
+    inlineLabelForm.hidden = true
+
     const todoList = el("div", "todo-list")
     todoList.setAttribute("data-todo-list", "")
 
     const subagentsList = el("div", "subagents-list")
     subagentsList.setAttribute("data-subagents-list", "")
 
-    node.append(dot, pinMark, title, todoBadge, subagentsBadge, notesBadge, pinBtn, stopBtn, time, todoList, subagentsList)
+    node.append(dot, pinMark, title, labelChip, todoBadge, subagentsBadge, notesBadge, labelBtn, snoozeBtn, pinBtn, stopBtn, time, inlineLabelForm, todoList, subagentsList)
     pool.set(id, node)
   }
   updateSessionRow(node, row)
@@ -560,12 +791,16 @@ function updateSessionRow(node, row) {
   const dot = node.querySelector(":scope > .dot")
   const pinMark = node.querySelector(":scope > .pin-mark")
   const titleEl = node.querySelector(":scope > .title")
+  const labelChip = node.querySelector(":scope > .label-chip")
   const todoBadge = node.querySelector(":scope > .todo-badge")
   const subagentsBadge = node.querySelector(":scope > .subagents-badge")
   const notesBadge = node.querySelector(":scope > .notes-badge")
+  const labelBtn = node.querySelector(":scope > .label-btn")
+  const snoozeBtn = node.querySelector(":scope > .snooze-btn")
   const pinBtn = node.querySelector(":scope > .pin-btn")
   const stopBtn = node.querySelector(":scope > .stop-btn")
   const timeEl = node.querySelector(":scope > .time")
+  const inlineLabelForm = node.querySelector(":scope > .inline-label-form")
   const todoList = node.querySelector(":scope > .todo-list")
   const subagentsList = node.querySelector(":scope > .subagents-list")
 
@@ -701,6 +936,86 @@ function updateSessionRow(node, row) {
     if (notesBadge.getAttribute("title") !== badgeTitle) notesBadge.setAttribute("title", badgeTitle)
   } else {
     notesBadge.hidden = true
+  }
+
+  if (labelChip) {
+    if (row.label) {
+      labelChip.hidden = false
+      if (labelChip.textContent !== row.label) labelChip.textContent = row.label
+      labelChip.title = "Local label: stored on this machine, not synced"
+      labelChip.setAttribute("title", "Local label: stored on this machine, not synced")
+    } else {
+      labelChip.hidden = true
+    }
+  }
+
+  if (snoozeBtn) {
+    if (row.snoozed) {
+      snoozeBtn.hidden = false
+      snoozeBtn.className = "snooze-btn unsnooze-btn"
+      snoozeBtn.textContent = "Unsnooze"
+      snoozeBtn.title = "Unsnooze session"
+      snoozeBtn.setAttribute("aria-label", "Unsnooze session")
+      snoozeBtn.onclick = (e) => {
+        e.stopPropagation()
+        post({ type: "snooze", ids: [id], snoozed: false })
+      }
+    } else if (!isRunning && status !== "waiting") {
+      snoozeBtn.hidden = false
+      snoozeBtn.className = "snooze-btn"
+      snoozeBtn.innerHTML = SNOOZE_ICON_SVG
+      snoozeBtn.title = "Snooze session"
+      snoozeBtn.setAttribute("aria-label", "Snooze session")
+      snoozeBtn.onclick = (e) => {
+        e.stopPropagation()
+        post({ type: "snooze", ids: [id], snoozed: true })
+      }
+    } else {
+      snoozeBtn.hidden = true
+    }
+  }
+
+  if (inlineLabelForm) {
+    if (activeLabelRowId === id) {
+      inlineLabelForm.hidden = false
+      let input = inlineLabelForm.querySelector(".inline-label-input")
+      if (!input) {
+        input = document.createElement("input")
+        input.type = "text"
+        input.className = "inline-label-input"
+        input.setAttribute("list", "oco-labels-datalist")
+        input.maxLength = 32
+        input.placeholder = "Label name (empty to clear)…"
+        input.value = row.label || ""
+        input.addEventListener("click", (e) => e.stopPropagation())
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault()
+            e.stopPropagation()
+            const val = input.value.trim()
+            const targetIds = selectedSessions.size > 0 && selectedSessions.has(id) ? Array.from(selectedSessions) : [id]
+            post({ type: "label", ids: targetIds, label: val.length > 0 ? val.slice(0, 32) : null })
+            activeLabelRowId = null
+            renderList()
+            focusRow(node)
+          } else if (e.key === "Escape") {
+            e.preventDefault()
+            e.stopPropagation()
+            activeLabelRowId = null
+            renderList()
+            focusRow(node)
+          }
+        })
+        inlineLabelForm.appendChild(input)
+        requestAnimationFrame(() => {
+          input.focus()
+          input.select()
+        })
+      }
+    } else {
+      inlineLabelForm.hidden = true
+      while (inlineLabelForm.firstChild) inlineLabelForm.removeChild(inlineLabelForm.firstChild)
+    }
   }
 }
 
@@ -1005,6 +1320,65 @@ function createInboxRow(row) {
   return node
 }
 
+function renderAlwaysPreview(container, patterns) {
+  while (container.firstChild) container.removeChild(container.firstChild)
+  const label = document.createElement("span")
+  label.className = "inbox-always-label"
+  label.textContent = "Always will allow: "
+  container.appendChild(label)
+
+  const max = 3
+  const shown = patterns.slice(0, max)
+  shown.forEach((pat, i) => {
+    if (i > 0) {
+      container.appendChild(document.createTextNode(" "))
+    }
+    const code = document.createElement("code")
+    code.className = "inbox-always-code"
+    code.textContent = pat
+    container.appendChild(code)
+  })
+  if (patterns.length > max) {
+    const more = document.createElement("span")
+    more.className = "inbox-always-more"
+    more.textContent = ` +${patterns.length - max}`
+    container.appendChild(more)
+  }
+}
+
+function renderDenyNoteForm(form, id, row, node) {
+  if (form.querySelector(".deny-note-input")) return
+  while (form.firstChild) form.removeChild(form.firstChild)
+  const textarea = document.createElement("textarea")
+  textarea.className = "deny-note-input"
+  textarea.placeholder = "Reason for denying… (Enter to send, Esc to cancel)"
+  textarea.rows = 2
+  textarea.addEventListener("click", (e) => e.stopPropagation())
+  textarea.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      e.stopPropagation()
+      const text = textarea.value.trim()
+      denyNoteForms.delete(id)
+      post({
+        type: "permissionReply",
+        id: id,
+        reply: "reject",
+        ...(text ? { message: text } : {})
+      })
+      updateInboxRow(node, row)
+    } else if (e.key === "Escape") {
+      e.preventDefault()
+      e.stopPropagation()
+      denyNoteForms.delete(id)
+      updateInboxRow(node, row)
+      focusRow(node)
+    }
+  })
+  form.appendChild(textarea)
+  requestAnimationFrame(() => textarea.focus())
+}
+
 function updateInboxRow(node, row) {
   const id = String(row.id)
   const sessionId = String(row.sessionId)
@@ -1045,10 +1419,12 @@ function updateInboxRow(node, row) {
   const summary = bottom.children[0]
   const actions = bottom.children[1]
 
-  const dotStatus = kind === "permission" || kind === "question" ? "waiting" : kind === "error" ? "error" : kind === "done" ? "unread" : ""
+  const isDoomLoop = kind === "permission" && row.permission === "doom_loop"
+  const dotStatus = isDoomLoop ? "doom-loop" : (kind === "permission" || kind === "question" ? "waiting" : kind === "error" ? "error" : kind === "done" ? "unread" : "")
   if (dot.dataset.status !== dotStatus) {
     dot.dataset.status = dotStatus
-    dot.className = dotStatus ? "dot " + dotStatus : "dot"
+    dot.className = isDoomLoop ? "dot doom-loop codicon codicon-sync" : (dotStatus ? "dot " + dotStatus : "dot")
+    dot.innerHTML = isDoomLoop ? SYNC_ICON_SVG : ""
   }
 
   const titleText = row.title == null ? "" : String(row.title)
@@ -1069,7 +1445,7 @@ function updateInboxRow(node, row) {
   const timeText = row.time == null ? "" : String(row.time)
   if (time.textContent !== timeText) time.textContent = timeText
 
-  const summaryText = row.summary == null ? "" : String(row.summary)
+  const summaryText = isDoomLoop ? "Possible loop: the agent repeated the same tool call" : (row.summary == null ? "" : String(row.summary))
   if (summary.textContent !== summaryText) summary.textContent = summaryText
   if (summary.getAttribute("title") !== detail) summary.setAttribute("title", detail)
 
@@ -1078,7 +1454,7 @@ function updateInboxRow(node, row) {
     qState.sending = false
   }
 
-  const actionKey = kind + ":" + id + ":" + (qState ? (qState.expanded ? "1" : "0") + ":" + (qState.sending ? "s" : "r") : "")
+  const actionKey = kind + ":" + id + ":" + (qState ? (qState.expanded ? "1" : "0") + ":" + (qState.sending ? "s" : "r") : "") + ":" + (denyNoteForms.has(id) ? "note" : "") + ":" + (Array.isArray(row.always) ? row.always.join(",") : "")
   if (actions.dataset.key !== actionKey) {
     actions.dataset.key = actionKey
     while (actions.firstChild) actions.removeChild(actions.firstChild)
@@ -1098,6 +1474,9 @@ function updateInboxRow(node, row) {
       bAlways.className = "inbox-btn"
       bAlways.dataset.reply = "always"
       bAlways.textContent = "Always"
+      if (Array.isArray(row.always) && row.always.length > 0) {
+        bAlways.title = row.always.join(", ")
+      }
       bAlways.addEventListener("click", (e) => {
         e.stopPropagation()
         post({ type: "permissionReply", id: id, reply: "always" })
@@ -1113,7 +1492,22 @@ function updateInboxRow(node, row) {
         post({ type: "permissionReply", id: id, reply: "reject" })
       })
 
-      actions.append(bOnce, bAlways, bReject)
+      const bDenyWithNote = document.createElement("button")
+      bDenyWithNote.type = "button"
+      bDenyWithNote.className = "inbox-btn inbox-btn-secondary"
+      bDenyWithNote.dataset.action = "denyWithNote"
+      bDenyWithNote.textContent = "Deny with note…"
+      bDenyWithNote.addEventListener("click", (e) => {
+        e.stopPropagation()
+        if (denyNoteForms.has(id)) {
+          denyNoteForms.delete(id)
+        } else {
+          denyNoteForms.add(id)
+        }
+        updateInboxRow(node, row)
+      })
+
+      actions.append(bOnce, bAlways, bReject, bDenyWithNote)
     } else if (kind === "question") {
       const bAnswer = document.createElement("button")
       bAnswer.type = "button"
@@ -1175,7 +1569,44 @@ function updateInboxRow(node, row) {
         })
         actions.append(bRead)
       }
+
+      const bSnooze = document.createElement("button")
+      bSnooze.type = "button"
+      bSnooze.className = "inbox-btn inbox-btn-secondary"
+      bSnooze.dataset.action = "snooze"
+      bSnooze.textContent = "Snooze"
+      bSnooze.title = "Snooze session"
+      bSnooze.addEventListener("click", (e) => {
+        e.stopPropagation()
+        post({ type: "snooze", ids: [sessionId], snoozed: true })
+      })
+      actions.append(bSnooze)
     }
+  }
+
+  let alwaysNode = node.querySelector(":scope > .inbox-always-preview")
+  const hasAlways = kind === "permission" && Array.isArray(row.always) && row.always.length > 0
+  if (hasAlways) {
+    if (!alwaysNode) {
+      alwaysNode = document.createElement("div")
+      alwaysNode.className = "inbox-always-preview"
+      node.insertBefore(alwaysNode, bottom.nextSibling)
+    }
+    renderAlwaysPreview(alwaysNode, row.always)
+  } else {
+    if (alwaysNode) alwaysNode.remove()
+  }
+
+  let noteFormNode = node.querySelector(":scope > .deny-note-form")
+  if (kind === "permission" && denyNoteForms.has(id)) {
+    if (!noteFormNode) {
+      noteFormNode = document.createElement("div")
+      noteFormNode.className = "deny-note-form"
+      node.appendChild(noteFormNode)
+    }
+    renderDenyNoteForm(noteFormNode, id, row, node)
+  } else {
+    if (noteFormNode) noteFormNode.remove()
   }
 
   let formNode = node.querySelector(":scope > .question-form")
@@ -1287,11 +1718,13 @@ function syncInboxHead(collapsed, pendingCount) {
   if (inboxHead.classList.contains("open") !== open) inboxHead.classList.toggle("open", open)
 }
 
-function countSessions(pinned, recent, more) {
+function countSessions(pinned, labeled, recent, more, snoozed) {
   const set = new Set()
   if (Array.isArray(pinned)) for (const r of pinned) if (r && r.id != null) set.add(String(r.id))
+  if (Array.isArray(labeled)) for (const grp of labeled) if (grp && Array.isArray(grp.rows)) for (const r of grp.rows) if (r && r.id != null) set.add(String(r.id))
   if (Array.isArray(recent)) for (const r of recent) if (r && r.id != null) set.add(String(r.id))
   if (Array.isArray(more)) for (const r of more) if (r && r.id != null) set.add(String(r.id))
+  if (Array.isArray(snoozed)) for (const r of snoozed) if (r && r.id != null) set.add(String(r.id))
   return set.size
 }
 
@@ -1365,10 +1798,14 @@ function renderList() {
   const active = document.activeElement
   const inbox = Array.isArray(state.inbox) ? state.inbox : []
   const pinned = Array.isArray(state.pinned) ? state.pinned : []
+  const labeled = Array.isArray(state.labeled) ? state.labeled : []
   const recent = Array.isArray(state.recent) ? state.recent : []
   const more = Array.isArray(state.more) ? state.more : []
+  const snoozed = Array.isArray(state.snoozed) ? state.snoozed : []
   const seen = new Set()
   const nodes = []
+
+  updateLabelDatalist()
 
   if (inbox.length) {
     nodes.push(syncInbox(inbox))
@@ -1380,7 +1817,7 @@ function renderList() {
   }
 
   const sCollapsed = isSessionsCollapsed()
-  const totalSessions = countSessions(pinned, recent, more)
+  const totalSessions = countSessions(pinned, labeled, recent, more, snoozed)
   syncSessionsHead(sCollapsed, totalSessions)
   nodes.push(sessionsHead)
 
@@ -1400,6 +1837,12 @@ function renderList() {
       nodes.push(pinnedHead)
       pinned.forEach(pushRow)
     }
+    for (const grp of labeled) {
+      if (!grp || !Array.isArray(grp.rows) || grp.rows.length === 0) continue
+      const head = getLabelHead(grp.label, grp.rows.length)
+      nodes.push(head)
+      grp.rows.forEach(pushRow)
+    }
     recent.forEach(pushRow)
     if (more.length) {
       const open = expanded()
@@ -1412,10 +1855,22 @@ function renderList() {
         for (const row of more) if (row && row.id != null) seen.add(String(row.id))
       }
     } else if (state.loadMore) nodes.push(loadMore)
+
+    if (snoozed.length > 0) {
+      syncSnoozedHead(snoozedCollapsed, snoozed.length)
+      nodes.push(snoozedHead)
+      if (!snoozedCollapsed) {
+        snoozed.forEach(pushRow)
+      } else {
+        for (const row of snoozed) if (row && row.id != null) seen.add(String(row.id))
+      }
+    }
   } else {
     for (const row of pinned) if (row && row.id != null) seen.add(String(row.id))
+    for (const grp of labeled) if (grp && Array.isArray(grp.rows)) for (const r of grp.rows) if (r && r.id != null) seen.add(String(r.id))
     for (const row of recent) if (row && row.id != null) seen.add(String(row.id))
     for (const row of more) if (row && row.id != null) seen.add(String(row.id))
+    for (const row of snoozed) if (row && row.id != null) seen.add(String(row.id))
   }
 
   reconcile(list, nodes)
@@ -1455,8 +1910,10 @@ function applyState(next) {
   }
   const validIds = new Set()
   for (const r of (next.pinned || [])) if (r && r.id != null) validIds.add(String(r.id))
+  for (const grp of (next.labeled || [])) if (grp && Array.isArray(grp.rows)) for (const r of grp.rows) if (r && r.id != null) validIds.add(String(r.id))
   for (const r of (next.recent || [])) if (r && r.id != null) validIds.add(String(r.id))
   for (const r of (next.more || [])) if (r && r.id != null) validIds.add(String(r.id))
+  for (const r of (next.snoozed || [])) if (r && r.id != null) validIds.add(String(r.id))
   for (const id of selectedSessions) {
     if (!validIds.has(id)) selectedSessions.delete(id)
   }
@@ -1607,11 +2064,37 @@ list.addEventListener("auxclick", (event) => {
 
 list.addEventListener("keydown", (event) => {
   if (event.altKey) return
-  if (event.target.closest("[data-question-form]")) return
+  if (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA" || event.target.isContentEditable) return
+  if (event.target.closest("[data-question-form], .deny-note-form, .inline-label-form")) return
+
+  if (event.key === "?" && !event.ctrlKey && !event.metaKey) {
+    event.preventDefault()
+    toggleShortcutsModal()
+    return
+  }
+
   if (event.key === "Escape") {
+    if (shortcutsModalVisible) {
+      event.preventDefault()
+      toggleShortcutsModal(false)
+      return
+    }
+    if (activeLabelRowId) {
+      event.preventDefault()
+      activeLabelRowId = null
+      renderList()
+      return
+    }
+    if (denyNoteForms.size > 0) {
+      event.preventDefault()
+      denyNoteForms.clear()
+      renderList()
+      return
+    }
     if (selectedSessions.size > 0) {
       event.preventDefault()
       selectedSessions.clear()
+      selectionAnchor = null
       renderList()
       return
     }
@@ -1626,6 +2109,7 @@ list.addEventListener("keydown", (event) => {
         return
       }
     }
+    return
   }
   if (event.shiftKey && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
     const act = document.activeElement
@@ -1652,13 +2136,15 @@ list.addEventListener("keydown", (event) => {
   if (event.metaKey || event.ctrlKey) return
   const items = focusables()
   const index = items.indexOf(document.activeElement)
-  if (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "Home" || event.key === "End") {
+  const isDown = event.key === "ArrowDown" || event.key === "j"
+  const isUp = event.key === "ArrowUp" || event.key === "k"
+  if (isDown || isUp || event.key === "Home" || event.key === "End") {
     event.preventDefault()
     if (!items.length) return
     let next = items[0]
     if (event.key === "End") next = items[items.length - 1]
-    else if (event.key === "ArrowDown") next = items[index < 0 ? 0 : Math.min(items.length - 1, index + 1)]
-    else if (event.key === "ArrowUp") next = items[index < 0 ? items.length - 1 : Math.max(0, index - 1)]
+    else if (isDown) next = items[index < 0 ? 0 : Math.min(items.length - 1, index + 1)]
+    else if (isUp) next = items[index < 0 ? items.length - 1 : Math.max(0, index - 1)]
     focusRow(next)
     return
   }
@@ -1686,7 +2172,7 @@ function boot() {
   document.body.appendChild(scroll)
   list.setAttribute("aria-multiselectable", "true")
   const initial = readInitial()
-  applyState(initial || { view: "list", query: "", inbox: [], pinned: [], recent: [], more: [], moreForcedOpen: false, loadMore: false, still: false })
+  applyState(initial || { view: "list", query: "", inbox: [], pinned: [], labeled: [], recent: [], more: [], snoozed: [], moreForcedOpen: false, loadMore: false, still: false })
   const hostQuery = initial && initial.query != null ? String(initial.query) : ""
   if (typeof saved.query === "string" && saved.query !== search.value) {
     search.value = saved.query

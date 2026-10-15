@@ -1,0 +1,102 @@
+{
+  "runId": "20261014-193006-c13-worktree-inbox-500e",
+  "suite": "c13-worktree-inbox",
+  "startedAt": "2026-10-14T19:30:06.266Z",
+  "ocoCommit": "8d2d9dbd0124a17b3ef94dc7fd8f1633e05eae17",
+  "ocoDirty": false,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "b397396353565b8fc0e6f75b67473197fbbc1037767f1910bfe2a91f83a2c510",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "vscodeVersion": "1.109.5",
+  "vscodeProfile": "c13-worktree-inbox",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-14T19:30:21.561Z",
+  "results": [
+    {
+      "id": "worktree-sessions-waiting",
+      "status": "PASS",
+      "detail": {
+        "dirs": [
+          "/Users/jarvis/Ai-Project/oco-mini/.oco-test/xdg/data/opencode/worktree/e7c2266a29da78a1e5ae4789283ce9bd6b1f2131/lucky-island",
+          "/Users/jarvis/Ai-Project/oco-mini/.oco-test/xdg/data/opencode/worktree/e7c2266a29da78a1e5ae4789283ce9bd6b1f2131/cosmic-comet"
+        ],
+        "sessions": [
+          "ses_ec41b343fffeXqktwwKvrEbgud",
+          "ses_ec41b270affeK3k6gP5eRexl41"
+        ]
+      },
+      "at": "2026-10-14T19:30:17.272Z"
+    },
+    {
+      "id": "inbox-two-rows",
+      "status": "PASS",
+      "detail": {
+        "rows": 2,
+        "openPanels": 0
+      },
+      "at": "2026-10-14T19:30:19.497Z"
+    },
+    {
+      "id": "status-count-two",
+      "status": "PASS",
+      "detail": {
+        "statusBar": [
+          {
+            "aria": "warning  oco  bell-dot  2, oco: Connected to http://127.0.0.1:4527\n/Users/jarvis/Ai-Project/oco-mini/.oco-test/c13/ws-p2cw7\nMode: Attached server\nServer version: local\nNote: Server local is not OpenCode v1. oco has not verified it; some features may be unavailable",
+            "text": "oco 2",
+            "bell": true
+          }
+        ],
+        "count": 2
+      },
+      "at": "2026-10-14T19:30:19.503Z"
+    },
+    {
+      "id": "inbox-allow-both",
+      "status": "PASS",
+      "detail": {
+        "clicked": 2
+      },
+      "at": "2026-10-14T19:30:20.845Z"
+    },
+    {
+      "id": "permissions-cleared",
+      "status": "PASS",
+      "detail": {
+        "leftover": {
+          "/Users/jarvis/Ai-Project/oco-mini/.oco-test/xdg/data/opencode/worktree/e7c2266a29da78a1e5ae4789283ce9bd6b1f2131/lucky-island": 0,
+          "/Users/jarvis/Ai-Project/oco-mini/.oco-test/xdg/data/opencode/worktree/e7c2266a29da78a1e5ae4789283ce9bd6b1f2131/cosmic-comet": 0
+        }
+      },
+      "at": "2026-10-14T19:30:20.851Z"
+    },
+    {
+      "id": "inbox-and-count-zero",
+      "status": "PASS",
+      "detail": {
+        "inboxRows": 0,
+        "statusBar": [
+          {
+            "aria": "warning  oco, oco: Connected to http://127.0.0.1:4527\n/Users/jarvis/Ai-Project/oco-mini/.oco-test/c13/ws-p2cw7\nMode: Attached server\nServer version: local\nNote: Server local is not OpenCode v1. oco has not verified it; some features may be unavailable",
+            "text": "oco",
+            "bell": false
+          }
+        ],
+        "count": 0
+      },
+      "at": "2026-10-14T19:30:20.858Z"
+    }
+  ],
+  "summary": {
+    "PASS": 6,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

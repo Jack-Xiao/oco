@@ -1,0 +1,115 @@
+{
+  "runId": "20261015-001315-t007-managed-82ff",
+  "suite": "t007-managed",
+  "startedAt": "2026-10-15T00:13:15.244Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "8e00da184e96b342cf116ba97fe8775296879c54b4daa34cde7d68ca620138e4",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "t007-managed",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:14:06.391Z",
+  "results": [
+    {
+      "id": "managed-start",
+      "status": "PASS",
+      "detail": {
+        "managed": {
+          "status": "running",
+          "url": "http://127.0.0.1:50102",
+          "pid": 7735,
+          "startedAt": 1792023200106,
+          "binary": "/Users/xiaojiang/Ai-Project/oco/tests/e2e/lib/managed-opencode.sh"
+        },
+        "label": "http://127.0.0.1:50102",
+        "own": [
+          7735
+        ],
+        "version": "1.19.0",
+        "status": "$(warning) oco"
+      },
+      "at": "2026-10-15T00:13:21.590Z"
+    },
+    {
+      "id": "shared-by-panels",
+      "status": "PASS",
+      "detail": {
+        "panels": 1,
+        "own": [
+          7735
+        ],
+        "pid": 7735
+      },
+      "at": "2026-10-15T00:13:25.819Z"
+    },
+    {
+      "id": "crash-no-restart",
+      "status": "PASS",
+      "detail": {
+        "status": "exited",
+        "error": "Managed server exited unexpectedly (SIGKILL). It will not restart automatically. Run “oco: Restart Managed Server” to start it again",
+        "own": [],
+        "statusText": "$(error) oco: Managed server not running"
+      },
+      "at": "2026-10-15T00:13:41.711Z"
+    },
+    {
+      "id": "manual-restart",
+      "status": "PASS",
+      "detail": {
+        "pid": 7860,
+        "own": [
+          7860
+        ]
+      },
+      "at": "2026-10-15T00:13:43.173Z"
+    },
+    {
+      "id": "bad-path",
+      "status": "PASS",
+      "detail": {
+        "managed": {
+          "status": "failed",
+          "error": "OpenCode executable “/nonexistent/bin/opencode” was not found. Set the full path in oco.opencodePath",
+          "binary": "/nonexistent/bin/opencode"
+        },
+        "own": [],
+        "oldPidAlive": false
+      },
+      "at": "2026-10-15T00:13:43.845Z"
+    },
+    {
+      "id": "switch-to-attached-stops-own",
+      "status": "PASS",
+      "detail": {
+        "label": "http://127.0.0.1:4517",
+        "own": [],
+        "attachedHealth": 401
+      },
+      "at": "2026-10-15T00:13:50.768Z"
+    },
+    {
+      "id": "window-close-stops-own",
+      "status": "PASS",
+      "detail": {
+        "pid": 7943,
+        "gone": true,
+        "attachedUnchanged": true
+      },
+      "at": "2026-10-15T00:14:06.391Z"
+    }
+  ],
+  "summary": {
+    "PASS": 7,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

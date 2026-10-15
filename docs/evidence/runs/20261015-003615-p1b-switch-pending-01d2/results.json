@@ -1,0 +1,77 @@
+{
+  "runId": "20261015-003615-p1b-switch-pending-01d2",
+  "suite": "p1b-switch-pending",
+  "startedAt": "2026-10-15T00:36:15.902Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "2e53dc0eb5df6321017410f5e21735fe933b4dcc38750f24a9e71859f143653b",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "firstLoadDelay": {
+    "paths": "^/(agent|provider|config/providers)",
+    "ms": 8000
+  },
+  "proxies": "A, B: 127.0.0.1:<random> -> same test server",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "p1b-switch-pending",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:37:10.172Z",
+  "results": [
+    {
+      "id": "switch-while-pending",
+      "status": "PASS",
+      "detail": {
+        "waiting": true,
+        "switchedAtMs": 549,
+        "beforeLoad": true,
+        "boundBefore": "<A connectionId>",
+        "users": [],
+        "panelAlive": true,
+        "draftKept": true,
+        "after": {
+          "model": "ready",
+          "pending": null,
+          "bar": null,
+          "stats": {
+            "waiting": 1,
+            "ready": 1,
+            "cancel": 0,
+            "draft": 0,
+            "timeout": 0,
+            "shown": null,
+            "text": ""
+          }
+        },
+        "requestsAfterSwitch": {
+          "a": 3,
+          "b": 7
+        }
+      },
+      "at": "2026-10-15T00:36:57.861Z"
+    },
+    {
+      "id": "new-panel-after-switch",
+      "status": "PASS",
+      "detail": {
+        "ready": true,
+        "users": [
+          "switch control. Reply only with OK."
+        ],
+        "requestsViaB": 64,
+        "differentConnection": true
+      },
+      "at": "2026-10-15T00:37:09.778Z"
+    }
+  ],
+  "summary": {
+    "PASS": 2,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

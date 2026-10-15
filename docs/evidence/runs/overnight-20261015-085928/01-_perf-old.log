@@ -1,0 +1,14 @@
+
+>>> Running E2E suite: _perf-old (/Users/xiaojiang/Ai-Project/oco/tests/e2e/_perf-old.mjs)...
+
+[PASS] panels-bounded: {"panels":4,"main":1,"pinned":3}
+[PASS] no-stream-leak: {"panels":4,"openEventStreams":4,"perPanel":[{"role":"main","visible":true,"streamsOpen":1,"generation":1},{"role":"pinned","visible":false,"streamsOpen":1,"generation":2},{"role":"pinned","visible":true,"streamsOpen":1,"generation":3},{"role":"pinned","visible":true,"streamsOpen":1,"generation":4}]}
+[PASS] hidden-stays-alive: {"hiddenPinned":1,"generations":[[2,2],[3,3],[4,4]],"inflight":[1,1,1]}
+[FAIL] rss-bounded: {"firstSwitchMB":0,"lastSwitchMB":0,"growthPct":null}
+
+=================== E2E Summary ===================
+┌─────────┬─────────────┬───────────┬──────────┐
+│ (index) │ suite       │ exit code │ 耗时     │
+├─────────┼─────────────┼───────────┼──────────┤
+│ 0       │ '_perf-old' │ 1         │ '47.77s' │
+└─────────┴─────────────┴───────────┴──────────┘

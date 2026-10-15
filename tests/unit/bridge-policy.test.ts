@@ -1,5 +1,8 @@
 // BridgePolicy: directory is forced to the panel binding; writes must target that session or a verified child.
 import { describe, expect, test } from "bun:test"
+import * as fs from "node:fs"
+import * as os from "node:os"
+import * as path from "node:path"
 import { BridgePolicy, type Lookup, type PolicyBinding } from "../../apps/extension/src/bridge-policy"
 
 const BINDING = { directory: "/w", sessionId: "ses_A" }
@@ -535,4 +538,52 @@ describe("BridgePolicy (draft panel and observes)", () => {
     expect(BridgePolicy.observes("DELETE", "/session/s1")).toBe(false)
     expect(BridgePolicy.observes("POST", "/experimental/other")).toBe(false)
   })
+
+  test("BridgePolicy symlink normalization on loopback", async () => {
+    const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "oco-test-policy-"))
+    const realDir = fs.realpathSync.native(tmpBase)
+    const symlinkDir = path.join(os.tmpdir(), "oco-test-link-" + Math.random().toString(36).slice(2))
+    fs.symlinkSync(realDir, symlinkDir, "dir")
+
+    try {
+      const binding: PolicyBinding = { directory: realDir, sessionId: "ses_draft", draft: true }
+      const lookup: Lookup = {
+        async sessionParent() {
+          return { exists: false }
+        },
+        async permissionSession() {
+          return undefined
+        },
+        async questionSession() {
+          return undefined
+        },
+      }
+
+      // Loopback = true: symlinkDir resolves to realDir, allowed
+      const loopbackPolicy = new BridgePolicy(binding, lookup, () => true, () => [realDir], () => true)
+      const res1 = await loopbackPolicy.decide("POST", "/session", new URLSearchParams(), {
+        body: new TextEncoder().encode(JSON.stringify({ location: { directory: symlinkDir } })),
+      })
+      expect(res1.ok).toBe(true)
+
+      // Observe session creation via symlinkDir
+      loopbackPolicy.observe("POST", "/session", 200, { data: { id: "ses_new", directory: symlinkDir } })
+      expect(loopbackPolicy.created.has("ses_new")).toBe(true)
+
+      // Non-loopback: symlinkDir is not string-equal to realDir, rejected
+      const nonLoopbackPolicy = new BridgePolicy(binding, lookup, () => true, () => [realDir], () => false)
+      const res2 = await nonLoopbackPolicy.decide("POST", "/session", new URLSearchParams(), {
+        body: new TextEncoder().encode(JSON.stringify({ location: { directory: symlinkDir } })),
+      })
+      expect(res2.ok).toBe(false)
+    } finally {
+      try {
+        fs.unlinkSync(symlinkDir)
+      } catch {}
+      try {
+        fs.rmdirSync(tmpBase)
+      } catch {}
+    }
+  })
 })
+

@@ -1,0 +1,79 @@
+{
+  "runId": "20261015-002512-c3-fork-b43b",
+  "suite": "c3-fork",
+  "startedAt": "2026-10-15T00:25:12.917Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "fb91e52552d283fa2f53d4f01eef0a84ed067a598b5708c9934a58f0fb47a365",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "modelMode": "mock",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c3-fork",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:25:36.816Z",
+  "results": [
+    {
+      "id": "fork-sidebar-selection",
+      "status": "PASS",
+      "detail": {
+        "selBefore": "ses_ec30d0833ffekbek1oWsWzNZG2",
+        "selAfter": "ses_ec30cd9a8ffennU4kRttGYHVv4",
+        "A": "ses_ec30d0833ffekbek1oWsWzNZG2",
+        "fork": "ses_ec30cd9a8ffennU4kRttGYHVv4"
+      },
+      "at": "2026-10-15T00:25:31.340Z"
+    },
+    {
+      "id": "fork-user",
+      "status": "PASS",
+      "detail": {
+        "shape": [
+          "user:Reply with exactly this line and nothing else: FORK-1-z14fc",
+          "assistant:FORK-1-z14fc"
+        ],
+        "composerHasT2": true,
+        "panels": 1,
+        "aMessages": 4
+      },
+      "at": "2026-10-15T00:25:31.340Z"
+    },
+    {
+      "id": "fork-response-mid",
+      "status": "PASS",
+      "detail": {
+        "shape": [
+          "user:Reply with exactly this line and nothing else: FORK-1-z14fc",
+          "assistant:FORK-1-z14fc"
+        ],
+        "composer": ""
+      },
+      "at": "2026-10-15T00:25:33.898Z"
+    },
+    {
+      "id": "fork-response-last",
+      "status": "PASS",
+      "detail": {
+        "shape": [
+          "user:Reply with exactly this line and nothing else: FORK-1-z14fc",
+          "assistant:FORK-1-z14fc",
+          "user:Reply with exactly this line and nothing else: FORK-2-z14fc",
+          "assistant:FORK-2-z14fc"
+        ],
+        "aMessages": 4
+      },
+      "at": "2026-10-15T00:25:36.366Z"
+    }
+  ],
+  "summary": {
+    "PASS": 4,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

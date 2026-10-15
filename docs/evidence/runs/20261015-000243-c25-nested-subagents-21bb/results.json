@@ -1,0 +1,127 @@
+{
+  "runId": "20261015-000243-c25-nested-subagents-21bb",
+  "suite": "c25-nested-subagents",
+  "startedAt": "2026-10-15T00:02:43.238Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "d04a148790a322ce021f3174c67b3465cb73baabebcbe534cddd85a80505d244",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "modelMode": "mock",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c25-nested-subagents",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:03:23.952Z",
+  "results": [
+    {
+      "id": "tree-depth",
+      "status": "PASS",
+      "detail": {
+        "rootId": "ses_ec3217605ffeTqVJWIPZWZBGhm",
+        "childId": "ses_ec321562cffeG7hJaHXMmdtVBD",
+        "grandId": "ses_ec321548affews7arAoKfjn22k"
+      },
+      "at": "2026-10-15T00:03:08.452Z"
+    },
+    {
+      "id": "sidebar-running",
+      "status": "PASS",
+      "detail": {
+        "badge": {
+          "visible": true,
+          "text": "0/1",
+          "running": true,
+          "attention": false,
+          "aria": "Subagents: 0 done, 1 running"
+        },
+        "grandStatus": "busy"
+      },
+      "at": "2026-10-15T00:03:08.708Z"
+    },
+    {
+      "id": "pills-running",
+      "status": "PASS",
+      "detail": {
+        "childId": "ses_ec321562cffeG7hJaHXMmdtVBD",
+        "status": "running",
+        "info": {
+          "bar": true,
+          "mode": "pills",
+          "count": null,
+          "pills": [
+            {
+              "id": "ses_ec321562cffeG7hJaHXMmdtVBD",
+              "status": "running"
+            }
+          ]
+        }
+      },
+      "at": "2026-10-15T00:03:08.729Z"
+    },
+    {
+      "id": "runtime-nested",
+      "status": "PASS",
+      "detail": {
+        "nRoot": 1,
+        "nChild": 1,
+        "crumb1": "Main agent\n›\nnested-child",
+        "crumb2": "Main agent\n›\nnested-child\n›\nnested-grand",
+        "back": true
+      },
+      "at": "2026-10-15T00:03:09.768Z"
+    },
+    {
+      "id": "settled",
+      "status": "PASS",
+      "detail": {
+        "badge": {
+          "visible": true,
+          "text": "1/1",
+          "running": false,
+          "attention": false,
+          "aria": "Subagents: 1 done"
+        },
+        "pill": "done"
+      },
+      "at": "2026-10-15T00:03:19.616Z"
+    },
+    {
+      "id": "perm-attention",
+      "status": "PASS",
+      "detail": {
+        "permissionSession": "ses_ec3211e6effextZqIvvvr0e7ty",
+        "permGrand": "ses_ec3211e6effextZqIvvvr0e7ty",
+        "atGrand": true,
+        "badge": {
+          "visible": true,
+          "text": "0/1",
+          "running": false,
+          "attention": true,
+          "aria": "Subagents: 0 done"
+        },
+        "pill": "waiting",
+        "grandStatus": "busy",
+        "childStatus": "busy",
+        "after": {
+          "visible": true,
+          "text": "0/1",
+          "running": true,
+          "attention": false,
+          "aria": "Subagents: 0 done, 1 running"
+        }
+      },
+      "at": "2026-10-15T00:03:23.244Z"
+    }
+  ],
+  "summary": {
+    "PASS": 6,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

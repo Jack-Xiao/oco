@@ -16,7 +16,7 @@
 //   subagent-link      the chat view's subagent card is not an <a href> and a click draws no focus box; it opens the
 //                      child session in the panel, its parent title returns to A, nothing opens outside VS Code (0016)
 import { fileURLToPath } from "node:url"
-import { createRun } from "./lib/results.mjs"
+import { createRun, recordNotApplicable } from "./lib/results.mjs"
 import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, fitGroups, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, waitReply, MODEL } from "./server.mjs"
 
@@ -41,6 +41,9 @@ const run = createRun({ suite: "c4-trajectory", required: REQUIRED, scriptPath: 
 const health = await api("GET", "/global/health").catch(() => null)
 const LOCALE = process.env.OCO_E2E_LOCALE ?? ""
 run.setEnv({ serverVersion: health?.version ?? null, modelMode: MODEL.mode, locale: LOCALE || "default" })
+// Real-model mode: assertions that need mock text ("40. Mock line 40.", "subagent-ok") or a model that obeys
+// "use the task tool" are relaxed or judged N/A (with the reason in the result) instead of failing on model variance.
+const REAL = MODEL.mode === "real"
 const { app, page } = await launch({ profile: "c4-trajectory", run, env: LOCALE ? { OCO_DEV_LOCALE: LOCALE } : {} })
 // The copy this suite reads, per language (source: vendor/opencode/packages/app/src/components/session/session-trajectory-i18n.ts).
 const COPY = {
@@ -325,9 +328,15 @@ try {
   await fA.locator(`${rowsSel} [data-kind="text"]`).last().click()
   const lastText = await detailText(fA)
   await runShot(page, run, "6-live-done")
-  run.record("live-update", seenRunning && stillOpenWhileRunning && lastText.includes("40. Mock line 40.") && lastText.includes(L.completed) ? "PASS" : "FAIL", {
+  // Mock: the scripted reply ends with "40. Mock line 40." and the text row's detail says "Completed". Real model: the
+  // wording and timing are the model's own, so only the structure is checked (a new request bar grew while it ran,
+  // the view stayed open, the stored reply finished and the new text row opened a detail with content).
+  const barsAfter = await count(fA, "[data-oco-trajectory-lanes] [data-oco-request]")
+  const liveContentOk = REAL ? barsAfter > before && lastText.trim().length > 0 : lastText.includes("40. Mock line 40.") && lastText.includes(L.completed)
+  run.record("live-update", seenRunning && stillOpenWhileRunning && liveContentOk ? "PASS" : "FAIL", {
     seenRunning,
     stillOpenWhileRunning,
+    ...(REAL ? { relaxed: "real model: mock text and Completed label not required", barsBefore: before, barsAfter } : {}),
     tail: lastText.slice(-200),
   })
 
@@ -388,55 +397,67 @@ try {
   await fA.locator("[data-oco-trajectory-detail]").waitFor({ state: "visible", timeout: 5000 }).catch(() => {})
   sub.childField = await field(fA, L.childSession)
   await runShot(page, run, "10-subagent-row")
-  run.record(
-    "subagent-row",
-    !!child && sub.rows === 1 && !sub.nested && sub.text.includes(L.subagent) && sub.text.includes("Find the fork code") &&
-      sub.text.includes("subagent-ok") && !sub.text.includes("<task") && sub.childField === child
-      ? "PASS"
-      : "FAIL",
-    sub,
-  )
+  if (REAL && !child) {
+    // The model chose not to call the task tool (it is not obliged to follow the prompt): nothing to check.
+    recordNotApplicable(run, REQUIRED, "subagent-row", "real model did not call the task tool, so there is no subagent row to check", sub)
+  } else {
+    // Mock: the description is the prompt's and the child's output is "subagent-ok". Real model: the model words the
+    // description itself (seen: "Find fork code") and the child may still be running when the turn ends, so only the
+    // structure is checked (one row, top level, labelled as a subagent, the detail names the child session).
+    const subTextOk = REAL
+      ? sub.text.includes(L.subagent) && sub.text.includes("@explore") && !sub.text.includes("<task")
+      : sub.text.includes(L.subagent) && sub.text.includes("Find the fork code") && sub.text.includes("subagent-ok") && !sub.text.includes("<task")
+    run.record(
+      "subagent-row",
+      !!child && sub.rows === 1 && !sub.nested && subTextOk && sub.childField === child ? "PASS" : "FAIL",
+      REAL ? { ...sub, relaxed: "real model: description / child output text not required" } : sub,
+    )
+  }
 
   // 11. The subagent card in the chat view opens the child session in this panel. It used to be an <a href> to an app
   // route; the webview's <base> made that an https URL and VS Code opened it in the system browser as well.
-  await fA.locator('[data-oco-trajectory] [data-oco-view="chat"]').click()
-  const card = fA.locator('[data-component="task-tool-card"]').first()
-  await card.waitFor({ state: "visible", timeout: 10000 })
-  const link = {
-    child,
-    href: await card.evaluate((el) => el.closest("a")?.getAttribute("href") ?? null),
-    role: await card.evaluate((el) => el.closest("a")?.getAttribute("role") ?? null),
+  if (REAL && !child) {
+    recordNotApplicable(run, REQUIRED, "subagent-link", "real model did not call the task tool, so the chat view has no subagent card to click", { child })
+  } else {
+    await fA.locator('[data-oco-trajectory] [data-oco-view="chat"]').click()
+    const card = fA.locator('[data-component="task-tool-card"]').first()
+    await card.waitFor({ state: "visible", timeout: 10000 })
+    const link = {
+      child,
+      href: await card.evaluate((el) => el.closest("a")?.getAttribute("href") ?? null),
+      role: await card.evaluate((el) => el.closest("a")?.getAttribute("role") ?? null),
+    }
+    await app.evaluate(({ shell }) => {
+      globalThis.__ocoOpened = []
+      shell.openExternal = async (url) => void globalThis.__ocoOpened.push(String(url))
+    })
+    // VS Code's default webview styles outline every focused <a>: a click boxed the full-width row. Read the outline
+    // when the click focuses it (the panel switches right after).
+    await card.evaluate((el) => {
+      const a = el.closest("a")
+      a.addEventListener("focus", () => (window.__ocoCardOutline = getComputedStyle(a).outlineStyle), { once: true })
+    })
+    await card.click()
+    link.clickOutline = await fA.evaluate(() => window.__ocoCardOutline ?? null).catch(() => null)
+    link.switched = await waitUntil(async () => {
+      for (const f of await chatFrames(page)) if ((await frameSession(f).catch(() => null)) === child) return true
+      return false
+    }, 15000, 100).then(() => true, () => false)
+    await sleep(500)
+    await runShot(page, run, "11-subagent-link")
+    // The child's title links back to the parent (a button upstream); the panel returns to A.
+    for (const f of await chatFrames(page))
+      if ((await frameSession(f).catch(() => null)) === child) await f.locator('[data-slot="session-title-parent"]').click().catch(() => {})
+    link.back = !!(await frameFor(A, 15000))
+    link.opened = await app.evaluate(() => globalThis.__ocoOpened)
+    run.record(
+      "subagent-link",
+      !!child && link.href === null && link.role === "button" && link.clickOutline === "none" && link.switched && link.back && link.opened.length === 0
+        ? "PASS"
+        : "FAIL",
+      link,
+    )
   }
-  await app.evaluate(({ shell }) => {
-    globalThis.__ocoOpened = []
-    shell.openExternal = async (url) => void globalThis.__ocoOpened.push(String(url))
-  })
-  // VS Code's default webview styles outline every focused <a>: a click boxed the full-width row. Read the outline
-  // when the click focuses it (the panel switches right after).
-  await card.evaluate((el) => {
-    const a = el.closest("a")
-    a.addEventListener("focus", () => (window.__ocoCardOutline = getComputedStyle(a).outlineStyle), { once: true })
-  })
-  await card.click()
-  link.clickOutline = await fA.evaluate(() => window.__ocoCardOutline ?? null).catch(() => null)
-  link.switched = await waitUntil(async () => {
-    for (const f of await chatFrames(page)) if ((await frameSession(f).catch(() => null)) === child) return true
-    return false
-  }, 15000, 100).then(() => true, () => false)
-  await sleep(500)
-  await runShot(page, run, "11-subagent-link")
-  // The child's title links back to the parent (a button upstream); the panel returns to A.
-  for (const f of await chatFrames(page))
-    if ((await frameSession(f).catch(() => null)) === child) await f.locator('[data-slot="session-title-parent"]').click().catch(() => {})
-  link.back = !!(await frameFor(A, 15000))
-  link.opened = await app.evaluate(() => globalThis.__ocoOpened)
-  run.record(
-    "subagent-link",
-    !!child && link.href === null && link.role === "button" && link.clickOutline === "none" && link.switched && link.back && link.opened.length === 0
-      ? "PASS"
-      : "FAIL",
-    link,
-  )
 } catch (e) {
   run.record("run", "FAIL", { error: String(e?.message ?? e).slice(0, 500) })
   await runShot(page, run, "error")

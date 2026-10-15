@@ -1,0 +1,77 @@
+{
+  "runId": "20261015-001407-t007-multiroot-757a",
+  "suite": "t007-multiroot",
+  "startedAt": "2026-10-15T00:14:07.109Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "ae148cb725d99b20d538cf11acfe95423b9b05d0d85ba34a75038811415baee5",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "t007-multiroot",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:14:28.284Z",
+  "results": [
+    {
+      "id": "default-first-folder",
+      "status": "PASS",
+      "detail": {
+        "folderLabel": "alpha",
+        "titles": [
+          "mr-alpha-792so"
+        ]
+      },
+      "at": "2026-10-15T00:14:12.914Z"
+    },
+    {
+      "id": "select-folder",
+      "status": "PASS",
+      "detail": {
+        "folderLabel": "beta",
+        "titles": [
+          "mr-beta-792so"
+        ]
+      },
+      "at": "2026-10-15T00:14:18.551Z"
+    },
+    {
+      "id": "open-panel-survives-switch",
+      "status": "PASS",
+      "detail": {
+        "panel": {
+          "directory": "/Users/xiaojiang/Ai-Project/oco/.oco-test/ws-multi/alpha",
+          "ready": true,
+          "visible": true
+        }
+      },
+      "at": "2026-10-15T00:14:18.614Z"
+    },
+    {
+      "id": "new-session-in-folder",
+      "status": "PASS",
+      "detail": {
+        "directory": "/Users/xiaojiang/Ai-Project/oco/.oco-test/ws-multi/beta"
+      },
+      "at": "2026-10-15T00:14:22.241Z"
+    },
+    {
+      "id": "choice-remembered",
+      "status": "PASS",
+      "detail": {
+        "folderLabel": "beta"
+      },
+      "at": "2026-10-15T00:14:27.826Z"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

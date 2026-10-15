@@ -13,7 +13,7 @@
 // in its await-results stage for ~9 s) or read back deterministically with __ocoRuntime.seek() using the part
 // times from the REST API.
 import { fileURLToPath } from "node:url"
-import { createRun } from "./lib/results.mjs"
+import { createRun, recordNotApplicable } from "./lib/results.mjs"
 import { launch, command, waitUntil, chatFrames, frameSession, sleep, runShot, fitGroups, createAndOpenSession } from "./vscode.mjs"
 import { api, messages, waitReply, waitIdle, MODEL } from "./server.mjs"
 
@@ -58,6 +58,7 @@ const CHECKS = [
   "focus-stable",
   "focus-on-change",
   "geometry-stable",
+  "tools-k-collapse",
   "legend",
   "summary",
   "fill",
@@ -68,12 +69,26 @@ const run = createRun({ suite: "c5-runtime", required: REQUIRED, scriptPath: fil
 const health = await api("GET", "/global/health").catch(() => null)
 const LOCALE = process.env.OCO_E2E_LOCALE ?? ""
 run.setEnv({ serverVersion: health?.version ?? null, modelMode: MODEL.mode, locale: LOCALE || "default" })
+// Real-model mode: checks that need a mock-only prompt token (WITH-SLOW-SIBLING, RETRY-ONCE) or a model that keeps a
+// request "in flight" for a chosen time are relaxed or judged N/A (reason in the result) instead of failing on model
+// variance. Mock mode is unchanged. A real full run is long (>15 min): the outer timeout is set in tests/e2e/run.mjs.
+const REAL = MODEL.mode === "real"
 const { app, page } = await launch({
   profile: "c5-runtime",
   run,
   settings: { "workbench.colorTheme": "Default Dark Modern" },
   env: LOCALE ? { OCO_DEV_LOCALE: LOCALE } : {},
 })
+
+// A short window (laptop / mini display) gives the runtime stage < 560 px and the narrow layout then folds the tool dock; use a tall one.
+await app.evaluate(({ BrowserWindow }) => { const w = BrowserWindow.getAllWindows()[0]; w?.setBounds({ x: 0, y: 0, width: 1500, height: 1200 }); w?.webContents.setZoomFactor(Number(process.env.OCO_E2E_ZOOM ?? 0.75)) }).catch(() => {})
+await sleep(800)
+if (process.env.OCO_E2E_CONSOLE) {
+  const hook = (pg) => pg.on("console", (m) => { if (m.type() === "error") console.log("[console.error]", m.text().slice(0, 600)) })
+  hook(page)
+  app.on("window", hook)
+  page.on("pageerror", (e) => console.log("[pageerror]", String(e).slice(0, 600)))
+}
 
 // Copy the checks assert on (plan "i18n 键": ring.status.*, ring.tools.row.rejected, ring.bar.*, ring.legend.*, ring.fold.*).
 const COPY = {
@@ -145,7 +160,10 @@ async function send(f, text) {
   const users = async () => ((await messages(A)) ?? []).filter((m) => m.info.role === "user").length
   const before = await users()
   const input = f.locator('[data-component="prompt-input"]')
-  await input.waitFor({ state: "visible", timeout: 15000 })
+  await input.waitFor({ state: "visible", timeout: 15000 }).catch(async (e) => {
+    const dbg = await f.evaluate(() => ({ ds: { ...document.documentElement.dataset }, n: document.querySelectorAll('[data-component="prompt-input"]').length, vis: document.visibilityState, txt: document.body.innerText.slice(0, 200), rect: (() => { const r = document.querySelector('[data-component="prompt-input"]')?.getBoundingClientRect(); return r ? [r.width, r.height] : null })(), w: innerWidth, h: innerHeight })).catch(() => null)
+    throw new Error(String(e.message).split("\n")[0] + " " + JSON.stringify(dbg))
+  })
   await input.scrollIntoViewIfNeeded().catch(() => {})
   await input.click()
   await input.focus()
@@ -464,13 +482,18 @@ try {
   const resultRows = resultSamples.some((s) => s.tools.some((x) => x.startsWith("ok")) && (!siblingTask || s.cells.includes("run")))
   await waitUntil(async () => (await stageOf()) === "end", 15000, 100)
 
+  // Real model: without the mock's slow sibling the request does not stay in "await results", so the "result" card may
+  // never be live long enough to sample (seen: 0 samples). Round 1 (permission, ask stage, call card, bash row, end)
+  // is still fully required; the round-2 result-card claim is judged only when the poll caught at least one sample.
+  const resultCardSkipped = REAL && resultSamples.length === 0
+  const resultCardOk = resultCardSkipped || (ttResultSeen && resultTone && resultStageWait && resultRows)
   run.record(
     "tool-turn",
     ttPermSeen && ttAskStage && ttPendingBadge && ttYouButtons === 0 && L.approvalRe.test(ttStatusWhilePending) &&
-      ttEnded && ttFocusEnd === "end" && ttStatusEnd.includes(L.standing) && callOk && bashRowOk && ttResultSeen && resultTone && resultStageWait && resultRows
+      ttEnded && ttFocusEnd === "end" && ttStatusEnd.includes(L.standing) && callOk && bashRowOk && resultCardOk
       ? "PASS"
       : "FAIL",
-    { ttPermSeen, ttAskStage, ttPendingBadge, ttYouButtons, ttRunWhilePending, ttStatusWhilePending, ttEnded, ttFocusEnd, ttStatusEnd, callDet, callOk, bashRowOk, ttResultSeen, resultSamples: resultSamples.length, resultTone, resultStageWait, resultRows, siblingTask, resultTools: resultSamples.slice(0, 2).map((s) => s.tools), resultCells: resultSamples.slice(0, 2).map((s) => s.cells) },
+    { ...(resultCardSkipped ? { relaxed: "real model: result card not sampled (no slow sibling), round-2 result-card checks skipped" } : {}), ttPermSeen, ttAskStage, ttPendingBadge, ttYouButtons, ttRunWhilePending, ttStatusWhilePending, ttEnded, ttFocusEnd, ttStatusEnd, callDet, callOk, bashRowOk, ttResultSeen, resultSamples: resultSamples.length, resultTone, resultStageWait, resultRows, siblingTask, resultTools: resultSamples.slice(0, 2).map((s) => s.tools), resultCells: resultSamples.slice(0, 2).map((s) => s.cells) },
   )
 
   // 4. context-known: after the first receipt the status bar shows the context size (digits); token in/out now live in the model box receipt.
@@ -732,11 +755,18 @@ try {
   // The card body is clamped to its 3 lines and ends or starts with "…" when the card is narrow (small stage height);
   // the full text stays behind "Full text". Accept a visible piece (6+ characters) of the error as well as the whole head.
   const failErrShown = readErrHead === "" || failInfo.cardText.includes(readErrHead) || visiblePieceOf(failBody, readErrFull)
-  run.record(
-    "tool-fail",
-    failedCard && failInfo.cardTone === "err" && failInfo.rowState === "err" && readPart?.state?.status === "error" && failErrShown ? "PASS" : "FAIL",
-    { failedCard, ...failInfo, cardText: failInfo.cardText.slice(0, 160), failBody: failBody.slice(0, 120), failErrShown, readStatus: readPart?.state?.status ?? null, readErrHead },
-  )
+  const failDetail = { failedCard, ...failInfo, cardText: failInfo.cardText.slice(0, 160), failBody: failBody.slice(0, 120), failErrShown, readStatus: readPart?.state?.status ?? null, readErrHead }
+  if (REAL && !failedCard) {
+    // The red "failed" card is held live only by the mock's slow sibling (WITH-SLOW-SIBLING); a real model reads the
+    // error and finishes the round at once, so the card is "round-end" and the err row is gone (seen). Not applicable.
+    recordNotApplicable(run, REQUIRED, "tool-fail", "real model: the failed card needs the mock's slow sibling to stay live; the round ended before it could be sampled", failDetail)
+  } else {
+    run.record(
+      "tool-fail",
+      failedCard && failInfo.cardTone === "err" && failInfo.rowState === "err" && readPart?.state?.status === "error" && failErrShown ? "PASS" : "FAIL",
+      failDetail,
+    )
+  }
 
   // 15. question-route: the question stays in the composer dock; the runtime view shows card "ask" with the question text
   // and the options in the You dock as list items (not buttons). Answering clears pending and the server queue.
@@ -755,7 +785,8 @@ try {
     if (!questionPendingSeen) await waitIdle(A)
   }
   const qCardAsk = await until(async () => (await cardKindOf()) === "ask", 10000, 100)
-  const qCardBody = await textOf("[data-oco-runtime-card-body]")
+  // Patch 0025 (P1-2): the ask card itself carries the question text and the option buttons (answer in the ring; see c24).
+  const qCardBody = await textOf("[data-oco-runtime-card]")
   const qYouState = await youStateOf()
   const qOpts = await fA.evaluate(() =>
     [...document.querySelectorAll("[data-oco-runtime-you-option]")].map((e) => ({
@@ -848,7 +879,8 @@ try {
   run.record(
     "same-command",
     samePermissions && sameRowsReady && JSON.stringify(sameValues) === JSON.stringify(["1/3", "2/3", "3/3"]) && sameTools.length === 3 && sameTools.every((p) => p.state?.status === "completed") ? "PASS" : "FAIL",
-    { samePermissions, sameRowsReady, sameValues, statuses: sameTools.map((p) => p.state?.status) },
+    { samePermissions, sameRowsReady, sameValues, statuses: sameTools.map((p) => p.state?.status),
+      dbg: await fA.evaluate(() => ({ rows: document.querySelectorAll("[data-oco-runtime-tool-row]").length, layout: document.querySelector("[data-oco-runtime-layout]")?.getAttribute("data-oco-runtime-layout"), toolsK: document.querySelector("[data-oco-runtime-tools-k]")?.getAttribute("data-oco-runtime-tools-k"), stage: (() => { const r = document.querySelector("[data-oco-runtime-stage]")?.getBoundingClientRect(); return r ? [r.width, r.height] : null })(), toolsTxt: document.querySelector("[data-oco-runtime-tools]")?.textContent?.slice(0, 120), w: innerWidth, h: innerHeight })).catch(() => null) },
   )
 
   // 18. no-leak: pause inside a bash call (the mid-point of state.time.start/end from REST). The row is not "ok" yet and no
@@ -917,11 +949,18 @@ try {
   })
   const sawRetrying = retrySeq.includes("retrying+retry")
   const retryText = (retryReply?.parts ?? []).filter((p) => p.type === "text").map((p) => p.text).join("")
-  run.record(
-    "retry",
-    sawRetrying && retrySeq.at(-1)?.startsWith("idle") && retryText.includes(`RETRY-ONCE-${rand}`) ? "PASS" : "FAIL",
-    { pollMs: 50, retrySeq, sawRetrying, completed: !!retryReply?.info?.time?.completed, retryText: retryText.slice(0, 80) },
-  )
+  const retryDetail = { pollMs: 50, retrySeq, sawRetrying, completed: !!retryReply?.info?.time?.completed, retryText: retryText.slice(0, 80) }
+  if (REAL && !sawRetrying) {
+    // RETRY-ONCE is a token only the mock model understands (it fails the first request once); a real model never
+    // retries on demand. The turn above still ran, so the later steps see the same conversation as in mock mode.
+    recordNotApplicable(run, REQUIRED, "retry", "real model: RETRY-ONCE is a mock-model token, a real model does not trigger a retry on demand", retryDetail)
+  } else {
+    run.record(
+      "retry",
+      sawRetrying && retrySeq.at(-1)?.startsWith("idle") && retryText.includes(`RETRY-ONCE-${rand}`) ? "PASS" : "FAIL",
+      retryDetail,
+    )
+  }
 
   // ---- subagents, replay without actions, keyboard, thinking ----
 
@@ -1279,6 +1318,20 @@ try {
   await sleep(600)
   const geomDone = await geomOf()
   await page.screenshot({ path: run.artifact("par-done.png") })
+  // tools-k-collapse: `data-oco-runtime-tools-k` is a per-frame openness value (dockOpen). While the round runs the dock is
+  // open (> 0); after the last request ends without a tool call it closes over LANE_MS (420 ms) and must rest at 0. A sample
+  // taken at the moment of "end" can show a mid-transition value (2026-10-10 saw 0.380), so the settled value is read >= 2 s
+  // after the round went idle (waitIdle + 600 ms above + 2000 ms here, so >= 2.6 s) and again 1 s later to prove it stays at 0.
+  const toolsKRunning = Number(geomRunning2.dk)
+  await sleep(2000)
+  const geomSettled = await geomOf()
+  await sleep(1000)
+  const geomSettled2 = await geomOf()
+  run.record(
+    "tools-k-collapse",
+    toolsKRunning > 0 && geomSettled.dk === "0.000" && geomSettled2.dk === "0.000" ? "PASS" : "FAIL",
+    { running: geomRunning.dk, running2: geomRunning2.dk, atDone600ms: geomDone.dk, settledAfter2s: geomSettled.dk, settledAfter3s: geomSettled2.dk },
+  )
 
   // parallel-subagents: three cells ran side by side (cells "run", probe layers "running"), then all three are collected ("done").
   // The probe layer fades out LINGER_MS + FADE_MS after the return packet arrives, so "absorbed" is not asserted after the end.

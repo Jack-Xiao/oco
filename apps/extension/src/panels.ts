@@ -59,6 +59,26 @@ export class PanelRegistry {
   onRecoveryAction: (action: "retryConnection" | "openSettings" | "showSessions" | "newSession") => void = () => {}
   /** A draft panel's first message created this session; the panel now shows it (patches/opencode/0023). */
   onPromoted: (binding: SessionBinding) => void = () => {}
+  private readonly _onDidChangeActiveSession = new (vscode.EventEmitter ??
+    (class {
+      private readonly l = new Set<any>()
+      event = (fn: any) => {
+        this.l.add(fn)
+        return { dispose: () => this.l.delete(fn) }
+      }
+      fire(x: any) {
+        for (const fn of this.l) {
+          try {
+            fn(x)
+          } catch {}
+        }
+      }
+      dispose() {
+        this.l.clear()
+      }
+    } as any))<SessionBinding | undefined>()
+  /** Active session changed (e.g. focused another panel or switched session in place). */
+  readonly onDidChangeActiveSession: vscode.Event<SessionBinding | undefined> = this._onDidChangeActiveSession.event
   private connection: ConnectionSummary | undefined
 
   constructor(
@@ -94,6 +114,10 @@ export class PanelRegistry {
 
   get active(): Entry | undefined {
     return this.list().find((e) => e.panel.active) ?? (this.lastActive ? this.entries.get(this.lastActive) : undefined)
+  }
+
+  private fireActiveSession() {
+    this._onDidChangeActiveSession.fire(this.active?.binding)
   }
 
   /**
@@ -174,6 +198,7 @@ export class PanelRegistry {
         .then((s) => entry.binding.sessionId === binding.sessionId && s.title && this.setTitle(entry, s.title))
         .catch(() => undefined)
     this.onChange()
+    if (entry.panel.active) this.fireActiveSession()
   }
 
   /** The draft page entered the session its first message created. Only a session this panel's bridge saw
@@ -199,6 +224,7 @@ export class PanelRegistry {
       .then((s) => entry.binding.sessionId === sessionId && s.title && this.setTitle(entry, s.title))
       .catch(() => undefined)
     this.onChange()
+    if (entry.panel.active) this.fireActiveSession()
   }
 
   private initFor(entry: Entry): WebviewInit {
@@ -280,6 +306,7 @@ export class PanelRegistry {
       if (e.webviewPanel.active && this.lastActive !== panelId) {
         this.lastActive = panelId
         this.onChange() // the sidebar selection follows the active panel
+        this.fireActiveSession()
       }
       // retainContextWhenHidden: a hidden document stays alive with its generation and streams; drafts
       // queued while it was hidden are delivered once it shows again.
@@ -288,10 +315,16 @@ export class PanelRegistry {
     panel.onDidDispose(() => {
       entry.bridge.dispose() // aborts this panel's requests/streams only; the session keeps running on the server
       this.entries.delete(panelId)
-      if (this.lastActive === panelId) this.lastActive = undefined
+      if (this.lastActive === panelId) {
+        this.lastActive = undefined
+        this.fireActiveSession()
+      }
       this.onChange()
     })
-    if (panel.active) this.lastActive = panelId
+    if (panel.active) {
+      this.lastActive = panelId
+      this.fireActiveSession()
+    }
     this.onChange()
     return entry
   }
@@ -599,5 +632,9 @@ export class PanelRegistry {
       focusTrace: e.focusTrace,
       pendingDrafts: this.pending(e).length,
     }))
+  }
+
+  dispose() {
+    this._onDidChangeActiveSession.dispose()
   }
 }

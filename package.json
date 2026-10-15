@@ -13,6 +13,7 @@
     "test:unit": "bun test tests/unit",
     "test:server": "bash scripts/test-server.sh",
     "test:e2e": "node tests/e2e/run.mjs",
+    "test:bench": "node tests/bench/run.mjs",
     "brief": "node scripts/brief.mjs",
     "verify:brief": "node scripts/brief.mjs --verify"
   },

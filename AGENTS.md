@@ -39,6 +39,7 @@
 | 预计超过 20 分钟的长命令任务、长驻进程配合的任务 | Claude 子代理（Sonnet） | 结果路径 + ≤15 行摘要 |
 | 文档一致性、链接、格式 | Gemini | 只列问题，无问题回"通过" |
 | YouTube、广泛多来源网络调研 | Gemini | 证据文件 + ≤15 行摘要 |
+| E2E 批量回归、真实模型运行、竞态循环、长时间测量（2026-10-14 起） | Mac mini 执行机（`scripts/mini/dispatch.sh`，约定见 [MINI](docs/MINI.md)） | `mini/<任务>` 分支提交 + `docs/evidence/mini-<任务>.md` + Telegram 结束通知 |
 
 路由名（以当次工具列表为准，列表里没有的名字不要用）：
 

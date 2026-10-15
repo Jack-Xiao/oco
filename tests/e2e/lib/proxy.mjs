@@ -1,6 +1,6 @@
 // Controllable transparent HTTP proxy for reconnect tests (node:http + node:net only).
 // Listens on a random 127.0.0.1 port and forwards to the isolated test server. It never touches any other
-// server. Knobs: cutStreams() destroys open /event streams, refuse(on) rejects new connections and requests,
+// server. Knobs: cutStreams() destroys open /event and /global/event streams, refuse(on) rejects new connections and requests,
 // stall(on) keeps /event streams open but stops forwarding bytes. Counters: /event connections and snapshot requests.
 //
 // While healthy the proxy also writes an SSE comment into every /event stream once a second (only between two
@@ -38,7 +38,10 @@ export async function startProxy({ target = "http://127.0.0.1:4517", keepaliveMs
       req.resume()
       return
     }
-    const isEvent = req.method === "GET" && url.pathname === "/event"
+    // The sidebar feed subscribes to /global/event first (commit 5edd5cb) and only falls back to /event on a 404, the chat
+    // panels still use /event. Both are event streams: counted, cut, stalled and kept alive alike. (Counting /event only left
+    // eventConnections at 0 for the sidebar, so p1b-reconnect failed on every server version.)
+    const isEvent = req.method === "GET" && (url.pathname === "/event" || url.pathname === "/global/event")
     // A session-list snapshot is exactly GET /session?...&roots=true (the sidebar feed's first request).
     if (req.method === "GET" && url.pathname === "/session" && url.searchParams.get("roots") === "true") stats.snapshotRequests++
     const headers = { ...req.headers, host: up.host }

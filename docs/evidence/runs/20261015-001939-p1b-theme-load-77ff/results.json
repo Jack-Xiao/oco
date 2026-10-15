@@ -1,0 +1,88 @@
+{
+  "runId": "20261015-001939-p1b-theme-load-77ff",
+  "suite": "p1b-theme-load",
+  "startedAt": "2026-10-15T00:19:39.267Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "2168f132ff051be1d16d2da60907fa819a86460803b731fac93887209cdbd3c7",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "p1b-first-load",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "firstLoadDelay": {
+    "paths": "^/(agent|provider|config/providers)",
+    "ms": 6000
+  },
+  "finishedAt": "2026-10-15T00:20:12.372Z",
+  "results": [
+    {
+      "id": "boot-continuous",
+      "status": "PASS",
+      "detail": {
+        "reason": "text",
+        "ms": 396,
+        "splash": true,
+        "skeleton": false
+      },
+      "at": "2026-10-15T00:19:52.146Z"
+    },
+    {
+      "id": "theme-initial-light",
+      "status": "PASS",
+      "detail": {
+        "appScheme": "light",
+        "bodyKind": "vscode-light",
+        "htmlBackground": "rgb(250, 250, 250)",
+        "generation": 1,
+        "theme": {
+          "applied": 1,
+          "switches": 0,
+          "current": "light"
+        }
+      },
+      "at": "2026-10-15T00:19:52.280Z"
+    },
+    {
+      "id": "theme-switch-dark",
+      "status": "PASS",
+      "detail": {
+        "appScheme": "dark",
+        "bodyKind": "vscode-dark",
+        "htmlBackground": "rgb(8, 8, 8)",
+        "generation": 1,
+        "theme": {
+          "applied": 1,
+          "switches": 1,
+          "current": "dark"
+        },
+        "sameDocument": true
+      },
+      "at": "2026-10-15T00:19:53.498Z"
+    },
+    {
+      "id": "first-load-submit",
+      "status": "PASS",
+      "detail": {
+        "modelShownBeforeSend": false,
+        "waitedForModel": true,
+        "toastShown": false,
+        "userMessageReachedServer": true,
+        "sentAfterMs": 7104,
+        "replied": true
+      },
+      "at": "2026-10-15T00:20:11.805Z"
+    }
+  ],
+  "summary": {
+    "PASS": 4,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

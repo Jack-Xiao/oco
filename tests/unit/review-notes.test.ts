@@ -318,4 +318,27 @@ describe("ReviewNotes storage & isolation", () => {
     expect(rn2.count("c1", "s1")).toBe(1)
     expect(rn2.list("c1", "s1")[0].snippet).toBe("persisted")
   })
+
+  test("ReviewNotes remove and get", () => {
+    let fired = 0
+    const rn = new ReviewNotes()
+    rn.onDidChange(() => {
+      fired++
+    })
+
+    const n1 = rn.add({ connectionId: "c1", sessionId: "s1", path: "a.ts", startLine: 1, endLine: 2 })
+    const n2 = rn.add({ connectionId: "c1", sessionId: "s1", path: "b.ts", startLine: 3, endLine: 4 })
+    expect(rn.count("c1", "s1")).toBe(2)
+    expect(rn.get(n1.id)?.path).toBe("a.ts")
+
+    // Remove existing
+    expect(rn.remove(n1.id)).toBe(true)
+    expect(rn.count("c1", "s1")).toBe(1)
+    expect(rn.get(n1.id)).toBeUndefined()
+    expect(rn.get(n2.id)?.path).toBe("b.ts")
+
+    // Remove non-existing
+    expect(rn.remove("nonexistent")).toBe(false)
+  })
 })
+

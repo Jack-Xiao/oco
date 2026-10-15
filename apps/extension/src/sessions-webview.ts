@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto"
 import * as vscode from "vscode"
+import { answerPending } from "./inbox-actions"
 import type { SessionsView } from "./sessions-view"
 
 export const SESSIONS_VIEW = "oco.sessions"
@@ -25,7 +26,7 @@ type FromPage =
   | { type: "search"; query: string }
   | { type: "loadMore" }
   | { type: "command"; command: string }
-  | { type: "permissionReply"; id: string; reply: "once" | "always" | "reject" }
+  | { type: "permissionReply"; id: string; reply: "once" | "always" | "reject"; message?: string }
   | { type: "questionReject"; id: string }
   | { type: "questionReply"; id: string; answers: string[][] }
   | { type: "openReview"; id: string }
@@ -35,6 +36,8 @@ type FromPage =
   | { type: "batch"; action: "archive" | "delete"; ids: string[] }
   | { type: "stop"; ids: string[] }
   | { type: "sendNotes"; id: string }
+  | { type: "label"; ids: string[]; label: string | null }
+  | { type: "snooze"; ids: string[]; snoozed: boolean }
 
 /**
  * The sidebar session list as a webview (time column, rounded selection, row height a native tree can't
@@ -107,26 +110,9 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
       case "command":
         if (COMMANDS.has(m.command)) void vscode.commands.executeCommand(m.command)
         return
-      case "permissionReply": {
-        if (!this.list.sessionStore.hasPending(m.id)) {
-          this.list.refresh()
-          return
-        }
-        if (!this.client) return
-        const dir = this.list.sessionStore.pendingDirectory(m.id) ?? this.client.directory
-        const q = dir ? `?directory=${encodeURIComponent(dir)}` : ""
-        void (async () => {
-          try {
-            await this.client!.request("POST", `/permission/${encodeURIComponent(m.id)}/reply${q}`, { reply: m.reply })
-            this.list.sessionStore.removePending(m.id)
-            this.list.refresh()
-          } catch (e) {
-            void vscode.window.showErrorMessage(`oco: Permission reply failed (${(e as Error).message})`)
-            this.list.refresh()
-          }
-        })()
+      case "permissionReply":
+        void answerPending(this.client, this.list.sessionStore, () => this.list.refresh(), m.id, { kind: "permission", reply: m.reply, message: typeof m.message === "string" ? m.message : undefined })
         return
-      }
       case "openReview":
         if (typeof m.id === "string") void vscode.commands.executeCommand("oco.openSessionReview", m.id)
         return
@@ -157,46 +143,22 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
       case "sendNotes":
         if (typeof m.id === "string") void vscode.commands.executeCommand("oco.reviewNotes.sendAll", m.id)
         return
-      case "questionReject": {
-        if (!this.list.sessionStore.hasPending(m.id)) {
-          this.list.refresh()
-          return
-        }
-        if (!this.client) return
-        const dir = this.list.sessionStore.pendingDirectory(m.id) ?? this.client.directory
-        const q = dir ? `?directory=${encodeURIComponent(dir)}` : ""
-        void (async () => {
-          try {
-            await this.client!.request("POST", `/question/${encodeURIComponent(m.id)}/reject${q}`)
-            this.list.sessionStore.removePending(m.id)
-            this.list.refresh()
-          } catch (e) {
-            void vscode.window.showErrorMessage(`oco: Question reject failed (${(e as Error).message})`)
-            this.list.refresh()
-          }
-        })()
+      case "questionReject":
+        void answerPending(this.client, this.list.sessionStore, () => this.list.refresh(), m.id, { kind: "questionReject" })
         return
-      }
-      case "questionReply": {
-        if (!this.list.sessionStore.hasPending(m.id)) {
-          this.list.refresh()
-          return
-        }
-        if (!this.client) return
-        const dir = this.list.sessionStore.pendingDirectory(m.id) ?? this.client.directory
-        const q = dir ? `?directory=${encodeURIComponent(dir)}` : ""
-        void (async () => {
-          try {
-            await this.client!.request("POST", `/question/${encodeURIComponent(m.id)}/reply${q}`, { answers: m.answers })
-            this.list.sessionStore.removePending(m.id)
-            this.list.refresh()
-          } catch (e) {
-            void vscode.window.showErrorMessage(`oco: Question reply failed (${(e as Error).message})`)
-            this.list.refresh()
-          }
-        })()
+      case "questionReply":
+        void answerPending(this.client, this.list.sessionStore, () => this.list.refresh(), m.id, { kind: "questionReply", answers: m.answers })
         return
-      }
+      case "label":
+        if (Array.isArray(m.ids)) {
+          this.list.setLabel(m.ids, typeof m.label === "string" ? m.label : null)
+        }
+        return
+      case "snooze":
+        if (Array.isArray(m.ids) && typeof m.snoozed === "boolean") {
+          this.list.setSnooze(m.ids, m.snoozed)
+        }
+        return
     }
   }
 

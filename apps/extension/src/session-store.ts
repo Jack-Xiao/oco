@@ -29,6 +29,7 @@ export type PendingRequest = {
   sessionID: string
   permission?: string
   patterns?: string[]
+  always?: string[]
   metadata?: Record<string, unknown>
   questions?: Array<{
     question: string
@@ -75,6 +76,9 @@ export type InboxRow = {
   aria: string
   /** "done" / "error" rows only: the result summary fields the sidebar renders as one line. */
   result?: RunResult
+  permission?: string
+  patterns?: string[]
+  always?: string[]
 }
 export type InboxGroup = {
   kind: "group"
@@ -336,6 +340,7 @@ export class SessionStore {
               sessionID: sid,
               permission: typeof p.permission === "string" ? p.permission : undefined,
               patterns: Array.isArray(p.patterns) ? p.patterns.map(String) : undefined,
+              always: Array.isArray(p.always) ? p.always.map(String) : undefined,
               metadata: p.metadata && typeof p.metadata === "object" ? p.metadata : undefined,
               tool: p.tool && typeof p.tool === "object" ? (p.tool as { messageID: string; callID: string }) : undefined,
             })
@@ -398,7 +403,7 @@ export class SessionStore {
 
   /**
    * Direct subagents of a root session with rollup status:
-   * running (self or any descendant busy/retry) > waiting (pending permission/question in subtree) > error (self error) > done (rest).
+   * waiting (pending permission/question in subtree; the server reports such a session as busy, so this must win) > running (self or any descendant busy/retry) > error (self error) > done (rest).
    * Direct subagents are sorted by created time ascending.
    * If there are no subagents, total is 0.
    */
@@ -455,14 +460,15 @@ export class SessionStore {
       if (!childRow) continue
       const subtree = getSubtree(childId)
 
-      // Priority 1: running (self or any descendant busy/retry)
-      const isRunning = subtree.some((id) => {
+      // Priority 1: waiting (pending permission/question in subtree). A session blocked on the user is reported busy by the
+      // server, so waiting has to outrank running or a grandchild's permission request would never surface on the root.
+      const isWaiting = subtree.some((id) => pendingSessionIds.has(id))
+
+      // Priority 2: running (self or any descendant busy/retry)
+      const isRunning = !isWaiting && subtree.some((id) => {
         const r = this.rows.get(id)
         return r?.status === "busy" || r?.status === "retry"
       })
-
-      // Priority 2: waiting (pending permission/question in subtree)
-      const isWaiting = !isRunning && subtree.some((id) => pendingSessionIds.has(id))
 
       // Priority 3: error (self error)
       const isError = !isRunning && !isWaiting && Boolean(childRow.error)
@@ -529,6 +535,12 @@ export class SessionStore {
   }
 
   /** Every loaded session (roots and subagents) with its own server status, not rolled up to the root (host actions such as Stop). */
+  /** Changed files of the session's last run; undefined for unknown or archived sessions (M19 explorer badges). */
+  changedFiles(id: string): FileChange[] | undefined {
+    const row = this.rows.get(id)
+    return row && !row.session.time?.archived ? row.files : undefined
+  }
+
   sessionStates(): { id: string; parentID?: string; status: ServerStatus["type"]; directory: string; title: string }[] {
     const out: { id: string; parentID?: string; status: ServerStatus["type"]; directory: string; title: string }[] = []
     for (const [id, row] of this.rows) {
@@ -777,6 +789,9 @@ export class SessionStore {
         title: info.title,
         agent: info.agent,
         parent: info.parent,
+        permission: req.permission,
+        patterns: req.patterns,
+        always: req.always,
         summary,
         detail,
         time: info.time,

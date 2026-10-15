@@ -1,0 +1,142 @@
+{
+  "runId": "20261014-193235-c16-sidebar-stop-81ec",
+  "suite": "c16-sidebar-stop",
+  "startedAt": "2026-10-14T19:32:35.551Z",
+  "ocoCommit": "8d2d9dbd0124a17b3ef94dc7fd8f1633e05eae17",
+  "ocoDirty": false,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "8e4008e0059cf86bfe3bb5c3fa70d4c36c4e48c929280ea1edf4a11c88cc51a7",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "vscodeVersion": "1.109.5",
+  "vscodeProfile": "c16-sidebar-stop",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-14T19:32:59.235Z",
+  "results": [
+    {
+      "id": "row-stop",
+      "status": "PASS",
+      "detail": {
+        "dotRunning": true,
+        "idleStopVisible": false,
+        "shownOnHover": true,
+        "aria": "Stop session",
+        "stillBusyAtClick": true,
+        "stoppedMs": 206,
+        "withinMs": 15000,
+        "dotCleared": true,
+        "aborted": true,
+        "selectedBefore": "ses_ec418f516ffe1CMDLYk5T53615",
+        "selectedAfter": "ses_ec418f516ffe1CMDLYk5T53615",
+        "keepId": "ses_ec418f516ffe1CMDLYk5T53615",
+        "panelOpensRow": false,
+        "elapsedSinceClickMs": 706
+      },
+      "at": "2026-10-14T19:32:45.874Z"
+    },
+    {
+      "id": "selection-stop",
+      "status": "PASS",
+      "detail": {
+        "idleBarText": "1 selected Archive Delete Mark unread Pin Label… Snooze Clear",
+        "idleOnlyStopVisible": false,
+        "barText": "2 selected Stop Archive Delete Mark unread Pin Label… Snooze Clear",
+        "selCount": 2,
+        "stopVisible": true,
+        "bothBusyAtClick": true,
+        "stoppedMs": 205,
+        "withinMs": 15000,
+        "dotsCleared": true,
+        "abortedA": true,
+        "abortedB": true,
+        "idleStillIdle": true
+      },
+      "at": "2026-10-14T19:32:46.923Z"
+    },
+    {
+      "id": "stop-all",
+      "status": "PASS",
+      "detail": {
+        "stopTextBefore": "$(debug-stop) 2",
+        "statusBarItems": 1,
+        "dialogMessage": null,
+        "dialogDetail": "Stop all 2 running sessions?",
+        "dialogButtons": [
+          "Cancel",
+          "Stop"
+        ],
+        "msgOk": true,
+        "cancelKeepsRunning": true,
+        "stoppedMs": 206,
+        "withinMs": 15000,
+        "counterGone": true,
+        "abortedC": true,
+        "abortedD": true,
+        "dotsCleared": true,
+        "elapsedSinceStopMs": 1071
+      },
+      "at": "2026-10-14T19:32:52.706Z"
+    },
+    {
+      "id": "cascade-confirm",
+      "status": "PASS",
+      "detail": {
+        "dialogMessage": "Stop \"c16-casc-ljrkr\"?",
+        "dialogDetail": "Its 1 running subagent(s) will stop too.",
+        "dialogButtons": [
+          "Cancel",
+          "Stop"
+        ],
+        "titleOk": true,
+        "detailOk": true,
+        "parentBusyAtClick": true,
+        "childBusyAtClick": true,
+        "dialogMs": 49,
+        "stoppedMs": 206,
+        "withinMs": 15000,
+        "childFinishedNaturally": false,
+        "parentAborted": true,
+        "dotCleared": true,
+        "elapsedSinceConfirmMs": 555
+      },
+      "at": "2026-10-14T19:32:53.959Z"
+    },
+    {
+      "id": "waiting-stop",
+      "status": "PASS",
+      "detail": {
+        "asked": true,
+        "busyWhileWaiting": true,
+        "waitingDot": true,
+        "inboxShown": true,
+        "counted": true,
+        "stopTextWhileWaiting": "$(debug-stop) 1",
+        "shownOnHover": true,
+        "stoppedMs": 127,
+        "permissionGoneMs": 344,
+        "inboxGoneMs": 564,
+        "withinMs": 15000,
+        "restartedSamples": 0,
+        "samples": 29,
+        "heldIdleMs": 3078,
+        "idleAtEnd": true,
+        "dotCleared": true,
+        "counterGone": true,
+        "permissionStillPending": 0,
+        "lastAssistantError": "MessageAbortedError"
+      },
+      "at": "2026-10-14T19:32:58.637Z"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

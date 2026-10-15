@@ -24,6 +24,8 @@ export type FeedDeps = {
   onChange: () => void
   onState: (s: ConnectionSummary) => void
   log?: (msg: string) => void
+  /** Every live event after the store applied it (M08 Follow listens for tool parts). Must not throw. */
+  onEvent?: (e: ServerEvent) => void
   now?: () => number
   setTimer?: (fn: () => void, ms: number) => unknown
   clearTimer?: (t: unknown) => void
@@ -306,6 +308,9 @@ export class SessionFeed {
 
     const handleEvent = (e: ServerEvent): boolean => {
       const changed = this.d.store.applyEvent(e)
+      try {
+        this.d.onEvent?.(e)
+      } catch {}
       if (e.type === "session.status") {
         const p = e.properties as Record<string, any> | undefined
         const sid = typeof p?.sessionID === "string" ? p.sessionID : undefined

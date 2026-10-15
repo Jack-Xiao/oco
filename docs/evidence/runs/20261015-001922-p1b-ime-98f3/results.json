@@ -1,0 +1,46 @@
+{
+  "runId": "20261015-001922-p1b-ime-98f3",
+  "suite": "p1b-ime",
+  "startedAt": "2026-10-15T00:19:22.226Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "4769b7483e27d37a8b14720f4956bb504e3995b0bf5c5de863010650d35eca23",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "p1b-ime",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:19:38.753Z",
+  "results": [
+    {
+      "id": "ime-composition-enter",
+      "status": "PASS",
+      "detail": {
+        "events": "compositionstart,keydown:composing:Enter,compositionend",
+        "sentDuringComposition": 0,
+        "composerAfterCommit": "中文输入",
+        "sentAfterEnter": "中文输入"
+      },
+      "at": "2026-10-15T00:19:38.286Z"
+    },
+    {
+      "id": "ime-real-macos",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "needs a person typing with a macOS Chinese input method; automation cannot drive the system IME in VS Code"
+      },
+      "at": "2026-10-15T00:19:38.286Z"
+    }
+  ],
+  "summary": {
+    "PASS": 1,
+    "FAIL": 0,
+    "NOT RUN": 1,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

@@ -1,0 +1,132 @@
+{
+  "runId": "20261015-001729-p1b-main-panel-ef5a",
+  "suite": "p1b-main-panel",
+  "startedAt": "2026-10-15T00:17:29.873Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "1f13aeff978e2ea5499f7a227b2bffb30342306591c30578ca95c0891741a4c2",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "modelMode": "mock",
+  "uncachedDelay": {
+    "paths": "^/session/(ses_ec3142db3ffemDl4miE65U3E7u|ses_ec3142d9cffeqaXPYd9UqzBqNC)$|^/session/ses_ec3142d9cffeqaXPYd9UqzBqNC/message$",
+    "ms": 3000
+  },
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "p1b-main-panel",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:19:20.614Z",
+  "results": [
+    {
+      "id": "switch-in-place",
+      "status": "PASS",
+      "detail": {
+        "switchMs": 478,
+        "panels": 1,
+        "mainSession": true,
+        "sameGeneration": true,
+        "showsAContent": false,
+        "switches": 1
+      },
+      "at": "2026-10-15T00:17:48.267Z"
+    },
+    {
+      "id": "send-after-switch",
+      "status": "PASS",
+      "detail": {
+        "landedInB": true,
+        "leakedToA": false
+      },
+      "at": "2026-10-15T00:17:49.987Z"
+    },
+    {
+      "id": "draft-per-session",
+      "status": "FAIL",
+      "detail": {
+        "aHasBDraft": false,
+        "bKeptDraft": true,
+        "switchToAMs": 70972,
+        "switchToBMs": 529
+      },
+      "at": "2026-10-15T00:19:03.339Z"
+    },
+    {
+      "id": "switch-uncached-ready",
+      "status": "PASS",
+      "detail": {
+        "requestedBefore": 0,
+        "midMs": 185,
+        "midRowsOfB": 2,
+        "midReady": false,
+        "shownMs": 3064,
+        "readyAfter": true
+      },
+      "at": "2026-10-15T00:19:06.761Z"
+    },
+    {
+      "id": "switch-uncached-no-blank",
+      "status": "PASS",
+      "detail": {
+        "requestedBefore": 0,
+        "emptyFrames": 0,
+        "frames": 460,
+        "changes": [
+          "83032 true true qzBqNC 101",
+          "83373 true true 5U3E7u 101"
+        ],
+        "requests": [
+          "83373-83394-83394 5U3E7u/message?limit",
+          "83373-86394-86395 db3ffemDl4miE65U3E7u"
+        ],
+        "shownMs": 79
+      },
+      "at": "2026-10-15T00:19:10.914Z"
+    },
+    {
+      "id": "pinned-unaffected",
+      "status": "PASS",
+      "detail": {
+        "newPanelOpenMs": 2697,
+        "switchMs": 370,
+        "panels": 2,
+        "pinnedSession": true,
+        "mainSession": true
+      },
+      "at": "2026-10-15T00:19:15.938Z"
+    },
+    {
+      "id": "open-shown-focuses",
+      "status": "PASS",
+      "detail": {
+        "panels": 2,
+        "mainKeepsA": true,
+        "activeTab": "oco pinned C rdter, Editor Group 2"
+      },
+      "at": "2026-10-15T00:19:17.908Z"
+    },
+    {
+      "id": "reload-keeps-roles",
+      "status": "PASS",
+      "detail": {
+        "roles": [
+          "main:A",
+          "pinned:C"
+        ]
+      },
+      "at": "2026-10-15T00:19:20.193Z"
+    }
+  ],
+  "summary": {
+    "PASS": 7,
+    "FAIL": 1,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "draft-per-session"
+  ]
+}

@@ -66,8 +66,32 @@ export function formatReviewNotes(
   return { text: clipped.text, source }
 }
 
+const EventEmitterClass =
+  vscode.EventEmitter ??
+  (class FallbackEventEmitter<T> {
+    private readonly listeners = new Set<(e: T) => any>()
+    readonly event: vscode.Event<T> = (listener: (e: T) => any) => {
+      this.listeners.add(listener)
+      return {
+        dispose: () => {
+          this.listeners.delete(listener)
+        },
+      }
+    }
+    fire(data: T): void {
+      for (const listener of this.listeners) {
+        try {
+          listener(data)
+        } catch {}
+      }
+    }
+    dispose(): void {
+      this.listeners.clear()
+    }
+  } as any)
+
 export class ReviewNotes implements vscode.Disposable {
-  private readonly _onDidChange = new vscode.EventEmitter<void>()
+  private readonly _onDidChange = new EventEmitterClass<void>()
   readonly onDidChange: vscode.Event<void> = this._onDidChange.event
   private notes: ReviewNote[] = []
 
@@ -110,6 +134,22 @@ export class ReviewNotes implements vscode.Disposable {
       void this.memento?.update(REVIEW_NOTES_KEY, [...this.notes])
       this._onDidChange.fire()
     }
+  }
+
+  remove(id: string): boolean {
+    const before = this.notes.length
+    this.notes = this.notes.filter((n) => n.id !== id)
+    if (this.notes.length !== before) {
+      void this.memento?.update(REVIEW_NOTES_KEY, [...this.notes])
+      this._onDidChange.fire()
+      return true
+    }
+    return false
+  }
+
+  get(id: string): ReviewNote | undefined {
+    const found = this.notes.find((n) => n.id === id)
+    return found ? { ...found } : undefined
   }
 
   dispose() {

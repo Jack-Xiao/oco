@@ -1,0 +1,137 @@
+{
+  "runId": "20261015-003724-c17-subagent-aggregate-c5ac",
+  "suite": "c17-subagent-aggregate",
+  "startedAt": "2026-10-15T00:37:24.797Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "a2971e839ca8959201eb377f556a776687c799ac1337fbd094654edd39368ed3",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "mock",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c17-subagent-aggregate",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:37:53.937Z",
+  "results": [
+    {
+      "id": "badge-running",
+      "status": "PASS",
+      "detail": {
+        "noBadgeBefore": true,
+        "seenMs": 523,
+        "childId": "ses_ec301cb17ffemkjWV5VUJuE9ik",
+        "badge": {
+          "visible": true,
+          "text": "0/1",
+          "running": true,
+          "attention": false,
+          "aria": "Subagents: 0 done, 1 running",
+          "title": "Subagents: 0 done, 1 running",
+          "expanded": "false",
+          "listVisible": false,
+          "items": []
+        }
+      },
+      "at": "2026-10-15T00:37:35.390Z"
+    },
+    {
+      "id": "badge-done",
+      "status": "PASS",
+      "detail": {
+        "serverDone": true,
+        "childId": "ses_ec301cb17ffemkjWV5VUJuE9ik",
+        "badge": {
+          "visible": true,
+          "text": "1/1",
+          "running": false,
+          "attention": false,
+          "aria": "Subagents: 1 done",
+          "title": "Subagents: 1 done",
+          "expanded": "false",
+          "listVisible": false,
+          "items": []
+        }
+      },
+      "at": "2026-10-15T00:37:45.709Z"
+    },
+    {
+      "id": "expand-collapse",
+      "status": "PASS",
+      "detail": {
+        "selectedBefore": "ses_ec301e0b0ffenSmXhvlNHYS81d",
+        "selectedExpanded": "ses_ec301e0b0ffenSmXhvlNHYS81d",
+        "selectedCollapsed": "ses_ec301e0b0ffenSmXhvlNHYS81d",
+        "keepId": "ses_ec301e0b0ffenSmXhvlNHYS81d",
+        "parentOpened": false,
+        "expanded": {
+          "visible": true,
+          "text": "1/1",
+          "running": false,
+          "attention": false,
+          "aria": "Subagents: 1 done",
+          "title": "Subagents: 1 done",
+          "expanded": "true",
+          "listVisible": true,
+          "items": [
+            {
+              "id": "ses_ec301cb17ffemkjWV5VUJuE9ik",
+              "title": "slow sibling (@explore subagent)"
+            }
+          ]
+        },
+        "collapsed": {
+          "expanded": "false",
+          "listVisible": false,
+          "items": 0
+        }
+      },
+      "at": "2026-10-15T00:37:46.520Z"
+    },
+    {
+      "id": "open-child",
+      "status": "PASS",
+      "detail": {
+        "childId": "ses_ec301cb17ffemkjWV5VUJuE9ik",
+        "rowChildId": "ses_ec301cb17ffemkjWV5VUJuE9ik",
+        "rowTitle": "slow sibling (@explore subagent)",
+        "openedBy": "selected",
+        "selectedAfter": "ses_ec301cb17ffemkjWV5VUJuE9ik",
+        "parentId": "ses_ec301cd93ffeJKPFfEryjHYlCr"
+      },
+      "at": "2026-10-15T00:37:47.160Z"
+    },
+    {
+      "id": "lazy-children",
+      "status": "PASS",
+      "detail": {
+        "badge": {
+          "visible": true,
+          "text": "1/1",
+          "running": false,
+          "attention": false,
+          "aria": "Subagents: 1 done",
+          "title": "Subagents: 1 done",
+          "expanded": "false",
+          "listVisible": false,
+          "items": []
+        },
+        "parentChildrenRequests": 1,
+        "allChildrenRequests": 17,
+        "rootsSnapshotRequests": 1,
+        "proxyRequests": 41
+      },
+      "at": "2026-10-15T00:37:53.577Z"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

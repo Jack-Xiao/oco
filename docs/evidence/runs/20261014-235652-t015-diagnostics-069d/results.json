@@ -1,0 +1,95 @@
+{
+  "runId": "20261014-235652-t015-diagnostics-069d",
+  "suite": "t015-diagnostics",
+  "startedAt": "2026-10-14T23:56:52.327Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "c1253136a90771da69c917deda12711eddaac1b81793a5c40e6d46b73471916e",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "t015-diagnostics",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-14T23:57:13.122Z",
+  "results": [
+    {
+      "id": "status-version",
+      "status": "PASS",
+      "detail": {
+        "version": "1.19.0",
+        "statusText": "$(warning) oco",
+        "tooltip": [
+          "oco: Connected to http://127.0.0.1:4517",
+          "/Users/xiaojiang/Ai-Project/oco/.oco-test/workspace",
+          "Mode: Attached server",
+          "Server version: 1.19.0",
+          "Note: Server 1.19.0 is not verified by oco (verified: 1.18.33, 1.18.13)"
+        ]
+      },
+      "at": "2026-10-14T23:57:03.361Z"
+    },
+    {
+      "id": "export-redacted",
+      "status": "PASS",
+      "detail": {
+        "leaks": {
+          "secret": false,
+          "basic": false,
+          "home": false
+        },
+        "keys": [
+          "generatedAt",
+          "oco",
+          "vscode",
+          "host",
+          "settings",
+          "endpoint",
+          "passwordStored",
+          "server",
+          "managed",
+          "workspace",
+          "connection",
+          "sidebar",
+          "panels",
+          "recentLog"
+        ],
+        "server": {
+          "version": "1.19.0",
+          "verified": [
+            "1.18.33",
+            "1.18.13"
+          ]
+        },
+        "logLines": 4
+      },
+      "at": "2026-10-14T23:57:03.799Z"
+    },
+    {
+      "id": "export-opens-editor",
+      "status": "PASS",
+      "detail": {
+        "tab": true
+      },
+      "at": "2026-10-14T23:57:04.050Z"
+    },
+    {
+      "id": "show-log",
+      "status": "PASS",
+      "detail": {
+        "shown": true
+      },
+      "at": "2026-10-14T23:57:05.377Z"
+    }
+  ],
+  "summary": {
+    "PASS": 4,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

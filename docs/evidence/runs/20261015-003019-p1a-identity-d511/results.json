@@ -1,0 +1,136 @@
+{
+  "runId": "20261015-003019-p1a-identity-d511",
+  "suite": "p1a-identity",
+  "startedAt": "2026-10-15T00:30:19.860Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "082ee066e1f3ebc362a69e91881f32bb9075a35b278e0e8423f24dbd0339da1a",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "p1a-identity",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "sessions": {
+    "A": "ses_ec30859f6ffeqVzhmmTism7IY6",
+    "B": "ses_ec30842e3ffe7YmiszhmHlgSee",
+    "C": "ses_ec3083af7ffehGLmrQMRid8LG4"
+  },
+  "finishedAt": "2026-10-15T00:31:31.064Z",
+  "results": [
+    {
+      "id": "three-visible-webviews",
+      "status": "PASS",
+      "detail": {
+        "visibleReady": 3,
+        "distinctGenerations": 3,
+        "editorGroups": 3
+      },
+      "at": "2026-10-15T00:30:35.857Z"
+    },
+    {
+      "id": "no-internal-tabs",
+      "status": "PASS",
+      "detail": {
+        "tabElementsPerPanel": [
+          0,
+          0,
+          0
+        ]
+      },
+      "at": "2026-10-15T00:30:36.023Z"
+    },
+    {
+      "id": "concurrent-send-isolated",
+      "status": "PASS",
+      "detail": {
+        "ALPHA": {
+          "ownPromptOnServer": true,
+          "replyCompleted": true,
+          "replyEchoesTag": true,
+          "leak": false
+        },
+        "BRAVO": {
+          "ownPromptOnServer": true,
+          "replyCompleted": true,
+          "replyEchoesTag": true,
+          "leak": false
+        },
+        "CHARLIE": {
+          "ownPromptOnServer": true,
+          "replyCompleted": true,
+          "replyEchoesTag": true,
+          "leak": false
+        }
+      },
+      "at": "2026-10-15T00:30:41.549Z"
+    },
+    {
+      "id": "nav-link-other-session",
+      "status": "PASS",
+      "detail": {
+        "mainSwitchedInPlace": true,
+        "panelARoute": "ses_ec30859f6ffeqVzhmmTism7IY6",
+        "panelAStillShowsItsMessages": true,
+        "openRequests": 1
+      },
+      "at": "2026-10-15T00:30:45.734Z"
+    },
+    {
+      "id": "nav-blocked-routes",
+      "status": "PASS",
+      "detail": {
+        "blocked": 3,
+        "routeStill": "ses_ec30859f6ffeqVzhmmTism7IY6"
+      },
+      "at": "2026-10-15T00:30:49.787Z"
+    },
+    {
+      "id": "nav-shortcuts-deeplink",
+      "status": "PASS",
+      "detail": {
+        "route": "ses_ec30859f6ffeqVzhmmTism7IY6",
+        "terminalElements": 0,
+        "websocketAttempts": 0,
+        "panelsForA": 1
+      },
+      "at": "2026-10-15T00:30:59.251Z"
+    },
+    {
+      "id": "run",
+      "status": "FAIL",
+      "detail": {
+        "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('.editor-group-container.active .monaco-editor .view-lines').first()\n    - locator resolved to <div data-mprt=\"8\" aria-hidden=\"true\" role=\"presentation\" class=\"view-lines monaco-mouse-cursor-text\">…</div>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <div class=\"sl"
+      },
+      "at": "2026-10-15T00:31:30.307Z"
+    },
+    {
+      "id": "csp-violations",
+      "status": "PASS",
+      "detail": {
+        "count": 0,
+        "sample": []
+      },
+      "at": "2026-10-15T00:31:30.473Z"
+    }
+  ],
+  "summary": {
+    "PASS": 7,
+    "FAIL": 1,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "draft-after-attacks",
+    "forged-draft-rejected",
+    "permission-after-attacks",
+    "hide-keeps-document",
+    "reload-auto-restore",
+    "close-specific-tab",
+    "image-bytes"
+  ]
+}

@@ -1,0 +1,184 @@
+{
+  "runId": "20261015-002012-p1b-pending-send-8ba5",
+  "suite": "p1b-pending-send",
+  "startedAt": "2026-10-15T00:20:12.883Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "2d0a4e5d0a825d731dcd8b169cc74050e1c5ef0dcf4adeac137b73e406cf9842",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "firstLoadDelay": {
+    "paths": "^/(agent|provider|config/providers)",
+    "ms": 8000
+  },
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "p1b-pending-send",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:22:03.176Z",
+  "results": [
+    {
+      "id": "loading-hint",
+      "status": "PASS",
+      "detail": {
+        "earlyModel": "loading",
+        "hint": {
+          "state": "loading",
+          "text": "Loading models and agents…Cancel send",
+          "cancelButton": false
+        },
+        "hintAtMs": 841,
+        "modelShownWhileLoading": false,
+        "loaded": true,
+        "barHiddenAfterLoad": true,
+        "after": {
+          "model": "ready",
+          "pending": null,
+          "bar": null,
+          "stats": {
+            "waiting": 0,
+            "ready": 0,
+            "cancel": 0,
+            "draft": 0,
+            "timeout": 0,
+            "shown": null,
+            "text": ""
+          }
+        }
+      },
+      "at": "2026-10-15T00:20:32.141Z"
+    },
+    {
+      "id": "pending-visible-and-send",
+      "status": "PASS",
+      "detail": {
+        "waiting": {
+          "state": "waiting",
+          "text": "Models and agents are still loading. This will send automatically when they finish. Edit the draft or press Esc to cancel.Cancel send",
+          "cancelButton": true
+        },
+        "pendingAttr": "model",
+        "cancelVisible": true,
+        "sentWhileWaiting": 0,
+        "users": [
+          "pending-send case two. Reply only with the word OK."
+        ],
+        "stats": {
+          "waiting": 1,
+          "ready": 1,
+          "cancel": 0,
+          "draft": 0,
+          "timeout": 0,
+          "shown": null,
+          "text": ""
+        },
+        "replied": true
+      },
+      "at": "2026-10-15T00:20:50.198Z"
+    },
+    {
+      "id": "pending-duplicate",
+      "status": "PASS",
+      "detail": {
+        "buttonFound": true,
+        "stillWaitingAfterExtraSubmits": "waiting",
+        "users": [
+          "pending-send case three, once only"
+        ],
+        "stats": {
+          "waiting": 1,
+          "ready": 1,
+          "cancel": 0,
+          "draft": 0,
+          "timeout": 0,
+          "shown": null,
+          "text": ""
+        }
+      },
+      "at": "2026-10-15T00:21:05.252Z"
+    },
+    {
+      "id": "pending-draft-change",
+      "status": "PASS",
+      "detail": {
+        "notice": "Draft changed. Automatic send was canceled. Send again when ready.Cancel send",
+        "users": [],
+        "composer": "pending-send case four EDITED",
+        "stats": {
+          "waiting": 1,
+          "ready": 0,
+          "cancel": 0,
+          "draft": 1,
+          "timeout": 0,
+          "shown": null,
+          "text": ""
+        },
+        "pendingAttr": null
+      },
+      "at": "2026-10-15T00:21:18.878Z"
+    },
+    {
+      "id": "pending-escape",
+      "status": "PASS",
+      "detail": {
+        "notice": "Send canceled. The draft was kept.Cancel send",
+        "users": [],
+        "composer": "pending-send case five",
+        "stats": {
+          "waiting": 1,
+          "ready": 0,
+          "cancel": 1,
+          "draft": 0,
+          "timeout": 0,
+          "shown": null,
+          "text": ""
+        },
+        "pendingAttr": null
+      },
+      "at": "2026-10-15T00:21:32.336Z"
+    },
+    {
+      "id": "pending-cancel-button",
+      "status": "PASS",
+      "detail": {
+        "notice": "Send canceled. The draft was kept.Cancel send",
+        "users": [],
+        "composer": "pending-send case six",
+        "stats": {
+          "waiting": 1,
+          "ready": 0,
+          "cancel": 1,
+          "draft": 0,
+          "timeout": 0,
+          "shown": null,
+          "text": ""
+        },
+        "pendingAttr": null
+      },
+      "at": "2026-10-15T00:21:46.108Z"
+    },
+    {
+      "id": "pending-close",
+      "status": "PASS",
+      "detail": {
+        "waiting": true,
+        "closed": true,
+        "closedAtMs": 1171,
+        "beforeLoad": true,
+        "waitedTotalMs": 15015,
+        "users": []
+      },
+      "at": "2026-10-15T00:22:02.721Z"
+    }
+  ],
+  "summary": {
+    "PASS": 7,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

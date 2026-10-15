@@ -1,0 +1,889 @@
+{
+  "runId": "20261014-193840-c5-runtime-3d11",
+  "suite": "c5-runtime",
+  "startedAt": "2026-10-14T19:38:40.209Z",
+  "ocoCommit": "8d2d9dbd0124a17b3ef94dc7fd8f1633e05eae17",
+  "ocoDirty": false,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "ea8dc4e3c6e6dd0bd8cbaf7194d589823b8e107ba8db762d388f3b9117c47a5d",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "locale": "default",
+  "vscodeVersion": "1.109.5",
+  "vscodeProfile": "c5-runtime",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-14T19:41:28.575Z",
+  "results": [
+    {
+      "id": "toggle-three",
+      "status": "PASS",
+      "detail": {
+        "views": [
+          "chat",
+          "trajectory",
+          "runtime"
+        ],
+        "viewsOrderExact": true,
+        "opened": true,
+        "composerVisible": true
+      },
+      "at": "2026-10-14T19:38:49.825Z"
+    },
+    {
+      "id": "idle-state",
+      "status": "PASS",
+      "detail": {
+        "state": "idle",
+        "stage": "pre",
+        "focus": "pre",
+        "stateText": "Standing by",
+        "idleSubsMode": "strip",
+        "idleLaneK": 0,
+        "idlePlanChips": 0
+      },
+      "at": "2026-10-14T19:38:49.834Z"
+    },
+    {
+      "id": "theme-dark",
+      "status": "PASS",
+      "detail": {
+        "bgLum": 0.009117957730975224,
+        "fgLum": 0.6667370683724081,
+        "bgDark": true,
+        "contrastOk": true
+      },
+      "at": "2026-10-14T19:38:49.835Z"
+    },
+    {
+      "id": "locale-copy",
+      "status": "PASS",
+      "detail": {
+        "toggleLabel": "Runtime",
+        "stateText": "Standing by",
+        "hasHan": false,
+        "localeMatch": true,
+        "locale": "en"
+      },
+      "at": "2026-10-14T19:38:49.837Z"
+    },
+    {
+      "id": "tool-turn",
+      "status": "PASS",
+      "detail": {
+        "ttPermSeen": true,
+        "ttAskStage": true,
+        "ttPendingBadge": true,
+        "ttYouButtons": 0,
+        "ttRunWhilePending": "waiting-user",
+        "ttStatusWhilePending": "Waiting for your approval",
+        "ttEnded": true,
+        "ttFocusEnd": "end",
+        "ttStatusEnd": "Round finished · Standing by",
+        "callDet": {
+          "start": 1792006731093,
+          "stage": "call",
+          "cardKind": "call"
+        },
+        "callOk": true,
+        "bashRowOk": true,
+        "ttResultSeen": true,
+        "resultSamples": 78,
+        "resultTone": true,
+        "resultStageWait": true,
+        "resultRows": true,
+        "siblingTask": true,
+        "resultTools": [
+          [
+            "ok"
+          ],
+          [
+            "ok"
+          ]
+        ],
+        "resultCells": [
+          [
+            "run"
+          ],
+          [
+            "run"
+          ]
+        ]
+      },
+      "at": "2026-10-14T19:39:33.470Z"
+    },
+    {
+      "id": "context-known",
+      "status": "PASS",
+      "detail": {
+        "contextText": "Context 20 (last receipt)",
+        "modelBox": "Model\noco-mock/mock\nReceipt 20 total (in 10 · out 10) · $0.0000\nBrings back 2 results"
+      },
+      "at": "2026-10-14T19:39:33.475Z"
+    },
+    {
+      "id": "last-event",
+      "status": "PASS",
+      "detail": {
+        "lastExists": true,
+        "lastText": "Last event 0 s ago",
+        "hasLastEventText": true,
+        "noDisconnect": true
+      },
+      "at": "2026-10-14T19:39:33.481Z"
+    },
+    {
+      "id": "replay",
+      "status": "PASS",
+      "detail": {
+        "liveStageBefore": "end",
+        "pauseOk": true,
+        "sliderVisible": true,
+        "sliderMax": 44000,
+        "replayTBefore": 1792006773509,
+        "replayTStart": 1792006729698,
+        "startStage": "pre",
+        "startStageOk": true,
+        "replayLiveBtn": true,
+        "replayBackLive": true
+      },
+      "at": "2026-10-14T19:39:33.920Z"
+    },
+    {
+      "id": "playback",
+      "status": "PASS",
+      "detail": {
+        "pbT0": 1792006729698,
+        "pbStartedReplay": true,
+        "pbAdvanced": true,
+        "speeds": [
+          2,
+          4,
+          0.5,
+          1
+        ],
+        "speedCycle": true,
+        "pbHeld": true,
+        "pbHeldAt": 1792006730833,
+        "pbFirstT": 1792006729698,
+        "pbAtFirst": true,
+        "pbN1": 1792006730898,
+        "pbN2": 1792006730902,
+        "pbNext": true,
+        "pbP1": 1792006730898,
+        "pbPrev": true,
+        "pbKeyBack": true,
+        "pbBackLive": true
+      },
+      "at": "2026-10-14T19:39:36.376Z"
+    },
+    {
+      "id": "log-overlay",
+      "status": "PASS",
+      "detail": {
+        "logBtnVisible": true,
+        "logInSummary": true,
+        "ovVisible": true,
+        "ovRows": 14,
+        "ovErrPressed": true,
+        "ovErrRows": 0,
+        "ovClosed": true,
+        "ovFocusBack": true,
+        "rowTotal": 14,
+        "rowJumped": true
+      },
+      "at": "2026-10-14T19:39:36.640Z"
+    },
+    {
+      "id": "back-to-chat",
+      "status": "PASS",
+      "detail": {
+        "chatBack": true,
+        "runtimeGone": true
+      },
+      "at": "2026-10-14T19:39:36.707Z"
+    },
+    {
+      "id": "trajectory-still-works",
+      "status": "PASS",
+      "detail": {
+        "trajOpened": true,
+        "composerInTraj": true,
+        "chatBackAgain": true,
+        "trajGone": true
+      },
+      "at": "2026-10-14T19:39:36.814Z"
+    },
+    {
+      "id": "plan-chip",
+      "status": "PASS",
+      "detail": {
+        "idlePlanChips": 0,
+        "planBefore": 0,
+        "planShown": true,
+        "planText": "Plan 1/3",
+        "planClicked": true,
+        "planPanel": true,
+        "planPanelItems": 3,
+        "planPanelClosed": true
+      },
+      "at": "2026-10-14T19:39:39.068Z"
+    },
+    {
+      "id": "perm-approve",
+      "status": "PASS",
+      "detail": {
+        "approvePendingSeen": true,
+        "pendingBadgeVal": "1",
+        "youPermission": true,
+        "youButtons": 0,
+        "approveCleared": true,
+        "toolStatus": "completed"
+      },
+      "at": "2026-10-14T19:39:40.970Z"
+    },
+    {
+      "id": "reply-in-panel",
+      "status": "PASS",
+      "detail": {
+        "permToolVis": true,
+        "replyButtonsUnique": true,
+        "forbiddenWhilePending": 0,
+        "youButtons": 0,
+        "youOptionButtons": 0,
+        "inDockOnce": true,
+        "inDockAlways": true,
+        "inDockReject": true,
+        "approveCleared": true,
+        "toolStatus": "completed"
+      },
+      "at": "2026-10-14T19:39:40.970Z"
+    },
+    {
+      "id": "perm-reject",
+      "status": "PASS",
+      "detail": {
+        "rejectPendingSeen": true,
+        "rejectCleared": true,
+        "rejectedCard": true,
+        "toolStatus": "error",
+        "rejRowOk": true,
+        "rejNeutral": true,
+        "rowState": "err",
+        "rowText": "⊘ bash cat <<< rt-iaa4c-reject 0.2s You rejected the permission request",
+        "rowColor": "rgb(141, 151, 170)",
+        "errColor": "rgb(242, 120, 124)",
+        "cardKind": "rejected",
+        "cardTone": "faint",
+        "cardText": "Rejected You → build You rejected the bash permission request."
+      },
+      "at": "2026-10-14T19:39:52.117Z"
+    },
+    {
+      "id": "tool-fail",
+      "status": "PASS",
+      "detail": {
+        "failedCard": true,
+        "cardKind": "failed",
+        "cardTone": "err",
+        "cardText": "Failed read → build File not found: /Users/jarvis/Ai-Project/oco-mini/.oco-test/workspac… read /Users/jarvis/Ai-Project/oco-mini/.oco-test/workspace/nope-…",
+        "rowState": "err",
+        "rowText": "✗ read /Users/jarvis/Ai-Project/oco-mini/.oco-test/workspace/nope-iaa4c.txt 0.0s → ✗ File not found: /Users/jarvis/Ai-Project/oco-mini/.oco-test/workspace…",
+        "failBody": "File not found: /Users/jarvis/Ai-Project/oco-mini/.oco-test/workspac…",
+        "failErrShown": true,
+        "readStatus": "error",
+        "readErrHead": "File not fou"
+      },
+      "at": "2026-10-14T19:40:03.386Z"
+    },
+    {
+      "id": "question-route",
+      "status": "PASS",
+      "detail": {
+        "questionPendingSeen": true,
+        "qCardAsk": true,
+        "qCardBody": "Question\nbuild → You\nWhich color do you prefer?\n① red\nRed\n② blue\nBlue",
+        "qYouState": "need",
+        "qOpts": [
+          {
+            "tag": "LI",
+            "role": null,
+            "buttonInside": false
+          },
+          {
+            "tag": "LI",
+            "role": null,
+            "buttonInside": false
+          }
+        ],
+        "qOptionsOk": true,
+        "qYouButtons": 0,
+        "qDockVisible": true,
+        "questionCleared": true
+      },
+      "at": "2026-10-14T19:40:06.736Z"
+    },
+    {
+      "id": "fold",
+      "status": "PASS",
+      "detail": {
+        "dismissPendingSeen": true,
+        "foldVisible": true,
+        "foldText": "≈",
+        "foldMs": 11616
+      },
+      "at": "2026-10-14T19:40:20.022Z"
+    },
+    {
+      "id": "dismiss",
+      "status": "PASS",
+      "detail": {
+        "dismissVia": "dock-button",
+        "dismissedEnd": true,
+        "dismissCleared": true,
+        "you": "dismissed",
+        "cardTone": "faint",
+        "cardText": "Dismissed build → You Round 8 has ended · waiting for your next message ⊘ “Color” dismissed · 03:40:20",
+        "youText": "You Nothing needed from you ⊘ Last question dismissed 03:40:20 · waited 11 s ▸ Round 8 ends here · waiting for your next message"
+      },
+      "at": "2026-10-14T19:40:21.803Z"
+    },
+    {
+      "id": "same-command",
+      "status": "PASS",
+      "detail": {
+        "samePermissions": true,
+        "sameRowsReady": true,
+        "sameValues": [
+          "1/3",
+          "2/3",
+          "3/3"
+        ],
+        "statuses": [
+          "completed",
+          "completed",
+          "completed"
+        ],
+        "dbg": {
+          "rows": 0,
+          "layout": "wide",
+          "toolsK": "0.050",
+          "stage": [
+            1288,
+            886.5416870117188
+          ],
+          "toolsTxt": "ToolsRequest 2 called no tools",
+          "w": 1352,
+          "h": 1189
+        }
+      },
+      "at": "2026-10-14T19:40:23.842Z"
+    },
+    {
+      "id": "no-leak",
+      "status": "PASS",
+      "detail": {
+        "leakOut": "LEAKiaa4c",
+        "leakTimes": {
+          "start": 1792006825149,
+          "end": 1792006829019
+        },
+        "midStage": "wait",
+        "leakBashRows": [
+          {
+            "name": "bash",
+            "state": "run",
+            "same": null
+          }
+        ],
+        "leakInFacts": false,
+        "leakInCard": false,
+        "leakInTools": false
+      },
+      "at": "2026-10-14T19:40:29.732Z"
+    },
+    {
+      "id": "stop",
+      "status": "PASS",
+      "detail": {
+        "stopShown": true,
+        "stopAria": "Stop",
+        "stopAriaMatches": true,
+        "runtimeStopGone": true,
+        "stopped": true,
+        "finalState": "idle"
+      },
+      "at": "2026-10-14T19:40:32.299Z"
+    },
+    {
+      "id": "retry",
+      "status": "PASS",
+      "detail": {
+        "pollMs": 50,
+        "retrySeq": [
+          "idle",
+          "working",
+          "retrying+retry",
+          "working",
+          "idle"
+        ],
+        "sawRetrying": true,
+        "completed": true,
+        "retryText": "RETRY-ONCE-iaa4c"
+      },
+      "at": "2026-10-14T19:40:36.517Z"
+    },
+    {
+      "id": "subagent",
+      "status": "PASS",
+      "detail": {
+        "subCellUid": "msg_13bee5419001J83nASPVAqt6N6:call_iz61ocvjxw8",
+        "subPanelShown": true,
+        "subPanelMode": "detail",
+        "openShown": true,
+        "childShown": true,
+        "crumbShown": true,
+        "childDone": true,
+        "crumbGone": true,
+        "noForbiddenSub": true,
+        "taskStatus": "completed"
+      },
+      "at": "2026-10-14T19:40:38.492Z"
+    },
+    {
+      "id": "strip",
+      "status": "PASS",
+      "detail": {
+        "idleSubsMode": "strip",
+        "idleLaneK": 0,
+        "stripFirstRound": true,
+        "firstRoundSamples": 11,
+        "subLaneOpen": true,
+        "subsModeOpen": "open"
+      },
+      "at": "2026-10-14T19:40:38.492Z"
+    },
+    {
+      "id": "replay-no-actions",
+      "status": "PASS",
+      "detail": {
+        "replayAsked": true,
+        "liveForbidden": 0,
+        "liveYouPerm": true,
+        "inReplay": true,
+        "replayForbidden": 0,
+        "replayPending": 0,
+        "replayYou": "sent",
+        "backPending": true,
+        "backYouPerm": true
+      },
+      "at": "2026-10-14T19:40:42.509Z"
+    },
+    {
+      "id": "keyboard",
+      "status": "PASS",
+      "detail": {
+        "kbUid": "msg_13bee6ca700158OkBERvuG1ZM5:call_8p3q7yymsxv",
+        "kbRole": "button",
+        "tabFocused": true,
+        "kbPanelShown": true,
+        "kbFocusInPanel": true,
+        "kbPanelClosed": true,
+        "kbFocusBack": true,
+        "nestedButtonCount": 0,
+        "liveText": "Round 15 finished · standing by",
+        "liveHasReasoning": false
+      },
+      "at": "2026-10-14T19:40:45.158Z"
+    },
+    {
+      "id": "think-card",
+      "status": "PASS",
+      "detail": {
+        "thinkSamples": 36,
+        "thinkRects": [
+          "458,458,343,116",
+          "458,458,347,116",
+          "458,457,348,116"
+        ],
+        "thinkGroups": [
+          {
+            "key": "wide|1288x774|0.091",
+            "n": 1,
+            "rects": [
+              "458,458,343,116"
+            ]
+          },
+          {
+            "key": "wide|1288x773|0.013",
+            "n": 1,
+            "rects": [
+              "458,458,347,116"
+            ]
+          },
+          {
+            "key": "wide|1288x772|0",
+            "n": 2,
+            "rects": [
+              "458,457,348,116"
+            ]
+          },
+          {
+            "key": "wide|1288x771|0",
+            "n": 31,
+            "rects": [
+              "458,457,348,116"
+            ]
+          },
+          {
+            "key": "wide|1288x836|0",
+            "n": 1,
+            "rects": [
+              "458,457,348,116"
+            ]
+          }
+        ],
+        "stagesSeen": [
+          "end",
+          "say",
+          "asm",
+          "fly",
+          "think"
+        ]
+      },
+      "at": "2026-10-14T19:40:48.166Z"
+    },
+    {
+      "id": "think-expand",
+      "status": "PASS",
+      "detail": {
+        "expandReady": true,
+        "thinkPanelOpen": true,
+        "thinkPanelText": 159,
+        "thinkPanelClosed": true,
+        "expandFocusBack": true
+      },
+      "at": "2026-10-14T19:40:51.691Z"
+    },
+    {
+      "id": "width-560",
+      "status": "PASS",
+      "detail": {
+        "forbidden": 0,
+        "composerStopVisible": true,
+        "focusVisible": true,
+        "layout": "stack",
+        "scrollWidth": 544,
+        "clientWidth": 544,
+        "noOverflow": true
+      },
+      "at": "2026-10-14T19:40:58.069Z"
+    },
+    {
+      "id": "ring",
+      "status": "PASS",
+      "detail": {
+        "ring": true,
+        "pills": 6,
+        "lit": 1,
+        "counter": "build Round 19 · Request 1 Plan 1/3",
+        "model": true,
+        "stage": "wait",
+        "ringWaitMs": 1,
+        "ringFirst": {
+          "ring": true,
+          "pills": 6,
+          "lit": 1,
+          "counter": "build Round 19 · Request 1 Plan 1/3",
+          "model": true,
+          "stage": "wait"
+        }
+      },
+      "at": "2026-10-14T19:41:01.052Z"
+    },
+    {
+      "id": "motion-on",
+      "status": "PASS",
+      "detail": {
+        "motionTrail": [
+          {
+            "count": 6,
+            "posA": "371.8",
+            "posB": "411.2",
+            "sigChanged": true
+          }
+        ]
+      },
+      "at": "2026-10-14T19:41:01.477Z"
+    },
+    {
+      "id": "reduced-motion",
+      "status": "PASS",
+      "detail": {
+        "reducedSnap": {
+          "count": 3,
+          "pos": "411.2",
+          "tgt": "411.2",
+          "sig": "~~~##~~~##~~~",
+          "dashOffsets": []
+        }
+      },
+      "at": "2026-10-14T19:41:01.586Z"
+    },
+    {
+      "id": "width-wide",
+      "status": "PASS",
+      "detail": {
+        "forbidden": 0,
+        "composerStopVisible": true,
+        "focusVisible": true,
+        "layout": "wide",
+        "topBarSingleLine": true,
+        "scrollWidth": 1184,
+        "clientWidth": 1184,
+        "noOverflow": true
+      },
+      "at": "2026-10-14T19:41:09.733Z"
+    },
+    {
+      "id": "focus-stable",
+      "status": "PASS",
+      "detail": {
+        "cell1Uid": "msg_13beedd18001ZNPgDsdqi3lnFW:call_ydmjtplycj",
+        "rect0": "1144,585,126,47",
+        "rect1": "1144,585,126,47",
+        "nodeMarkKept": true,
+        "focusKept": true,
+        "stillRunning": true
+      },
+      "at": "2026-10-14T19:41:14.602Z"
+    },
+    {
+      "id": "focus-on-change",
+      "status": "PASS",
+      "detail": {
+        "focusKept": true,
+        "stillRunning": true
+      },
+      "at": "2026-10-14T19:41:14.602Z"
+    },
+    {
+      "id": "width-1600",
+      "status": "PASS",
+      "detail": {
+        "forbidden": 0,
+        "composerStopVisible": true,
+        "focusVisible": true,
+        "layout": "wide",
+        "rootScrolls": false,
+        "summaryVisible": true,
+        "frameClientHeight": 892,
+        "frameScrollHeight": 892,
+        "scrollWidth": 1584,
+        "clientWidth": 1584,
+        "noOverflow": true
+      },
+      "at": "2026-10-14T19:41:14.602Z"
+    },
+    {
+      "id": "parallel-subagents",
+      "status": "PASS",
+      "detail": {
+        "parRunCells": 3,
+        "parRunProbes": 3,
+        "parDone": true,
+        "parProbeStagesAfter": [
+          "absorbed",
+          "absorbed",
+          "absorbed"
+        ]
+      },
+      "at": "2026-10-14T19:41:18.801Z"
+    },
+    {
+      "id": "geometry-stable",
+      "status": "PASS",
+      "detail": {
+        "geomRunning": {
+          "k": "1.000",
+          "dk": "1.000",
+          "rects": [
+            "561,457,315,116",
+            "33,125,1533,769",
+            "538,213,360,58",
+            "47,350,290,330",
+            "1123,315,429,208"
+          ],
+          "stageBox": "32,124,1536,771",
+          "rootBox": "8,8,1584,940",
+          "frameBox": "8,56,1584,892",
+          "host": [
+            "session-prompt-dock:233",
+            "session-todo-dock:153",
+            "animated-number:13",
+            "animated-number:13",
+            "text-reveal:20",
+            "icon-button:24",
+            "icon:16",
+            "checkbox:18",
+            "text-strikethrough:18",
+            "checkbox:18",
+            "text-strikethrough:18",
+            "checkbox:18"
+          ]
+        },
+        "geomRunning2": {
+          "k": "1.000",
+          "dk": "1.000",
+          "rects": [
+            "561,457,315,116",
+            "33,125,1533,769",
+            "538,213,360,58",
+            "47,350,290,330",
+            "1123,315,429,208"
+          ],
+          "stageBox": "32,124,1536,771",
+          "rootBox": "8,8,1584,940",
+          "frameBox": "8,56,1584,892",
+          "host": [
+            "session-prompt-dock:233",
+            "session-todo-dock:153",
+            "animated-number:13",
+            "animated-number:13",
+            "text-reveal:20",
+            "icon-button:24",
+            "icon:16",
+            "checkbox:18",
+            "text-strikethrough:18",
+            "checkbox:18",
+            "text-strikethrough:18",
+            "checkbox:18"
+          ]
+        },
+        "geomDone": {
+          "k": "1.000",
+          "dk": "0.000",
+          "rects": [
+            "561,516,315,116",
+            "33,125,1533,886",
+            "538,272,360,58",
+            "47,409,290,330",
+            "1123,463,429,30"
+          ],
+          "stageBox": "32,124,1536,888",
+          "rootBox": "8,8,1584,1057",
+          "frameBox": "8,56,1584,1009",
+          "host": [
+            "session-prompt-dock:116",
+            "prompt-input-v2:104",
+            "prompt-input:60",
+            "tooltip-v2-trigger:28",
+            "icon-button-v2:28",
+            "tooltip-v2-trigger:28",
+            "button-v2:28",
+            "tooltip-v2-trigger:28",
+            "button-v2:28",
+            "provider-icon:16",
+            "icon-button:28",
+            "icon:16"
+          ]
+        },
+        "geomReplay": {
+          "k": "1.000",
+          "dk": "1.000",
+          "rects": [
+            "561,516,315,116",
+            "33,125,1533,886",
+            "538,272,360,58",
+            "47,409,290,330",
+            "1123,374,429,208"
+          ],
+          "stageBox": "32,124,1536,888",
+          "rootBox": "8,8,1584,1057",
+          "frameBox": "8,56,1584,1009",
+          "host": [
+            "session-prompt-dock:116",
+            "prompt-input-v2:104",
+            "prompt-input:60",
+            "tooltip-v2-trigger:28",
+            "icon-button-v2:28",
+            "tooltip-v2-trigger:28",
+            "button-v2:28",
+            "tooltip-v2-trigger:28",
+            "button-v2:28",
+            "provider-icon:16",
+            "icon-button:28",
+            "icon:16"
+          ]
+        },
+        "runRun": true,
+        "runDone": null,
+        "doneReplay": true
+      },
+      "at": "2026-10-14T19:41:19.010Z"
+    },
+    {
+      "id": "legend",
+      "status": "PASS",
+      "detail": {
+        "legendCount": 1,
+        "legendItemCount": 7,
+        "legendSpans": [
+          "●\nThinking",
+          "●\nRunning",
+          "✓\nDone",
+          "✗\nFailed",
+          "⊘\nDismissed / rejected",
+          "●\nNeeds you",
+          "│\nticks: round / failed / question"
+        ],
+        "legendMatches": true,
+        "first4VisibleAt1000": true,
+        "legend1000": [
+          "●\nThinking",
+          "●\nRunning",
+          "✓\nDone",
+          "✗\nFailed",
+          "⊘\nDismissed / rejected",
+          "●\nNeeds you",
+          "│\nticks: round / failed / question"
+        ]
+      },
+      "at": "2026-10-14T19:41:22.934Z"
+    },
+    {
+      "id": "summary",
+      "status": "PASS",
+      "detail": {
+        "summaryCount": 1,
+        "summaryText": "Round 20 took 5.5s Context 20 (last receipt) Round cost $0.0000 (incl. subagents) ● Thinking ● Running ✓ Done ✗ Failed ⊘ Dismissed / rejected ● Needs you │ tick",
+        "summaryRoundTook": true,
+        "summaryCost": true,
+        "summaryDurationEl": true,
+        "summaryNoReq": true,
+        "summaryNoAgent": true
+      },
+      "at": "2026-10-14T19:41:22.953Z"
+    },
+    {
+      "id": "fill",
+      "status": "PASS",
+      "detail": {
+        "fillDocked": true,
+        "fillDone": true,
+        "fillPanelText": "Subagent #1 bg-absorbed-check @explore ✕ Collected took 0.5s · collected 03:41:27 dispatched in round 22, request 1 · 03:41:26 · model oco-mock/mock · child: 1 requests Handoff · what build told it (v"
+      },
+      "at": "2026-10-14T19:41:28.575Z"
+    }
+  ],
+  "summary": {
+    "PASS": 43,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

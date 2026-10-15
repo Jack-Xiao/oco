@@ -2,6 +2,8 @@
 // Webview content is reached through Playwright frames (vscode-webview://.../fake.html).
 import { _electron as electron } from "playwright-core"
 import fs from "node:fs"
+import os from "node:os"
+import crypto from "node:crypto"
 import path from "node:path"
 import { MODEL } from "./server.mjs"
 
@@ -11,9 +13,50 @@ fs.mkdirSync(evidenceDir, { recursive: true })
 
 const CODE = process.env.OCO_VSCODE_BIN ?? "/Applications/Visual Studio Code.app/Contents/MacOS/Code"
 
+// VS Code puts its IPC socket (`<ver>-main.sock`) inside --user-data-dir, and a unix socket path is capped at 103
+// chars on macOS. A nested git worktree (`.claude/worktrees/<name>/.oco-test/vscode/<profile>`) overshoots it, so
+// an over-long user-data-dir moves to a short, per-checkout hashed directory under /tmp (or os.tmpdir()) and is
+// removed again when this process exits. `OCO_E2E_USER_DATA_ROOT` forces the root.
+const SOCKET_LIMIT = 103
+const SOCKET_NAME_RESERVE = 24 // "<version>-main.sock" plus the separator, with headroom
+const shortDirs = new Set()
+let shortCleanupHooked = false
+function cleanupShortDirs() {
+  for (const dir of shortDirs) {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true })
+      fs.rmdirSync(path.dirname(dir)) // the shared parent goes only when no other profile is left in it
+    } catch {}
+  }
+  shortDirs.clear()
+}
+/** The user-data-dir for `profile`: under `.oco-test` when its socket fits, else a short temp path. */
+export function userDataDirFor(profile) {
+  const home = path.join(fs.realpathSync(path.join(root, ".oco-test")), "vscode", profile)
+  const forced = process.env.OCO_E2E_USER_DATA_ROOT
+  if (!forced && home.length + SOCKET_NAME_RESERVE <= SOCKET_LIMIT) return home
+  const hash = crypto.createHash("sha1").update(root).digest("hex").slice(0, 8)
+  const candidates = forced ? [forced] : ["/tmp", os.tmpdir()]
+  for (const base of candidates) {
+    try {
+      const real = fs.realpathSync(base)
+      const dir = path.join(real, `oco-e2e-${hash}`, profile)
+      if (!forced && dir.length + SOCKET_NAME_RESERVE > SOCKET_LIMIT) continue
+      fs.mkdirSync(path.dirname(dir), { recursive: true })
+      shortDirs.add(dir)
+      if (!shortCleanupHooked) {
+        shortCleanupHooked = true
+        process.on("exit", cleanupShortDirs)
+      }
+      return dir
+    } catch {}
+  }
+  return home // nothing shorter is usable: keep the old behaviour
+}
+
 export async function launch({ workspace = path.join(fs.realpathSync(path.join(root, ".oco-test")), "workspace"), profile = "default", fresh = true, run, settings = {}, trust = true, env = {} } = {}) {
-  // realpath: a linked .oco-test (e.g. from a git worktree) keeps the IPC socket under macOS's 103-char limit.
-  const userData = path.join(fs.realpathSync(path.join(root, ".oco-test")), "vscode", profile)
+  // realpath keeps a linked .oco-test short; userDataDirFor moves a still-too-long path to a short temp directory.
+  const userData = userDataDirFor(profile)
   const stateFile = path.join(userData, "oco-debug-state.json")
   if (fresh) fs.rmSync(userData, { recursive: true, force: true })
   fs.mkdirSync(path.join(userData, "User"), { recursive: true })
@@ -69,26 +112,50 @@ export async function launch({ workspace = path.join(fs.realpathSync(path.join(r
   return { app, page, stateFile, settingsFile: path.join(userData, "User/settings.json") }
 }
 
+/** Best effort: a failed clear (e.g. the palette's `fill` timing out) is logged and returns false, never throws,
+ *  so a flaky startup toast cannot take down the suite. `command` already retries the palette once or twice. */
 export async function clearNotifications(page) {
-  await command(page, "Notifications: Clear All Notifications")
+  try {
+    await command(page, "Notifications: Clear All Notifications")
+  } catch (e) {
+    console.warn(`[vscode.mjs] clearNotifications skipped: ${String(e?.message ?? e).split("\n")[0].slice(0, 160)}`)
+    await page.keyboard.press("Escape").catch(() => {})
+    return false
+  }
   await page.locator(".notifications-toasts .notification-toast").first().waitFor({ state: "detached", timeout: 2000 }).catch(() => {})
+  return true
 }
 
-export async function command(page, title, { input } = {}) {
+/** Open the command palette (focus the workbench first, retry with the other shortcut); true when it is visible. */
+async function openPalette(page) {
   // Keyboard focus may be inside a webview (which swallows F1): move it back to the workbench first,
   // and retry with the other palette shortcut if the palette does not open.
   const palette = page.locator(".quick-input-widget input")
-  let open = false
   for (const key of ["F1", "Meta+Shift+P", "F1"]) {
     // Focus the workbench BEFORE pressing Escape: Escape inside a busy chat composer means "stop".
     await page.click(".part.sidebar .composite.title", { position: { x: 30, y: 10 }, timeout: 3000 }).catch(() => {})
     await page.keyboard.press("Escape").catch(() => {})
     await page.keyboard.press(key)
-    open = await palette.waitFor({ state: "visible", timeout: 3000 }).then(() => true, () => false)
-    if (open) break
+    if (await palette.waitFor({ state: "visible", timeout: 3000 }).then(() => true, () => false)) return true
   }
-  if (!open) throw new Error(`command palette did not open for: ${title}`)
-  await palette.fill(">" + title)
+  return false
+}
+
+export async function command(page, title, { input } = {}) {
+  const palette = page.locator(".quick-input-widget input")
+  // The palette can be visible yet detach / re-render under the first `fill` (a startup toast steals focus), which
+  // used to burn the 30 s default timeout once in a while. Bound each fill to 5 s and reopen the palette up to twice.
+  for (let attempt = 0; ; attempt++) {
+    if (!(await openPalette(page))) throw new Error(`command palette did not open for: ${title}`)
+    try {
+      await palette.fill(">" + title, { timeout: 5000 })
+      break
+    } catch (e) {
+      if (attempt >= 2) throw e
+      await page.keyboard.press("Escape").catch(() => {})
+      await page.waitForTimeout(300)
+    }
+  }
   // Wait until the palette has filtered down to this command, so Enter never runs a stale first row.
   const label = title.slice(title.lastIndexOf(": ") + 1).trim()
   await page
@@ -98,7 +165,12 @@ export async function command(page, title, { input } = {}) {
       { timeout: 3000 },
     )
     .catch(() => page.waitForTimeout(500))
-  await page.keyboard.press("Enter")
+  // Newer VS Code lists fuzzy matches alphabetically, so the exact title may not be the focused row: click it.
+  const focusedLabel = await page.evaluate(() => document.querySelector(".quick-input-list .monaco-list-row.focused")?.getAttribute("aria-label") ?? "").catch(() => "")
+  const focusedIsTitle = focusedLabel === title || focusedLabel.startsWith(title + ",")
+  const exact = page.locator(`.quick-input-list .monaco-list-row[aria-label="${title}"], .quick-input-list .monaco-list-row[aria-label^="${title},"]`).first()
+  if (!focusedIsTitle && (await exact.isVisible().catch(() => false))) await exact.click().catch(() => {})
+  else await page.keyboard.press("Enter")
   if (input !== undefined) await quickInput(page, input)
 }
 
@@ -241,12 +313,20 @@ export async function fitGroups(app, page, width, { tolerance = 4 } = {}) {
     widths = await measure()
     const avg = widths.reduce((a, b) => a + b, 0) / Math.max(1, widths.length)
     if (widths.length && widths.every((w) => Math.abs(w - width) <= tolerance)) break
-    await app.evaluate(({ BrowserWindow }, { d }) => {
-      const w = BrowserWindow.getAllWindows()[0]
-      const zoom = w.webContents.getZoomFactor()
-      const [x, y] = w.getContentSize()
-      w.setContentSize(Math.max(400, Math.round(x + d * zoom)), y)
-    }, { d: (width - avg) * widths.length })
+    // The evaluate can land while the workbench page navigates ("Execution context was destroyed"): retry it.
+    for (let a = 0; a < 4; a++) {
+      const done = await app
+        .evaluate(({ BrowserWindow }, { d }) => {
+          const w = BrowserWindow.getAllWindows()[0]
+          const zoom = w.webContents.getZoomFactor()
+          const [x, y] = w.getContentSize()
+          w.setContentSize(Math.max(400, Math.round(x + d * zoom)), y)
+          return true
+        }, { d: (width - avg) * widths.length })
+        .catch(() => false)
+      if (done) break
+      await page.waitForTimeout(1000)
+    }
     await page.waitForTimeout(800)
     await command(page, "View: Reset Editor Group Sizes")
     await page.waitForTimeout(800)

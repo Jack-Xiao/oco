@@ -2,6 +2,13 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 卡 6：路线图剩余可做项（2026-10-14，分支 claude/roadmap-batch-2026-10-14，未合入 main，未推送）
+
+- 侧栏：权限行显示 Always 将放行的模式（只读，最多 3 个 + 计数）；doom_loop 独立图标与文案；Deny with note（行内输入，随 `POST /permission/:id/reply` 的 `message` 发送）。本地标签（≤32 字符，分区 Pinned > 标签组 > 其余，标注不同步）与 Snooze（只作用于非等待 / 非运行行，底部折叠分区，下一条消息到达自动唤醒，状态栏计数不变）。j / k / Enter / Esc / ? 键盘与速查浮层。子会话 / todo 懒取只对收件箱、pinned 与 recent 前 20 行。
+- 宿主命令（均无默认键位）：`oco.inbox.next` 收件箱 QuickPick（按类分组，权限项按钮只作用于该项）；`oco.session.parent / child / nextSibling / previousSibling / recent`（宿主 MRU）；`oco.follow.toggle` Follow（按会话、默认关、preview + preserveFocus、750 ms 节流、用户正在编辑不切换）；资源管理器徽标标出打开面板会话上一轮改过的文件（设置 `oco.decorations.changedFiles`）；审阅意见显示为编辑器评论线程，gutter「+」可直接加意见。`bridge-policy` 在 loopback 下 realpath 后再比较目录。
+- 上游补丁：`0024-oco-embedded-subagent-pills`（嵌入模式标题行子代理 pills，窄面板折叠为 `⑂ done/total`，点击走宿主 openSession）；`0025-oco-runtime-view-followups`（环心提问态点选项即回答、窄布局卡片贴环下方与空工具台收缩、进度条标签避让刻度、结果浮层 ← n/total → 翻页）。
+- 验证（25f3f9a）：typecheck 0；unit 422/0（30 文件）；vendor app typecheck 0、运行视图单测 131/0；build PASS；只读评审 5 处缺陷已修。夜间（2026-10-15，Mac mini + 本机子代理）：新 mock E2E c18–c25 全过，mock 回归 21 套件 0 失败，p1b-narrow 循环 10/10（未复现产品竞态），c25 嵌套子代理 3×6/0；夜里修了 3 处产品缺陷（Follow 在文件落盘前打开失败后被节流挡住、0025 窄矮舞台 `toolCap=0` 崩成恢复页、子代理汇总 waiting 应优先于 running）；公共版 opencode 1.19.0 mock 41 套件 0 失败、无产品不兼容（未加入 VERIFIED_SERVERS，待决定）。真实模型 c4 / c5 BLOCKED：`opencode/big-pickle` 返回 403（免费档只能在官方 OpenCode 内用）。18 张目视截图（mock）在 `docs/evidence/runs/overnight-card7-visual/visual/`，待用户看。本机已装 `oco-0.0.4-2846f66.vsix`。证据 [roadmap-batch-2026-10-14](evidence/roadmap-batch-2026-10-14.md)。
+
 ## M20 第一步：侧栏子代理聚合（2026-10-14，已合入 main，合并提交 9222aa7，已推送 origin）
 
 - 有子会话（子代理）的父会话行显示徽标：分支图标 + `done/total`；子代理运行中时为 running 样式；有子会话等授权 / 等回答或报错时高亮；悬停说明如 `Subagents: 1 done, 2 running`。点击徽标展开 / 收起直接子会话列表（默认收起，展开状态存在 webview state），点子会话行打开该子会话；点徽标不切换当前会话。每个子项状态按其子树汇总（running > waiting > error > done）。
@@ -92,8 +99,8 @@
 ## 基线与版本
 
 - 上游基线：vendor OpenCode v1.18.33（提交 `51ef4be`，浅克隆；旧文档里的补丁基线 `deb241e` 已不存在，补丁再生成改用 `scripts/regen-patch.sh` 在临时 worktree 重建基线）。宿主 `VERIFIED_SERVERS` = 1.18.33、1.18.13（企业服务；前端保持 1.18.33，验收对着 1.18.13 服务端跑；切到 1.18.13 前端的方案停放在本地分支 `claude/opencode-1.18.13-baseline`）。
-- 补丁链：`patches/opencode/` 0001–0023 在干净 vendor HEAD `51ef4be` 上重放 23/23 通过（2026-10-14；`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡；`0022-oco-markdown-mermaid.patch` 为 Mermaid；`0023-oco-embedded-new-session-draft.patch` 为新建会话草稿页）。卡 1、卡 3 未改补丁。
-- 本机扩展：已装 `oco-0.0.4-7388bce.vsix`（分支 `claude/m20-subagent-aggregation` 7388bce = main 卡 1–3 + M20，vendor v1.18.33；2026-10-14；extension.js sha256 `4a8001f4…`；位于 `~/.vscode/extensions/oco-local-test.oco-0.0.4`，需 Reload Window）。
+- 补丁链：`patches/opencode/` 0001–0025（0024 / 0025 只在卡 6 分支）在干净 vendor HEAD `51ef4be` 上重放通过（2026-10-14 生成 0025 时以 0001–0024 为基线校验；`0024-oco-embedded-subagent-pills.patch` 标题行子代理 pills；`0025-oco-runtime-view-followups.patch` 运行视图 M5 遗留；`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡；`0022-oco-markdown-mermaid.patch` 为 Mermaid；`0023-oco-embedded-new-session-draft.patch` 为新建会话草稿页）。卡 1、卡 3 未改补丁。
+- 本机扩展：已装 `oco-0.0.4-2846f66.vsix`（分支 `claude/roadmap-batch-2026-10-14` 2846f66 = main 9c54524 + 卡 6 + 夜间 Mac mini / 子代理结果，vendor v1.18.33 + 补丁 0001–0025；2026-10-15；extension.js sha256 `b3fcab0b…`；需 Reload Window）。
 
 ## 已合入 main 的能力
 
@@ -137,4 +144,5 @@
 
 ## 委派路线现状
 
+- 2026-10-14 起 E2E、真实模型、循环复现与长时间测量交 Mac mini 执行机（[MINI](MINI.md)，`scripts/mini/*.sh`；setup 在干净克隆上重放补丁 0001–0025 通过，typecheck 0、unit 422/0；通知走 OpenClaw Telegram main 群）。
 - 遵循 [AGENTS.md](../AGENTS.md)：Gemini（agy）优先，不可用时换 Grok，两路均不可用时由主线程接手并在证据文件中记录账本。

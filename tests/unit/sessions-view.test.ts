@@ -864,13 +864,13 @@ describe("M02: SessionsView Todo passthrough & probe", () => {
     expect(probed).toContain("s-recent")
     expect(probed).not.toContain("s-old")
 
-    // When more is open, s-old is also probed
+    // When more is open, s-old is in more and is still not probed (lazy probe capped to inbox, pinned, and recent 20)
     probed.length = 0
     view.setMoreOpen(true)
     view.webModel()
     expect(probed).toContain("s-pinned")
     expect(probed).toContain("s-recent")
-    expect(probed).toContain("s-old")
+    expect(probed).not.toContain("s-old")
 
     view.dispose()
   })
@@ -977,13 +977,13 @@ describe("M02: SessionsView Todo passthrough & probe", () => {
     expect(probed).toContain("s-recent")
     expect(probed).not.toContain("s-old")
 
-    // When more is open, s-old is also probed
+    // When more is open, s-old is in more and is still not probed (lazy probe capped to inbox, pinned, and recent 20)
     probed.length = 0
     view.setMoreOpen(true)
     view.webModel()
     expect(probed).toContain("s-pinned")
     expect(probed).toContain("s-recent")
-    expect(probed).toContain("s-old")
+    expect(probed).not.toContain("s-old")
 
     view.dispose()
   })
@@ -1206,3 +1206,284 @@ describe("waiting badge ignores errors", () => {
     view.dispose()
   })
 })
+
+describe("M14: SessionsView Label and Snooze features", () => {
+  const connected: ConnectionSummary = {
+    connectionId: "c1",
+    label: "local",
+    directory: "/work",
+    state: "connected",
+    attempt: 0,
+    trusted: true,
+  }
+
+  async function settle(view: { refresh: () => void }) {
+    view.refresh()
+    await new Promise((resolve) => setTimeout(resolve, 180))
+  }
+
+  test("setLabel trims, limits to 32 chars, clears on null/empty, and persists to memento", () => {
+    const store = new SessionStore(() => true)
+    store.applySnapshot({
+      sessions: [
+        { id: "s1", title: "Session 1", directory: "/work", time: { updated: 100 } },
+        { id: "s2", title: "Session 2", directory: "/work", time: { updated: 90 } },
+      ],
+      status: {},
+      permissions: [],
+      questions: [],
+    })
+    const memento = new MemoryMemento()
+    const view = new SessionsView(store, memento)
+    view.setConnection(connected)
+
+    // Set label with extra whitespace and > 32 chars
+    view.setLabel(["s1"], "  " + "a".repeat(40) + "  ")
+    expect(view.getLabel("s1")).toBe("a".repeat(32))
+    expect(memento.get<Record<string, string>>("oco.sessionLabels")?.s1).toBe("a".repeat(32))
+
+    // Set label on s2
+    view.setLabel(["s2"], "work")
+    expect(view.getLabel("s2")).toBe("work")
+
+    // Clear label on s1 with empty string
+    view.setLabel(["s1"], "   ")
+    expect(view.getLabel("s1")).toBeUndefined()
+
+    // Clear label on s2 with null
+    view.setLabel(["s2"], null)
+    expect(view.getLabel("s2")).toBeUndefined()
+    expect(memento.get<Record<string, string>>("oco.sessionLabels")).toEqual({})
+
+    view.dispose()
+  })
+
+  test("partition priority: Pinned > Labeled (alphabetical) > Recent; pinned retains label chip", () => {
+    const store = new SessionStore(() => true)
+    const now = Date.now()
+    store.applySnapshot({
+      sessions: [
+        { id: "s-pinned", title: "Pinned Item", directory: "/work", time: { updated: now } },
+        { id: "s-b", title: "Beta", directory: "/work", time: { updated: now - 1000 } },
+        { id: "s-a", title: "Alpha", directory: "/work", time: { updated: now - 2000 } },
+        { id: "s-regular", title: "Regular", directory: "/work", time: { updated: now - 3000 } },
+      ],
+      status: {},
+      permissions: [],
+      questions: [],
+    })
+    const memento = new MemoryMemento({
+      "oco.pinnedSessions": ["s-pinned"],
+      "oco.sessionLabels": {
+        "s-pinned": "TaggedPinned",
+        "s-b": "zebra",
+        "s-a": "apple",
+      },
+    })
+    const view = new SessionsView(store, memento)
+    view.setConnection(connected)
+
+    const model = view.webModel()
+    // Pinned has s-pinned with label
+    expect(model.pinned).toHaveLength(1)
+    expect(model.pinned[0].id).toBe("s-pinned")
+    expect(model.pinned[0].label).toBe("TaggedPinned")
+
+    // Labeled groups sorted alphabetically: apple then zebra
+    expect(model.labeled).toHaveLength(2)
+    expect(model.labeled[0].label).toBe("apple")
+    expect(model.labeled[0].rows.map((r) => r.id)).toEqual(["s-a"])
+    expect(model.labeled[0].rows[0].label).toBe("apple")
+
+    expect(model.labeled[1].label).toBe("zebra")
+    expect(model.labeled[1].rows.map((r) => r.id)).toEqual(["s-b"])
+    expect(model.labeled[1].rows[0].label).toBe("zebra")
+
+    // Remaining sessions in recent
+    expect(model.recent.map((r) => r.id)).toEqual(["s-regular"])
+
+    view.dispose()
+  })
+
+  test("snooze hides completed sessions from inbox and list, and moves to snoozed partition", () => {
+    const store = new SessionStore(() => true)
+    const now = Date.now()
+    store.applySnapshot({
+      sessions: [
+        { id: "s-idle", title: "Idle Session", directory: "/work", time: { updated: now } },
+      ],
+      status: { "s-idle": { type: "idle" } },
+      permissions: [],
+      questions: [],
+    })
+    const memento = new MemoryMemento({ [UNREAD_KEY]: ["s-idle"] })
+    const view = new SessionsView(store, memento)
+    view.setConnection(connected)
+
+    // Before snooze: s-idle is in inbox done
+    expect(doneSessionIds(view.webModel().inbox)).toEqual(["s-idle"])
+    expect(view.webModel().recent.map((r) => r.id)).toEqual(["s-idle"])
+    expect(view.webModel().snoozed).toHaveLength(0)
+
+    // Snooze s-idle
+    view.setSnooze(["s-idle"], true)
+    expect(view.isSnoozed("s-idle")).toBe(true)
+
+    // After snooze: s-idle hidden from inbox and recent, placed in snoozed
+    const afterModel = view.webModel()
+    expect(doneSessionIds(afterModel.inbox)).toEqual([])
+    expect(afterModel.recent.map((r) => r.id)).toEqual([])
+    expect(afterModel.snoozed).toHaveLength(1)
+    expect(afterModel.snoozed[0].id).toBe("s-idle")
+    expect(afterModel.snoozed[0].snoozed).toBe(true)
+
+    // Manual unsnooze restores it
+    view.setSnooze(["s-idle"], false)
+    expect(view.isSnoozed("s-idle")).toBe(false)
+    const restoredModel = view.webModel()
+    expect(doneSessionIds(restoredModel.inbox)).toEqual(["s-idle"])
+    expect(restoredModel.recent.map((r) => r.id)).toEqual(["s-idle"])
+    expect(restoredModel.snoozed).toHaveLength(0)
+
+    view.dispose()
+  })
+
+  test("snooze does not hide sessions waiting for permission/question or running", () => {
+    const store = new SessionStore(() => true)
+    const now = Date.now()
+    store.applySnapshot({
+      sessions: [
+        { id: "s-perm", title: "Waiting Perm", directory: "/work", time: { updated: now } },
+        { id: "s-busy", title: "Busy Session", directory: "/work", time: { updated: now - 1000 } },
+      ],
+      status: {
+        "s-perm": { type: "busy" },
+        "s-busy": { type: "busy" },
+      },
+      permissions: [{ id: "p1", sessionID: "s-perm", permission: "bash" }],
+      questions: [],
+    })
+    const memento = new MemoryMemento()
+    const view = new SessionsView(store, memento)
+    view.setConnection(connected)
+
+    // Snooze both
+    view.setSnooze(["s-perm", "s-busy"], true)
+
+    const model = view.webModel()
+    // Neither is hidden or put into snoozed list because they are waiting or running
+    expect(model.snoozed).toHaveLength(0)
+    expect(model.inbox.some((r) => r.sessionId === "s-perm")).toBe(true)
+    expect(model.recent.map((r) => r.id)).toContain("s-busy")
+
+    view.dispose()
+  })
+
+  test("snooze auto-wakes when time.updated advances", () => {
+    const store = new SessionStore(() => true)
+    const now = Date.now()
+    store.applySnapshot({
+      sessions: [
+        { id: "s-auto", title: "Auto wake", directory: "/work", time: { updated: now } },
+      ],
+      status: { "s-auto": { type: "idle" } },
+      permissions: [],
+      questions: [],
+    })
+    const memento = new MemoryMemento()
+    const view = new SessionsView(store, memento)
+    view.setConnection(connected)
+
+    view.setSnooze(["s-auto"], true)
+    expect(view.isSnoozed("s-auto")).toBe(true)
+    expect(view.webModel().snoozed).toHaveLength(1)
+
+    // Session receives new event advancing updated
+    store.applyEvent({
+      type: "session.updated",
+      properties: {
+        info: {
+          id: "s-auto",
+          title: "Auto wake",
+          directory: "/work",
+          time: { updated: now + 5000 },
+        },
+      },
+    })
+
+    const model = view.webModel()
+    // Auto-woken: no longer snoozed
+    expect(view.isSnoozed("s-auto")).toBe(false)
+    expect(model.snoozed).toHaveLength(0)
+    expect(model.recent.map((r) => r.id)).toEqual(["s-auto"])
+
+    view.dispose()
+  })
+
+  test("status bar badge count is unaffected by snooze", async () => {
+    const store = new SessionStore(() => true)
+    store.applySnapshot({
+      sessions: [
+        { id: "s-wait", title: "Waiting", directory: "/work", time: { updated: 100 } },
+      ],
+      status: { "s-wait": { type: "idle" } },
+      permissions: [{ id: "p1", sessionID: "s-wait", permission: "bash" }],
+      questions: [],
+    })
+    const memento = new MemoryMemento()
+    const view = new SessionsView(store, memento)
+    view.setConnection(connected)
+    await settle(view)
+
+    expect(view.debugState().badge).toBe(1)
+    view.setSnooze(["s-wait"], true)
+    await settle(view)
+    // Badge count still 1
+    expect(view.debugState().badge).toBe(1)
+
+    view.dispose()
+  })
+
+  test("lazy probe limits: only inbox, pinned, and first 20 recent rows are probed", () => {
+    const store = new SessionStore(() => true)
+    const sessions = []
+    const now = Date.now()
+    // 1 pinned, 30 recent sessions (with s-rec-1 having a pending permission so it's also in inbox)
+    sessions.push({ id: "s-pin", title: "Pin", directory: "/work", time: { updated: now } })
+    for (let i = 1; i <= 30; i++) {
+      sessions.push({ id: `s-rec-${i}`, title: `Recent ${i}`, directory: "/work", time: { updated: now - i * 1000 } })
+    }
+
+    store.applySnapshot({
+      sessions,
+      status: {},
+      permissions: [{ id: "p-inbox", sessionID: "s-rec-1", permission: "bash" }],
+      questions: [],
+    })
+
+    const memento = new MemoryMemento({ "oco.pinnedSessions": ["s-pin"] })
+    const view = new SessionsView(store, memento)
+    view.setConnection(connected)
+
+    const probed: string[] = []
+    view.setTodoProbe((id) => probed.push(id))
+
+    view.webModel()
+
+    // s-pin should be probed
+    expect(probed).toContain("s-pin")
+
+    // The first 20 recent sessions (s-rec-1 to s-rec-20) should be probed
+    for (let i = 1; i <= 20; i++) {
+      expect(probed).toContain(`s-rec-${i}`)
+    }
+
+    // Sessions beyond 20 should NOT be probed
+    for (let i = 21; i <= 30; i++) {
+      expect(probed).not.toContain(`s-rec-${i}`)
+    }
+
+    view.dispose()
+  })
+})
+
