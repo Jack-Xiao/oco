@@ -112,6 +112,11 @@ export class PanelRegistry {
     return this.list().find((e) => e.role === "main")
   }
 
+  get mainSessionId(): string | undefined {
+    const m = this.main
+    return m?.binding.draft ? undefined : m?.binding.sessionId
+  }
+
   get active(): Entry | undefined {
     return this.list().find((e) => e.panel.active) ?? (this.lastActive ? this.entries.get(this.lastActive) : undefined)
   }

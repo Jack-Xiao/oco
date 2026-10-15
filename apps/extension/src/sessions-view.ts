@@ -1,6 +1,7 @@
 import * as vscode from "vscode"
 import type { ConnectionSummary, SessionActivity, SessionListItem } from "@oco/contracts"
 import type { InboxEntry, InboxRow, SessionStore } from "./session-store"
+import { formatHud, formatHudTooltip } from "./status-hud"
 import { serverInfoLines, versionNote, type ServerInfo } from "./diagnostics"
 import { resolveLevel, type NotifySettingsInspect } from "./notify-policy"
 import { planStop, rootIds } from "./stop-sessions"
@@ -132,6 +133,11 @@ export class SessionsView implements vscode.Disposable {
   private readonly status: vscode.StatusBarItem
   /** Card 2 B: "Stop all running", shown next to the connection item only while a session runs. */
   private readonly stopStatus: vscode.StatusBarItem
+  private readonly hudStatus: vscode.StatusBarItem
+  private hudDeps?: {
+    focusedSession?: () => string | undefined
+    getLimit?: (providerID?: string, modelID?: string) => number | undefined
+  }
   private stopVisible = false
   /** Root sessions Stop would act on, recomputed per render with the same plan the Stop command uses. */
   private stoppable = new Set<string>()
@@ -200,10 +206,20 @@ export class SessionsView implements vscode.Disposable {
     this.clock = setInterval(() => this.refresh(), 60_000)
     this.status = vscode.window.createStatusBarItem("oco.connection", vscode.StatusBarAlignment.Left, 10)
     this.stopStatus = vscode.window.createStatusBarItem("oco.stopAll", vscode.StatusBarAlignment.Left, 9)
+    this.hudStatus = vscode.window.createStatusBarItem("oco.hud", vscode.StatusBarAlignment.Left, 8)
     this.stopStatus.name = "oco Stop All Running"
     this.stopStatus.command = "oco.sessions.stopAllRunning"
     this.status.name = "oco Connection"
+    this.hudStatus.name = "oco HUD"
     void vscode.commands.executeCommand("setContext", "oco.searchActive", false)
+  }
+
+  setHudDeps(deps: {
+    focusedSession?: () => string | undefined
+    getLimit?: (providerID?: string, modelID?: string) => number | undefined
+  }) {
+    this.hudDeps = deps
+    this.refresh()
   }
 
   get sessionStore(): SessionStore {
@@ -211,6 +227,10 @@ export class SessionsView implements vscode.Disposable {
   }
 
   /** The session shown in the active panel (fork, new session, another tab); its row is the selected one. */
+  get currentSessionId(): string | undefined {
+    return this.current
+  }
+
   setCurrent(sessionId: string | undefined) {
     if (this.current === sessionId) return
     this.current = sessionId
@@ -676,6 +696,47 @@ export class SessionsView implements vscode.Disposable {
       this.stopStatus.show()
     } else this.stopStatus.hide()
     this.stopVisible = running > 0
+
+    // Feature B: Status bar HUD
+    const hudEnabled = vscode.workspace.getConfiguration("oco").get<boolean>("statusBar.hud", true)
+    const focusedId = this.hudDeps?.focusedSession?.() ?? this.current
+    if (!hudEnabled || !focusedId) {
+      this.hudStatus.hide()
+    } else {
+      const session = this.store.list().find((i) => i.id === focusedId)
+      const model = this.store.lastModel(focusedId)
+      const tokens = this.store.lastTokens(focusedId)
+      const metrics = this.store.sessionMetrics(focusedId)
+      const limit = this.hudDeps?.getLimit?.(model?.providerID, model?.modelID)
+
+      // A pending permission / question outranks the running state (the agent is busy *and* waiting on the user).
+      const state = this.store.hasPending(focusedId) ? "permission" : (session?.activity ?? "idle")
+
+      this.hudStatus.text = formatHud({
+        model: model?.modelID,
+        tokens,
+        limit,
+        cost: metrics.costUsd,
+        state,
+      })
+      this.hudStatus.tooltip = formatHudTooltip({
+        title: session?.title,
+        sessionId: focusedId,
+        state,
+        providerID: model?.providerID,
+        modelID: model?.modelID,
+        tokens,
+        limit,
+        cost: metrics.costUsd,
+        sessionTokens: metrics.tokens,
+      })
+      this.hudStatus.command = {
+        title: "Open Session",
+        command: "oco.openSession",
+        arguments: [{ sessionId: focusedId }],
+      }
+      this.hudStatus.show()
+    }
   }
 
   private empty = false
@@ -726,5 +787,6 @@ export class SessionsView implements vscode.Disposable {
     this.rendered.dispose()
     this.status.dispose()
     this.stopStatus.dispose()
+    this.hudStatus.dispose()
   }
 }

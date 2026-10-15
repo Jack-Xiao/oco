@@ -136,6 +136,16 @@ type Row = {
   lastPart?: { messageID: string; partID: string }
   todo?: ServerTodo[]
   lastModel?: { providerID: string; modelID: string }
+  lastTokens?: {
+    input: number
+    output: number
+    reasoning?: number
+    cache?: {
+      read?: number
+      write?: number
+    }
+    total?: number
+  }
 }
 
 export class SessionStore {
@@ -277,14 +287,24 @@ export class SessionStore {
               const cost = typeof info.cost === "number" && !isNaN(info.cost) ? info.cost : 0
               let tokens = 0
               if (info.tokens && typeof info.tokens === "object") {
+                const input = Number(info.tokens.input) || 0
+                const output = Number(info.tokens.output) || 0
+                const reasoning = Number(info.tokens.reasoning) || 0
+                const cacheRead = Number(info.tokens.cache?.read) || 0
+                const cacheWrite = Number(info.tokens.cache?.write) || 0
+                row.lastTokens = {
+                  input,
+                  output,
+                  reasoning,
+                  cache: {
+                    read: cacheRead,
+                    write: cacheWrite,
+                  },
+                  total: typeof info.tokens.total === "number" && !isNaN(info.tokens.total) ? info.tokens.total : undefined,
+                }
                 if (typeof info.tokens.total === "number" && !isNaN(info.tokens.total)) {
                   tokens = info.tokens.total
                 } else {
-                  const input = Number(info.tokens.input) || 0
-                  const output = Number(info.tokens.output) || 0
-                  const reasoning = Number(info.tokens.reasoning) || 0
-                  const cacheRead = Number(info.tokens.cache?.read) || 0
-                  const cacheWrite = Number(info.tokens.cache?.write) || 0
                   tokens = input + output + reasoning + cacheRead + cacheWrite
                 }
               }
@@ -691,6 +711,24 @@ export class SessionStore {
   /** Last assistant model used in this session. Subagent models stay on their own session id. */
   lastModel(sessionID: string): { providerID: string; modelID: string } | undefined {
     return this.rows.get(sessionID)?.lastModel
+  }
+
+  /** Last assistant tokens of this session for context usage calculation. */
+  lastTokens(sessionID: string): Row["lastTokens"] | undefined {
+    return this.rows.get(sessionID)?.lastTokens
+  }
+
+  /** Total cost and tokens observed across all assistant messages in this session. */
+  sessionMetrics(sessionID: string): { costUsd: number; tokens: number } {
+    const row = this.rows.get(sessionID)
+    if (!row || row.messageMetrics.size === 0) return { costUsd: 0, tokens: 0 }
+    let costUsd = 0
+    let tokens = 0
+    for (const m of row.messageMetrics.values()) {
+      costUsd += m.cost
+      tokens += m.tokens
+    }
+    return { costUsd, tokens }
   }
 
   hasPending(id: string): boolean {

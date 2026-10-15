@@ -93,6 +93,20 @@
         "enablement": "isWorkspaceTrusted"
       },
       {
+        "command": "oco.exportSession",
+        "title": "Export Session as Markdown",
+        "category": "oco",
+        "icon": "$(markdown)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "oco.exportSessionToFile",
+        "title": "Export Session to File…",
+        "category": "oco",
+        "icon": "$(save)",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
         "command": "oco.sessions.stop",
         "title": "Stop Session",
         "category": "oco",
@@ -338,6 +352,16 @@
           "group": "2_context@1"
         },
         {
+          "command": "oco.exportSession",
+          "when": "webviewId == 'oco.sessions' && webviewSection == 'session'",
+          "group": "2_context@2"
+        },
+        {
+          "command": "oco.exportSessionToFile",
+          "when": "webviewId == 'oco.sessions' && webviewSection == 'session'",
+          "group": "2_context@3"
+        },
+        {
           "command": "oco.pinSession",
           "when": "webviewId == 'oco.sessions' && webviewSection == 'session' && !pinned",
           "group": "3_organize@1"
@@ -528,6 +552,12 @@
           "default": "windowNotFocused",
           "scope": "machine",
           "markdownDescription": "Notify when a background session finishes or fails, with a one-line result summary and Open / Diff. Notifications appear inside VS Code, not in the system notification center."
+        },
+        "oco.statusBar.hud": {
+          "type": "boolean",
+          "default": true,
+          "scope": "machine",
+          "markdownDescription": "Show the focused session's model, context usage and cost in the status bar."
         }
       }
     },
