@@ -2,6 +2,16 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## Claude Code 对照批次：会话导出 + 状态栏 HUD（2026-10-16 夜间，分支 claude/cc-features-2026-10-16，未合入 main；E2E 由 Mac mini 执行中）
+
+- 前置已完成：卡 6 + 卡 7 分支合入 main（合并提交 `3f89430`，2026-10-16 00:05，已推送 origin）；Mac mini `~/Ai-Project/oco` 与 worktree `oco-mini` 同步到 `3f89430`。
+- F1 会话导出（M18 第一片，对应 Claude Code `/export`）：`oco.exportSession` 把会话渲染成 Markdown 开在 untitled 编辑器，`oco.exportSessionToFile` 走保存对话框；入口为侧栏行右键菜单与命令面板。渲染器 `renderSessionMarkdown`（`export-session.ts`，纯函数）：标题 / 元数据（id、时间、模型、总花费、总 token）、每条消息一节、工具调用折叠为 `<details>`（输入 2000 / 输出 4000 字符截断）、reasoning 默认省略、`revert` 之后的消息省略并注明条数、未知 part 不抛错。数据：`GET /session/:id` + `GET /session/:id/message`。
+- F2 状态栏 HUD（对应 Claude Code status line / claude-hud）：`oco.hud`（Left 8）显示聚焦会话（主面板会话，否则侧栏选中行）的 `模型 · 上下文 % · $花费`；上下文上限来自 `GET /provider` 的 `limit.context`（每连接懒取一次，失败 60 s 后重试），没有上限时显示 `Nk tok`；运行中前缀 `$(sync~spin)`，等权限 / 提问前缀 `$(bell)`（等待优先于运行中）；tooltip 带 token 分项与会话累计；点击打开会话；设置 `oco.statusBar.hud`（默认开）。session-store 新增 `lastTokens`、`sessionMetrics`；panels 暴露 `mainSessionId`。
+- 验证（25f9a76，本机）：typecheck 0；unit 439/0（32 文件，新增 export-session 8、status-hud 8；settings-contribution 已更新）；esbuild build PASS；主线程审阅修 2 处（上限缓存被首失败钉死、pending 未优先于 busy）。E2E：NOT RUN，交 Mac mini `mini-ccfeat`（新写 c26-export、c27-docks、c28-status-hud + 受影响 c3 / c7 / c11 / c16 + 默认 mock 回归）。
+- 上游能力核对（vendor 1.18.33）：revert dock（回退检查点）、todo dock（任务列表）、slash 命令浮层上游已有，嵌入模式可见性与逐条消息回退入口待 c27 结论；宿主已有终端输出 / Problems / Git diff / 选区入草稿与分屏打开。对照表、取舍与下一批候选见 [cc-features-2026-10-16](evidence/cc-features-2026-10-16.md) 与 NEXT §0b。
+- Mac mini：`com.jarvis.tmux-gui` LaunchAgent 00:12 加载（此前 tmux 服务器丢失导致 dispatch 拒绝派发）；`mini-regress`（合入后默认回归）因任务 shell 找不到 opencode 中止 0/13（mini 没装 opencode，E2E 一直用 card7 留下的 `~/oco-bin/opencode` 包装脚本），`run-task.sh` 已改为自动设 `OCO_OPENCODE_BIN`，默认回归并入 mini-ccfeat 末尾。
+- 本机已装 `oco-0.0.4-25f9a76.vsix`（需 Reload Window）。
+
 ## 卡 6：路线图剩余可做项（2026-10-14，分支 claude/roadmap-batch-2026-10-14，未合入 main，未推送）
 
 - 侧栏：权限行显示 Always 将放行的模式（只读，最多 3 个 + 计数）；doom_loop 独立图标与文案；Deny with note（行内输入，随 `POST /permission/:id/reply` 的 `message` 发送）。本地标签（≤32 字符，分区 Pinned > 标签组 > 其余，标注不同步）与 Snooze（只作用于非等待 / 非运行行，底部折叠分区，下一条消息到达自动唤醒，状态栏计数不变）。j / k / Enter / Esc / ? 键盘与速查浮层。子会话 / todo 懒取只对收件箱、pinned 与 recent 前 20 行。
@@ -100,7 +110,7 @@
 
 - 上游基线：vendor OpenCode v1.18.33（提交 `51ef4be`，浅克隆；旧文档里的补丁基线 `deb241e` 已不存在，补丁再生成改用 `scripts/regen-patch.sh` 在临时 worktree 重建基线）。宿主 `VERIFIED_SERVERS` = 1.18.33、1.18.13（企业服务；前端保持 1.18.33，验收对着 1.18.13 服务端跑；切到 1.18.13 前端的方案停放在本地分支 `claude/opencode-1.18.13-baseline`）。
 - 补丁链：`patches/opencode/` 0001–0025（0024 / 0025 只在卡 6 分支）在干净 vendor HEAD `51ef4be` 上重放通过（2026-10-14 生成 0025 时以 0001–0024 为基线校验；`0024-oco-embedded-subagent-pills.patch` 标题行子代理 pills；`0025-oco-runtime-view-followups.patch` 运行视图 M5 遗留；`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡；`0022-oco-markdown-mermaid.patch` 为 Mermaid；`0023-oco-embedded-new-session-draft.patch` 为新建会话草稿页）。卡 1、卡 3 未改补丁。
-- 本机扩展：已装 `oco-0.0.4-2846f66.vsix`（分支 `claude/roadmap-batch-2026-10-14` 2846f66 = main 9c54524 + 卡 6 + 夜间 Mac mini / 子代理结果，vendor v1.18.33 + 补丁 0001–0025；2026-10-15；extension.js sha256 `b3fcab0b…`；需 Reload Window）。
+- 本机扩展：已装 `oco-0.0.4-25f9a76.vsix`（分支 `claude/cc-features-2026-10-16` 25f9a76 = main 3f89430 + 会话导出 + 状态栏 HUD，vendor v1.18.33 + 补丁 0001–0025；2026-10-16 00:45；extension.js sha256 `b381f202…`；需 Reload Window）。
 
 ## 已合入 main 的能力
 
@@ -146,3 +156,4 @@
 
 - 2026-10-14 起 E2E、真实模型、循环复现与长时间测量交 Mac mini 执行机（[MINI](MINI.md)，`scripts/mini/*.sh`；setup 在干净克隆上重放补丁 0001–0025 通过，typecheck 0、unit 422/0；通知走 OpenClaw Telegram main 群）。
 - 遵循 [AGENTS.md](../AGENTS.md)：Gemini（agy）优先，不可用时换 Grok，两路均不可用时由主线程接手并在证据文件中记录账本。
+- 2026-10-16：Gemini 实现 + 单测 26 分钟正常返回（导出 + HUD）；Grok 只读调查 3.5 分钟。直接调用 grok-worker / gemini-worker 时提示只写任务正文（hook 自己加包装命令）。Mac mini 的 tmux 服务器改由 `com.jarvis.tmux-gui` 常驻；E2E 用 `~/oco-bin/opencode` 包装脚本（见 MINI.md）。

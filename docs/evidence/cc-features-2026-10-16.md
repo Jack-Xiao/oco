@@ -63,3 +63,17 @@
 5. 其他：2.1.287 “You should know” 侧路代理标出漏掉的事 (新，服务端)；2.1.300 `claudeCode.attachSelection` 可关掉编辑器选区自动进消息 (新，手动加入已有)；2.1.290 `/` 与 `@` 建议列表用 ❯ 标当前行 (新)；2.1.280 对话框 Enter 接受 / Esc 取消 (新)。
 
 Grok 的 Top 5：idle compaction；权限队列 “2 of 5” + 最旧优先；Questions 行；Bookmarks 侧栏；折叠分组里的 name+task 搜索。主线程取舍：idle compaction 与 “You should know” 属服务端，不做；权限队列顺序与 Questions 行记 §3 小项候选；Bookmarks → 卡 12；attachSelection → 卡 13；搜索增强暂不做（侧栏已有搜索 + 标签分区）。
+
+## 委派记录（结果）
+
+| task_id | requested_route | actual_provider/model | agent_id/run_id | 状态 | 结果 | 备注 |
+| --- | --- | --- | --- | --- | --- | --- |
+| cc-changelog | grok-worker（check ready:true） | Grok Build / unknown | `run-mv9qeyju-yv0dvg` | 已返回，验收通过 | 本文件「变更摘要」 | 3 m 36 s，0 文件改动；嵌入的 node 行在沙箱 EPERM 后 Grok 直接读文件完成 |
+| impl-export-hud | gemini-worker --write（探测 OK 6 s） | Gemini (Antigravity) / unknown | `gem-mv9qjmhf-el622` | 已返回，验收通过 | 提交 `25f9a76` | 26 m 11 s，worker 16 次工具调用；自报 typecheck 0 / unit 434（沙箱内 5 个 mock-llm socket 用例跳过）/ esbuild OK；主线程本地复跑 typecheck 0、unit 439/0、build PASS；主线程修 2 处缺陷后提交 |
+| mini-regress | Mac mini dispatch（base main 3f89430，Sonnet） | claude-subagent/sonnet（mini） | tmux `mini-mini-regress` | 失败（环境） | `docs/evidence/mini-regress-main.md`（提交 692e313，已 cherry-pick 为 22158de） | 0/13：任务 shell 找不到 opencode；根因 launchd 起的 tmux PATH 没有 `~/oco-bin`，mini 本无 opencode；修复 `run-task.sh` 9c6f4a4 |
+| mini-ccfeat | Mac mini dispatch（base claude/cc-features-2026-10-16 9c6f4a4，Sonnet） | claude-subagent/sonnet（mini） | tmux `mini-mini-ccfeat`，00:5x 开始 | 运行中 | `docs/evidence/mini-ccfeat.md`（待） | c26–c28 + 受影响 4 套件 + 默认回归；本会话 cron 每 35 分钟 patrol |
+| 主线程保留 | — | Fable 5.1 | 本会话 | — | — | 合并 / 推送、范围与对照表、提示词、审阅与 2 处修复、Mac mini 运维（tmux-gui、opencode 包装脚本）、文档 |
+
+## 合入规则（夜间）
+
+mini-ccfeat 的 c26–c28、受影响套件与默认回归全绿（偶发重跑通过算绿）→ 合入 main 并推送、Mac mini 拉取、打包安装；有稳定失败 → 留在分支，失败清单写 STATUS / NEXT §0b，早上由用户决定。

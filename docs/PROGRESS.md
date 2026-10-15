@@ -1089,3 +1089,9 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 用户决定把 E2E 与长任务交给 Mac mini（约定 [MINI](MINI.md)，`scripts/mini/*`：dispatch / run-task / notify（OpenClaw Telegram main 群）/ watchdog / patrol / collect）；主会话每 30 分钟巡检，完成即合入并派下一个。
 - 结果：card7（c18–c24、21 mock 套件全过、p1b-narrow 10/10、2 处产品修复）、mini-nested（c25、汇总优先级修复）合入；04:53 mini-compat 因 SSH 起的 tmux 服务器读不到钥匙串报 Not logged in（并非登出，主线程起初误判），改由本机 Sonnet 子代理完成 compat（1.19.0 无不兼容）与 probe（tools-k、perf、bench）。dispatch / run-task 已加守卫。
 - 验证：typecheck 0；unit 423/0；本机已装 `oco-0.0.4-2846f66.vsix`。真实模型 BLOCKED（big-pickle 403）；mini-remote 待用户加自连 ssh key。分支未推送、未合 main。
+
+## 2026-10-16 夜间：合入 main + Claude Code 对照批次（会话导出、状态栏 HUD）
+
+- 用户要求（无人值守）：卡 6 分支全部合入 main 并同步、Mac mini 拉最新；从规划挑重点做计划；评估 Claude Code 新特性并把合适的加进 oco，与 Mac mini 分工、省 token。主线程：合并提交 `3f89430` 推送 origin，Mac mini 两仓库同步；对照表 + 下一批候选（卡 9–13）写入 [cc-features-2026-10-16](evidence/cc-features-2026-10-16.md) 与 NEXT §0b；Grok 读 Claude Code 2.1.280–2.1.300 更新日志（3.5 分钟）；Gemini 实现 F1 会话导出（`oco.exportSession` / `oco.exportSessionToFile`）与 F2 状态栏 HUD（`oco.hud`，设置 `oco.statusBar.hud`）+ 16 单测（26 分钟）；主线程审阅修 2 处（`/provider` 上限缓存被首失败钉死、pending 未优先于 busy）。
+- 验证：typecheck 0；unit 439/0；build PASS；本机已装 `oco-0.0.4-25f9a76.vsix`。E2E 交 Mac mini `mini-ccfeat`（c26–c28 + c3 / c7 / c11 / c16 + 默认 mock 回归），结果早上见 STATUS 与 [mini-ccfeat](evidence/mini-ccfeat.md)。
+- Mac mini 运维：tmux 服务器再次丢失，按用户「权限卡住就绕开」授权经 SSH 加载已备好的 `com.jarvis.tmux-gui` LaunchAgent（回退 `launchctl bootout gui/501/com.jarvis.tmux-gui`）；`mini-regress` 因任务 shell 找不到 opencode 中止 0/13，`run-task.sh` 改为自动使用 `~/oco-bin/opencode` 包装脚本（MINI.md 已记）。
