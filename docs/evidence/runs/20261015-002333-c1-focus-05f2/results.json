@@ -1,0 +1,116 @@
+{
+  "runId": "20261015-002333-c1-focus-05f2",
+  "suite": "c1-focus",
+  "startedAt": "2026-10-15T00:23:33.093Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "5080e035ca63f322bf65efd10b04e46b754090aacc61576ae621d6cce1a616da",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c1-focus",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:24:50.170Z",
+  "results": [
+    {
+      "id": "open-stays-on-file",
+      "status": "PASS",
+      "detail": {
+        "repeats": 20,
+        "failed": [],
+        "fileOpens": 20,
+        "focusWaits": 10,
+        "lateActivations": 0,
+        "lastTrace": [
+          "70957 open-start focusAge=0 panel.active=true",
+          "71269 settled panel.active=true",
+          "71273 panel.active=false",
+          "71279 open-done panel.active=false editor=math.ts",
+          "71780 +500ms panel.active=false editor=math.ts"
+        ]
+      },
+      "at": "2026-10-15T00:24:32.604Z"
+    },
+    {
+      "id": "return-via-tab",
+      "status": "PASS",
+      "detail": {
+        "rows": [
+          {
+            "i": 0,
+            "opened": true,
+            "chatActive": true,
+            "active": "Mock: Use the read tool on math.ts with offset"
+          },
+          {
+            "i": 1,
+            "opened": true,
+            "chatActive": true,
+            "active": "Mock: Use the read tool on math.ts with offset"
+          },
+          {
+            "i": 2,
+            "opened": true,
+            "chatActive": true,
+            "active": "Mock: Use the read tool on math.ts with offset"
+          }
+        ],
+        "lastTrace": [
+          "79149 open-start focusAge=919 panel.active=true",
+          "79149 settled panel.active=true",
+          "79156 panel.active=false",
+          "79163 open-done panel.active=false editor=math.ts",
+          "79499 panel.active=true",
+          "79666 +500ms panel.active=true editor=-"
+        ]
+      },
+      "at": "2026-10-15T00:24:41.059Z"
+    },
+    {
+      "id": "return-via-webview",
+      "status": "PASS",
+      "detail": {
+        "rows": [
+          {
+            "i": 0,
+            "opened": true,
+            "chatActive": true,
+            "active": "Mock: Use the read tool on math.ts with offset"
+          },
+          {
+            "i": 1,
+            "opened": true,
+            "chatActive": true,
+            "active": "Mock: Use the read tool on math.ts with offset"
+          },
+          {
+            "i": 2,
+            "opened": true,
+            "chatActive": true,
+            "active": "Mock: Use the read tool on math.ts with offset"
+          }
+        ],
+        "lastTrace": [
+          "87705 open-start focusAge=920 panel.active=true",
+          "87705 settled panel.active=true",
+          "87712 panel.active=false",
+          "87720 open-done panel.active=false editor=math.ts",
+          "88223 +500ms panel.active=false editor=math.ts",
+          "88288 panel.active=true"
+        ]
+      },
+      "at": "2026-10-15T00:24:49.613Z"
+    }
+  ],
+  "summary": {
+    "PASS": 3,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

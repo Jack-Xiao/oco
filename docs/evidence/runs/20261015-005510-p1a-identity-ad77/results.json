@@ -1,0 +1,298 @@
+{
+  "runId": "20261015-005510-p1a-identity-ad77",
+  "suite": "p1a-identity",
+  "startedAt": "2026-10-15T00:55:10.634Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "a59e90d6dc23ab455205804a558b22d6e2bd4c4b17d93a62174572f49e8038fd",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "p1a-identity",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "sessions": {
+    "A": "ses_ec2f19ba7ffe6cUlXKpEtZjofd",
+    "B": "ses_ec2f1836bffeANBWFtzXE7H6Ln",
+    "C": "ses_ec2f17bfaffegp2bo6NHJUfE1a"
+  },
+  "finalHostState": [
+    {
+      "s": "ses_ec2f19ba7ffe6cUlXKpEtZjofd",
+      "core": {
+        "requests": 40,
+        "streamsOpen": 1,
+        "rejectedMessages": 0,
+        "rejectedRequests": 0,
+        "staleDropped": 0,
+        "retired": 0,
+        "generations": 1,
+        "deferred": 12,
+        "shared": 3
+      },
+      "policy": {
+        "rejected": 0,
+        "verifiedChildren": 0,
+        "created": 0
+      },
+      "panel": {
+        "blockedNavigations": 0,
+        "openRequests": 0,
+        "draftAcks": 0,
+        "draftRejects": 0,
+        "titles": 0,
+        "fileOpens": 0,
+        "fileRejects": 0,
+        "focusWaits": 0,
+        "lateActivations": 0,
+        "switches": 0,
+        "switchReloads": 0
+      }
+    },
+    {
+      "s": "ses_ec2f17bfaffegp2bo6NHJUfE1a",
+      "core": {
+        "requests": 39,
+        "streamsOpen": 1,
+        "rejectedMessages": 0,
+        "rejectedRequests": 0,
+        "staleDropped": 0,
+        "retired": 0,
+        "generations": 1,
+        "deferred": 12,
+        "shared": 3
+      },
+      "policy": {
+        "rejected": 0,
+        "verifiedChildren": 0,
+        "created": 0
+      },
+      "panel": {
+        "blockedNavigations": 0,
+        "openRequests": 0,
+        "draftAcks": 0,
+        "draftRejects": 0,
+        "titles": 0,
+        "fileOpens": 0,
+        "fileRejects": 0,
+        "focusWaits": 0,
+        "lateActivations": 0,
+        "switches": 0,
+        "switchReloads": 0
+      }
+    }
+  ],
+  "finishedAt": "2026-10-15T00:56:44.050Z",
+  "results": [
+    {
+      "id": "three-visible-webviews",
+      "status": "PASS",
+      "detail": {
+        "visibleReady": 3,
+        "distinctGenerations": 3,
+        "editorGroups": 3
+      },
+      "at": "2026-10-15T00:55:26.425Z"
+    },
+    {
+      "id": "no-internal-tabs",
+      "status": "PASS",
+      "detail": {
+        "tabElementsPerPanel": [
+          0,
+          0,
+          0
+        ]
+      },
+      "at": "2026-10-15T00:55:26.568Z"
+    },
+    {
+      "id": "concurrent-send-isolated",
+      "status": "PASS",
+      "detail": {
+        "ALPHA": {
+          "ownPromptOnServer": true,
+          "replyCompleted": true,
+          "replyEchoesTag": true,
+          "leak": false
+        },
+        "BRAVO": {
+          "ownPromptOnServer": true,
+          "replyCompleted": true,
+          "replyEchoesTag": true,
+          "leak": false
+        },
+        "CHARLIE": {
+          "ownPromptOnServer": true,
+          "replyCompleted": true,
+          "replyEchoesTag": true,
+          "leak": false
+        }
+      },
+      "at": "2026-10-15T00:55:31.090Z"
+    },
+    {
+      "id": "nav-link-other-session",
+      "status": "PASS",
+      "detail": {
+        "mainSwitchedInPlace": true,
+        "panelARoute": "ses_ec2f19ba7ffe6cUlXKpEtZjofd",
+        "panelAStillShowsItsMessages": true,
+        "openRequests": 1
+      },
+      "at": "2026-10-15T00:55:35.570Z"
+    },
+    {
+      "id": "nav-blocked-routes",
+      "status": "PASS",
+      "detail": {
+        "blocked": 3,
+        "routeStill": "ses_ec2f19ba7ffe6cUlXKpEtZjofd"
+      },
+      "at": "2026-10-15T00:55:39.652Z"
+    },
+    {
+      "id": "nav-shortcuts-deeplink",
+      "status": "PASS",
+      "detail": {
+        "route": "ses_ec2f19ba7ffe6cUlXKpEtZjofd",
+        "terminalElements": 0,
+        "websocketAttempts": 0,
+        "panelsForA": 1
+      },
+      "at": "2026-10-15T00:55:49.291Z"
+    },
+    {
+      "id": "draft-after-attacks",
+      "status": "PASS",
+      "detail": {
+        "editorHadUnsavedMarker": true,
+        "draftHasSelection": true,
+        "composerHead": "\nmath.ts:1-6 (unsaved)\n```typescript\nexport function add(a: number, b: number) {\n  return a + b\n}\n\n// unsaved-ident-555\n",
+        "acks": 1,
+        "pending": 0,
+        "serverReceived": true,
+        "leakedToOthers": false
+      },
+      "at": "2026-10-15T00:55:53.462Z"
+    },
+    {
+      "id": "forged-draft-rejected",
+      "status": "PASS",
+      "detail": {
+        "hostRejects": 1,
+        "composerUnchanged": true
+      },
+      "at": "2026-10-15T00:55:55.334Z"
+    },
+    {
+      "id": "permission-after-attacks",
+      "status": "PASS",
+      "detail": {
+        "requestId": "per_13d0f0301001Gmlp2EdsenyJqO",
+        "clickMethod": "element.click() (pointer click intercepted: button overflows narrow panel)",
+        "buttonRightEdge": 586,
+        "panelWidth": 262,
+        "toolStatus": "completed"
+      },
+      "at": "2026-10-15T00:55:58.156Z"
+    },
+    {
+      "id": "hide-keeps-document",
+      "status": "PASS",
+      "detail": {
+        "hidden": {
+          "visible": false,
+          "ready": true,
+          "generation": 3,
+          "retired": 0
+        },
+        "generationBefore": 3,
+        "generationAfterShow": 3,
+        "draftRestored": true
+      },
+      "at": "2026-10-15T00:56:05.825Z"
+    },
+    {
+      "id": "reload-auto-restore",
+      "status": "PASS",
+      "detail": {
+        "newActivation": true,
+        "autoRestoredVisible": 3,
+        "editorTabsBefore": 5,
+        "editorTabsSame": true,
+        "hostPanelsBefore": 3,
+        "hostPanelsAfterLazyRevive": 3,
+        "drafts": {
+          "ALPHA": true,
+          "BRAVO": true,
+          "CHARLIE": true,
+          "BRAVO_before": "unsent-draft-BRAVO"
+        }
+      },
+      "at": "2026-10-15T00:56:12.036Z"
+    },
+    {
+      "id": "close-specific-tab",
+      "status": "PASS",
+      "detail": {
+        "busyBeforeClose": true,
+        "closedPanelGone": true,
+        "exactlyThatTabClosed": true,
+        "busyAfterClose": true,
+        "finish": "stop",
+        "lastAssistantAtClose": {
+          "id": "msg_13d0f4dfa001j6UINafYozdXve",
+          "completed": false,
+          "error": null
+        },
+        "bTitle": "Mock: Reply with exactly: TAG-BRAVO",
+        "labelsBefore": [
+          "Mock: Reply with exactly: TAG-ALPHA, Editor Group 1",
+          "Mock: Reply with exactly: TAG-BRAVO, Editor Group 2",
+          "Mock: Reply with exactly: TAG-CHARLIE, Editor Group 3",
+          "Untitled-1, Editor Group 3",
+          "math.ts, Editor Group 1"
+        ],
+        "labelsAfter": [
+          "Mock: Reply with exactly: TAG-ALPHA, Editor Group 1",
+          "Mock: Reply with exactly: TAG-CHARLIE, Editor Group 3",
+          "Untitled-1, Editor Group 3",
+          "math.ts, Editor Group 1"
+        ]
+      },
+      "at": "2026-10-15T00:56:39.190Z"
+    },
+    {
+      "id": "image-bytes",
+      "status": "PASS",
+      "detail": {
+        "bytesSent": 463,
+        "bytesReceived": 463,
+        "identical": true,
+        "method": "synthetic ClipboardEvent"
+      },
+      "at": "2026-10-15T00:56:41.848Z"
+    },
+    {
+      "id": "csp-violations",
+      "status": "PASS",
+      "detail": {
+        "count": 0,
+        "sample": []
+      },
+      "at": "2026-10-15T00:56:43.571Z"
+    }
+  ],
+  "summary": {
+    "PASS": 14,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

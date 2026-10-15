@@ -1,0 +1,188 @@
+{
+  "runId": "20261015-003432-t010-recover-1ef2",
+  "suite": "t010-recover",
+  "startedAt": "2026-10-15T00:34:32.359Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "ccc2019265b0adbc0f773b763785cec92b76b886ea258854f6bb1c23b340aed4",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "t010-recover",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:36:15.517Z",
+  "results": [
+    {
+      "id": "unknown-types",
+      "status": "PASS",
+      "detail": {
+        "text": "New session\nChat\nTrajectory\nRuntime\nhi\nBuild · big-pickle\n · \n10:13 PM\nCalled `brand-new-tool`\nCalled `brand-new-tool`\nx=1\nstill here\nBuild · big-pickle · 0s\nAsk anything, / for commands, @ for contex"
+      },
+      "at": "2026-10-15T00:34:41.533Z"
+    },
+    {
+      "id": "down-while-open",
+      "status": "PASS",
+      "detail": {
+        "down": {
+          "recovery": null,
+          "actions": [],
+          "banner": "reconnecting",
+          "bannerActions": [
+            "retry",
+            "openSettings"
+          ],
+          "input": true,
+          "draft": "draft-before-outage",
+          "model": "ready",
+          "text": "New session\nChat\nTrajectory\nRuntime\ndraft-before-outage\nBuild\nOCO Mock\nLost the connection to the OpenCode server; reconnecting… Your draft is kept.\nRetry now\nO"
+        },
+        "leaks": [],
+        "back": {
+          "recovery": null,
+          "actions": [],
+          "banner": null,
+          "bannerActions": [],
+          "input": true,
+          "draft": "draft-before-outage",
+          "model": "ready",
+          "text": "New session\nChat\nTrajectory\nRuntime\ndraft-before-outage\nBuild\nOCO Mock"
+        },
+        "draftKept": true,
+        "sent": {
+          "ok": true,
+          "reply": "T010-AFTER-OUTAGE"
+        }
+      },
+      "at": "2026-10-15T00:34:49.187Z"
+    },
+    {
+      "id": "initial-unreachable",
+      "status": "PASS",
+      "detail": {
+        "down": {
+          "recovery": "unreachable",
+          "actions": [
+            "retry",
+            "openSettings"
+          ],
+          "banner": null,
+          "bannerActions": [],
+          "input": false,
+          "draft": null,
+          "model": null,
+          "text": "Can't reach the OpenCode server\nMake sure the server is running and check oco's server settings. The panel continues on its own once the server is back; your dr"
+        },
+        "leaks": [],
+        "afterRetryStillDown": {
+          "recovery": "unreachable",
+          "actions": [
+            "retry",
+            "openSettings"
+          ],
+          "banner": null,
+          "bannerActions": [],
+          "input": false,
+          "draft": null,
+          "model": null,
+          "text": "Can't reach the OpenCode server\nMake sure the server is running and check oco's server settings. The panel continues on its own once the server is back; your dr"
+        },
+        "boot": {
+          "reason": "text",
+          "skeleton": false
+        },
+        "settingsOpened": true,
+        "back": {
+          "recovery": null,
+          "actions": [],
+          "banner": null,
+          "bannerActions": [],
+          "input": true,
+          "draft": "draft-before-reload",
+          "model": "ready",
+          "text": "Mock: Reply with exactly this line and nothing\nChat\nTrajectory\nRuntime\nReply with exactly this line and nothing else: T010-AFTER-OUTAGE\nBuild · OCO Mock\n · \n8:3"
+        },
+        "draftKept": true,
+        "sent": {
+          "ok": true,
+          "reply": "T010-AFTER-INITIAL"
+        }
+      },
+      "at": "2026-10-15T00:34:59.541Z"
+    },
+    {
+      "id": "session-deleted",
+      "status": "PASS",
+      "detail": {
+        "shown": {
+          "recovery": "session-missing",
+          "actions": [
+            "showSessions",
+            "newSession",
+            "closePanel"
+          ],
+          "banner": null,
+          "bannerActions": [],
+          "input": false,
+          "draft": null,
+          "model": "ready",
+          "text": "This session no longer exists\nIt may have been deleted from another client or on the server. Open another session from the list or start a new one. This panel's"
+        },
+        "leaks": [],
+        "loopRequests": 0,
+        "sidebar": "oco: Sessions",
+        "freshPanel": true,
+        "freshDraft": "",
+        "freshIsDraft": true,
+        "noServerSession": true,
+        "freshMessages": 0,
+        "staleClosed": true,
+        "draftDecision": "kept in the deleted panel's storage; not migrated, not sent"
+      },
+      "at": "2026-10-15T00:35:13.854Z"
+    },
+    {
+      "id": "unknown-error",
+      "status": "PASS",
+      "detail": {
+        "newSession": false,
+        "shown": {
+          "recovery": "error",
+          "actions": [
+            "reload",
+            "showSessions"
+          ],
+          "banner": null,
+          "bannerActions": [],
+          "input": false,
+          "draft": null,
+          "model": null,
+          "text": "The chat panel hit an error\nSomething unexpected went wrong. The session is stored on the server; reload the panel to continue. Your draft stays on this machine"
+        },
+        "leaks": [],
+        "reloaded": {
+          "recovery": null,
+          "actions": [],
+          "banner": null,
+          "bannerActions": [],
+          "input": true,
+          "draft": "",
+          "model": "loading",
+          "text": "New session\nChat\nTrajectory\nRuntime\nAsk anything, / for commands, @ for context...\nBuild"
+        }
+      },
+      "at": "2026-10-15T00:36:15.134Z"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

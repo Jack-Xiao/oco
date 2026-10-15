@@ -1,0 +1,180 @@
+{
+  "runId": "20261015-004317-c9-mermaid-bf89",
+  "suite": "c9-mermaid",
+  "startedAt": "2026-10-15T00:43:17.696Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "29deebca1c33f6e2cc0c4c4163e80b1d26a7f098506c8fa48ab089351fff51c0",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "modelMode": "mock",
+  "fixture": "local mock LLM answers prompt C9-MERMAID with 2 valid mermaid blocks + 1 invalid",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c9-mermaid",
+  "model": "oco-mock/mock",
+  "sessionId": "ses_ec2fc7ebaffeeaMA4gyjJNa7m3",
+  "mermaidBlocks": [
+    {
+      "state": "rendered",
+      "hasSvg": true,
+      "w": 266,
+      "h": 331
+    },
+    {
+      "state": "rendered",
+      "hasSvg": true,
+      "w": 450,
+      "h": 271
+    },
+    {
+      "state": "error",
+      "hasSvg": false,
+      "w": 0,
+      "h": 0
+    }
+  ],
+  "finishedAt": "2026-10-15T00:43:34.678Z",
+  "results": [
+    {
+      "id": "flowchart-rendered",
+      "status": "PASS",
+      "detail": {
+        "state": "rendered",
+        "hasSvg": true,
+        "w": 266,
+        "h": 331,
+        "preHidden": true,
+        "preDisplay": "none",
+        "source": "flowchart TD\n  A[Start] --> B{Ok?}\n  B -->|yes| C[Done]\n  B ",
+        "copy": true,
+        "text": "#oco-mermaid-1{font-family:Inter,sans-serif;font-size:16px;fill:#ccc;}@keyframes"
+      },
+      "at": "2026-10-15T00:43:31.131Z"
+    },
+    {
+      "id": "sequence-rendered",
+      "status": "PASS",
+      "detail": {
+        "state": "rendered",
+        "hasSvg": true,
+        "w": 450,
+        "h": 271,
+        "preHidden": true,
+        "preDisplay": "none",
+        "source": "sequenceDiagram\n  participant U as User\n  participant S as S",
+        "copy": true,
+        "text": "ServerUserServerUser#oco-mermaid-2{font-family:Inter,sans-serif;font-size:16px;f"
+      },
+      "at": "2026-10-15T00:43:31.131Z"
+    },
+    {
+      "id": "svg-size",
+      "status": "PASS",
+      "detail": {
+        "flow": [
+          266,
+          331
+        ],
+        "seq": [
+          450,
+          271
+        ]
+      },
+      "at": "2026-10-15T00:43:31.131Z"
+    },
+    {
+      "id": "source-hidden",
+      "status": "PASS",
+      "detail": {
+        "flow": "none",
+        "seq": "none",
+        "flowHidden": true,
+        "seqHidden": true
+      },
+      "at": "2026-10-15T00:43:31.131Z"
+    },
+    {
+      "id": "error-block",
+      "status": "PASS",
+      "detail": {
+        "state": "error",
+        "hasSvg": false,
+        "w": 0,
+        "h": 0,
+        "preHidden": false,
+        "preDisplay": "block",
+        "source": "flowchart TD\n  A[broken --> ??? ]]] ((\n  -->-->",
+        "copy": true,
+        "text": "Mermaid: Parse error on line 2:",
+        "preVisible": true
+      },
+      "at": "2026-10-15T00:43:31.134Z"
+    },
+    {
+      "id": "copy-button",
+      "status": "PASS",
+      "detail": {
+        "copyButtons": 3,
+        "perBlock": [
+          true,
+          true,
+          true
+        ]
+      },
+      "at": "2026-10-15T00:43:31.137Z"
+    },
+    {
+      "id": "lazy-chunk",
+      "status": "PASS",
+      "detail": {
+        "before": 0,
+        "chunks": [
+          "mermaid.json",
+          "mermaid.core-DjCP9i6D.js"
+        ]
+      },
+      "at": "2026-10-15T00:43:31.138Z"
+    },
+    {
+      "id": "theme-switch",
+      "status": "PASS",
+      "detail": {
+        "before": "dark",
+        "after": "light",
+        "changed": true,
+        "states": [
+          "rendered",
+          "rendered",
+          "error"
+        ]
+      },
+      "at": "2026-10-15T00:43:34.268Z"
+    },
+    {
+      "id": "no-csp-errors",
+      "status": "PASS",
+      "detail": {
+        "cspHost": [],
+        "cspFrame": [],
+        "frameErrors": [],
+        "pageErrors": [],
+        "resizeObserverNotices": {
+          "baselineBeforePrompt": 0,
+          "total": 22
+        }
+      },
+      "at": "2026-10-15T00:43:34.269Z"
+    }
+  ],
+  "summary": {
+    "PASS": 9,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

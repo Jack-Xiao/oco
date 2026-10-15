@@ -1,0 +1,136 @@
+{
+  "runId": "20261015-003131-p1b-reconnect-edaa",
+  "suite": "p1b-reconnect",
+  "startedAt": "2026-10-15T00:31:31.635Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "cbcce413fdcf7706f880236f9b171df19f5aa48b40e56055b66cb88382c12106",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "p1b-reconnect-many",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "proxy": "127.0.0.1:<random> -> test server",
+  "stallMs": 4000,
+  "baselineItems": 100,
+  "baselineConsistent": true,
+  "finishedAt": "2026-10-15T00:33:15.269Z",
+  "results": [
+    {
+      "id": "comparator-selftest",
+      "status": "PASS",
+      "detail": {
+        "ok": true,
+        "wrongTitle": true,
+        "missing": true,
+        "extra": true
+      },
+      "at": "2026-10-15T00:31:31.727Z"
+    },
+    {
+      "id": "reconnect-hard-cut",
+      "status": "FAIL",
+      "detail": {
+        "reconnectingSeen": true,
+        "duringState": "reconnecting",
+        "duringAttempt": 3,
+        "duringMessage": "Connection lost. Reconnecting (attempt 3)… The list may be o",
+        "oldListPreserved": true,
+        "noServerChangesDuringOutage": true,
+        "refusedConnections": 2,
+        "recovered": true,
+        "consistentWithServer": true,
+        "hasNewAndRenamed": true,
+        "missing": [],
+        "extra": [],
+        "eventConnections": [
+          0,
+          0
+        ],
+        "snapshotRequests": [
+          2,
+          3
+        ]
+      },
+      "at": "2026-10-15T00:31:49.778Z"
+    },
+    {
+      "id": "reconnect-incremental",
+      "status": "PASS",
+      "detail": {
+        "consistentWithServer": true,
+        "hasNewAndRenamed": true,
+        "state": "connected",
+        "snapshotRequests": [
+          6,
+          6
+        ],
+        "eventConnections": [
+          0,
+          0
+        ],
+        "attemptBefore": 0,
+        "missing": [],
+        "extra": []
+      },
+      "at": "2026-10-15T00:32:05.327Z"
+    },
+    {
+      "id": "reconnect-stall",
+      "status": "FAIL",
+      "detail": {
+        "healthyIdleStreamKeptOpen": true,
+        "droppedByClientWatchdog": false,
+        "watchdogMs": 30010,
+        "proxyCutsDuringStall": 0,
+        "reconnectingSeen": true,
+        "reconnectError": "Cannot reach the server (offline or wrong address/port): ter",
+        "recovered": true,
+        "consistentWithServer": true,
+        "hasStallTimeChange": true,
+        "missing": [],
+        "extra": [],
+        "eventConnections": [
+          0,
+          0
+        ]
+      },
+      "at": "2026-10-15T00:32:58.995Z"
+    },
+    {
+      "id": "search-whole-history",
+      "status": "PASS",
+      "detail": {
+        "serverRoots": 205,
+        "loadedItems": 100,
+        "loadMore": true,
+        "loadedMessage": null,
+        "newestPageShown": true,
+        "scopeHintAbsent": true,
+        "searchQuery": "c0678-104",
+        "targetId": "ses_ee5a244a5ffe54xfXWaYrwjJkK",
+        "foundOlderSession": true,
+        "searchItems": 1,
+        "clearedItems": 101,
+        "clearedNoDuplicates": true,
+        "clearedSearchEmpty": true
+      },
+      "at": "2026-10-15T00:33:14.860Z"
+    }
+  ],
+  "summary": {
+    "PASS": 3,
+    "FAIL": 2,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "reconnect-hard-cut",
+    "reconnect-stall"
+  ]
+}

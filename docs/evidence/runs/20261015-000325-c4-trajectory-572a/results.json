@@ -1,0 +1,258 @@
+{
+  "runId": "20261015-000325-c4-trajectory-572a",
+  "suite": "c4-trajectory",
+  "startedAt": "2026-10-15T00:03:25.809Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "f6b7d3c4e797cdad087d37cd3c318a7849f3e22ed4cce697028b1858579aac4b",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "modelMode": "mock",
+  "locale": "default",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c4-trajectory",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:04:01.918Z",
+  "results": [
+    {
+      "id": "header-actions-chat",
+      "status": "PASS",
+      "detail": {
+        "titlebarHidden": true,
+        "reviewInRow": true,
+        "ringInRow": true,
+        "usageLevel": "normal",
+        "usageText": ""
+      },
+      "at": "2026-10-15T00:03:44.635Z"
+    },
+    {
+      "id": "header-actions-trajectory",
+      "status": "PASS",
+      "detail": {
+        "reviewInHeader": true,
+        "usageInHeader": true
+      },
+      "at": "2026-10-15T00:03:44.841Z"
+    },
+    {
+      "id": "toggle-open",
+      "status": "PASS",
+      "detail": {
+        "opened": true,
+        "composerVisible": true
+      },
+      "at": "2026-10-15T00:03:44.844Z"
+    },
+    {
+      "id": "locale-copy",
+      "status": "PASS",
+      "detail": {
+        "lang": "en",
+        "toggle": "Trajectory",
+        "hasHan": false
+      },
+      "at": "2026-10-15T00:03:44.850Z"
+    },
+    {
+      "id": "compact-groups",
+      "status": "PASS",
+      "detail": {
+        "groups": 2,
+        "toolRows": 0,
+        "summary": "▸ 1 tool call · bash",
+        "expanded": "true",
+        "nestedTool": 1
+      },
+      "at": "2026-10-15T00:03:45.022Z"
+    },
+    {
+      "id": "rows-match-server",
+      "status": "PASS",
+      "detail": {
+        "server": {
+          "user": 2,
+          "assistant": 3,
+          "tool": 1,
+          "reasoning": 1,
+          "userIds": [
+            "msg_13cdf2294001CkcRUZU7BfiHZ5",
+            "msg_13cdf2f31001FdfuVimEs1eZDa"
+          ]
+        },
+        "ui": {
+          "user": 2,
+          "tool": 1,
+          "reasoning": 1,
+          "bars": 3,
+          "totals": "Requests 3 Tools 1 Input 30 Cache hit 0% Output 30 Thinking 0 Cost $0",
+          "userIds": [
+            "msg_13cdf2294001CkcRUZU7BfiHZ5",
+            "msg_13cdf2f31001FdfuVimEs1eZDa"
+          ]
+        }
+      },
+      "at": "2026-10-15T00:03:45.096Z"
+    },
+    {
+      "id": "scale-toggle",
+      "status": "PASS",
+      "detail": {
+        "scales": {
+          "turn": {
+            "pressed": [
+              "turn"
+            ],
+            "lefts": [
+              89,
+              340,
+              421
+            ]
+          },
+          "request": {
+            "pressed": [
+              "request"
+            ],
+            "lefts": [
+              76,
+              305,
+              533
+            ]
+          },
+          "duration": {
+            "pressed": [
+              "duration"
+            ],
+            "lefts": [
+              88,
+              335,
+              414
+            ]
+          }
+        },
+        "gaps": [
+          229,
+          228
+        ]
+      },
+      "at": "2026-10-15T00:03:45.646Z"
+    },
+    {
+      "id": "tool-detail",
+      "status": "PASS",
+      "detail": {
+        "detail": "Tool\nTurn 1 · Step 1\n✕\nOverview\nRaw\nInput · bash\n{\n  \"command\": \"echo traj-eq7fp\",\n  \"description\": \"Run the requested command\"\n}\nOutput\ntraj-eq7fp\n\nRequest\nSource\nRequest #1\nModel\noco-mock/mock\nAgent\nbuild\nStatus\nCompleted · tool-calls\nTokens\nTotal\n20 tok\nInput (uncached)\n10\nCache read\n0\nCache write\n0\nCache hit\n0%\nOutput\n10\nThinking\n0\nCost\n$0 (not priced: subscription, free or unknown price)\nRequ"
+      },
+      "at": "2026-10-15T00:03:45.823Z"
+    },
+    {
+      "id": "request-timing",
+      "status": "PASS",
+      "detail": {
+        "ttft": "263 ms",
+        "generation": "1.9 s",
+        "total": "20 tok",
+        "cacheRead": "0",
+        "source": "Request #3"
+      },
+      "at": "2026-10-15T00:03:46.005Z"
+    },
+    {
+      "id": "raw-content",
+      "status": "PASS",
+      "detail": {
+        "raw": "Tool\nTurn 1 · Step 1\n✕\nOverview\nRaw\n{\n  \"id\": \"prt_13cdf280f00118zSY1Q0Id92Ir\",\n  \"messageID\": \"msg_13cdf230d001dZbN91GYHNqbXu\",\n  \"sessionID\": \"ses_ec320faf9ffeA1HL7LrHHNxmqX\",\n  \"type\": \"tool\",\n  \"tool\": \"bash\",\n  \"callID\": \"call_67an5xwv1rw\",\n  \"state\": {\n    \"status\": \"completed\",\n    \"input\": {"
+      },
+      "at": "2026-10-15T00:03:46.082Z"
+    },
+    {
+      "id": "tools-tab",
+      "status": "PASS",
+      "detail": {
+        "server": 13,
+        "ui": 13,
+        "expanded": "true",
+        "schema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"command\": {\n      \"type\": \"string\",\n      \"description\": \"The command to execute\"\n    },\n    \""
+      },
+      "at": "2026-10-15T00:03:46.359Z"
+    },
+    {
+      "id": "live-update",
+      "status": "PASS",
+      "detail": {
+        "seenRunning": true,
+        "stillOpenWhileRunning": true,
+        "tail": "to first token\n259 ms\nGeneration\n6.1 s\nThroughput\n1.6 tok/s\nDerived from the timestamps OpenCode stores (first token = start of the first thinking, reply or tool input); not the provider's own timing."
+      },
+      "at": "2026-10-15T00:03:54.412Z"
+    },
+    {
+      "id": "back-to-chat",
+      "status": "PASS",
+      "detail": {
+        "chatBack": true
+      },
+      "at": "2026-10-15T00:03:54.542Z"
+    },
+    {
+      "id": "switch-resets",
+      "status": "PASS",
+      "detail": {
+        "reset": true
+      },
+      "at": "2026-10-15T00:03:55.969Z"
+    },
+    {
+      "id": "narrow-detail",
+      "status": "PASS",
+      "detail": {
+        "widths": [
+          480
+        ],
+        "root": 464,
+        "detail": 464,
+        "overflow": 0,
+        "closed": true
+      },
+      "at": "2026-10-15T00:03:57.919Z"
+    },
+    {
+      "id": "subagent-row",
+      "status": "PASS",
+      "detail": {
+        "child": "ses_ec3208ea8ffe2yGxFz8QtKftLl",
+        "status": "completed",
+        "rows": 1,
+        "nested": false,
+        "text": "Subagent @explore Find the fork code → subagent-ok",
+        "childField": "ses_ec3208ea8ffe2yGxFz8QtKftLl"
+      },
+      "at": "2026-10-15T00:04:00.588Z"
+    },
+    {
+      "id": "subagent-link",
+      "status": "PASS",
+      "detail": {
+        "child": "ses_ec3208ea8ffe2yGxFz8QtKftLl",
+        "href": null,
+        "role": "button",
+        "clickOutline": "none",
+        "switched": true,
+        "back": true,
+        "opened": []
+      },
+      "at": "2026-10-15T00:04:01.546Z"
+    }
+  ],
+  "summary": {
+    "PASS": 17,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

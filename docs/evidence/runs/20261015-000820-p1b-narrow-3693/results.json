@@ -1,0 +1,415 @@
+{
+  "runId": "20261015-000820-p1b-narrow-3693",
+  "suite": "p1b-narrow",
+  "startedAt": "2026-10-15T00:08:20.697Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "86a969cc08b36109f7bff2a4790737405100df772254ccdac15586480089587e",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "widths": [
+    260,
+    320,
+    480,
+    800
+  ],
+  "clickMethod": "Playwright locator.click() (pointer, no force)",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "p1b-narrow-800",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "layout-260": {
+    "zoomLevel": 0,
+    "frameWidths": [
+      262,
+      262,
+      262
+    ],
+    "editorGroups": 3
+  },
+  "layout-320": {
+    "zoomLevel": 0,
+    "frameWidths": [
+      320,
+      320,
+      320
+    ],
+    "editorGroups": 3
+  },
+  "layout-480": {
+    "zoomLevel": -1,
+    "frameWidths": [
+      479,
+      479,
+      480
+    ],
+    "editorGroups": 3
+  },
+  "layout-800": {
+    "zoomLevel": -4,
+    "frameWidths": [
+      800,
+      800,
+      802
+    ],
+    "editorGroups": 3
+  },
+  "finishedAt": "2026-10-15T00:10:28.340Z",
+  "results": [
+    {
+      "id": "deny-260",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec31c79b5ffeImkjsdqYJydjkd",
+        "requestId": "per_13ce3b048001jg39HjHJem28VX",
+        "geometry": {
+          "left": 65,
+          "right": 122,
+          "top": 693,
+          "bottom": 721,
+          "viewport": [
+            262,
+            786
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "error",
+        "attempts": 1
+      },
+      "at": "2026-10-15T00:08:40.127Z"
+    },
+    {
+      "id": "allow-260",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec31c64afffeM41IMcwJk6XyLW",
+        "requestId": "per_13ce3c032001SZmog5I4WciuT8",
+        "geometry": {
+          "left": 140,
+          "right": 233,
+          "top": 729,
+          "bottom": 757,
+          "viewport": [
+            262,
+            786
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "completed",
+        "attempts": 1
+      },
+      "at": "2026-10-15T00:08:45.041Z"
+    },
+    {
+      "id": "question-260",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec31c5efeffe36paZdCzo243Yn",
+        "requestId": "que_13ce3d693001Hdic5K8uX51o8t",
+        "optionGeometry": {
+          "left": 29,
+          "right": 233,
+          "top": 572,
+          "bottom": 633,
+          "viewport": [
+            262,
+            786
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "submitGeometry": {
+          "left": 160,
+          "right": 233,
+          "top": 725,
+          "bottom": 757,
+          "viewport": [
+            262,
+            786
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "recordedAnswer": "blue",
+        "attempts": 1
+      },
+      "at": "2026-10-15T00:08:50.770Z"
+    },
+    {
+      "id": "deny-320",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec31c04b9ffeYQM0vQ3SBSMtn3",
+        "requestId": "per_13ce42ece001GRL4i7KI8QK16f",
+        "geometry": {
+          "left": 123,
+          "right": 180,
+          "top": 694,
+          "bottom": 722,
+          "viewport": [
+            320,
+            787
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "error",
+        "attempts": 1
+      },
+      "at": "2026-10-15T00:09:12.744Z"
+    },
+    {
+      "id": "allow-320",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec31bf040ffetf2fPBPo7LHIU5",
+        "requestId": "per_13ce43fe80013v0M1Y2Upaexcl",
+        "geometry": {
+          "left": 198,
+          "right": 291,
+          "top": 730,
+          "bottom": 758,
+          "viewport": [
+            320,
+            787
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "completed",
+        "attempts": 1
+      },
+      "at": "2026-10-15T00:09:17.215Z"
+    },
+    {
+      "id": "question-320",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec31beb06ffeYO2b28Gjunvmj4",
+        "requestId": "que_13ce45469001epV8ueaW6s8XOx",
+        "optionGeometry": {
+          "left": 29,
+          "right": 291,
+          "top": 573,
+          "bottom": 634,
+          "viewport": [
+            320,
+            787
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "submitGeometry": {
+          "left": 218,
+          "right": 291,
+          "top": 726,
+          "bottom": 758,
+          "viewport": [
+            320,
+            787
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "recordedAnswer": "blue",
+        "attempts": 1
+      },
+      "at": "2026-10-15T00:09:22.593Z"
+    },
+    {
+      "id": "deny-480",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec31b8ac5ffeYwkXUraTysNhGW",
+        "requestId": "per_13ce4a794001V2Iqn7PkiwEmkZ",
+        "geometry": {
+          "left": 182,
+          "right": 239,
+          "top": 901,
+          "bottom": 929,
+          "viewport": [
+            479,
+            957
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "error",
+        "attempts": 1
+      },
+      "at": "2026-10-15T00:09:43.626Z"
+    },
+    {
+      "id": "allow-480",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec31b7546ffefDVWXT23txk8rh",
+        "requestId": "per_13ce4b8a4001mMXCjrTZ0mTd1O",
+        "geometry": {
+          "left": 358,
+          "right": 450,
+          "top": 901,
+          "bottom": 929,
+          "viewport": [
+            479,
+            957
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "completed",
+        "attempts": 1
+      },
+      "at": "2026-10-15T00:09:48.475Z"
+    },
+    {
+      "id": "question-480",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec31b6f95ffeOCMr5RfhEzzic9",
+        "requestId": "que_13ce4cfd1001TY2cRny108XlXk",
+        "optionGeometry": {
+          "left": 29,
+          "right": 451,
+          "top": 744,
+          "bottom": 805,
+          "viewport": [
+            480,
+            957
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "submitGeometry": {
+          "left": 379,
+          "right": 451,
+          "top": 897,
+          "bottom": 929,
+          "viewport": [
+            480,
+            957
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "recordedAnswer": "blue",
+        "attempts": 1
+      },
+      "at": "2026-10-15T00:09:54.245Z"
+    },
+    {
+      "id": "deny-800",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec31b0f1cffe8kTVp4zrwMKxl8",
+        "requestId": "per_13ce5290f001TSWxrFyYsKqrkw",
+        "geometry": {
+          "left": 502,
+          "right": 560,
+          "top": 1645,
+          "bottom": 1673,
+          "viewport": [
+            800,
+            1702
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "error",
+        "attempts": 1
+      },
+      "at": "2026-10-15T00:10:16.796Z"
+    },
+    {
+      "id": "allow-800",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec31afae7ffeV05rcUUN6RUxVB",
+        "requestId": "per_13ce539dc0019cvrvmDpEYJxsu",
+        "geometry": {
+          "left": 678,
+          "right": 771,
+          "top": 1645,
+          "bottom": 1673,
+          "viewport": [
+            800,
+            1702
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "completed",
+        "attempts": 1
+      },
+      "at": "2026-10-15T00:10:21.377Z"
+    },
+    {
+      "id": "question-800",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec31af39effe86a33n2z5TVAat",
+        "requestId": "que_13ce5527f0014DtCbYuVhhHno8",
+        "optionGeometry": {
+          "left": 29,
+          "right": 774,
+          "top": 1486,
+          "bottom": 1548,
+          "viewport": [
+            802,
+            1702
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "submitGeometry": {
+          "left": 701,
+          "right": 773,
+          "top": 1641,
+          "bottom": 1673,
+          "viewport": [
+            802,
+            1702
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "recordedAnswer": "blue",
+        "attempts": 1
+      },
+      "at": "2026-10-15T00:10:27.932Z"
+    }
+  ],
+  "summary": {
+    "PASS": 12,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

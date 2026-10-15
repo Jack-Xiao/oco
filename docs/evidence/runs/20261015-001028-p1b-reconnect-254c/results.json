@@ -1,0 +1,137 @@
+{
+  "runId": "20261015-001028-p1b-reconnect-254c",
+  "suite": "p1b-reconnect",
+  "startedAt": "2026-10-15T00:10:28.795Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "cbcce413fdcf7706f880236f9b171df19f5aa48b40e56055b66cb88382c12106",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "p1b-reconnect-many",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "proxy": "127.0.0.1:<random> -> test server",
+  "stallMs": 4000,
+  "baselineItems": 99,
+  "baselineConsistent": true,
+  "finishedAt": "2026-10-15T00:12:14.053Z",
+  "results": [
+    {
+      "id": "comparator-selftest",
+      "status": "PASS",
+      "detail": {
+        "ok": true,
+        "wrongTitle": true,
+        "missing": true,
+        "extra": true
+      },
+      "at": "2026-10-15T00:10:28.899Z"
+    },
+    {
+      "id": "reconnect-hard-cut",
+      "status": "FAIL",
+      "detail": {
+        "reconnectingSeen": true,
+        "duringState": "reconnecting",
+        "duringAttempt": 3,
+        "duringMessage": "Connection lost. Reconnecting (attempt 3)… The list may be o",
+        "oldListPreserved": true,
+        "noServerChangesDuringOutage": true,
+        "refusedConnections": 2,
+        "recovered": true,
+        "consistentWithServer": true,
+        "hasNewAndRenamed": true,
+        "missing": [],
+        "extra": [],
+        "eventConnections": [
+          0,
+          0
+        ],
+        "snapshotRequests": [
+          1,
+          2
+        ]
+      },
+      "at": "2026-10-15T00:10:42.976Z"
+    },
+    {
+      "id": "reconnect-incremental",
+      "status": "FAIL",
+      "detail": {
+        "consistentWithServer": true,
+        "hasNewAndRenamed": true,
+        "state": "connected",
+        "snapshotRequests": [
+          5,
+          6
+        ],
+        "eventConnections": [
+          0,
+          0
+        ],
+        "attemptBefore": 0,
+        "missing": [],
+        "extra": []
+      },
+      "at": "2026-10-15T00:11:03.958Z"
+    },
+    {
+      "id": "reconnect-stall",
+      "status": "FAIL",
+      "detail": {
+        "healthyIdleStreamKeptOpen": true,
+        "droppedByClientWatchdog": false,
+        "watchdogMs": 30013,
+        "proxyCutsDuringStall": 0,
+        "reconnectingSeen": true,
+        "reconnectError": "Event stream has no heartbeat",
+        "recovered": true,
+        "consistentWithServer": true,
+        "hasStallTimeChange": true,
+        "missing": [],
+        "extra": [],
+        "eventConnections": [
+          0,
+          0
+        ]
+      },
+      "at": "2026-10-15T00:11:57.160Z"
+    },
+    {
+      "id": "search-whole-history",
+      "status": "PASS",
+      "detail": {
+        "serverRoots": 205,
+        "loadedItems": 100,
+        "loadMore": true,
+        "loadedMessage": null,
+        "newestPageShown": true,
+        "scopeHintAbsent": true,
+        "searchQuery": "c0678-104",
+        "targetId": "ses_ee5a244a5ffe54xfXWaYrwjJkK",
+        "foundOlderSession": true,
+        "searchItems": 1,
+        "clearedItems": 101,
+        "clearedNoDuplicates": true,
+        "clearedSearchEmpty": true
+      },
+      "at": "2026-10-15T00:12:13.559Z"
+    }
+  ],
+  "summary": {
+    "PASS": 2,
+    "FAIL": 3,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "reconnect-hard-cut",
+    "reconnect-incremental",
+    "reconnect-stall"
+  ]
+}

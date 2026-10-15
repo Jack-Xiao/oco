@@ -1,0 +1,56 @@
+{
+  "runId": "20261014-235336-c18-permission-note-a012",
+  "suite": "c18-permission-note",
+  "startedAt": "2026-10-14T23:53:36.049Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "20ecc716386a82254be2ed4f6d4eb9e94d8b23958bcac9995bcd4ad5dcb7b784",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "modelMode": "mock",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c18-permission-note",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-14T23:53:43.929Z",
+  "results": [
+    {
+      "id": "always-preview",
+      "status": "PASS",
+      "detail": {
+        "rowShown": true,
+        "text": "Always will allow: echo *",
+        "codes": [
+          "echo *"
+        ],
+        "serverAlways": [
+          "echo *"
+        ],
+        "btnTitle": "echo *"
+      },
+      "at": "2026-10-14T23:53:42.905Z"
+    },
+    {
+      "id": "deny-note",
+      "status": "PASS",
+      "detail": {
+        "formOpen": true,
+        "emptied": true,
+        "rowGone": true,
+        "serverGotNote": true,
+        "note": "c18 note zs4p1: not allowed here"
+      },
+      "at": "2026-10-14T23:53:43.443Z"
+    }
+  ],
+  "summary": {
+    "PASS": 2,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

@@ -1,0 +1,98 @@
+{
+  "runId": "20261015-002537-c7-result-card-5980",
+  "suite": "c7-result-card",
+  "startedAt": "2026-10-15T00:25:37.897Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "2ba51b99792229df8441eee9dec07330a327ad37328060638f181202bdffec91",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "modelMode": "mock",
+  "fixture": "last user summary.diffs via GET message and message.updated SSE; session.diff remains empty",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c7-result-card",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:26:00.132Z",
+  "results": [
+    {
+      "id": "done-row-summary",
+      "status": "PASS",
+      "detail": {
+        "idle": true,
+        "appeared": true,
+        "summary": "1 file · 4s · OK",
+        "summaryEvents": 2
+      },
+      "at": "2026-10-15T00:25:48.864Z"
+    },
+    {
+      "id": "done-row-mark-read",
+      "status": "PASS",
+      "detail": {
+        "before": 1,
+        "after": 0,
+        "gone": true
+      },
+      "at": "2026-10-15T00:25:49.161Z"
+    },
+    {
+      "id": "done-row-diff",
+      "status": "PASS",
+      "detail": {
+        "routed": true,
+        "review": "[data-component=\"session-review-v2\"]",
+        "hasFile": true,
+        "filename": "c7-b-x3lcq.txt"
+      },
+      "at": "2026-10-15T00:25:58.979Z"
+    },
+    {
+      "id": "runtime-result-card",
+      "status": "PASS",
+      "detail": {
+        "shown": true,
+        "modeAfter": "live",
+        "text": "1 changed file in this session Open diff",
+        "files": 1,
+        "matchesFile": true,
+        "sessionScope": true
+      },
+      "at": "2026-10-15T00:25:59.415Z"
+    },
+    {
+      "id": "runtime-file-diff",
+      "status": "PASS",
+      "detail": {
+        "filename": "c7-b-x3lcq.txt",
+        "matched": true,
+        "patchVisible": true,
+        "runtimeHidden": true,
+        "browserErrors": []
+      },
+      "at": "2026-10-15T00:25:59.500Z"
+    },
+    {
+      "id": "runtime-all-diffs",
+      "status": "PASS",
+      "detail": {
+        "filename": "c7-b-x3lcq.txt",
+        "matched": true,
+        "patchVisible": true,
+        "runtimeHidden": true,
+        "browserErrors": []
+      },
+      "at": "2026-10-15T00:25:59.681Z"
+    }
+  ],
+  "summary": {
+    "PASS": 6,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

@@ -1,0 +1,118 @@
+{
+  "runId": "20261015-003417-t014-connection-9175",
+  "suite": "t014-connection",
+  "startedAt": "2026-10-15T00:34:17.955Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "8cb8113d6336d32dc20f394bbbac336d94b44fe1c630b2f2fcff9adc57ca678f",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "t014-connection",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:34:31.995Z",
+  "results": [
+    {
+      "id": "invalid-url",
+      "status": "PASS",
+      "detail": {
+        "connection": {
+          "state": "unconfigured",
+          "attempt": 0,
+          "error": "oco.serverUrl is not a valid URL",
+          "issue": "endpoint",
+          "label": "",
+          "trusted": true
+        },
+        "message": "The server address setting is invalid. oco.serverUrl is not a valid URL",
+        "statusText": "$(circle-slash) oco",
+        "proxyRequests": 0
+      },
+      "at": "2026-10-15T00:34:22.879Z"
+    },
+    {
+      "id": "open-settings",
+      "status": "PASS",
+      "detail": {
+        "shown": true,
+        "query": "oco",
+        "listed": [
+          "Oco › Decorations: Changed Files",
+          "Changed Files",
+          "Oco › Notify: Finished",
+          "Finished",
+          "Oco › Notify: Needs Me",
+          "Needs Me"
+        ]
+      },
+      "at": "2026-10-15T00:34:24.102Z"
+    },
+    {
+      "id": "valid-change",
+      "status": "PASS",
+      "detail": {
+        "connection": {
+          "state": "connected",
+          "attempt": 0,
+          "label": "http://127.0.0.1:60234",
+          "trusted": true
+        },
+        "proxyRequests": 23
+      },
+      "at": "2026-10-15T00:34:27.429Z"
+    },
+    {
+      "id": "auth-failure",
+      "status": "PASS",
+      "detail": {
+        "connection": {
+          "state": "unauthorized",
+          "attempt": 0,
+          "error": "Authentication failed (http://127.0.0.1:60234): the username or password is incorrect. Run “oco: Set Server Password”, or check the username in Settings",
+          "label": "http://127.0.0.1:60234",
+          "trusted": true
+        },
+        "retriedRequests": 0,
+        "statusText": "$(lock) oco: Password required"
+      },
+      "at": "2026-10-15T00:34:30.829Z"
+    },
+    {
+      "id": "offline",
+      "status": "PASS",
+      "detail": {
+        "connection": {
+          "state": "reconnecting",
+          "attempt": 1,
+          "error": "Cannot reach the server (offline or wrong address/port): terminated",
+          "label": "http://127.0.0.1:60234",
+          "trusted": true
+        }
+      },
+      "at": "2026-10-15T00:34:31.243Z"
+    },
+    {
+      "id": "secret-not-in-settings",
+      "status": "PASS",
+      "detail": {
+        "ocoSettingKeys": [
+          "oco.serverUrl"
+        ],
+        "secretInSettings": false,
+        "secretInState": false
+      },
+      "at": "2026-10-15T00:34:31.625Z"
+    }
+  ],
+  "summary": {
+    "PASS": 6,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

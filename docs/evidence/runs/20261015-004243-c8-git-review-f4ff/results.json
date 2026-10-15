@@ -1,0 +1,102 @@
+{
+  "runId": "20261015-004243-c8-git-review-f4ff",
+  "suite": "c8-git-review",
+  "startedAt": "2026-10-15T00:42:43.524Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "01f0424ca773db8d45b5b011ead2d7fe23d1555c3a127792606e3443cb0054b3",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "modelMode": "mock",
+  "fixture": "user summary.diffs only; native Git diff unmodified",
+  "serverVersion": "1.19.0",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c8-git-review",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:42:56.255Z",
+  "results": [
+    {
+      "id": "two-turn-files",
+      "status": "PASS",
+      "detail": {
+        "actualFiles": [
+          "c8scope-mv8te7fa-first.txt",
+          "c8scope-mv8te7fa-second.txt",
+          "c8scope-mv8te7fa-third.txt"
+        ],
+        "lastTurnFiles": [
+          "c8scope-mv8te7fa-second.txt",
+          "c8scope-mv8te7fa-third.txt"
+        ],
+        "unrelated": "c8scope-mv8te7fa-outside-session.txt"
+      },
+      "at": "2026-10-15T00:42:50.709Z"
+    },
+    {
+      "id": "sidebar-git-review",
+      "status": "PASS",
+      "detail": {
+        "scope": true,
+        "files": [
+          "c8scope-mv8te7fa-first.txt",
+          "c8scope-mv8te7fa-second.txt",
+          "c8scope-mv8te7fa-third.txt"
+        ]
+      },
+      "at": "2026-10-15T00:42:55.427Z"
+    },
+    {
+      "id": "session-card-files",
+      "status": "PASS",
+      "detail": {
+        "text": "Session changed files\n3 changed files in this session\nOpen all diffs\nc8scope-mv8te7fa-first.txt\nc8scope-mv8te7fa-second.txt\nc8scope-mv8te7fa-third.txt",
+        "listed": [
+          "c8scope-mv8te7fa-first.txt",
+          "c8scope-mv8te7fa-second.txt",
+          "c8scope-mv8te7fa-third.txt"
+        ],
+        "excludesUnrelated": true,
+        "history": "done"
+      },
+      "at": "2026-10-15T00:42:55.610Z"
+    },
+    {
+      "id": "runtime-git-review",
+      "status": "PASS",
+      "detail": {
+        "scope": true,
+        "files": [
+          "c8scope-mv8te7fa-first.txt",
+          "c8scope-mv8te7fa-second.txt",
+          "c8scope-mv8te7fa-third.txt"
+        ]
+      },
+      "at": "2026-10-15T00:42:55.683Z"
+    },
+    {
+      "id": "runtime-file-git-review",
+      "status": "PASS",
+      "detail": {
+        "scope": true,
+        "files": [
+          "c8scope-mv8te7fa-first.txt",
+          "c8scope-mv8te7fa-second.txt",
+          "c8scope-mv8te7fa-third.txt"
+        ],
+        "selected": true,
+        "patch": true
+      },
+      "at": "2026-10-15T00:42:55.853Z"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

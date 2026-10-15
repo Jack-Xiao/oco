@@ -1,0 +1,89 @@
+{
+  "runId": "20261015-000046-c21-follow-bbf9",
+  "suite": "c21-follow",
+  "startedAt": "2026-10-15T00:00:46.085Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "db50f34d2e7e19a9bb341dd1833ff250171312f41588c1be940b8f9696cbc8bc",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c21-follow",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:01:04.501Z",
+  "results": [
+    {
+      "id": "follow-on",
+      "status": "PASS",
+      "detail": {
+        "statusBarFollow": true
+      },
+      "at": "2026-10-15T00:00:59.400Z"
+    },
+    {
+      "id": "preview-open",
+      "status": "PASS",
+      "detail": {
+        "allowed": true,
+        "tab": {
+          "label": "c21-follow-3t07x",
+          "preview": true,
+          "dirty": false,
+          "active": true
+        },
+        "fileGroup": 1,
+        "chatGroup": 0,
+        "groups": [
+          {
+            "active": true,
+            "hasFocus": true,
+            "tabs": [
+              {
+                "label": "Mock: Use the write tool to create the file c2",
+                "preview": false,
+                "dirty": false,
+                "active": true
+              }
+            ]
+          },
+          {
+            "active": false,
+            "hasFocus": false,
+            "tabs": [
+              {
+                "label": "c21-follow-3t07x",
+                "preview": true,
+                "dirty": false,
+                "active": true
+              }
+            ]
+          }
+        ]
+      },
+      "at": "2026-10-15T00:01:03.614Z"
+    },
+    {
+      "id": "focus-stays",
+      "status": "PASS",
+      "detail": {
+        "samples": 7,
+        "stolen": [],
+        "chatGroupFocusedAfter": true,
+        "typedReachedChat": true,
+        "anyDirty": false
+      },
+      "at": "2026-10-15T00:01:03.993Z"
+    }
+  ],
+  "summary": {
+    "PASS": 3,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

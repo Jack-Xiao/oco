@@ -1,0 +1,130 @@
+{
+  "runId": "20261015-002913-p1b-main-panel-31ea",
+  "suite": "p1b-main-panel",
+  "startedAt": "2026-10-15T00:29:13.453Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "1f13aeff978e2ea5499f7a227b2bffb30342306591c30578ca95c0891741a4c2",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "modelMode": "mock",
+  "uncachedDelay": {
+    "paths": "^/session/(ses_ec309711effe45Qd5ohLQRwX8W|ses_ec30970ffffeg1f63qv3nRmi7I)$|^/session/ses_ec30970ffffeg1f63qv3nRmi7I/message$",
+    "ms": 3000
+  },
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "p1b-main-panel",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:29:53.580Z",
+  "results": [
+    {
+      "id": "switch-in-place",
+      "status": "PASS",
+      "detail": {
+        "switchMs": 394,
+        "panels": 1,
+        "mainSession": true,
+        "sameGeneration": true,
+        "showsAContent": false,
+        "switches": 1
+      },
+      "at": "2026-10-15T00:29:30.685Z"
+    },
+    {
+      "id": "send-after-switch",
+      "status": "PASS",
+      "detail": {
+        "landedInB": true,
+        "leakedToA": false
+      },
+      "at": "2026-10-15T00:29:32.361Z"
+    },
+    {
+      "id": "draft-per-session",
+      "status": "PASS",
+      "detail": {
+        "aHasBDraft": false,
+        "bKeptDraft": true,
+        "switchToAMs": 341,
+        "switchToBMs": 411
+      },
+      "at": "2026-10-15T00:29:34.970Z"
+    },
+    {
+      "id": "switch-uncached-ready",
+      "status": "PASS",
+      "detail": {
+        "requestedBefore": 0,
+        "midMs": 190,
+        "midRowsOfB": 2,
+        "midReady": false,
+        "shownMs": 3067,
+        "readyAfter": true
+      },
+      "at": "2026-10-15T00:29:38.438Z"
+    },
+    {
+      "id": "switch-uncached-no-blank",
+      "status": "PASS",
+      "detail": {
+        "requestedBefore": 0,
+        "emptyFrames": 0,
+        "frames": 456,
+        "changes": [
+          "11648 true true nRmi7I 101",
+          "11958 true true QRwX8W 101"
+        ],
+        "requests": [
+          "11957-12014-12014 QRwX8W/message?limit",
+          "11957-14971-14971 11effe45Qd5ohLQRwX8W"
+        ],
+        "shownMs": 122
+      },
+      "at": "2026-10-15T00:29:42.398Z"
+    },
+    {
+      "id": "pinned-unaffected",
+      "status": "PASS",
+      "detail": {
+        "newPanelOpenMs": 1927,
+        "switchMs": 348,
+        "panels": 2,
+        "pinnedSession": true,
+        "mainSession": true
+      },
+      "at": "2026-10-15T00:29:46.590Z"
+    },
+    {
+      "id": "open-shown-focuses",
+      "status": "PASS",
+      "detail": {
+        "panels": 2,
+        "mainKeepsA": true,
+        "activeTab": "oco pinned C k5sna, Editor Group 2"
+      },
+      "at": "2026-10-15T00:29:48.567Z"
+    },
+    {
+      "id": "reload-keeps-roles",
+      "status": "PASS",
+      "detail": {
+        "roles": [
+          "main:A",
+          "pinned:C"
+        ]
+      },
+      "at": "2026-10-15T00:29:53.219Z"
+    }
+  ],
+  "summary": {
+    "PASS": 8,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

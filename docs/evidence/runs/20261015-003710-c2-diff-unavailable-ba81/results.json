@@ -1,0 +1,67 @@
+{
+  "runId": "20261015-003710-c2-diff-unavailable-ba81",
+  "suite": "c2-diff-unavailable",
+  "startedAt": "2026-10-15T00:37:10.573Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "8edffc8911e6768c72c66c468cdcf9989c3c2c22a20d8be19a72dbe98bf3c984",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c2-diff-unavailable",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:37:24.427Z",
+  "results": [
+    {
+      "id": "unavailable-row",
+      "status": "PASS",
+      "detail": {
+        "shown": true,
+        "text": "本轮 Diff 不可用（快照缺失或读取失败）。以下文件由本轮工具写入，未显示前后内容：/Users/xiaojiang/Ai-Project/oco/.oco-test/workspace/math.ts",
+        "listed": [
+          "/Users/xiaojiang/Ai-Project/oco/.oco-test/workspace/math.ts"
+        ],
+        "diffRows": 0,
+        "scopeLabels": 0,
+        "fakeNoChange": false,
+        "intercepted": 1
+      },
+      "at": "2026-10-15T00:37:20.575Z"
+    },
+    {
+      "id": "unavailable-open",
+      "status": "PASS",
+      "detail": {
+        "editor": {
+          "tab": "math",
+          "tabs": [
+            "New session - 2026-10-15T00:37:15.249Z",
+            "math"
+          ]
+        },
+        "fileOpens": 1
+      },
+      "at": "2026-10-15T00:37:21.420Z"
+    },
+    {
+      "id": "control-diff-row",
+      "status": "PASS",
+      "detail": {
+        "rowShown": true,
+        "unavailableCount": 0
+      },
+      "at": "2026-10-15T00:37:24.016Z"
+    }
+  ],
+  "summary": {
+    "PASS": 3,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

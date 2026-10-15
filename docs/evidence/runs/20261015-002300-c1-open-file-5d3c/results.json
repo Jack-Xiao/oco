@@ -1,0 +1,393 @@
+{
+  "runId": "20261015-002300-c1-open-file-5d3c",
+  "suite": "c1-open-file",
+  "startedAt": "2026-10-15T00:23:00.895Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "362f4fcadea202cfa891a315f3ed6a47d866f0cf189c08118e431ddce9c0d17a",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c1-open-file",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T00:23:32.623Z",
+  "results": [
+    {
+      "id": "open-file-line",
+      "status": "PASS",
+      "detail": {
+        "editor": {
+          "tab": "math",
+          "pos": "Ln 3, Col 1",
+          "tabs": [
+            "New session - 2026-10-15T00:23:06.211Z",
+            "math"
+          ],
+          "groups": [
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": "New session - 2026-10-15T00:23:06.211Z",
+              "tabs": [
+                "New session - 2026-10-15T00:23:06.211Z"
+              ]
+            },
+            {
+              "active": true,
+              "hasFocus": true,
+              "activeTab": "math",
+              "tabs": [
+                "math"
+              ]
+            }
+          ]
+        },
+        "fileOpens": 1
+      },
+      "at": "2026-10-15T00:23:12.921Z"
+    },
+    {
+      "id": "open-file-refused",
+      "status": "PASS",
+      "detail": {
+        "attempts": 5,
+        "rejected": 5,
+        "opened": 0,
+        "lastReason": "Only local file paths can be opened",
+        "tabs": [
+          "New session - 2026-10-15T00:23:06.211Z",
+          "math"
+        ]
+      },
+      "at": "2026-10-15T00:23:14.059Z"
+    },
+    {
+      "id": "tool-click-opens",
+      "status": "PASS",
+      "detail": {
+        "readTool": true,
+        "readInput": {
+          "filePath": ".../math.ts",
+          "offset": 2
+        },
+        "linkFound": true,
+        "expectLine": 2,
+        "editor": {
+          "tab": "math",
+          "pos": "Ln 2, Col 1",
+          "tabs": [
+            "Mock: Use the read tool on math.ts with offset",
+            "math"
+          ],
+          "groups": [
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": null,
+              "tabs": []
+            },
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": "Mock: Use the read tool on math.ts with offset",
+              "tabs": [
+                "Mock: Use the read tool on math.ts with offset"
+              ]
+            },
+            {
+              "active": true,
+              "hasFocus": true,
+              "activeTab": "math",
+              "tabs": [
+                "math"
+              ]
+            }
+          ]
+        },
+        "fileOpens": 1
+      },
+      "at": "2026-10-15T00:23:18.607Z"
+    },
+    {
+      "id": "position-parse",
+      "status": "PASS",
+      "detail": {
+        "got": [
+          {
+            "raw": "math.ts:2",
+            "want": 2,
+            "ok": true,
+            "editor": {
+              "tab": "math",
+              "pos": "Ln 2, Col 1",
+              "tabs": [
+                "New session - 2026-10-15T00:23:18.754Z",
+                "math"
+              ],
+              "groups": [
+                {
+                  "active": false,
+                  "hasFocus": false,
+                  "activeTab": null,
+                  "tabs": []
+                },
+                {
+                  "active": false,
+                  "hasFocus": false,
+                  "activeTab": null,
+                  "tabs": []
+                },
+                {
+                  "active": false,
+                  "hasFocus": false,
+                  "activeTab": "New session - 2026-10-15T00:23:18.754Z",
+                  "tabs": [
+                    "New session - 2026-10-15T00:23:18.754Z"
+                  ]
+                },
+                {
+                  "active": true,
+                  "hasFocus": true,
+                  "activeTab": "math",
+                  "tabs": [
+                    "math"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "raw": "math.ts#L3",
+            "want": 3,
+            "ok": true,
+            "editor": {
+              "tab": "math",
+              "pos": "Ln 3, Col 1",
+              "tabs": [
+                "New session - 2026-10-15T00:23:18.754Z",
+                "math",
+                "math"
+              ],
+              "groups": [
+                {
+                  "active": false,
+                  "hasFocus": false,
+                  "activeTab": null,
+                  "tabs": []
+                },
+                {
+                  "active": false,
+                  "hasFocus": false,
+                  "activeTab": null,
+                  "tabs": []
+                },
+                {
+                  "active": false,
+                  "hasFocus": false,
+                  "activeTab": "New session - 2026-10-15T00:23:18.754Z",
+                  "tabs": [
+                    "New session - 2026-10-15T00:23:18.754Z"
+                  ]
+                },
+                {
+                  "active": false,
+                  "hasFocus": false,
+                  "activeTab": "math",
+                  "tabs": [
+                    "math"
+                  ]
+                },
+                {
+                  "active": true,
+                  "hasFocus": true,
+                  "activeTab": "math",
+                  "tabs": [
+                    "math"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "at": "2026-10-15T00:23:19.717Z"
+    },
+    {
+      "id": "markdown-path",
+      "status": "PASS",
+      "detail": {
+        "found": true,
+        "codeText": "math.ts:4",
+        "plainCode": [
+          "npm test"
+        ],
+        "plainIgnored": true,
+        "editor": {
+          "tab": "math",
+          "pos": "Ln 4, Col 1",
+          "tabs": [
+            "Mock: Do not use any tools. Reply with exactly",
+            "math"
+          ],
+          "groups": [
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": null,
+              "tabs": []
+            },
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": null,
+              "tabs": []
+            },
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": null,
+              "tabs": []
+            },
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": null,
+              "tabs": []
+            },
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": "Mock: Do not use any tools. Reply with exactly",
+              "tabs": [
+                "Mock: Do not use any tools. Reply with exactly"
+              ]
+            },
+            {
+              "active": true,
+              "hasFocus": true,
+              "activeTab": "math",
+              "tabs": [
+                "math"
+              ]
+            }
+          ]
+        },
+        "fileOpens": 1,
+        "focusTrace": [
+          "4881 open-start focusAge=83 panel.active=true",
+          "5110 settled panel.active=true",
+          "5123 panel.active=false",
+          "5134 open-done panel.active=false editor=math.ts"
+        ]
+      },
+      "at": "2026-10-15T00:23:25.650Z"
+    },
+    {
+      "id": "diff-summary",
+      "status": "PASS",
+      "detail": {
+        "scope": "本轮工作区变化（含期间外部修改）",
+        "permissionAsked": true,
+        "found": true,
+        "file": "c1-note.txt",
+        "expanded": true,
+        "chevronOpened": 0,
+        "editor": {
+          "tab": "c1-note",
+          "pos": "Ln 1, Col 1",
+          "tabs": [
+            "Mock: Use the write tool to create the file c1",
+            "c1-note"
+          ],
+          "groups": [
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": null,
+              "tabs": []
+            },
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": null,
+              "tabs": []
+            },
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": null,
+              "tabs": []
+            },
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": null,
+              "tabs": []
+            },
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": null,
+              "tabs": []
+            },
+            {
+              "active": false,
+              "hasFocus": false,
+              "activeTab": "Mock: Use the write tool to create the file c1",
+              "tabs": [
+                "Mock: Use the write tool to create the file c1"
+              ]
+            },
+            {
+              "active": true,
+              "hasFocus": true,
+              "activeTab": "c1-note",
+              "tabs": [
+                "c1-note"
+              ]
+            }
+          ]
+        },
+        "fileOpens": 1,
+        "focusTrace": [
+          "11322 open-start focusAge=89 panel.active=true",
+          "11545 settled panel.active=true",
+          "11567 panel.active=false",
+          "11586 open-done panel.active=false editor=c1-note.txt"
+        ],
+        "timeline": [
+          {
+            "ms": 3,
+            "active": 5,
+            "tab": "Mock: Use the write tool to create the file c1",
+            "pos": null
+          },
+          {
+            "ms": 206,
+            "active": 5,
+            "tab": "Mock: Use the write tool to create the file c1",
+            "pos": null
+          },
+          {
+            "ms": 422,
+            "active": 6,
+            "tab": "c1-note",
+            "pos": "Ln 1, Col 1"
+          }
+        ]
+      },
+      "at": "2026-10-15T00:23:32.079Z"
+    }
+  ],
+  "summary": {
+    "PASS": 6,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

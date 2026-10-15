@@ -1,0 +1,210 @@
+{
+  "runId": "20261014-235358-p1b-sidebar-5b00",
+  "suite": "p1b-sidebar",
+  "startedAt": "2026-10-14T23:53:58.569Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "851f8fad08a704543cd022bfa12e0f153bc133fb5d736ed0e54463bbc841302c",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "p1b-sidebar-restricted",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "restrictedWorkspace": "temp folder outside the trusted home folder",
+  "finishedAt": "2026-10-14T23:55:01.031Z",
+  "results": [
+    {
+      "id": "sidebar-list",
+      "status": "PASS",
+      "detail": {
+        "state": "connected",
+        "items": 100,
+        "recent": 21,
+        "more": 79,
+        "loadMore": true,
+        "serverRoots": 200,
+        "firstMatches": true,
+        "groupsOk": true,
+        "moreRowOk": true,
+        "lastRows": null,
+        "loadedAfterClick": null,
+        "statusText": "$(warning) oco"
+      },
+      "at": "2026-10-14T23:54:15.640Z"
+    },
+    {
+      "id": "single-view-header",
+      "status": "PASS",
+      "detail": {
+        "containerTitle": "Oco: Sessions",
+        "connectionHeaders": 0,
+        "agentsHeaders": 0,
+        "newSession": true,
+        "paneHeaders": [
+          "Sessions"
+        ]
+      },
+      "at": "2026-10-14T23:54:15.744Z"
+    },
+    {
+      "id": "sidebar-create",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ec3296a83ffeCRQInLt20zk0Xi",
+        "listedFirst": true,
+        "description": "now",
+        "group": "recent",
+        "activity": "idle",
+        "aria": "Mock: Reply with exactly: PLUS-created, now",
+        "serverDirectory": true
+      },
+      "at": "2026-10-14T23:54:19.923Z"
+    },
+    {
+      "id": "sidebar-rename",
+      "status": "PASS",
+      "detail": {
+        "serverTitle": true,
+        "treeTitle": true,
+        "tabTitle": true
+      },
+      "at": "2026-10-14T23:54:25.620Z"
+    },
+    {
+      "id": "sidebar-search",
+      "status": "PASS",
+      "detail": {
+        "matches": [
+          "ses_ec3296451ffeEukoS2NjH1M7Ur"
+        ],
+        "searchOpened": true,
+        "flat": true,
+        "rowVisible": true,
+        "restoredCount": 102,
+        "total": 102
+      },
+      "at": "2026-10-14T23:54:26.574Z"
+    },
+    {
+      "id": "chain-draft",
+      "status": "PASS",
+      "detail": {
+        "draftHead": "math.ts:1-4\n```typescript\nexport function add(a: number, b: number) {\n  return a",
+        "sentMessages": 0
+      },
+      "at": "2026-10-14T23:54:29.102Z"
+    },
+    {
+      "id": "chain-permission",
+      "status": "PASS",
+      "detail": {
+        "requestId": "per_13cd6c4c2001gdZsSC5C8Jc2xN",
+        "sidebarActivity": "permission",
+        "aria": "oco-renamed-grd9o, Waiting for permission, now",
+        "description": "now",
+        "waitingDot": "dot waiting",
+        "badge": 1,
+        "statusBar": "$(warning) oco $(bell-dot) 1",
+        "toolStatus": "completed",
+        "sidebarIdleAfter": true,
+        "draftWasSent": true
+      },
+      "at": "2026-10-14T23:54:32.284Z"
+    },
+    {
+      "id": "chain-stop",
+      "status": "PASS",
+      "detail": {
+        "sidebarBusy": true,
+        "error": "MessageAbortedError",
+        "sidebarIdleAfter": true,
+        "sidebarActivity": "idle"
+      },
+      "at": "2026-10-14T23:54:34.359Z"
+    },
+    {
+      "id": "sidebar-status-icons",
+      "status": "PASS",
+      "detail": {
+        "runningClass": "dot running",
+        "runningStatus": "running",
+        "runningAnimation": "oco-pulse",
+        "waitingClass": "dot waiting",
+        "waitingStatus": "waiting"
+      },
+      "at": "2026-10-14T23:54:34.359Z"
+    },
+    {
+      "id": "switch-restore",
+      "status": "PASS",
+      "detail": {
+        "aRestored": true,
+        "aDraftHasOwn": true,
+        "aDraftHasB": false,
+        "bDraftHasOwn": true,
+        "bDraftHasA": false,
+        "panelsA": 1,
+        "panelsB": 1,
+        "panelConnections": 1,
+        "sidebarState": "connected"
+      },
+      "at": "2026-10-14T23:54:39.454Z"
+    },
+    {
+      "id": "focus-existing-group",
+      "status": "PASS",
+      "detail": {
+        "visibleBefore": 2,
+        "panelsBefore": 2,
+        "panelsAfterClicks": [
+          2,
+          2
+        ],
+        "visibleAfter": 2,
+        "activeTabIsA": true
+      },
+      "at": "2026-10-14T23:54:46.623Z"
+    },
+    {
+      "id": "connection-switch",
+      "status": "PASS",
+      "detail": {
+        "downState": "error",
+        "downItems": 0,
+        "downStatus": "$(debug-disconnect) oco: Not connected",
+        "downMessage": "Cannot connect to the OpenCode server (offline or wrong address). Retrying with backoff.\nCannot reach the server (offline or wrong address/port): fetch failed",
+        "upState": "connected",
+        "itemsBefore": 103,
+        "itemsAfter": 100,
+        "duplicates": 0,
+        "emptyFlash": false,
+        "loadingSeen": false
+      },
+      "at": "2026-10-14T23:54:49.206Z"
+    },
+    {
+      "id": "restricted-mode",
+      "status": "PASS",
+      "detail": {
+        "trusted": false,
+        "listed": 1,
+        "newSessionActionDisabled": true,
+        "panelsOpenedByClick": 0,
+        "statusTooltipMentionsReadOnly": null
+      },
+      "at": "2026-10-14T23:55:00.674Z"
+    }
+  ],
+  "summary": {
+    "PASS": 13,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

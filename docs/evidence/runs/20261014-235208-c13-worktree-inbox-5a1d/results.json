@@ -1,0 +1,102 @@
+{
+  "runId": "20261014-235208-c13-worktree-inbox-5a1d",
+  "suite": "c13-worktree-inbox",
+  "startedAt": "2026-10-14T23:52:08.899Z",
+  "ocoCommit": "ccb362270fc7be095f905c88004252bd0fe0dc2f",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "b397396353565b8fc0e6f75b67473197fbbc1037767f1910bfe2a91f83a2c510",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "modelMode": "mock",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c13-worktree-inbox",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-14T23:52:36.677Z",
+  "results": [
+    {
+      "id": "worktree-sessions-waiting",
+      "status": "PASS",
+      "detail": {
+        "dirs": [
+          "/Users/xiaojiang/Ai-Project/oco/.oco-test/xdg/data/opencode/worktree/9a447905e5aa81c275e7bd59cb5829c8efd17f53/nimble-river",
+          "/Users/xiaojiang/Ai-Project/oco/.oco-test/xdg/data/opencode/worktree/9a447905e5aa81c275e7bd59cb5829c8efd17f53/brave-river"
+        ],
+        "sessions": [
+          "ses_ec32b3ef5ffePoJ877wAaz5fUK",
+          "ses_ec32b1d51ffefrP0miXYSuUe3S"
+        ]
+      },
+      "at": "2026-10-14T23:52:31.019Z"
+    },
+    {
+      "id": "inbox-two-rows",
+      "status": "PASS",
+      "detail": {
+        "rows": 2,
+        "openPanels": 0
+      },
+      "at": "2026-10-14T23:52:33.501Z"
+    },
+    {
+      "id": "status-count-two",
+      "status": "PASS",
+      "detail": {
+        "statusBar": [
+          {
+            "aria": "warning  oco  bell-dot  2, oco: Connected to http://127.0.0.1:4517\n/Users/xiaojiang/Ai-Project/oco/.oco-test/c13/ws-gdu7p\nMode: Attached server\nServer version: 1.19.0\nNote: Server 1.19.0 is not verified by oco (verified: 1.18.33, 1.18.13)",
+            "text": "oco 2",
+            "bell": true
+          }
+        ],
+        "count": 2
+      },
+      "at": "2026-10-14T23:52:33.505Z"
+    },
+    {
+      "id": "inbox-allow-both",
+      "status": "PASS",
+      "detail": {
+        "clicked": 2
+      },
+      "at": "2026-10-14T23:52:34.946Z"
+    },
+    {
+      "id": "permissions-cleared",
+      "status": "PASS",
+      "detail": {
+        "leftover": {
+          "/Users/xiaojiang/Ai-Project/oco/.oco-test/xdg/data/opencode/worktree/9a447905e5aa81c275e7bd59cb5829c8efd17f53/nimble-river": 0,
+          "/Users/xiaojiang/Ai-Project/oco/.oco-test/xdg/data/opencode/worktree/9a447905e5aa81c275e7bd59cb5829c8efd17f53/brave-river": 0
+        }
+      },
+      "at": "2026-10-14T23:52:34.976Z"
+    },
+    {
+      "id": "inbox-and-count-zero",
+      "status": "PASS",
+      "detail": {
+        "inboxRows": 0,
+        "statusBar": [
+          {
+            "aria": "warning  oco, oco: Connected to http://127.0.0.1:4517\n/Users/xiaojiang/Ai-Project/oco/.oco-test/c13/ws-gdu7p\nMode: Attached server\nServer version: 1.19.0\nNote: Server 1.19.0 is not verified by oco (verified: 1.18.33, 1.18.13)",
+            "text": "oco",
+            "bell": false
+          }
+        ],
+        "count": 0
+      },
+      "at": "2026-10-14T23:52:34.981Z"
+    }
+  ],
+  "summary": {
+    "PASS": 6,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}
