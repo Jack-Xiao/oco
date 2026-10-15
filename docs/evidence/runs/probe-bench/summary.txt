@@ -1,0 +1,48 @@
+# test:bench run 2026-10-15 (tests/bench/run.mjs; 1st full run: 61 passed / 4 failed, 20.2 min; port chosen free at start)
+
+unit half: 43 pass / 0 fail (bun test ./e2e/performance/unit, default env)
+playwright half: 65 tests, 1 worker, chromium; 21 emit BENCHMARK rows (below); other 44 are stability specs without metrics
+
+passed  first navigation paint > opens an unvisited session tab without a blank frame | firstDestinationObservedMs=60.1 stableDestinationObservedMs=72.6
+passed  first navigation paint > opens the new session page before its lazy module is used | firstDestinationObservedMs=85.3 stableDestinationObservedMs=91.9
+passed  first navigation paint > opens a child session without a blank frame | firstDestinationObservedMs=91 stableDestinationObservedMs=99.5
+passed  home and tab navigation > opens a home session and paints its titlebar tab | milestones.content.firstObservedMs=139.1 milestones.content.stableObservedMs=163.4 milestones.tab.firstObservedMs=139.1 milestones.tab.stableObservedMs=163.4 all.firstObservedMs=139.1 all.stableObservedMs=163.4
+failed  home and tab navigation > stages the review body after cold session content | 
+passed  home and tab navigation > closes the only session tab and paints home | milestones.home.firstObservedMs=69.7 milestones.home.stableObservedMs=72.6 milestones.row.firstObservedMs=69.7 milestones.row.stableObservedMs=72.6 milestones.tabRemoved.firstObservedMs=69.7 milestones.tabRemoved.stableObservedMs=72.6
+passed  review pane scaling > 100 changed lines across 1 file | firstTreeRowMs=69.3 logicalTreeReadyMs=69.3 firstDiffRenderMs=176.3 stableReadyMs=194.6 responseStartMs=15.7 responseEndMs=15.7
+passed  review pane scaling > 1000 changed lines across 10 files | firstTreeRowMs=95.3 logicalTreeReadyMs=95.3 firstDiffRenderMs=236.8 stableReadyMs=252.4 responseStartMs=19.5 responseEndMs=19.5
+passed  review pane scaling > 10000 changed lines across 100 files | firstTreeRowMs=69.4 logicalTreeReadyMs=69.4 firstDiffRenderMs=219.5 stableReadyMs=237.6 responseStartMs=20.3 responseEndMs=20.3
+passed  review pane scaling > 100000 changed lines across 1000 files | firstTreeRowMs=81.6 logicalTreeReadyMs=81.6 firstDiffRenderMs=205 stableReadyMs=231.7 responseStartMs=60.7 responseEndMs=60.7
+passed  review pane scaling > 1000000 changed lines across 10000 files | firstTreeRowMs=511.4 logicalTreeReadyMs=511.4 firstDiffRenderMs=711.8 stableReadyMs=737.2 responseStartMs=495.4 responseEndMs=495.4
+failed  hydrates an orphaned latest turn after a cold session click | 
+passed  samples cached session repaint after the click | durationMs=995.8 firstSampleObservedMs=6.4 mountedMax=8 maxBottomErrorPx=0 maxLayoutShiftValue=0
+passed  prefetches every open session tab | 
+passed  benchmarks cold and hot session tab switching | cold.firstDestinationObservedMs.min=55.1 cold.firstDestinationObservedMs.median=59.2 cold.firstDestinationObservedMs.max=73.1 cold.firstDestinationObservedMs.missing=0 cold.firstCorrectObservedMs.min=55.1 cold.firstCorrectObservedMs.median=59.2
+passed  benchmarks v2 session tab switching with and without the review pane | 
+passed  session timeline streaming > streams assistant text without remounting or oscillating | endToEndInitialContentObservedMs=368.6 completionObservedMs=228571.8 rafGapSamples=1060 observedProgressWindowRafGapP95Ms=841.2 observedProgressWindowRafGaps=1000 maxObservedProgressIndex=160
+passed  session timeline streaming > streams assistant text in v2 with review pane closed | endToEndInitialContentObservedMs=172.6 completionObservedMs=211080.3 rafGapSamples=877 observedProgressWindowRafGapP95Ms=857.8 observedProgressWindowRafGaps=816 maxObservedProgressIndex=160
+passed  session timeline streaming > streams assistant text in v2 with review diffs and pane closed | endToEndInitialContentObservedMs=378.5 completionObservedMs=192887.6 rafGapSamples=867 observedProgressWindowRafGapP95Ms=749.2 observedProgressWindowRafGaps=821 maxObservedProgressIndex=160
+passed  session timeline streaming > streams assistant text in v2 with review pane open | endToEndInitialContentObservedMs=390.3 completionObservedMs=209192.3 rafGapSamples=814 observedProgressWindowRafGapP95Ms=750.2 observedProgressWindowRafGaps=779 maxObservedProgressIndex=160
+passed  review pane > loads v2 review diffs and switches active files | open.summary.firstReadyObservedMs=144.5 open.summary.stableReadyObservedMs=148.2 open.summary.maxDiffViewers=1 open.summary.maxDiffLines=0 open.summary.maxCodeBlocks=0
+
+## failures (first run)
+  1) [chromium] › e2e/performance/timeline/home-tab-navigation-benchmark.spec.ts:40:3 › performance: home and tab navigation › stages the review body after cold session content 
+    Error: expect(locator).toBeVisible() failed
+    Locator: locator('[data-component="session-review"]')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+  2) [chromium] › e2e/performance/timeline/session-parent-hydration-benchmark.spec.ts:51:1 › hydrates an orphaned latest turn after a cold session click 
+    Test timeout of 180000ms exceeded.
+    Error: page.evaluate: Target page, context or browser has been closed
+  3) [chromium] › e2e/performance/timeline-stability/adverse.spec.ts:82:3 › timeline adverse visual stability › preserves an explicit shell state across virtualization 
+    Error: expect(locator).toHaveCount(expected) failed
+    Locator:  locator('[data-timeline-part-id="prt_virtual_shell"]')
+    Expected: 0
+    Received: 1
+    Timeout:  10000ms
+  4) [chromium] › e2e/performance/timeline-stability/scroll-interaction.spec.ts:51:1 › keeps moving upward while drag-selecting above the timeline 
+    Error: expect(received).not.toBeNull()
+    Received: null
+
+## rerun of the 4 failing tests (same wrapper, new free port): 1 passed (keeps moving upward while drag-selecting above the timeline), 3 failed again (home-tab-navigation:40, session-parent-hydration:51, adverse:82)

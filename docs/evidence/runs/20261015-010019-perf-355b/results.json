@@ -1,0 +1,205 @@
+{
+  "runId": "20261015-010019-perf-355b",
+  "suite": "perf",
+  "startedAt": "2026-10-15T01:00:19.349Z",
+  "ocoCommit": "71bfce4d271d439ceeb349ab06c96fcadf365393",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "7159f2cecff187af6d99a47f31fbd67164d7b6d39191cd5c18f342aa66590e89",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "perf",
+  "modelMode": "mock",
+  "model": "oco-mock/mock",
+  "method": "ps RSS summed per Electron --type of processes whose command line contains this test profile; webviews run in renderer processes; latency = palette command to visible composer",
+  "idle": {
+    "main": {
+      "processes": 1,
+      "mb": 201
+    },
+    "gpu-process": {
+      "processes": 1,
+      "mb": 86
+    },
+    "utility": {
+      "processes": 1,
+      "mb": 45
+    },
+    "renderer": {
+      "processes": 1,
+      "mb": 413
+    },
+    "utility:node(extHost)": {
+      "processes": 3,
+      "mb": 420
+    },
+    "totalMB": 1165
+  },
+  "fourPanels": {
+    "panels": 4,
+    "visible": 3,
+    "streams": 4,
+    "rss": {
+      "main": {
+        "processes": 1,
+        "mb": 157
+      },
+      "gpu-process": {
+        "processes": 1,
+        "mb": 84
+      },
+      "utility": {
+        "processes": 1,
+        "mb": 44
+      },
+      "renderer": {
+        "processes": 2,
+        "mb": 470
+      },
+      "utility:node(extHost)": {
+        "processes": 3,
+        "mb": 260
+      },
+      "totalMB": 1015
+    }
+  },
+  "openMs": [
+    4518,
+    1374,
+    1157,
+    1248
+  ],
+  "switchMs": [
+    438,
+    349,
+    299,
+    318,
+    312,
+    389,
+    335,
+    314,
+    301,
+    416,
+    319,
+    467
+  ],
+  "switchMedianMs": 335,
+  "after": {
+    "main": {
+      "processes": 1,
+      "mb": 163
+    },
+    "gpu-process": {
+      "processes": 1,
+      "mb": 84
+    },
+    "utility": {
+      "processes": 1,
+      "mb": 44
+    },
+    "renderer": {
+      "processes": 2,
+      "mb": 607
+    },
+    "utility:node(extHost)": {
+      "processes": 3,
+      "mb": 251
+    },
+    "totalMB": 1149
+  },
+  "finishedAt": "2026-10-15T01:01:03.512Z",
+  "results": [
+    {
+      "id": "panels-bounded",
+      "status": "PASS",
+      "detail": {
+        "panels": 4,
+        "main": 1,
+        "pinned": 3
+      },
+      "at": "2026-10-15T01:01:02.941Z"
+    },
+    {
+      "id": "no-stream-leak",
+      "status": "PASS",
+      "detail": {
+        "panels": 4,
+        "openEventStreams": 4,
+        "perPanel": [
+          {
+            "role": "main",
+            "visible": true,
+            "streamsOpen": 1,
+            "generation": 1
+          },
+          {
+            "role": "pinned",
+            "visible": false,
+            "streamsOpen": 1,
+            "generation": 2
+          },
+          {
+            "role": "pinned",
+            "visible": true,
+            "streamsOpen": 1,
+            "generation": 3
+          },
+          {
+            "role": "pinned",
+            "visible": true,
+            "streamsOpen": 1,
+            "generation": 4
+          }
+        ]
+      },
+      "at": "2026-10-15T01:01:02.942Z"
+    },
+    {
+      "id": "hidden-stays-alive",
+      "status": "PASS",
+      "detail": {
+        "hiddenPinned": 1,
+        "generations": [
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ]
+        ],
+        "inflight": [
+          1,
+          1,
+          1
+        ]
+      },
+      "at": "2026-10-15T01:01:02.943Z"
+    },
+    {
+      "id": "rss-bounded",
+      "status": "PASS",
+      "detail": {
+        "firstSwitchMB": 930,
+        "lastSwitchMB": 1154,
+        "growthPct": 24.1
+      },
+      "at": "2026-10-15T01:01:02.943Z"
+    }
+  ],
+  "summary": {
+    "PASS": 4,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

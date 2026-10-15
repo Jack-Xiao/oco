@@ -10,7 +10,7 @@
 import { execSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 import { createRun } from "./lib/results.mjs"
-import { launch, command, chatFrames, sleep, hostState } from "./vscode.mjs"
+import { launch, command, chatFrames, sleep, hostState, userDataDirFor } from "./vscode.mjs"
 import { api } from "./server.mjs"
 
 const REQUIRED = ["panels-bounded", "no-stream-leak", "hidden-stays-alive", "rss-bounded"]
@@ -23,8 +23,12 @@ run.installCrashHandlers(async () => {
 })
 const state = () => hostState(page, stateFile)
 
+// Match the processes of THIS profile by the exact --user-data-dir the launcher used. A hard-coded ".oco-test/vscode/perf"
+// substring misses every process when vscode.mjs moves a long user-data-dir to a short temp path (userDataDirFor, e.g. a
+// linked worktree or a long checkout path), and then the suite measures 0 MB.
+const PROFILE_DIR = userDataDirFor("perf")
 function rss() {
-  const lines = execSync("ps -axo pid=,rss=,command=").toString().split("\n").filter((l) => l.includes(".oco-test/vscode/perf"))
+  const lines = execSync("ps -axo pid=,rss=,command=").toString().split("\n").filter((l) => l.includes(`--user-data-dir=${PROFILE_DIR} `) || l.endsWith(`--user-data-dir=${PROFILE_DIR}`) || l.includes(PROFILE_DIR + "/"))
   const out = {}
   for (const l of lines) {
     const m = l.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/)

@@ -58,6 +58,7 @@ const CHECKS = [
   "focus-stable",
   "focus-on-change",
   "geometry-stable",
+  "tools-k-collapse",
   "legend",
   "summary",
   "fill",
@@ -1317,6 +1318,20 @@ try {
   await sleep(600)
   const geomDone = await geomOf()
   await page.screenshot({ path: run.artifact("par-done.png") })
+  // tools-k-collapse: `data-oco-runtime-tools-k` is a per-frame openness value (dockOpen). While the round runs the dock is
+  // open (> 0); after the last request ends without a tool call it closes over LANE_MS (420 ms) and must rest at 0. A sample
+  // taken at the moment of "end" can show a mid-transition value (2026-10-10 saw 0.380), so the settled value is read >= 2 s
+  // after the round went idle (waitIdle + 600 ms above + 2000 ms here, so >= 2.6 s) and again 1 s later to prove it stays at 0.
+  const toolsKRunning = Number(geomRunning2.dk)
+  await sleep(2000)
+  const geomSettled = await geomOf()
+  await sleep(1000)
+  const geomSettled2 = await geomOf()
+  run.record(
+    "tools-k-collapse",
+    toolsKRunning > 0 && geomSettled.dk === "0.000" && geomSettled2.dk === "0.000" ? "PASS" : "FAIL",
+    { running: geomRunning.dk, running2: geomRunning2.dk, atDone600ms: geomDone.dk, settledAfter2s: geomSettled.dk, settledAfter3s: geomSettled2.dk },
+  )
 
   // parallel-subagents: three cells ran side by side (cells "run", probe layers "running"), then all three are collected ("done").
   // The probe layer fades out LINGER_MS + FADE_MS after the return packet arrives, so "absorbed" is not asserted after the end.
