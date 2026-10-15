@@ -57,6 +57,12 @@ fi
 
 if [ ${#SUITES[@]} -eq 0 ]; then
   if [ "$LOOP_GIVEN" = 1 ]; then SUITES=(p1b-narrow); else read -r -a SUITES <<< "$DEFAULT_SUITES"; fi
+  # Suites driven by scripted mock tokens record NOT RUN against a real model; leave them out of a default --real batch.
+  if [ "$MODE" = "real" ] && [ "$LOOP_GIVEN" != 1 ]; then
+    MOCK_ONLY=" c6-inbox c16-sidebar-stop c17-subagent-aggregate "
+    KEEP=(); for s in "${SUITES[@]}"; do case "$MOCK_ONLY" in *" $s "*) ;; *) KEEP+=("$s") ;; esac; done
+    SUITES=("${KEEP[@]}"); echo "real mode: skipping mock-only suites:$MOCK_ONLY"
+  fi
 fi
 for s in "${SUITES[@]}"; do
   if [ ! -f "$ROOT/tests/e2e/$s.mjs" ]; then echo "no such suite: tests/e2e/$s.mjs" >&2; exit 2; fi
