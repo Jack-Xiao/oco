@@ -17,6 +17,7 @@ import { registerTerminalOutput } from "./terminal-output"
 import { registerFixWithOpenCode } from "./fix-with-opencode"
 import { ReviewNotes, registerReviewNotesCommands } from "./review-notes"
 import { registerCompactSession } from "./compact-session"
+import { registerExportSession } from "./export-session"
 import { registerStopSessions } from "./stop-sessions"
 import { ManagedServer } from "./managed-server"
 import { redactValue, VERIFIED_SERVERS } from "./diagnostics"
@@ -39,6 +40,37 @@ function tapLog(log: vscode.LogOutputChannel, recent: string[]) {
     }
   }
   return log
+}
+
+function parseModelLimits(data: unknown): Map<string, number> {
+  const limits = new Map<string, number>()
+  if (!data || typeof data !== "object") return limits
+  const list: any[] = Array.isArray(data)
+    ? data
+    : Array.isArray((data as any).providers)
+      ? (data as any).providers
+      : typeof (data as any).providers === "object"
+        ? Object.values((data as any).providers)
+        : Object.values(data)
+
+  for (const prov of list) {
+    if (!prov || typeof prov !== "object") continue
+    const provId = String(prov.id ?? "")
+    const models = prov.models
+    if (!models || typeof models !== "object") continue
+    const entries = Array.isArray(models)
+      ? models.map((m: any) => [m.id ?? m.name, m])
+      : Object.entries(models)
+    for (const [mId, mObj] of entries) {
+      if (!mObj || typeof mObj !== "object") continue
+      const ctxLimit = (mObj as any)?.limit?.context ?? (mObj as any)?.context
+      if (typeof ctxLimit === "number" && ctxLimit > 0) {
+        if (provId) limits.set(`${provId}/${mId}`, ctxLimit)
+        limits.set(String(mId), ctxLimit)
+      }
+    }
+  }
+  return limits
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -64,6 +96,46 @@ export function activate(context: vscode.ExtensionContext) {
     }
   })
   const view = new SessionsView(store, context.workspaceState)
+
+  let cachedLimits: Map<string, number> | undefined
+  let cachedLimitsConnId: string | undefined
+  let fetchLimitsPromise: Promise<void> | undefined
+  // A failed fetch (server not up yet, auth pending) is retried on a later refresh, not pinned: conn.id is derived from
+  // the endpoint setting and does not change when the connection comes up.
+  let limitsRetryAt = 0
+
+  const fetchLimitsLazy = () => {
+    const currentConnId = conn.id
+    if (cachedLimits && cachedLimitsConnId === currentConnId) return
+    if (fetchLimitsPromise || Date.now() < limitsRetryAt) return
+    fetchLimitsPromise = conn
+      .request<unknown>("GET", "/provider")
+      .then((resp) => {
+        cachedLimits = parseModelLimits(resp)
+        cachedLimitsConnId = currentConnId
+        view.refreshHud()
+      })
+      .catch(() => {
+        cachedLimits = undefined
+        cachedLimitsConnId = undefined
+        limitsRetryAt = Date.now() + 60_000
+      })
+      .finally(() => {
+        fetchLimitsPromise = undefined
+      })
+  }
+
+  const getLimit = (providerID?: string, modelID?: string): number | undefined => {
+    if (!modelID) return undefined
+    fetchLimitsLazy()
+    if (!cachedLimits) return undefined
+    return (providerID ? cachedLimits.get(`${providerID}/${modelID}`) : undefined) ?? cachedLimits.get(modelID)
+  }
+
+  view.setHudDeps({
+    focusedSession: () => (panels.main?.binding.draft ? undefined : (panels.mainSessionId ?? view.currentSessionId)),
+    getLimit,
+  })
   const feed = new SessionFeed({
     fetch: (...a) => fetch(...a),
     endpoint: () => conn.endpoint(),
@@ -122,6 +194,9 @@ export function activate(context: vscode.ExtensionContext) {
   })
 
   context.subscriptions.push(panels, ...followDisposables, ...fileDecDisposables, ...reviewThreadsDisposables)
+  if (panels.onDidChangeActiveSession) {
+    context.subscriptions.push(panels.onDidChangeActiveSession(() => view.refreshHud()))
+  }
 
   panels.onChange = () => {
     const e = panels.active
@@ -420,6 +495,18 @@ export function activate(context: vscode.ExtensionContext) {
       requireTrust,
       onDone: () => view.refresh(),
     }),
+    // Feature A: Export session as Markdown and to File
+    ...registerExportSession({
+      request: (method, path, body, directory) => conn.request(method, path, body, directory),
+      rowItem,
+      mainSession: () => {
+        const id = panels.mainSessionId
+        if (!id) return undefined
+        return store.list().find((i) => i.id === id) ?? { id, directory: conn.directory }
+      },
+      pickSession,
+      requireTrust,
+    }),
     // Card 2 B (M10): stop from the sidebar (row ■, selection bar, context menu) and stop all running; POST /session/:id/abort per session directory.
     ...registerStopSessions({
       request: (method, path, body, directory) => conn.request(method, path, body, directory),
@@ -522,6 +609,10 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("oco.openSettings", () => vscode.commands.executeCommand("workbench.action.openSettings", "oco")),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (!e.affectsConfiguration("oco")) return
+      if (e.affectsConfiguration("oco.statusBar.hud")) {
+        view.refreshHud()
+        return
+      }
       versionFor = undefined
       if (e.affectsConfiguration("oco.serverMode") || e.affectsConfiguration("oco.opencodePath")) {
         void managedServer!.stop().then(() => (conn.mode() === "managed" ? startManaged() : (pushInfo(), feed.restart())))

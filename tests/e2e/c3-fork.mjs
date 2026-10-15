@@ -89,6 +89,9 @@ try {
   await waitReply(A)
   await send(fA, `Reply with exactly this line and nothing else: ${T2}`)
   await waitReply(A)
+  // waitReply can return before the final text part is written; snapshot only once the last reply has text.
+  await waitUntil(async () => (await shape(A)).at(-1) !== "assistant:", 15000, 200)
+  await sleep(1500)
   const before = await shape(A)
   // Sidebar visible with A selected, so the fork must move the highlight (native selection only follows clicks).
   await command(page, "Focus on Sessions View")

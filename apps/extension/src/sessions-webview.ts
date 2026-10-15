@@ -38,6 +38,8 @@ type FromPage =
   | { type: "sendNotes"; id: string }
   | { type: "label"; ids: string[]; label: string | null }
   | { type: "snooze"; ids: string[]; snoozed: boolean }
+  | { type: "export"; id: string }
+  | { type: "exportToFile"; id: string }
 
 /**
  * The sidebar session list as a webview (time column, rounded selection, row height a native tree can't
@@ -158,6 +160,12 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
         if (Array.isArray(m.ids) && typeof m.snoozed === "boolean") {
           this.list.setSnooze(m.ids, m.snoozed)
         }
+        return
+      case "export":
+        if (typeof m.id === "string") void vscode.commands.executeCommand("oco.exportSession", m.id)
+        return
+      case "exportToFile":
+        if (typeof m.id === "string") void vscode.commands.executeCommand("oco.exportSessionToFile", m.id)
         return
     }
   }
