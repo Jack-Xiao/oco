@@ -8,7 +8,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | real-gaps-suites | `tests/e2e/c10-sidebar-answer.mjs`、`c11-sidebar-organize.mjs`、`c12-new-session-draft.mjs`、`c24-runtime-question.mjs`；checkpoint `.oco-reports/real-gaps/checkpoint.md`（本地，不入库） | `gemini-worker`（Antigravity 订阅，Gemini 优先） | Gemini（Antigravity）；包装层回报 model unknown，worker 自报 Gemini 3.8 Flash (High) | job `gem-mvas6ln8-ebryk` | 验收通过（主线程逐行审阅 4 个 diff：功能缺陷 0，1 处注释措辞改写；mock 路径未发现行为变化） | 4 个套件的 `git diff`；任务书 `.oco-reports/prompts/real-gaps-suites.md`（本地，不入库） | 426 s / 5 次工具调用；未触发换路由。派发前健康检查：Gemini 最小请求 `gem-mvas51pj-uk3ch` SUCCESS（`OK`，5.3 s） |
 | main-thread | `tests/e2e/c19-label-snooze.mjs`、`c18-permission-note.mjs`、`scripts/overnight-e2e.sh`、docs（NEXT / PROGRESS / 本文件 / `docs/mini/e2e-real-gaps.md`） | 主线程 | - | - | 完成 | - | 理由：每处只是一个调用签名或一份套件清单，且 c18 / c19 / 脚本的 dry-run 需要同时核对；不构成对上一行可分离工作的包办 |
-| mini-confirm | `docs/evidence/mini-e2e-real-gaps.md`、`docs/evidence/runs/` | Mac mini 执行机（`scripts/mini/dispatch.sh`，提示词 [e2e-real-gaps](../mini/e2e-real-gaps.md)） | - | - | **排队中**：18:00 时 mini 上 `mini-mini-real-1190` 在跑（tmux，17:40 起），`dispatch.sh` 会拒绝（一次只跑一个 `mini-*` 任务，先到先得） | - | 本机后台脚本每 3 分钟查 mini 的 tmux，没有 `mini-*` 会话就执行 `bash scripts/mini/dispatch.sh e2e-real-gaps docs/mini/e2e-real-gaps.md`（dispatch 自带占用检查，被别人抢先就继续等），上限 4 h；结果出来后再更新本行 |
+| mini-confirm | `docs/evidence/mini-e2e-real-gaps.md`、`docs/evidence/runs/` | Mac mini 执行机（`scripts/mini/dispatch.sh`，提示词 [e2e-real-gaps](../mini/e2e-real-gaps.md)） | Anthropic / sonnet（脚本默认，具体模型 ID 未回传，记 unknown） | tmux `mini-e2e-real-gaps`、分支 `mini/e2e-real-gaps` | 验收通过（主线程抽查 6 份 results.json 与 summary 一致；耗时约 7 分钟，缺陷 0） | [mini-e2e-real-gaps](mini-e2e-real-gaps.md)、`runs/overnight-20261016-214310/summary.md` | 21:42 派发、21:49 结束，提交 d9048a1（已 fast-forward 进本分支）。mini 先后被 `mini-mini-real-1190`（17:40–18:46）与 `mini-bisect-draft`（到 21:41）占用；本机后台脚本每 3 分钟只读查 tmux，空闲后自动 dispatch。主会话 18:08 要求加 `mkdir /tmp/oco-dispatch.lock` 时脚本已在跑，我没来得及替换，所以这次派发没有加锁；事后核对 mini：bisect-draft 21:41 已提交，之后只有 e2e-real-gaps 的日志，锁目录不存在，无竞态迹象 |
 
 ## 变更
 
@@ -24,7 +24,7 @@
 
 更正 mini-real 的归因：c10 / c24 的失败主因是免费模型延迟（c24 第 1 轮 60 s 后才出现待答问题，`remaining` 非空）与 mock 固定的选项文字（c10 找 `blue`）；「模型不调 question 工具」只在 c10 第 2 轮有支持。c12 的标记不是 mock 口令。上述 real 分支都是「前提成立才断言、不成立记 N/A」，不会把模型行为记成 PASS，也不再记成 FAIL。
 
-## 验证（本机，离线）
+## 验证（本机离线 + Mac mini mock）
 
 | 检查 | 结果 |
 | --- | --- |
@@ -35,8 +35,9 @@
 | `bash scripts/overnight-e2e.sh --dry-run` | 21 个套件，顺序 c6-inbox c10-sidebar-answer c11-sidebar-organize c12-new-session-draft c13-worktree-inbox c14-review-notes c15-fix-with-opencode c16-sidebar-stop c17-subagent-aggregate c18-permission-note c19-label-snooze c20-inbox-nav c21-follow c22-review-threads c23-subagent-pills c24-runtime-question p1b-sidebar p1b-narrow c5-runtime c4-trajectory visual-light-sidebar |
 | `bash scripts/overnight-e2e.sh --real --dry-run` | **15 个**（21 去掉 c6 c16 c17 c18 c21 c23）。任务书写的「real 18 个」是 21 − 旧清单 3，补上 c18 c21 c23 后应为 15。显式套件名与 `--loop` 的 dry-run 不受影响。 |
 | c19 的 N/A 路径（离线模拟：`createRun` + 抛 `{na:true}` + `recordNotApplicable`） | exit 0，summary PASS 1 / N/A 1，`missingRequired` 为空 |
+| mock E2E（Mac mini，提交 882291a，端口 4567 / 4568，[mini-e2e-real-gaps](mini-e2e-real-gaps.md)） | mini 重跑两个 dry-run：21 / 15；c19 5/5、c12 13/13、c10 6/6、c11 6 PASS + 2 NOT RUN（archive-batch 无模态、delete-batch 破坏性，设计内）、c24 3/3、c18 2/2，六个套件全部 exit 0，无重跑无修复 |
 
-NOT RUN：mock E2E（c19 c12 c10 c11 c24 c18）——按 [MINI](../MINI.md) 交 Mac mini，当时 mini 被 `mini-mini-real-1190` 占用，未派发；real 下的 c10 / c11 / c12 / c24 / c19 新分支也未执行（本批不跑 real，等下一轮 mini-real）。因此 mock 路径「行为不变」目前只有代码审阅 + 语法 / 未定义名检查，尚无运行证据。
+NOT RUN：real 下的 c10 / c11 / c12 / c24 新分支与 c19 的 real N/A 路径——本批不跑 real，等下一轮 mini-real；mini 上可选的 `--real c19-label-snooze` 因模型探针（nemotron，90 s 限时）只输出模型名、无 OK（疑免费模型停滞）而未跑。mock 路径「行为不变」已有运行证据（上表）；real 分支只经代码审阅与未定义名检查，c19 的 N/A 调用另有离线模拟。
 
 ## 没动的
 
