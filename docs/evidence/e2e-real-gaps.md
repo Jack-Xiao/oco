@@ -8,7 +8,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | real-gaps-suites | `tests/e2e/c10-sidebar-answer.mjs`、`c11-sidebar-organize.mjs`、`c12-new-session-draft.mjs`、`c24-runtime-question.mjs`；checkpoint `.oco-reports/real-gaps/checkpoint.md`（本地，不入库） | `gemini-worker`（Antigravity 订阅，Gemini 优先） | Gemini（Antigravity）；包装层回报 model unknown，worker 自报 Gemini 3.8 Flash (High) | job `gem-mvas6ln8-ebryk` | 验收通过（主线程逐行审阅 4 个 diff：功能缺陷 0，1 处注释措辞改写；mock 路径未发现行为变化） | 4 个套件的 `git diff`；任务书 `.oco-reports/prompts/real-gaps-suites.md`（本地，不入库） | 426 s / 5 次工具调用；未触发换路由。派发前健康检查：Gemini 最小请求 `gem-mvas51pj-uk3ch` SUCCESS（`OK`，5.3 s） |
 | main-thread | `tests/e2e/c19-label-snooze.mjs`、`c18-permission-note.mjs`、`scripts/overnight-e2e.sh`、docs（NEXT / PROGRESS / 本文件 / `docs/mini/e2e-real-gaps.md`） | 主线程 | - | - | 完成 | - | 理由：每处只是一个调用签名或一份套件清单，且 c18 / c19 / 脚本的 dry-run 需要同时核对；不构成对上一行可分离工作的包办 |
-| mini-confirm | `docs/evidence/mini-e2e-real-gaps.md`、`docs/evidence/runs/` | Mac mini 执行机（`scripts/mini/dispatch.sh`，提示词 [e2e-real-gaps](../mini/e2e-real-gaps.md)） | - | - | **未派发**：mini 上 `mini-mini-real-1190` 在跑（tmux，17:40 起），`dispatch.sh` 会拒绝（一次只跑一个 `mini-*` 任务） | - | 待 mini 空闲后由本机会话执行 `bash scripts/mini/dispatch.sh e2e-real-gaps docs/mini/e2e-real-gaps.md`（先确认当前分支就是本分支且已提交） |
+| mini-confirm | `docs/evidence/mini-e2e-real-gaps.md`、`docs/evidence/runs/` | Mac mini 执行机（`scripts/mini/dispatch.sh`，提示词 [e2e-real-gaps](../mini/e2e-real-gaps.md)） | - | - | **排队中**：18:00 时 mini 上 `mini-mini-real-1190` 在跑（tmux，17:40 起），`dispatch.sh` 会拒绝（一次只跑一个 `mini-*` 任务，先到先得） | - | 本机后台脚本每 3 分钟查 mini 的 tmux，没有 `mini-*` 会话就执行 `bash scripts/mini/dispatch.sh e2e-real-gaps docs/mini/e2e-real-gaps.md`（dispatch 自带占用检查，被别人抢先就继续等），上限 4 h；结果出来后再更新本行 |
 
 ## 变更
 
