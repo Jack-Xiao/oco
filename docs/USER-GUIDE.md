@@ -31,7 +31,7 @@ oco 是 OpenCode 的 VS Code 客户端：会话列表、对话界面都来自 Op
 
 ### 默认键位
 
-嵌入聊天面板是当前编辑器时，先按 `Ctrl+Alt+U`（macOS：`Cmd+Alt+U`），再按第二键；其他位置这组键不生效，Keyboard Shortcuts 里搜 `oco` 可改。侧栏 Sessions 视图有焦点时按 when 条件也放行，但 VS Code 对 webview 视图不可靠地设置焦点键，这一路未验证。
+嵌入聊天面板是当前编辑器时，或侧栏 Sessions 列表有键盘焦点时（点进列表，或执行 Focus on Sessions View），先按 `Ctrl+Alt+U`（macOS：`Cmd+Alt+U`），再按第二键；其他位置（普通编辑器、终端等）这组键不生效，`Ctrl/Cmd+Alt+U` 原样交给当前控件。Keyboard Shortcuts 里搜 `oco` 可改。侧栏一路由扩展自设的上下文键 `oco.sidebarFocused` 判定（VS Code 的 `focusedView` 不跟进 webview 视图内部的焦点）；焦点在聊天面板或侧栏的文本框里时，VS Code 只把按键转发给宿主匹配键位、不能在 webview 内拦截它，第二键的字母可能同时输入到文本框；这是 VS Code webview 的限制。
 
 | 第二键 | 命令 |
 | --- | --- |

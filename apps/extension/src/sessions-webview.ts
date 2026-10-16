@@ -4,6 +4,8 @@ import { answerPending } from "./inbox-actions"
 import type { SessionsView } from "./sessions-view"
 
 export const SESSIONS_VIEW = "oco.sessions"
+/** Context key behind the card 8 chord keybindings: true while the sidebar page's window has focus. */
+export const SIDEBAR_FOCUSED_CONTEXT = "oco.sidebarFocused"
 
 /** Buttons in the page's empty / error states may only run these. */
 const COMMANDS = new Set([
@@ -22,6 +24,8 @@ export type WebviewClient = {
 
 type FromPage =
   | { type: "ready" }
+  | { type: "focus" }
+  | { type: "blur" }
   | { type: "open"; id: string; newPanel?: boolean }
   | { type: "search"; query: string }
   | { type: "loadMore" }
@@ -58,7 +62,8 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
   private readonly subs: vscode.Disposable[] = []
   private lastCurrent: string | undefined
   private searchPending = false
-  readonly stats = { resolves: 0, posts: 0, readyMs: [] as number[] }
+  private sidebarFocused = false
+  readonly stats = { resolves: 0, posts: 0, readyMs: [] as number[], focus: 0, blur: 0 }
 
   constructor(
     private readonly list: SessionsView,
@@ -87,11 +92,15 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
         }
         this.handle(m)
       }),
-      view.onDidChangeVisibility(() => view.visible && this.post()),
+      view.onDidChangeVisibility(() => {
+        if (view.visible) this.post()
+        else this.setSidebarFocused(false)
+      }),
     ]
     view.onDidDispose(() => {
       subs.forEach((d) => d.dispose())
       if (this.view === view) this.view = undefined
+      this.setSidebarFocused(false)
     })
   }
 
@@ -109,6 +118,14 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
 
   private handle(m: FromPage) {
     switch (m.type) {
+      case "focus":
+        this.stats.focus++
+        this.setSidebarFocused(true)
+        return
+      case "blur":
+        this.stats.blur++
+        this.setSidebarFocused(false)
+        return
       case "open":
         if (typeof m.id === "string") void vscode.commands.executeCommand(m.newPanel ? "oco.openSessionInNewPanel" : "oco.openSession", m.id)
         return
@@ -185,6 +202,17 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
     }
   }
 
+  /**
+   * `oco.sidebarFocused`, the keybindings' when clause for the sidebar: VS Code's `focusedView` never follows focus
+   * into a webview view's iframe (it lives in the workbench overlay, outside the pane element), so the page reports
+   * its window focus / blur and the host mirrors it. Cleared when the view hides, goes away, or is disposed.
+   */
+  private setSidebarFocused(focused: boolean) {
+    if (this.sidebarFocused === focused) return
+    this.sidebarFocused = focused
+    void vscode.commands.executeCommand("setContext", SIDEBAR_FOCUSED_CONTEXT, focused)
+  }
+
   private post() {
     const view = this.view
     if (!view?.visible) return
@@ -222,10 +250,11 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
 
   debugState() {
     const model = this.list.webModel()
-    return { resolved: !!this.view, visible: this.view?.visible ?? false, view: model.view, text: model.text ?? null, notice: model.notice ?? null, ...this.stats }
+    return { resolved: !!this.view, visible: this.view?.visible ?? false, sidebarFocused: this.sidebarFocused, view: model.view, text: model.text ?? null, notice: model.notice ?? null, ...this.stats }
   }
 
   dispose() {
     this.subs.forEach((d) => d.dispose())
+    this.setSidebarFocused(false)
   }
 }
