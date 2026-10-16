@@ -24,6 +24,7 @@ describe("server version notes", () => {
   test("verified version has no note; other v1 and non-v1 are flagged", () => {
     for (const v of VERIFIED_SERVERS) expect(versionNote(v)).toBeUndefined()
     expect(versionNote("1.18.13")).toBeUndefined()
+    expect(versionNote("1.19.0")).toBeUndefined()
     expect(versionNote("1.19.0")).toMatch(/not verified by oco/)
     expect(versionNote("2.0.0")).toMatch(/V1 only/)
     expect(versionNote(undefined)).toBeUndefined()

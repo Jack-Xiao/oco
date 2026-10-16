@@ -82,6 +82,7 @@
 - 默认键位：`oco.inbox.next`、`oco.session.parent / child / nextSibling / previousSibling / recent`、`oco.follow.toggle` 现在都不绑定；要不要给 chord 默认值（when 限定 `activeWebviewPanelId == 'oco.chat'` 或 oco 视图焦点）。
 - 卡 6 分支是否合入 main、是否推送（卡 7 通过后）。
 - 立项决策：M21 Git 动作（先补 ADR-009 §4）、M18 导出与分享、M15 Agents 视图、M04 回滚入口、Aider 式注释触发、T018 publisher 与许可证、M13 composer chip（需扩 DraftInsert 契约与补丁 0001）。
+- [决定 2026-10-16 下午，用户确认] 默认 chord 键位：做（本机会话 card8-keybindings，自己的 worktree 分支）。真实模型：派 Mac mini 用官方 opencode 1.18.33 二进制 + 免费 `opencode/nemotron-3.5-lightning-free` 跑全量（本机会话 mini-real 负责写提示词、dispatch 与收口）。1.19.0 加进 `VERIFIED_SERVERS`（已提交 main，见 STATUS「基线与版本」），真实模型下的 1.19.0 验证并入 mini-real（公共 npm 二进制跑子集）。M15 Agents 视图、Aider 式注释触发：不做。仍待定：T018 publisher / 许可证；两处窄布局观感与 18 张目视截图待用户看。
 
 ### Mac mini 队列（2026-10-14 起；约定见 [MINI](MINI.md)，一次一个，提示词写到 `docs/mini/<任务>.md` 再 dispatch）
 
@@ -134,7 +135,7 @@
 - 卡 12 消息级书签（Claude Code 2.1.286 Bookmarks 侧栏）：钉住某条回复，侧栏会话下方列出，点击走上游 `useSessionHashScroll` 定位。M。[认领：Mac mini 会话（按 08:45 裁定，卡 10 合入后接手）· 建议分支 `claude/card12-bookmarks`；文件归属：`apps/extension/src/bookmarks.ts`（新）、`sessions-webview.ts`、`package.json` 只加命令 / 菜单、`tests/e2e/c32-*`、`docs/evidence/card12-*`；如需 vendor 补丁用 **0027**；`extension.ts` 只加一行 `...registerBookmarks(...)`] [DONE 2026-10-16，Mac mini 会话实现（分支 claude/card12-bookmarks，补丁 0027），MacBook 挑选 c91c2c4 / f990a76 / 77c8acf 合入 main `5750dae`，夹带的卡 11 草稿未合入；c32 必需项 6/6 ×2，附加项 open-same-session-repeat 留缺陷（同一书签再点不滚动）；见 STATUS 卡 12、[card12-bookmarks](evidence/card12-bookmarks.md)]
 - 卡 13 M13 composer chip + 「自动附带编辑器选区」设置（Claude Code 2.1.300 `attachSelection`）：需扩 DraftInsert 契约与补丁 0001。M。[认领：本机新会话 · `claude/card13-composer-chip`；文件归属：`packages/contracts/src/bridge.ts`（DraftInsert chip 字段，向后兼容）、`patches/opencode/0001-*` 再生成（`scripts/regen-patch.sh`，非顶层补丁按 memory 规则用临时树）、`apps/chat-webview/*`、`apps/extension/src/add-to-draft.ts`、`package.json` 只加设置 `oco.draft.attachSelection`、`tests/unit/*`、`tests/e2e/c33-*`、`docs/evidence/card13-*`；如需新补丁用 **0028**；`extension.ts` 只改选区监听的注册一行] [DONE 2026-10-16，实际分支 `claude/great-keller-c26ae2`（app 建的 worktree 分支，非认领行写的名字），合入 main `d04ad9d` 已推送，本机已装 VSIX；见 STATUS 卡 13、[card13-composer-chip](evidence/card13-composer-chip.md)；本批（卡 9–13）至此做完，不再开新卡]
 - 不做（已评估）：收尾框 / 回复按钮、提议卡、PR 绑定与 CI 自动修复、Remote Control / 云会话 / 定时任务、Artifacts、浏览器面板、idle compaction（服务端概念）。
-- 仍需用户决定（卡 8 不变）：默认键位 chord、真实模型凭据、1.19.0 进 VERIFIED_SERVERS、M15 Agents 视图、T018 publisher / 许可证、Aider 式注释触发。
+- 仍需用户决定：T018 publisher / 许可证、两处窄布局观感与目视截图。其余卡 8 项已于 2026-10-16 下午决定（见 §0 卡 8 的决定行：键位做、真实模型用免费模型在 Mac mini 跑、1.19.0 已进 VERIFIED_SERVERS、M15 与 Aider 不做）。
 
 ## 1. 真实模型回归（本批第二步）
 

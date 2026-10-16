@@ -5,7 +5,9 @@ import { v2UnsupportedMessage } from "./server-version"
 
 /** Server versions this build was verified against: the vendored v1.18.33 baseline and the enterprise
  * v1.18.13 service (E2E 2026-10-06 / 2026-10-11). Others work but are flagged. */
-export const VERIFIED_SERVERS = ["1.18.33", "1.18.13"]
+// 1.19.0: public npm build (opencode-ai@1.19.0). Mock E2E 41 suites passed 2026-10-15 (docs/evidence/mini-compat.md);
+// added 2026-10-16 by user decision (NEXT card 8); real-model pass runs with mini-real.
+export const VERIFIED_SERVERS = ["1.18.33", "1.19.0", "1.18.13"]
 
 export function versionNote(version: string | undefined): string | undefined {
   if (!version) return undefined
