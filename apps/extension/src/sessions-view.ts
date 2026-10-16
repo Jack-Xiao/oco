@@ -97,6 +97,11 @@ export type WebRow = {
       time: string
     }>
   }
+  /** M22: message bookmarks for this session, oldest first. */
+  bookmarks?: {
+    total: number
+    items: Array<{ messageId: string; summary: string }>
+  }
 }
 export type WebListModel = {
   view: "list" | "message"
@@ -148,6 +153,7 @@ export class SessionsView implements vscode.Disposable {
   private todoProbe?: (id: string) => void
   private childrenProbe?: (id: string) => void
   private noteCounter?: (sessionId: string) => number
+  private bookmarkLister?: (sessionId: string) => Array<{ messageId: string; summary: string }>
   private moreOpen = false
   private readonly clock: ReturnType<typeof setInterval>
   readonly notifier: PendingNotifier
@@ -343,6 +349,12 @@ export class SessionsView implements vscode.Disposable {
     this.refresh()
   }
 
+  /** M22: bookmarks shown under each row. A change should call `refresh()` and nothing else. */
+  setBookmarkLister(fn: (sessionId: string) => Array<{ messageId: string; summary: string }>): void {
+    this.bookmarkLister = fn
+    this.refresh()
+  }
+
   setMoreOpen(open: boolean): void {
     this.moreOpen = open
     this.refresh()
@@ -498,6 +510,9 @@ export class SessionsView implements vscode.Disposable {
         : undefined
     const label = this.labels.get(i.id)
     const isSnoozed = this.snoozed.has(i.id)
+    const marks = this.bookmarkLister?.(i.id) ?? []
+    const bookmarks: WebRow["bookmarks"] =
+      marks.length > 0 ? { total: marks.length, items: marks.map((b) => ({ messageId: b.messageId, summary: b.summary })) } : undefined
     return {
       id: i.id,
       title: i.title,
@@ -512,6 +527,7 @@ export class SessionsView implements vscode.Disposable {
       ...(notes > 0 ? { notes } : {}),
       todo: i.todo,
       ...(subagents ? { subagents } : {}),
+      ...(bookmarks ? { bookmarks } : {}),
     }
   }
 

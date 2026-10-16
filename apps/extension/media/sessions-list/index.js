@@ -90,6 +90,8 @@ let selectionAnchor = null
 const todoExpanded = new Set()
 const savedSubagentsExpanded = Array.isArray(saved && saved.subagentsExpanded) ? saved.subagentsExpanded : []
 const subagentsExpanded = new Set(savedSubagentsExpanded)
+const savedBookmarksExpanded = Array.isArray(saved && saved.bookmarksExpanded) ? saved.bookmarksExpanded : []
+const bookmarksExpanded = new Set(savedBookmarksExpanded)
 
 const selectionBar = el("div", "selection-bar")
 selectionBar.setAttribute("data-selection-bar", "")
@@ -373,13 +375,14 @@ function save() {
         query: search.value,
         collapsed: { inbox: inboxCollapsed, sessions: sessionsCollapsed, snoozed: snoozedCollapsed },
         subagentsExpanded: Array.from(subagentsExpanded),
+        bookmarksExpanded: Array.from(bookmarksExpanded),
       })
     } catch (_) {}
   }
 }
 
 function expanded() { return !!(state && (state.moreForcedOpen || moreOpen)) }
-function focusables() { return Array.from(list.querySelectorAll(".section-head, .row, .more-head, .inbox-group-head, .subagent-row")) }
+function focusables() { return Array.from(list.querySelectorAll(".section-head, .row, .more-head, .inbox-group-head, .subagent-row, .bookmark-row")) }
 
 function focusRow(node) {
   if (!node || !node.isConnected) return
@@ -583,6 +586,12 @@ function getSubagentsBadgeLabel(sub) {
   return `Subagents: ${parts.join(", ")}`
 }
 
+const BOOKMARK_ICON_SVG = '<svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.5 1.5A1.5 1.5 0 0 0 2 3v11.2a.5.5 0 0 0 .8.4L8 11.1l5.2 3.5a.5.5 0 0 0 .8-.4V3A1.5 1.5 0 0 0 12.5 1.5h-9z"/></svg>'
+
+function bookmarkBadgeLabel(total) {
+  return total === 1 ? "1 bookmark" : `${total} bookmarks`
+}
+
 function getLabelHead(label, count) {
   let head = labelHeads.get(label)
   if (!head) {
@@ -744,7 +753,21 @@ function syncSession(row) {
     const subagentsList = el("div", "subagents-list")
     subagentsList.setAttribute("data-subagents-list", "")
 
-    node.append(dot, pinMark, title, labelChip, todoBadge, subagentsBadge, notesBadge, labelBtn, snoozeBtn, pinBtn, stopBtn, time, inlineLabelForm, todoList, subagentsList)
+    const bookmarksBadge = document.createElement("button")
+    bookmarksBadge.type = "button"
+    bookmarksBadge.className = "bookmarks-badge"
+    bookmarksBadge.addEventListener("click", (e) => {
+      e.stopPropagation()
+      if (bookmarksExpanded.has(id)) bookmarksExpanded.delete(id)
+      else bookmarksExpanded.add(id)
+      save()
+      renderList()
+    })
+
+    const bookmarksList = el("div", "bookmarks-list")
+    bookmarksList.setAttribute("data-bookmarks-list", "")
+
+    node.append(dot, pinMark, title, labelChip, todoBadge, subagentsBadge, bookmarksBadge, notesBadge, labelBtn, snoozeBtn, pinBtn, stopBtn, time, inlineLabelForm, todoList, subagentsList, bookmarksList)
     pool.set(id, node)
   }
   updateSessionRow(node, row)
@@ -794,6 +817,7 @@ function updateSessionRow(node, row) {
   const labelChip = node.querySelector(":scope > .label-chip")
   const todoBadge = node.querySelector(":scope > .todo-badge")
   const subagentsBadge = node.querySelector(":scope > .subagents-badge")
+  const bookmarksBadge = node.querySelector(":scope > .bookmarks-badge")
   const notesBadge = node.querySelector(":scope > .notes-badge")
   const labelBtn = node.querySelector(":scope > .label-btn")
   const snoozeBtn = node.querySelector(":scope > .snooze-btn")
@@ -803,6 +827,7 @@ function updateSessionRow(node, row) {
   const inlineLabelForm = node.querySelector(":scope > .inline-label-form")
   const todoList = node.querySelector(":scope > .todo-list")
   const subagentsList = node.querySelector(":scope > .subagents-list")
+  const bookmarksList = node.querySelector(":scope > .bookmarks-list")
 
   if (titleEl.textContent !== title) titleEl.textContent = title
   if (timeEl.textContent !== time) timeEl.textContent = time
@@ -926,6 +951,70 @@ function updateSessionRow(node, row) {
     subagentsBadge.hidden = true
     subagentsList.hidden = true
     while (subagentsList.firstChild) subagentsList.removeChild(subagentsList.firstChild)
+  }
+
+  if (row.bookmarks && typeof row.bookmarks.total === "number" && row.bookmarks.total >= 1) {
+    bookmarksBadge.hidden = false
+    const isExpanded = bookmarksExpanded.has(id)
+    const total = row.bookmarks.total
+    const badgeLabel = bookmarkBadgeLabel(total)
+    bookmarksBadge.setAttribute("aria-expanded", isExpanded ? "true" : "false")
+    if (bookmarksBadge.getAttribute("title") !== badgeLabel) bookmarksBadge.setAttribute("title", badgeLabel)
+    if (bookmarksBadge.getAttribute("aria-label") !== badgeLabel) bookmarksBadge.setAttribute("aria-label", badgeLabel)
+    const wantHtml = `${BOOKMARK_ICON_SVG}<span>${total}</span>`
+    if (bookmarksBadge.innerHTML !== wantHtml) bookmarksBadge.innerHTML = wantHtml
+
+    if (isExpanded && Array.isArray(row.bookmarks.items) && row.bookmarks.items.length > 0) {
+      bookmarksList.hidden = false
+      while (bookmarksList.firstChild) bookmarksList.removeChild(bookmarksList.firstChild)
+      for (const item of row.bookmarks.items) {
+        if (!item || typeof item.messageId !== "string") continue
+        const messageId = item.messageId
+        const summary = item.summary == null || String(item.summary).trim() === "" ? "Bookmark" : String(item.summary)
+        const itemEl = el("div", "bookmark-row")
+        itemEl.dataset.messageId = messageId
+        itemEl.tabIndex = -1
+        itemEl.setAttribute("role", "button")
+        itemEl.setAttribute("title", summary)
+        itemEl.setAttribute("aria-label", summary)
+
+        const summaryEl = el("span", "bookmark-summary")
+        summaryEl.textContent = summary
+        const removeBtn = document.createElement("button")
+        removeBtn.type = "button"
+        removeBtn.className = "bookmark-remove"
+        removeBtn.textContent = "×"
+        removeBtn.setAttribute("aria-label", "Remove bookmark")
+        removeBtn.setAttribute("title", "Remove bookmark")
+        removeBtn.addEventListener("click", (e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          post({ type: "removeBookmark", sessionId: id, messageId: messageId })
+        })
+
+        itemEl.append(summaryEl, removeBtn)
+        itemEl.addEventListener("click", (e) => {
+          e.stopPropagation()
+          post({ type: "openBookmark", sessionId: id, messageId: messageId })
+        })
+        itemEl.addEventListener("keydown", (e) => {
+          if (e.target !== itemEl) return
+          if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+            e.preventDefault()
+            e.stopPropagation()
+            post({ type: "openBookmark", sessionId: id, messageId: messageId })
+          }
+        })
+        bookmarksList.appendChild(itemEl)
+      }
+    } else {
+      bookmarksList.hidden = true
+      while (bookmarksList.firstChild) bookmarksList.removeChild(bookmarksList.firstChild)
+    }
+  } else {
+    bookmarksBadge.hidden = true
+    bookmarksList.hidden = true
+    while (bookmarksList.firstChild) bookmarksList.removeChild(bookmarksList.firstChild)
   }
 
   if (typeof row.notes === "number" && row.notes > 0) {

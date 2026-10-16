@@ -107,6 +107,9 @@ const platform: Platform = {
     },
   }),
   getDefaultServer: async () => serverKey,
+  // M22: the message action row asks the host to store a bookmark. The page keeps no copy.
+  ocoBookmarkMessage: ({ sessionID, messageID, anchorID, summary }) =>
+    ui("bookmark", { sessionId: sessionID, messageId: messageID, anchorId: anchorID, body: summary }),
 }
 
 let currentRoute = boundRoute
@@ -159,7 +162,8 @@ function PanelRouter(props: BaseRouterProps) {
         queueMicrotask(() => inner.set({ value: currentRoute, replace: true, scroll: false }))
         return
       }
-      currentRoute = change.value
+      // Hash is scroll state (M22). The host matches ready routes with endsWith(sessionId).
+      currentRoute = change.value.split("#")[0]
       inner.set(change)
     },
     // Only one route exists in a panel: history traversal would leave it.
@@ -235,22 +239,32 @@ installSubmitStatus()
 const saveState = () => vscode.setState({ binding: { ...bound }, role: init.role })
 
 // Host -> switch to another session (ADR-007). Same connection and directory, validated by the host.
+/** `#message-{id}` is the user-message anchor `use-session-hash-scroll` reads from the router location. */
+const messageHash = (messageId: string | undefined) => (messageId ? `#message-${messageId}` : "")
+
 onNavigate((msg) => {
   // Result card: the host asks for the review (diff) panel too. The page-side module keeps the intent until the
   // session page is on screen (patches/opencode/0021), so a navigate to an uncached session loses nothing.
   if (msg.review) window.dispatchEvent(new CustomEvent("oco:review-intent", { detail: { sessionID: msg.sessionId, file: msg.review.file } }))
+  const hash = messageHash(msg.messageId)
   if (msg.sessionId === bound.sessionId) {
     // After a draft's promotion the host names the session's directory (a worktree may differ).
     if (msg.directory && msg.directory !== bound.directory) {
       bound.directory = msg.directory
       saveState()
     }
-    return void ready(currentRoute)
+    // Already on this session: the router will not remount, so point the hash at the turn.
+    if (hash) {
+      location.hash = hash
+      inner.set({ value: routeFor(bound.sessionId) + hash, replace: true, scroll: false })
+    }
+    return void ready(currentRoute.split("#")[0])
   }
   stats.navigations++
   bound.sessionId = msg.sessionId
   currentRoute = routeFor(msg.sessionId)
-  inner.set({ value: currentRoute, replace: true, scroll: false })
+  if (hash) location.hash = hash
+  inner.set({ value: currentRoute + hash, replace: true, scroll: false })
   saveState()
   // Report ready once the new session's composer is on screen, so drafts for it never reach the previous one:
   // an uncached session renders only after its data arrives (patches/opencode/0015).

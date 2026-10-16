@@ -18,6 +18,7 @@ import { DEFAULT_COMMIT_PROMPT, DEFAULT_PR_PROMPT, registerGitActions } from "./
 import { registerTerminalOutput } from "./terminal-output"
 import { registerFixWithOpenCode } from "./fix-with-opencode"
 import { ReviewNotes, registerReviewNotesCommands } from "./review-notes"
+import { MessageBookmarks } from "./bookmarks"
 import { registerCompactSession } from "./compact-session"
 import { registerExportSession } from "./export-session"
 import { registerStopSessions } from "./stop-sessions"
@@ -81,7 +82,9 @@ export function activate(context: vscode.ExtensionContext) {
   const conn = new Connection(context, log)
   conn.activeFolder = context.workspaceState.get<string>("oco.activeFolder")
   const kv = new KvStore(context.globalState, context.workspaceState)
+  const bookmarks = new MessageBookmarks(context.workspaceState)
   const panels = new PanelRegistry(context, conn, kv, new BlobStore(context), log)
+  panels.bookmarks = bookmarks
   const activationId = Math.random().toString(36).slice(2, 10)
   context.subscriptions.push(log)
 
@@ -171,7 +174,8 @@ export function activate(context: vscode.ExtensionContext) {
   view.setChildrenProbe((id) => feed.ensureChildren(id))
   const reviewNotes = new ReviewNotes(context.workspaceState)
   view.setNoteCounter((sessionId) => reviewNotes.count(conn.id, sessionId))
-  context.subscriptions.push(reviewNotes, reviewNotes.onDidChange(() => view.refresh()))
+  view.setBookmarkLister((sessionId) => bookmarks.listFor(conn.id, sessionId).map((b) => ({ messageId: b.messageId, summary: b.summary })))
+  context.subscriptions.push(reviewNotes, reviewNotes.onDidChange(() => view.refresh()), bookmarks, bookmarks.onDidChange(() => view.refresh()))
 
   const { manager: followMgr, disposables: followDisposables } = registerFollowMode({
     panels,
@@ -283,7 +287,13 @@ export function activate(context: vscode.ExtensionContext) {
     if (q.trim()) void feed.search(q.trim())
   }
   // The sidebar list is a webview; retained while hidden so reopening the sidebar never rebuilds it.
-  const webList = new SessionsWebview(view, context.extensionUri, searchSessions, conn)
+  const bookmarkActions = {
+    open: (_sessionId: string, _messageId: string) => {},
+    remove: (sessionId: string, messageId: string) => {
+      bookmarks.remove(conn.id, sessionId, messageId)
+    },
+  }
+  const webList = new SessionsWebview(view, context.extensionUri, searchSessions, conn, bookmarkActions)
   context.subscriptions.push(webList, vscode.window.registerWebviewViewProvider(SESSIONS_VIEW, webList, { webviewOptions: { retainContextWhenHidden: true } }))
 
   const fail = (what: string, e: unknown) => void vscode.window.showErrorMessage(`oco: ${what} (${(e as Error).message})`)
@@ -301,7 +311,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   /** open-session contract: same connection and workspace only; reveals the panel already showing it,
    *  otherwise switches the main panel (or, with newPanel, opens a pinned one). ADR-007. */
-  const openSession = (req: OpenSessionRequest, newPanel = false) => {
+  const openSession = (req: OpenSessionRequest, newPanel = false, messageId?: string) => {
     if (req.connectionId !== conn.id) throw new Error("Connection changed")
     if (!conn.ownsDirectory(req.directory)) throw new Error("Session is not in the current workspace")
     return panels.open(
@@ -311,15 +321,20 @@ export function activate(context: vscode.ExtensionContext) {
       req.focus ?? true,
       newPanel,
       req.review,
+      messageId,
     )
   }
 
-  const openById = async (sessionId: string, newPanel = false, review?: ReviewIntent) => {
+  const openById = async (sessionId: string, newPanel = false, review?: ReviewIntent, messageId?: string) => {
     const known = store.list().find((i) => i.id === sessionId)
     if (known && feed.state.state === "connected")
-      return openSession({ connectionId: conn.id, directory: known.directory, sessionId, title: known.title, review }, newPanel)
+      return openSession({ connectionId: conn.id, directory: known.directory, sessionId, title: known.title, review }, newPanel, messageId)
     const s = await conn.request<SessionInfo>("GET", `/session/${encodeURIComponent(sessionId)}`)
-    return openSession({ connectionId: conn.id, directory: s.directory, sessionId: s.id, title: s.title || s.id, review }, newPanel)
+    return openSession({ connectionId: conn.id, directory: s.directory, sessionId: s.id, title: s.title || s.id, review }, newPanel, messageId)
+  }
+  bookmarkActions.open = (sessionId, messageId) => {
+    const anchorId = bookmarks.listFor(conn.id, sessionId).find((b) => b.messageId === messageId)?.anchorId
+    void openById(sessionId, false, undefined, anchorId).catch((e) => fail("Could not open session", e))
   }
 
   const sessionMru = new SessionMruTracker(panels)

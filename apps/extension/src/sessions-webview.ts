@@ -40,6 +40,14 @@ type FromPage =
   | { type: "snooze"; ids: string[]; snoozed: boolean }
   | { type: "export"; id: string }
   | { type: "exportToFile"; id: string }
+  | { type: "openBookmark"; sessionId: string; messageId: string }
+  | { type: "removeBookmark"; sessionId: string; messageId: string }
+
+export type BookmarkActions = {
+  /** Open the session and scroll to the bookmark's anchor. */
+  open: (sessionId: string, messageId: string) => void
+  remove: (sessionId: string, messageId: string) => void
+}
 
 /**
  * The sidebar session list as a webview (time column, rounded selection, row height a native tree can't
@@ -57,6 +65,7 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
     private readonly extensionUri: vscode.Uri,
     private readonly search: (q: string) => void,
     private readonly client?: WebviewClient,
+    private readonly bookmarks?: BookmarkActions,
   ) {
     this.subs.push(list.onDidRender(() => this.post()))
   }
@@ -166,6 +175,12 @@ export class SessionsWebview implements vscode.WebviewViewProvider, vscode.Dispo
         return
       case "exportToFile":
         if (typeof m.id === "string") void vscode.commands.executeCommand("oco.exportSessionToFile", m.id)
+        return
+      case "openBookmark":
+        if (typeof m.sessionId === "string" && typeof m.messageId === "string") this.bookmarks?.open(m.sessionId, m.messageId)
+        return
+      case "removeBookmark":
+        if (typeof m.sessionId === "string" && typeof m.messageId === "string") this.bookmarks?.remove(m.sessionId, m.messageId)
         return
     }
   }
