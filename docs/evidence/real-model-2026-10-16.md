@@ -35,3 +35,18 @@ tests/e2e/server.mjs:19-22 `detectModel()` 在 real 模式下固定返回 `{prov
 ## 重跑（主线程，07:39，修 server.mjs 模型探测后，nemotron-3.5-lightning-free）
 
 汇总 [overnight-20261016-073956](runs/overnight-20261016-073956/summary.md)：p1b-narrow 12/12（模型探测修复后转绿，原因 C 成立）；c11 5/1/2（todo-badge 仍失败，A：小模型不写 todo）；c10 0/1（question-row 缺失，A：模型不调用 question 工具）；c4 16/1，subagent-link 第二次失败（D 待诊断：子会话标题点回父面板 15 s 内未回，mock 过）。
+
+## c4 subagent-link 诊断
+
+checkpoint 1（诊断中）：两次真实运行截图 11-subagent-link.png 显示子会话面板有标题栏 `traj-z5… / Find for…`（父标题按钮存在）、子代理正被 "Permission required: Run shell commands" 卡住（status 仍为 running，等待权限）。下一步：测试里加不吞错诊断（点击报错、元素可见/遮挡、点击后 sessionId/URL 逐秒变化），真实模式跑 1–2 次。
+
+checkpoint 2（00:50）：nemotron-3.5-lightning-free 此刻上游无响应（`opencode run` 45 秒无输出；c4 第一步 30 秒内没有 bash 工具调用，连续 6 次 `run FAIL: reading 'id'`，运行 20261016-003007/003105/003254/003444/003726/004748，**BLOCKED：免费模型停滞**，服务端日志无报错）。改用 opencode/big-pickle 复现（6 秒响应）：运行 20261016-004939-c4-trajectory-f6a1，subagent-link 同样 FAIL（switched=true、back=false）。诊断字段显示：点击前 `session-title-parent` 存在、可见、`elementFromPoint` 命中自身、clickError=null、子会话 permissionPending=true；点击后 15 秒内面板 sessionId 变为父会话 A（visibility=visible），但 `prompt-input` 始终不存在。原因：`frameFor(A)` 要求 prompt-input，而子代理的 shell 权限请求仍未处理，父会话此时显示权限面板而不是输入框。=> 测试问题，面板其实已回到父会话。
+
+checkpoint 3（01:00，结论）：修测试后复跑。
+- 真实模式 big-pickle：[20261016-005400-c4-trajectory-ebbb](runs/20261016-005400-c4-trajectory-ebbb/results.json) 17/17 PASS，subagent-link PASS（diag：clickError=null、hitSelf=true、back=true、父会话 permissionDock=true）。
+- mock：[20261016-005745-c4-trajectory-3b9c](runs/20261016-005745-c4-trajectory-3b9c/results.json) 17/17 PASS。
+- nemotron-3.5-lightning-free 仍停滞（20261016-005819-c4-trajectory-12d6 FAIL 0/1，同一个 `run` 早退），nemotron 下的修复未能直接复验；证据来自 big-pickle（两个模型的表现一致：子代理的 shell 权限未处理）。
+
+根因：测试问题，不是产品缺陷。tests/e2e/c4-trajectory.mjs 原 `link.back = !!(await frameFor(A, 15000))`，而 `frameFor`（同文件 94–101 行）要求帧里有 `[data-component="prompt-input"]`。真实模型的子代理会执行没人批准的 shell 命令，权限请求挂起，回到父会话后官方 UI 显示权限面板、不渲染输入框，于是面板已回到父会话（sessionId===A、visible）也被判定为没回去。产品路径（message-timeline.tsx:1467 `session-title-parent` → navigateParent:931 → app.tsx openSession → extension.ts:357 onOpenSession → panels.open）工作正常，mock 下没有挂起的权限所以输入框存在。
+修复：back 判据改为"可见且 sessionId===A 的帧"，不再要求 prompt-input；保留诊断字段 `diag`（clickError、点击前按钮存在/可见/命中自身、权限挂起、点击后 sessionId/prompt/permissionDock/url 的变化轨迹）。
+附带：big-pickle 下 rows-match-server 在首次运行失败（20261016-004939，UI 的助手消息计数与服务端不一致，模型相关，未深查，复跑已通过）。
