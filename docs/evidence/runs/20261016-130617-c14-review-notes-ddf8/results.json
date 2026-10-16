@@ -1,0 +1,93 @@
+{
+  "runId": "20261016-130617-c14-review-notes-ddf8",
+  "suite": "c14-review-notes",
+  "startedAt": "2026-10-16T13:06:17.829Z",
+  "ocoCommit": "5750dae1f2df395291fd7e46ce2a93e2babd4f98",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "a8ad17bbf12bb60a5cae28078de5deb0e88c662cdb275c31c3023f400ebf4d88",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "fixtureWorkspace": "/Users/jarvis/Ai-Project/oco-mini/.oco-test/c14/ws-29897",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c14-review-notes",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-16T13:07:36.691Z",
+  "results": [
+    {
+      "id": "notes-badge-1",
+      "status": "PASS",
+      "detail": {
+        "badge": "1 to send",
+        "addNote": {
+          "placeholder": "Enter note or feedback (optional)",
+          "picked": false
+        }
+      },
+      "at": "2026-10-16T13:06:58.979Z"
+    },
+    {
+      "id": "notes-badge-2",
+      "status": "PASS",
+      "detail": {
+        "badge": "2 to send",
+        "addNote": {
+          "placeholder": "Enter note or feedback (optional)",
+          "picked": false
+        }
+      },
+      "at": "2026-10-16T13:07:30.353Z"
+    },
+    {
+      "id": "badge-send-draft",
+      "status": "PASS",
+      "detail": {
+        "missing": [],
+        "headerCount": 1,
+        "length": 332
+      },
+      "at": "2026-10-16T13:07:32.998Z"
+    },
+    {
+      "id": "draft-acked",
+      "status": "FAIL",
+      "detail": {
+        "acksBefore": 0,
+        "acks": 4,
+        "rejects": 0,
+        "pending": 0
+      },
+      "at": "2026-10-16T13:07:33.070Z"
+    },
+    {
+      "id": "badge-cleared",
+      "status": "PASS",
+      "detail": {
+        "visible": false
+      },
+      "at": "2026-10-16T13:07:33.077Z"
+    },
+    {
+      "id": "no-auto-send",
+      "status": "PASS",
+      "detail": {
+        "userMessagesBefore": 0,
+        "after": 0
+      },
+      "at": "2026-10-16T13:07:36.084Z"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 1,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "draft-acked"
+  ]
+}
