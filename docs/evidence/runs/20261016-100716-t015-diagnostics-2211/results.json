@@ -1,0 +1,95 @@
+{
+  "runId": "20261016-100716-t015-diagnostics-2211",
+  "suite": "t015-diagnostics",
+  "startedAt": "2026-10-16T10:07:16.512Z",
+  "ocoCommit": "625b306dfac489afeb525310fc632a2b83b1b9ab",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "c1253136a90771da69c917deda12711eddaac1b81793a5c40e6d46b73471916e",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "t015-diagnostics",
+  "modelMode": "real",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T10:07:21.709Z",
+  "results": [
+    {
+      "id": "status-version",
+      "status": "PASS",
+      "detail": {
+        "version": "1.19.0",
+        "statusText": "$(oco-logo) oco $(bell-dot) 3",
+        "tooltip": [
+          "oco: Connected to http://127.0.0.1:4537",
+          "/Users/jarvis/Ai-Project/oco-mini/.oco-test/workspace",
+          "Mode: Attached server",
+          "Server version: 1.19.0"
+        ]
+      },
+      "at": "2026-10-16T10:07:20.479Z"
+    },
+    {
+      "id": "export-redacted",
+      "status": "PASS",
+      "detail": {
+        "leaks": {
+          "secret": false,
+          "basic": false,
+          "home": false
+        },
+        "keys": [
+          "generatedAt",
+          "oco",
+          "vscode",
+          "host",
+          "settings",
+          "endpoint",
+          "passwordStored",
+          "server",
+          "managed",
+          "workspace",
+          "connection",
+          "sidebar",
+          "panels",
+          "recentLog"
+        ],
+        "server": {
+          "version": "1.19.0",
+          "verified": [
+            "1.18.33",
+            "1.19.0",
+            "1.18.13"
+          ]
+        },
+        "logLines": 4
+      },
+      "at": "2026-10-16T10:07:20.835Z"
+    },
+    {
+      "id": "export-opens-editor",
+      "status": "PASS",
+      "detail": {
+        "tab": true
+      },
+      "at": "2026-10-16T10:07:20.923Z"
+    },
+    {
+      "id": "show-log",
+      "status": "PASS",
+      "detail": {
+        "shown": true
+      },
+      "at": "2026-10-16T10:07:21.393Z"
+    }
+  ],
+  "summary": {
+    "PASS": 4,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

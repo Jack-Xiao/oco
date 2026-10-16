@@ -1,0 +1,271 @@
+{
+  "runId": "20261016-095826-c5-runtime-a7ca",
+  "suite": "c5-runtime",
+  "startedAt": "2026-10-16T09:58:26.502Z",
+  "ocoCommit": "625b306dfac489afeb525310fc632a2b83b1b9ab",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "52664c4aaba9b94635d678ce01bf0c043f72136a97d6595767497dc9a9ad65b1",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "modelMode": "real",
+  "locale": "default",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c5-runtime",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T10:07:15.391Z",
+  "results": [
+    {
+      "id": "toggle-three",
+      "status": "PASS",
+      "detail": {
+        "views": [
+          "chat",
+          "trajectory",
+          "runtime"
+        ],
+        "viewsOrderExact": true,
+        "opened": true,
+        "composerVisible": true
+      },
+      "at": "2026-10-16T09:58:35.625Z"
+    },
+    {
+      "id": "idle-state",
+      "status": "PASS",
+      "detail": {
+        "state": "idle",
+        "stage": "pre",
+        "focus": "pre",
+        "stateText": "Standing by",
+        "idleSubsMode": "strip",
+        "idleLaneK": 0,
+        "idlePlanChips": 0
+      },
+      "at": "2026-10-16T09:58:35.633Z"
+    },
+    {
+      "id": "theme-dark",
+      "status": "PASS",
+      "detail": {
+        "bgLum": 0.009117957730975224,
+        "fgLum": 0.6667370683724081,
+        "bgDark": true,
+        "contrastOk": true
+      },
+      "at": "2026-10-16T09:58:35.634Z"
+    },
+    {
+      "id": "locale-copy",
+      "status": "PASS",
+      "detail": {
+        "toggleLabel": "Runtime",
+        "stateText": "Standing by",
+        "hasHan": false,
+        "localeMatch": true,
+        "locale": "en"
+      },
+      "at": "2026-10-16T09:58:35.636Z"
+    },
+    {
+      "id": "tool-turn",
+      "status": "PASS",
+      "detail": {
+        "relaxed": "real model: result card not sampled (no slow sibling), round-2 result-card checks skipped",
+        "ttPermSeen": true,
+        "ttAskStage": true,
+        "ttPendingBadge": true,
+        "ttYouButtons": 0,
+        "ttRunWhilePending": "waiting-user",
+        "ttStatusWhilePending": "Waiting for your approval",
+        "ttEnded": true,
+        "ttFocusEnd": "end",
+        "ttStatusEnd": "Round finished · Standing by",
+        "callDet": {
+          "start": 1792144738225,
+          "stage": "call",
+          "cardKind": "call"
+        },
+        "callOk": true,
+        "bashRowOk": true,
+        "ttResultSeen": false,
+        "resultSamples": 0,
+        "resultTone": true,
+        "resultStageWait": true,
+        "resultRows": false,
+        "siblingTask": false,
+        "resultTools": [],
+        "resultCells": []
+      },
+      "at": "2026-10-16T10:03:17.322Z"
+    },
+    {
+      "id": "context-known",
+      "status": "PASS",
+      "detail": {
+        "contextText": "Context 8.7K (last receipt)",
+        "modelBox": "Model\nopencode/nemotron-3.5-lightning-free\nWaiting for request 1\nCarries your message"
+      },
+      "at": "2026-10-16T10:03:17.334Z"
+    },
+    {
+      "id": "last-event",
+      "status": "PASS",
+      "detail": {
+        "lastExists": true,
+        "lastText": "Last event 2 min ago",
+        "hasLastEventText": true,
+        "noDisconnect": true
+      },
+      "at": "2026-10-16T10:03:17.340Z"
+    },
+    {
+      "id": "replay",
+      "status": "PASS",
+      "detail": {
+        "liveStageBefore": "asm",
+        "pauseOk": true,
+        "sliderVisible": true,
+        "sliderMax": 282000,
+        "replayTBefore": 1792144997379,
+        "replayTStart": 1792144715499,
+        "startStage": "pre",
+        "startStageOk": true,
+        "replayLiveBtn": true,
+        "replayBackLive": true
+      },
+      "at": "2026-10-16T10:03:17.767Z"
+    },
+    {
+      "id": "playback",
+      "status": "PASS",
+      "detail": {
+        "pbT0": 1792144715499,
+        "pbStartedReplay": true,
+        "pbAdvanced": true,
+        "speeds": [
+          2,
+          4,
+          0.5,
+          1
+        ],
+        "speedCycle": true,
+        "pbHeld": true,
+        "pbHeldAt": 1792144716632,
+        "pbFirstT": 1792144715499,
+        "pbAtFirst": true,
+        "pbN1": 1792144716699,
+        "pbN2": 1792144716706,
+        "pbNext": true,
+        "pbP1": 1792144716699,
+        "pbPrev": true,
+        "pbKeyBack": true,
+        "pbBackLive": true
+      },
+      "at": "2026-10-16T10:03:20.175Z"
+    },
+    {
+      "id": "log-overlay",
+      "status": "PASS",
+      "detail": {
+        "logBtnVisible": true,
+        "logInSummary": true,
+        "ovVisible": true,
+        "ovRows": 7,
+        "ovErrPressed": true,
+        "ovErrRows": 0,
+        "ovClosed": true,
+        "ovFocusBack": true,
+        "rowTotal": 7,
+        "rowJumped": true
+      },
+      "at": "2026-10-16T10:03:20.440Z"
+    },
+    {
+      "id": "back-to-chat",
+      "status": "PASS",
+      "detail": {
+        "chatBack": true,
+        "runtimeGone": true
+      },
+      "at": "2026-10-16T10:03:20.503Z"
+    },
+    {
+      "id": "trajectory-still-works",
+      "status": "PASS",
+      "detail": {
+        "trajOpened": true,
+        "composerInTraj": true,
+        "chatBackAgain": true,
+        "trajGone": true
+      },
+      "at": "2026-10-16T10:03:20.611Z"
+    },
+    {
+      "id": "plan-chip",
+      "status": "FAIL",
+      "detail": {
+        "idlePlanChips": 0,
+        "planBefore": 0,
+        "planShown": false,
+        "planText": "",
+        "planClicked": false,
+        "planPanel": false,
+        "planPanelItems": 0,
+        "planPanelClosed": true
+      },
+      "at": "2026-10-16T10:07:00.289Z"
+    },
+    {
+      "id": "run",
+      "status": "FAIL",
+      "detail": {
+        "error": "locator.waitFor: Timeout 15000ms exceeded. {\"ds\":{\"theme\":\"oc-2\",\"colorScheme\":\"dark\",\"ocoModel\":\"ready\"},\"n\":0,\"vis\":\"visible\",\"txt\":\"New session - 2026-10-16T09:58:31.087Z\\nChat\\nTrajectory\\nRuntime\\nWaiting for your approval\\n1 waiting for your answer\\nLast event 3 min ago\\n● Live\\nReplay\\n⏮\\n|◀\\n▶\\n▶|\\nR3\\nR2\\nR1\\n18:07:15\\n1×\\nAssemble request\\nMo\",\"rect\":null,\"w\":1345,\"h\":1188}"
+      },
+      "at": "2026-10-16T10:07:15.306Z"
+    }
+  ],
+  "summary": {
+    "PASS": 12,
+    "FAIL": 2,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "plan-chip",
+    "perm-approve",
+    "reply-in-panel",
+    "perm-reject",
+    "tool-fail",
+    "question-route",
+    "dismiss",
+    "fold",
+    "same-command",
+    "no-leak",
+    "stop",
+    "retry",
+    "subagent",
+    "strip",
+    "replay-no-actions",
+    "keyboard",
+    "think-card",
+    "think-expand",
+    "width-560",
+    "width-wide",
+    "ring",
+    "motion-on",
+    "reduced-motion",
+    "width-1600",
+    "parallel-subagents",
+    "focus-stable",
+    "focus-on-change",
+    "geometry-stable",
+    "tools-k-collapse",
+    "legend",
+    "summary",
+    "fill"
+  ]
+}
