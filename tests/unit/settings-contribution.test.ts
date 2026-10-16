@@ -104,6 +104,31 @@ describe("connection settings contribution", () => {
       expect(prop.markdownDescription).toContain("${branch}")
     }
   })
+  test("card 6 navigation commands have chord defaults behind one prefix, scoped to the chat panel or the focused Sessions sidebar (card 8)", () => {
+    const kb = c.keybindings as { command: string; key: string; mac: string; when: string }[]
+    const bound: [string, string][] = [
+      ["oco.inbox.next", "i"],
+      ["oco.session.parent", "p"],
+      ["oco.session.child", "c"],
+      ["oco.session.nextSibling", "n"],
+      ["oco.session.previousSibling", "shift+n"],
+      ["oco.session.recent", "r"],
+      ["oco.follow.toggle", "f"],
+    ]
+    expect(kb.map((k) => k.command)).toEqual(bound.map(([cmd]) => cmd))
+    for (const [cmd, second] of bound) {
+      const k = kb.find((x) => x.command === cmd)!
+      expect(c.commands.some((x: any) => x.command === cmd)).toBe(true)
+      // ctrl/cmd+alt+o is VS Code's default for Show Remote Menu (and Toggle Overtype on mac); u is unbound in 1.141.
+      expect(k.key).toBe(`ctrl+alt+u ${second}`)
+      expect(k.mac).toBe(`cmd+alt+u ${second}`)
+      // focusedView never follows focus into the Sessions webview iframe, so the host mirrors it as oco.sidebarFocused.
+      expect(k.when).toBe("activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused")
+    }
+    // every binding is a two-key chord with a distinct second key, so the prefix alone never fires a command
+    expect(new Set(kb.map((k) => k.key)).size).toBe(kb.length)
+    for (const k of kb) expect(k.key.split(" ")).toHaveLength(2)
+  })
 })
 
 describe("endpoint validation never echoes credentials", () => {

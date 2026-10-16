@@ -307,6 +307,50 @@
         "icon": "$(check)"
       }
     ],
+    "keybindings": [
+      {
+        "command": "oco.inbox.next",
+        "key": "ctrl+alt+u i",
+        "mac": "cmd+alt+u i",
+        "when": "activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused"
+      },
+      {
+        "command": "oco.session.parent",
+        "key": "ctrl+alt+u p",
+        "mac": "cmd+alt+u p",
+        "when": "activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused"
+      },
+      {
+        "command": "oco.session.child",
+        "key": "ctrl+alt+u c",
+        "mac": "cmd+alt+u c",
+        "when": "activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused"
+      },
+      {
+        "command": "oco.session.nextSibling",
+        "key": "ctrl+alt+u n",
+        "mac": "cmd+alt+u n",
+        "when": "activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused"
+      },
+      {
+        "command": "oco.session.previousSibling",
+        "key": "ctrl+alt+u shift+n",
+        "mac": "cmd+alt+u shift+n",
+        "when": "activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused"
+      },
+      {
+        "command": "oco.session.recent",
+        "key": "ctrl+alt+u r",
+        "mac": "cmd+alt+u r",
+        "when": "activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused"
+      },
+      {
+        "command": "oco.follow.toggle",
+        "key": "ctrl+alt+u f",
+        "mac": "cmd+alt+u f",
+        "when": "activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused"
+      }
+    ],
     "menus": {
       "view/title": [
         {

@@ -2,6 +2,11 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 卡 8 第 1 项：卡 6 导航命令默认 chord 键位（2026-10-16，分支 claude/sad-mirzakhani-d4a775 `fdb6c6f`，未合入 main，未推送）
+
+- `oco.inbox.next` / `oco.session.parent` / `child` / `nextSibling` / `previousSibling` / `recent` / `oco.follow.toggle` 绑定 `ctrl+alt+u`（mac `cmd+alt+u`）+ `i` / `p` / `c` / `n` / `shift+n` / `r` / `f`，when `activeWebviewPanelId == 'oco.chat' || focusedView == 'oco.sessions'`。前缀不用 `o`：VS Code 1.141 默认把 `ctrl/cmd+alt+o` 给 Show Remote Menu（mac 另有 Toggle Overtype/Insert Mode）；`u` 在 1.141 内置键位、内置扩展与本机已装扩展中均未使用（扫描 workbench.desktop.main.js 数值键码 + 各 package.json）。验证：typecheck 0；unit 471/0（35 文件）；build PASS；`oco-0.0.4-fdb6c6f.vsix` 14:47:47 装到本机（VS Code CLI 日志 Extracted / Renamed），14:49:21 被 upbeat-spence 会话向同一 0.0.4 槽位的安装覆盖，当前本机 manifest 无键位，未重装（避免互相覆盖），合入后重装。未验证：侧栏一路——VS Code 把 webview iframe 挂在 workbench 根节点，`focusedView` 只在 Sessions 视图容器本身有焦点时成立，webview 内容有焦点时不成立（Claude Code / Kilo Code 扩展都为此自设上下文键）；按键 E2E NOT RUN。证据 [card8-default-keybindings](evidence/card8-default-keybindings.md)。
+- 第二批（分支 claude/nostalgic-allen-aed66d `d611734`，已合并上面的分支；未合入 main，未推送）：侧栏一路改为宿主自设上下文键 `oco.sidebarFocused`（侧栏页面 window focus / blur → `SessionsWebview` setContext，视图隐藏 / 关闭 / dispose 清除），when 改为 `activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused`。验证：typecheck 0；unit 474/0（+3）；build PASS；E2E `c34-keybindings`（Claude 子代理 Sonnet，mock，4 轮，前 2 轮测试侧修复）4/4 PASS——侧栏有焦点触发、普通编辑器放行且第二键正常输入、聊天面板触发（`docs/evidence/runs/20261016-072621-c34-keybindings-c9d7/results.json`）；`oco-0.0.4-d611734.vsix` 15:30 装到本机，装好的 manifest 7 条 keybindings；`install-local.sh` 新增 package.json SHA 校验。限制：焦点在 webview 文本框时第二键字母可能同时输入（VS Code webview 不能拦截）；Windows/Linux `ctrl+alt+u` 未跑。
+
 ## 卡 12：消息级书签 M22（2026-10-16，Mac mini 会话分支 claude/card12-bookmarks，MacBook 挑选 c91c2c4 / f990a76 / 77c8acf 合入 main，合并提交 `5750dae`，已推送 origin）
 
 - 对应 Claude Code 2.1.286 VS Code Bookmarks：钉住某条消息，侧栏该会话下方列出，点击打开会话并滚到该轮。
@@ -57,7 +62,7 @@
 ## 卡 6：路线图剩余可做项（2026-10-14，分支 claude/roadmap-batch-2026-10-14，未合入 main，未推送）
 
 - 侧栏：权限行显示 Always 将放行的模式（只读，最多 3 个 + 计数）；doom_loop 独立图标与文案；Deny with note（行内输入，随 `POST /permission/:id/reply` 的 `message` 发送）。本地标签（≤32 字符，分区 Pinned > 标签组 > 其余，标注不同步）与 Snooze（只作用于非等待 / 非运行行，底部折叠分区，下一条消息到达自动唤醒，状态栏计数不变）。j / k / Enter / Esc / ? 键盘与速查浮层。子会话 / todo 懒取只对收件箱、pinned 与 recent 前 20 行。
-- 宿主命令（均无默认键位）：`oco.inbox.next` 收件箱 QuickPick（按类分组，权限项按钮只作用于该项）；`oco.session.parent / child / nextSibling / previousSibling / recent`（宿主 MRU）；`oco.follow.toggle` Follow（按会话、默认关、preview + preserveFocus、750 ms 节流、用户正在编辑不切换）；资源管理器徽标标出打开面板会话上一轮改过的文件（设置 `oco.decorations.changedFiles`）；审阅意见显示为编辑器评论线程，gutter「+」可直接加意见。`bridge-policy` 在 loopback 下 realpath 后再比较目录。
+- 宿主命令（2026-10-16 起有默认 chord 键位，见顶部卡 8 第 1 项）：`oco.inbox.next` 收件箱 QuickPick（按类分组，权限项按钮只作用于该项）；`oco.session.parent / child / nextSibling / previousSibling / recent`（宿主 MRU）；`oco.follow.toggle` Follow（按会话、默认关、preview + preserveFocus、750 ms 节流、用户正在编辑不切换）；资源管理器徽标标出打开面板会话上一轮改过的文件（设置 `oco.decorations.changedFiles`）；审阅意见显示为编辑器评论线程，gutter「+」可直接加意见。`bridge-policy` 在 loopback 下 realpath 后再比较目录。
 - 上游补丁：`0024-oco-embedded-subagent-pills`（嵌入模式标题行子代理 pills，窄面板折叠为 `⑂ done/total`，点击走宿主 openSession）；`0025-oco-runtime-view-followups`（环心提问态点选项即回答、窄布局卡片贴环下方与空工具台收缩、进度条标签避让刻度、结果浮层 ← n/total → 翻页）。
 - 验证（25f3f9a）：typecheck 0；unit 422/0（30 文件）；vendor app typecheck 0、运行视图单测 131/0；build PASS；只读评审 5 处缺陷已修。夜间（2026-10-15，Mac mini + 本机子代理）：新 mock E2E c18–c25 全过，mock 回归 21 套件 0 失败，p1b-narrow 循环 10/10（未复现产品竞态），c25 嵌套子代理 3×6/0；夜里修了 3 处产品缺陷（Follow 在文件落盘前打开失败后被节流挡住、0025 窄矮舞台 `toolCap=0` 崩成恢复页、子代理汇总 waiting 应优先于 running）；公共版 opencode 1.19.0 mock 41 套件 0 失败、无产品不兼容（未加入 VERIFIED_SERVERS，待决定）。真实模型 c4 / c5 当时 BLOCKED：`opencode/big-pickle` 返回 403（免费档只能在官方 OpenCode 内用）；2026-10-16 已改用官方 opencode 1.18.33 二进制 + `opencode/nemotron-3.5-lightning-free` 跑通 21 套件（见「已知限制与 NOT RUN」首条）。18 张目视截图（mock）在 `docs/evidence/runs/overnight-card7-visual/visual/`，待用户看。本机已装 `oco-0.0.4-2846f66.vsix`。证据 [roadmap-batch-2026-10-14](evidence/roadmap-batch-2026-10-14.md)。
 

@@ -365,6 +365,13 @@ function el(tag, className) {
 }
 function post(msg) { if (vscode && typeof vscode.postMessage === "function") vscode.postMessage(msg) }
 
+// Card 8 chord keybindings: the host mirrors this frame's focus into the `oco.sidebarFocused` context key, because
+// VS Code's `focusedView` never follows focus into a webview view's iframe. Window focus / blur cover clicks, "Focus on
+// Sessions View" and app switches; every event is posted (the host de-duplicates) so a hidden-then-shown view recovers.
+function reportFocus(focused) { post({ type: focused ? "focus" : "blur" }) }
+window.addEventListener("focus", () => reportFocus(true))
+window.addEventListener("blur", () => reportFocus(false))
+
 function save() {
   if (!persistReady) return
   if (typeof vscode !== "undefined" && vscode && typeof vscode.setState === "function") {
@@ -2271,6 +2278,7 @@ function boot() {
   persistReady = true
   maybeRestoreScroll()
   post({ type: "ready" })
+  if (document.hasFocus()) reportFocus(true)
   if (typeof saved.query === "string" && saved.query !== hostQuery) post({ type: "search", query: saved.query })
 }
 

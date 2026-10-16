@@ -292,7 +292,7 @@ if (typeof (globalThis as any).window === "undefined") {
   ;(globalThis as any).window = { addEventListener() {} }
 }
 
-const { SessionsWebview } = await import("../../apps/extension/src/sessions-webview")
+const { SessionsWebview, SIDEBAR_FOCUSED_CONTEXT } = await import("../../apps/extension/src/sessions-webview")
 const {
   buildStepAnswer,
   collectAnswers,
@@ -1487,3 +1487,91 @@ describe("M14: SessionsView Label and Snooze features", () => {
   })
 })
 
+describe("card 8: SessionsWebview mirrors the page's focus into the oco.sidebarFocused context key", () => {
+  function mount() {
+    const store = new SessionStore(() => true)
+    const view = new SessionsView(store)
+    let messageHandler: ((m: any) => void) | undefined
+    let visibilityHandler: (() => void) | undefined
+    let disposeHandler: (() => void) | undefined
+    const mockView: any = {
+      webview: {
+        options: {},
+        html: "",
+        onDidReceiveMessage: (cb: any) => {
+          messageHandler = cb
+          return { dispose() {} }
+        },
+        asWebviewUri: (u: any) => u,
+        postMessage: async () => true,
+        cspSource: "",
+      },
+      onDidChangeVisibility: (cb: any) => {
+        visibilityHandler = cb
+        return { dispose() {} }
+      },
+      onDidDispose: (cb: any) => {
+        disposeHandler = cb
+        return { dispose() {} }
+      },
+      visible: true,
+    }
+    const extensionUri: any = { fsPath: "/ext", toString: () => "/ext" }
+    const webview = new SessionsWebview(view, extensionUri, () => {})
+    webview.resolveWebviewView(mockView)
+    expect(messageHandler).toBeDefined()
+    // Values passed to `setContext oco.sidebarFocused`, in order (other context keys are ignored).
+    const contextCalls = () => executeCommandCalls.filter((c) => c.cmd === "setContext" && c.args[0] === SIDEBAR_FOCUSED_CONTEXT).map((c) => c.args[1])
+    return {
+      view,
+      webview,
+      send: (m: any) => messageHandler!(m),
+      setVisible: (v: boolean) => {
+        mockView.visible = v
+        visibilityHandler!()
+      },
+      disposeView: () => disposeHandler!(),
+      contextCalls,
+    }
+  }
+
+  test("focus / blur messages set and clear the key, once per change", () => {
+    executeCommandCalls = []
+    const t = mount()
+    expect(t.contextCalls()).toEqual([])
+    expect(t.webview.debugState().sidebarFocused).toBe(false)
+    t.send({ type: "focus" })
+    t.send({ type: "focus" }) // the page reports every window focus event; the host de-duplicates
+    expect(t.contextCalls()).toEqual([true])
+    expect(t.webview.debugState().sidebarFocused).toBe(true)
+    t.send({ type: "blur" })
+    expect(t.contextCalls()).toEqual([true, false])
+    expect(t.webview.debugState().sidebarFocused).toBe(false)
+    expect(t.webview.debugState().focus).toBe(2)
+    expect(t.webview.debugState().blur).toBe(1)
+    t.webview.dispose()
+    t.view.dispose()
+  })
+
+  test("hiding, closing, or disposing the view clears the key", () => {
+    executeCommandCalls = []
+    const t = mount()
+    t.send({ type: "focus" })
+    t.setVisible(false)
+    expect(t.contextCalls()).toEqual([true, false])
+    t.setVisible(true)
+    t.send({ type: "focus" })
+    t.disposeView()
+    expect(t.contextCalls()).toEqual([true, false, true, false])
+    t.webview.dispose() // already cleared: no extra setContext
+    expect(t.contextCalls()).toEqual([true, false, true, false])
+    t.view.dispose()
+  })
+
+  test("the manifest's chord keybindings wait on the same key", async () => {
+    const { readFileSync } = await import("node:fs")
+    const pkg = JSON.parse(readFileSync(new URL("../../apps/extension/package.json", import.meta.url), "utf8"))
+    expect(pkg.contributes.keybindings.length).toBe(7)
+    for (const k of pkg.contributes.keybindings) expect(k.when).toBe(`activeWebviewPanelId == 'oco.chat' || ${SIDEBAR_FOCUSED_CONTEXT}`)
+  })
+})
