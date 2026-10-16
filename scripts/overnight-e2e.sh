@@ -3,8 +3,9 @@
 # /tmp/oco-e2e.lock mutex, and writes a summary to docs/evidence/runs/overnight-<date-time>/summary.md.
 # A failing suite never stops the rest. Nothing here is run by the build or the unit tests.
 #
-#   bash scripts/overnight-e2e.sh                              # default batch, scripted mock model
+#   bash scripts/overnight-e2e.sh                              # default batch (21 suites), scripted mock model
 #   bash scripts/overnight-e2e.sh --real                       # same list against the real model (slow, uses quota)
+#       (--real leaves out the 6 mock-only suites c6 c16 c17 c18 c21 c23: 15 suites; name them to run them anyway)
 #   bash scripts/overnight-e2e.sh p1b-narrow --loop 20         # one suite 20 times (race reproduction)
 #   OCO_NARROW_WIDTHS=320 bash scripts/overnight-e2e.sh --loop 20     # --loop alone defaults to p1b-narrow
 #   bash scripts/overnight-e2e.sh --dry-run                    # print the plan only
@@ -23,7 +24,7 @@ set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 LOCK="/tmp/oco-e2e.lock"
 PORT="${OCO_TEST_PORT:-4517}"
-DEFAULT_SUITES="c6-inbox c10-sidebar-answer c11-sidebar-organize c12-new-session-draft c13-worktree-inbox c14-review-notes c15-fix-with-opencode c16-sidebar-stop c17-subagent-aggregate p1b-sidebar p1b-narrow c5-runtime c4-trajectory"
+DEFAULT_SUITES="c6-inbox c10-sidebar-answer c11-sidebar-organize c12-new-session-draft c13-worktree-inbox c14-review-notes c15-fix-with-opencode c16-sidebar-stop c17-subagent-aggregate c18-permission-note c19-label-snooze c20-inbox-nav c21-follow c22-review-threads c23-subagent-pills c24-runtime-question p1b-sidebar p1b-narrow c5-runtime c4-trajectory visual-light-sidebar"
 
 MODE="mock"
 LOOP=1
@@ -32,7 +33,7 @@ DRY=0
 SUITES=()
 LOOP_GIVEN=0
 
-usage() { sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//'; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -57,9 +58,10 @@ fi
 
 if [ ${#SUITES[@]} -eq 0 ]; then
   if [ "$LOOP_GIVEN" = 1 ]; then SUITES=(p1b-narrow); else read -r -a SUITES <<< "$DEFAULT_SUITES"; fi
-  # Suites driven by scripted mock tokens record NOT RUN against a real model; leave them out of a default --real batch.
+  # Suites driven by scripted mock tokens record NOT RUN against a real model (c18 c21 c23 already at the mock guard,
+  # before VS Code starts); leave them out of a default --real batch.
   if [ "$MODE" = "real" ] && [ "$LOOP_GIVEN" != 1 ]; then
-    MOCK_ONLY=" c6-inbox c16-sidebar-stop c17-subagent-aggregate "
+    MOCK_ONLY=" c6-inbox c16-sidebar-stop c17-subagent-aggregate c18-permission-note c21-follow c23-subagent-pills "
     KEEP=(); for s in "${SUITES[@]}"; do case "$MOCK_ONLY" in *" $s "*) ;; *) KEEP+=("$s") ;; esac; done
     SUITES=("${KEEP[@]}"); echo "real mode: skipping mock-only suites:$MOCK_ONLY"
   fi

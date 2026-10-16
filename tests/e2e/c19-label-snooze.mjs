@@ -2,7 +2,7 @@
 // E2E c19-label-snooze: sidebar Label (own section) and Snooze (hidden, Unsnooze, auto-wake on new message,
 // waiting-permission rows never hidden and status-bar stop counter unchanged).
 import { fileURLToPath } from "node:url"
-import { createRun } from "./lib/results.mjs"
+import { createRun, recordNotApplicable } from "./lib/results.mjs"
 import { launch, waitUntil, sleep, runShot, clearNotifications, hostState } from "./vscode.mjs"
 import { api, MODEL, status } from "./server.mjs"
 import { sessionsFrame, sessionRow } from "./lib/sessions-web.mjs"
@@ -166,7 +166,7 @@ try {
     rec("waiting-not-hidden", asked && waiting && counted && sec !== null && sec !== "snoozed" && after === before && stillWaiting,
       { asked, waiting, counted, hoverBtnHidden, section: sec, counterBefore: before, counterAfter: after, stillWaiting })
   } catch (e) {
-    if (e.na) run.recordNotApplicable("waiting-not-hidden", e.message)
+    if (e.na) recordNotApplicable(run, REQUIRED, "waiting-not-hidden", e.message)
     else run.record("waiting-not-hidden", "FAIL", { error: errMsg(e) })
   }
 } catch (e) {

@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // E2E c11-sidebar-organize: Pin, multi-select batch (Mark unread, archive), todo badge in the sidebar SESSIONS list.
 import { fileURLToPath } from "node:url"
-import { createRun } from "./lib/results.mjs"
+import { createRun, recordNotApplicable } from "./lib/results.mjs"
 import { launch, command, waitUntil, sleep, runShot, clearNotifications } from "./vscode.mjs"
 import { api, MODEL } from "./server.mjs"
 import { sessionsFrame, sessionRow } from "./lib/sessions-web.mjs"
 
 const REQUIRED = ["pinned-group", "selection-bar", "marked-unread", "todo-badge"]
+const REAL = MODEL.mode === "real"
+const TODO_WAIT_MS = REAL ? 90000 : 20000
 const run = createRun({ suite: "c11-sidebar-organize", required: REQUIRED, scriptPath: fileURLToPath(import.meta.url) })
 const health = await api("GET", "/global/health").catch(() => null)
 run.setEnv({ serverVersion: health?.version ?? null, modelMode: MODEL.mode })
@@ -106,14 +108,18 @@ try {
       parts: [{ type: "text", text: "Use the todowrite tool to plan: write spec; build it; ship it" }],
     })
     const sel = (await sessionRow(page, tA)).locator("[data-todo]")
-    await sel.waitFor({ state: "attached", timeout: 20000 })
+    await sel.waitFor({ state: "attached", timeout: TODO_WAIT_MS })
     const badge = await sel.getAttribute("data-todo")
     await sel.click()
     const list = (await sessionRow(page, tA)).locator("[data-todo-list]")
     await waitUntil(async () => (await list.locator(".todo-item").count()) > 0, 5000, 150)
     const items = await list.locator(".todo-item").allInnerTexts()
     await runShot(page, run, "5-todo")
-    run.record("todo-badge", badge === "1/3" && items.length === 3 ? "PASS" : "FAIL", { badge, items })
+    const todoPass = REAL
+      ? /^\d+\/\d+$/.test(badge ?? "") && items.length > 0 && items.length === Number(badge.split("/")[1])
+      : badge === "1/3" && items.length === 3
+    const todoDetail = { badge, items, ...(REAL ? { relaxed: "real model: the model chooses its own todo list" } : {}) }
+    run.record("todo-badge", todoPass ? "PASS" : "FAIL", todoDetail)
     await sel.click()
     const collapsed = await waitUntil(async () => (await list.locator(".todo-item").count()) === 0, 5000, 150)
     run.record("todo-collapse", collapsed ? "PASS" : "FAIL", { collapsed })
@@ -124,7 +130,14 @@ try {
       diag.rowHtml = (await (await sessionRow(page, tA)).evaluate((n) => n.outerHTML)).slice(0, 600)
       await runShot(page, run, "5-todo-missing")
     } catch {}
-    run.record("todo-badge", "FAIL", { error: errMsg(e).slice(0, 120), ...diag })
+    const error = errMsg(e).slice(0, 120)
+    if (REAL && Array.isArray(diag.api) && diag.api.length === 0) {
+      const reason = "real model did not call todowrite, so the session has no todos to badge"
+      recordNotApplicable(run, REQUIRED, "todo-badge", reason, { error, ...diag })
+      recordNotApplicable(run, REQUIRED, "todo-collapse", reason, { error, ...diag })
+    } else {
+      run.record("todo-badge", "FAIL", { error, ...diag })
+    }
   }
 
   // --- Archive 2 rows via custom modal dialog ---

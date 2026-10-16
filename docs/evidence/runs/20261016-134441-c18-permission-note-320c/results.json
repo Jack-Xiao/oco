@@ -1,0 +1,56 @@
+{
+  "runId": "20261016-134441-c18-permission-note-320c",
+  "suite": "c18-permission-note",
+  "startedAt": "2026-10-16T13:44:41.784Z",
+  "ocoCommit": "882291a10d19763a3a2122a9419f5827a647085c",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "99f85f2a005e86ce6ad7502b9c22230be76d5b4fc49718ac0553fdbb38637b50",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c18-permission-note",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-16T13:44:47.258Z",
+  "results": [
+    {
+      "id": "always-preview",
+      "status": "PASS",
+      "detail": {
+        "rowShown": true,
+        "text": "Always will allow: echo *",
+        "codes": [
+          "echo *"
+        ],
+        "serverAlways": [
+          "echo *"
+        ],
+        "btnTitle": "echo *"
+      },
+      "at": "2026-10-16T13:44:46.542Z"
+    },
+    {
+      "id": "deny-note",
+      "status": "PASS",
+      "detail": {
+        "formOpen": true,
+        "emptied": true,
+        "rowGone": true,
+        "serverGotNote": true,
+        "note": "c18 note txgij: not allowed here"
+      },
+      "at": "2026-10-16T13:44:46.922Z"
+    }
+  ],
+  "summary": {
+    "PASS": 2,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

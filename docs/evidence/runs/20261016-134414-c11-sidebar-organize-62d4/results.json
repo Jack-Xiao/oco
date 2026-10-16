@@ -1,0 +1,113 @@
+{
+  "runId": "20261016-134414-c11-sidebar-organize-62d4",
+  "suite": "c11-sidebar-organize",
+  "startedAt": "2026-10-16T13:44:14.687Z",
+  "ocoCommit": "882291a10d19763a3a2122a9419f5827a647085c",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "bb62d5d58465d734c5715f8653b76cfb556b9349963e4b97813574c13e0f6fba",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c11-sidebar-organize",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-16T13:44:31.156Z",
+  "results": [
+    {
+      "id": "pinned-group",
+      "status": "PASS",
+      "detail": {
+        "pinnedHeadFirst": true,
+        "bFirstSession": true,
+        "sequence": [
+          "H:sessions",
+          "H:pinned",
+          "R:c11-B-q3bzm",
+          "R:c11-C-q3bzm",
+          "R:c11-A-q3bzm",
+          "R:c10-custom-155kp",
+          "R:c10-multi-hk43f",
+          "R:c10-single-p679r"
+        ]
+      },
+      "at": "2026-10-16T13:44:20.291Z"
+    },
+    {
+      "id": "selection-bar",
+      "status": "PASS",
+      "detail": {
+        "barText": "2 selected Archive Delete Mark unread Pin Label… Snooze Clear",
+        "selCount": 2
+      },
+      "at": "2026-10-16T13:44:20.465Z"
+    },
+    {
+      "id": "marked-unread",
+      "status": "PASS",
+      "detail": {
+        "ok1": true,
+        "stillAfter700ms": true,
+        "bUnread": false
+      },
+      "at": "2026-10-16T13:44:21.477Z"
+    },
+    {
+      "id": "selection-cleared",
+      "status": "PASS",
+      "detail": {
+        "gone": true,
+        "selectedRows": 0
+      },
+      "at": "2026-10-16T13:44:21.532Z"
+    },
+    {
+      "id": "todo-badge",
+      "status": "PASS",
+      "detail": {
+        "badge": "1/3",
+        "items": [
+          "✓\nwrite spec",
+          "▸\nbuild it",
+          "○\nship it"
+        ]
+      },
+      "at": "2026-10-16T13:44:22.439Z"
+    },
+    {
+      "id": "todo-collapse",
+      "status": "PASS",
+      "detail": {
+        "collapsed": true
+      },
+      "at": "2026-10-16T13:44:22.478Z"
+    },
+    {
+      "id": "archive-batch",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "no modal dialog appeared (dialogStyle=custom)",
+        "barText": "1 selected Archive Delete Mark unread Pin Label… Snooze Clear"
+      },
+      "at": "2026-10-16T13:44:30.627Z"
+    },
+    {
+      "id": "delete-batch",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "destructive; kept to archive only"
+      },
+      "at": "2026-10-16T13:44:30.627Z"
+    }
+  ],
+  "summary": {
+    "PASS": 6,
+    "FAIL": 0,
+    "NOT RUN": 2,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}
