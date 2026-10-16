@@ -1128,3 +1128,7 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 验证：typecheck 0；unit 471/0（35 文件）；build PASS；`oco-0.0.4-fdb6c6f.vsix` 打包并于 14:47:47 装到本机，14:49:21 被 upbeat-spence 会话的安装覆盖（同一 0.0.4 槽位），当前本机无此键位，合入后重装。按键 E2E NOT RUN。
 - 遗留：VS Code 把 webview iframe 挂在 workbench 根节点（`overlayWebview.ts`），`ViewPane` 用 DOM `trackFocus` 驱动 `focusedView`，所以 Sessions webview 内容有焦点时该键不成立，只有视图容器本身有焦点时成立；要在侧栏可用需宿主自设 `oco.sidebarFocused`（Sessions webview 收 focus / blur 后 setContext，Claude Code / Kilo Code 同法）。委派：任务 ≤ 10 处编辑且发起会话注明可主线程直做，未派外部路线，见证据文件「委派记录」。
 - 环境：app worktree 没有 vendor/opencode，按 memory「worktree-vendor-setup」挂主检出 vendor 的 git worktree（51ef4be，补丁 0001–0028 应用 28/28，bun install 4667 包）；删除本 worktree 后需 `git -C /Users/xiaojiang/Ai-Project/oco/vendor/opencode worktree prune`。
+
+## 2026-10-16 下午：卡 8 第 1 项第二批——侧栏 chord 真正生效（分支 claude/nostalgic-allen-aed66d，d611734）
+
+- 先把 claude/sad-mirzakhani-d4a775 合入本分支（bc08c40，NEXT 冲突取 main 的新版本），再做侧栏一路：`media/sessions-list/index.js` 在 window focus / blur 时 post `focus` / `blur`，`sessions-webview.ts` 按变化 `setContext oco.sidebarFocused`（隐藏 / 关闭 / dispose 清除，debugState 导出键值与计数），7 条 when 改 `activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused`；typecheck 0、unit 474/0（+3）、build PASS；E2E `c34-keybindings`（Claude 子代理 Sonnet，4 轮，前 2 轮测试侧修复：编辑器输入节点 `.native-edit-context`、侧栏聚焦时序）4/4 PASS；`oco-0.0.4-d611734.vsix` 15:30 装到本机，`install-local.sh` 加 package.json SHA 校验；证据 `docs/evidence/card8-default-keybindings.md`（含委派记录）、`c34-keybindings-e2e.md`。遗留：webview 文本框内第二键字母可能同时输入；Windows/Linux 未跑；未合入 main、未推送。

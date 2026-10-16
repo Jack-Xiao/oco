@@ -2,9 +2,11 @@
 
 分支 claude/sad-mirzakhani-d4a775（app worktree）。提交 `fdb6c6f`：package.json contributes.keybindings、单测、USER-GUIDE / README / CHANGELOG；随后一次文档提交：STATUS / NEXT / PROGRESS / 本文件。未合入 main，未推送。
 
+第二批（同日，分支 claude/nostalgic-allen-aed66d，先合入上面的分支再改）：侧栏一路改为宿主自设上下文键 `oco.sidebarFocused`，when 改为 `activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused`，并用 E2E c34-keybindings 证明三种位置的行为（见「when 条件」与「验证」）。
+
 ## 结果
 
-所有 7 条共用 when `activeWebviewPanelId == 'oco.chat' || focusedView == 'oco.sessions'`。
+所有 7 条共用 when `activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused`（第一批是 `… || focusedView == 'oco.sessions'`，侧栏一路实际不生效）。
 
 | 命令 | key（win / linux） | mac |
 | --- | --- | --- |
@@ -36,15 +38,19 @@
 - 替代：不限焦点可用 `view.oco.sessions.visible`（VS Code 为每个视图设的可见性键）；要严格焦点需宿主自设 `oco.sidebarFocused`。
 - 首键只在 when 成立时进入 chord 等待（`KeybindingResolver.resolve` 对首键也过 when），其他位置 `ctrl/cmd+alt+u` 原样放行。
 
+- 2026-10-16 第二批（分支 claude/nostalgic-allen-aed66d）：when 改为 `activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused`。`oco.sidebarFocused` 由宿主自设：侧栏页面 `media/sessions-list/index.js` 在 `window` 的 focus / blur 事件（以及加载时 `document.hasFocus()` 为真）时 post `{ type: "focus" | "blur" }`，`SessionsWebview`（`apps/extension/src/sessions-webview.ts`）按变化执行 `setContext oco.sidebarFocused`，视图隐藏、关闭或 dispose 时清为 false；页面每次事件都发、宿主去重，避免视图隐藏后再显示时状态卡住。`FromPage` 是该文件内部类型，不涉及 packages/contracts。`oco.debugState` 导出里 `sidebar.webList.sidebarFocused` 与 `focus` / `blur` 计数（E2E 用）。
+- 保留的限制：焦点在 webview 内的文本框（聊天面板 composer、侧栏搜索框）时，VS Code 把按键转发给宿主做键位匹配，但不能在 webview 内 preventDefault，第二键字母仍会输入到文本框；不是本批可解决的问题，USER-GUIDE 已写明。
+
 ## 验证
 
 | 项 | 结果 |
 | --- | --- |
-| `bun run typecheck` | 0 |
-| `bun run test:unit` | 471 pass / 0 fail，35 文件（新增 1 个测试） |
-| `bun run build` | PASS（webview 4674 modules 18.3 s；extension.js 306.8 kB） |
+| `bun run typecheck` | 第一批 0；第二批 0 |
+| `bun run test:unit` | 第一批 471 pass / 0 fail，35 文件（新增 1 个测试）；第二批 474 pass / 0 fail，35 文件（新增 3 个：focus / blur 置位与去重、隐藏 / 关闭 / dispose 清除、manifest when 与常量一致） |
+| `bun run build` | 第一批 PASS（webview 4674 modules 18.3 s；extension.js 306.8 kB）；第二批 PASS（extension.js 307.8 kB） |
 | `scripts/package-vsix.sh` + `scripts/install-local.sh` | `oco-0.0.4-fdb6c6f.vsix`（13.9 MB，包内 manifest 含 7 条 keybindings）14:47:47 装到 `~/.vscode/extensions/oco-local-test.oco-0.0.4`（VS Code CLI 日志 `logs/20261016T144746`：Deleted existing / Extracted / Renamed / installed successfully；install-local.sh 的 extension.js / index.html SHA256 校验通过）。14:49:21 另一会话（worktree `upbeat-spence-b71c1d`）向同一槽位安装了它的 VSIX（日志 `logs/20261016T144921`），之后本机 manifest 无 keybindings（与 main 4f114ec 相同）。未重装，避免两个会话互相覆盖；合入 main 后重装。注意 install-local.sh 只校验 extension.js / index.html，manifest-only 的改动被覆盖时它查不出来，建议加 package.json 校验（脚本不在本任务写入范围）。|
-| 按键 E2E（面板 / 侧栏实际触发） | NOT RUN |
+| 第二批 `scripts/package-vsix.sh` + `scripts/install-local.sh` | `oco-0.0.4-d611734.vsix`（13.9 MB）15:30:22 装到 `~/.vscode/extensions/oco-local-test.oco-0.0.4`；extension.js、media/chat/index.html、package.json（去掉 VS Code 安装时加的 `__metadata` 后）SHA256 均与包内一致（后者是本批给 install-local.sh 新加的校验）；装好的 manifest 7 条 keybindings，when 全为新子句；包内 sessions-list/index.js 含 focus / blur 上报。 |
+| 按键 E2E（面板 / 侧栏实际触发） | 第一批 NOT RUN。第二批 `tests/e2e/c34-keybindings.mjs`（Claude 子代理 Sonnet 运行，mock 模型，服务端 1.18.33）：第 3 轮 `docs/evidence/runs/20261016-072538-c34-keybindings-bc5f/results.json` 与脚本定稿后的第 4 轮 `docs/evidence/runs/20261016-072621-c34-keybindings-c9d7/results.json`（scriptSha256 与提交的文件一致）均为必需 4/4 PASS——`sidebar-chord-opens-inbox`（Untitled 编辑器为活动编辑器、焦点在侧栏 iframe：`workbenchActiveElement` IFRAME.webview，`frameFocused` true，进入 chord 模式，QuickPick「OpenCode Inbox」打开）、`editor-chord-passes-through`（编辑器内 `ab` → 按 cmd+alt+u、i 后 `abi`，未进 chord 模式，无 QuickPick）、`sidebar-blur-clears-context`（焦点离开侧栏后 `sidebarFocused` false，focus / blur 消息各 1）、`panel-chord-opens-inbox`（聊天面板 composer 有焦点，chord 触发，QuickPick 打开）。前两轮为测试侧问题：VS Code 1.141 编辑器输入节点是 `.native-edit-context` 而非 `textarea.inputarea`；侧栏在列表为空、页面未加载完时执行 Focus on Sessions View 焦点不进 iframe（改为先建会话、页面加载后再聚焦）。 |
 | 真实模型 | NOT RUN |
 
 ## 委派记录
@@ -52,7 +58,11 @@
 | task_id | 唯一写入范围 | requested_route | actual_provider/model | agent_id/run_id | 状态 | 结果路径 | fallback_reason / 主线程接手理由 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | card8-kb-impl | package.json contributes.keybindings、settings-contribution 单测、USER-GUIDE / README / CHANGELOG | main（Fable 5.1） | claude/fable-5.1 | unknown | 验收通过 | fdb6c6f | 任务 ≤ 10 处编辑、无独立模块；发起会话注明「主线程直接做也算合规，但要在证据里写一行理由」。冲突核对用本机 VS Code 安装包离线脚本完成，不需外部调研。 |
+| card8-kb-sidebar-impl | sessions-webview.ts、media/sessions-list/index.js、package.json when、settings-contribution / sessions-view 单测、tests/e2e/c34-keybindings.mjs、install-local.sh、文档 | main（Fable 5.1，分支 claude/nostalgic-allen-aed66d） | claude/fable-5.1 | unknown | 验收通过 | 见本文件「验证」 | 契约与同一文件内集成（FromPage 类型、setContext、when 子句、E2E 用例设计）由主线程保留；按任务要求 E2E 运行交 Claude 子代理。 |
+| card8-kb-e2e-run | tests/e2e/c34-keybindings.mjs（仅测试侧修复）、docs/evidence/c34-keybindings-e2e.md、docs/evidence/runs/ | claude-subagent/sonnet（Agent general-purpose，model sonnet） | claude-sonnet-5-5（子代理自报） | unknown | 验收通过 | `docs/evidence/runs/20261016-072621-c34-keybindings-c9d7/results.json`（4/4 PASS；第 3 轮 bc5f 同为 4/4）；过程见 `docs/evidence/c34-keybindings-e2e.md` | AGENTS.md：要启动 VS Code / Playwright 的 E2E 直接交 Claude 子代理（Grok 沙箱不能启动 Code，Gemini 包装层对长命令空等）。37 次工具调用、约 11 分钟、4 轮运行（前 2 轮测试侧修复：编辑器输入节点选择器、侧栏聚焦时序）；主线程复核测试改动与 results.json，发现缺陷 0。 |
 
 ## 环境
 
 app worktree 无 vendor/opencode；按 memory「worktree-vendor-setup」：`git -C /Users/xiaojiang/Ai-Project/oco/vendor/opencode worktree add --detach <worktree>/vendor/opencode 51ef4be`，补丁 0001–0028 应用 28/28，`bun install --frozen-lockfile` 4667 包 22 s，`apps/chat-webview/node_modules` 软链。删除本 worktree 后 `git -C /Users/xiaojiang/Ai-Project/oco/vendor/opencode worktree prune`。
+
+第二批 worktree `nostalgic-allen-aed66d` 同法：vendor git worktree 51ef4be，补丁 0001–0028 应用 28/28，`bun install --frozen-lockfile` 4667 包 75 s，`apps/chat-webview/node_modules` 软链；删除后同样需要 `git -C /Users/xiaojiang/Ai-Project/oco/vendor/opencode worktree prune`。

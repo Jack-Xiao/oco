@@ -5,6 +5,7 @@
 ## 卡 8 第 1 项：卡 6 导航命令默认 chord 键位（2026-10-16，分支 claude/sad-mirzakhani-d4a775 `fdb6c6f`，未合入 main，未推送）
 
 - `oco.inbox.next` / `oco.session.parent` / `child` / `nextSibling` / `previousSibling` / `recent` / `oco.follow.toggle` 绑定 `ctrl+alt+u`（mac `cmd+alt+u`）+ `i` / `p` / `c` / `n` / `shift+n` / `r` / `f`，when `activeWebviewPanelId == 'oco.chat' || focusedView == 'oco.sessions'`。前缀不用 `o`：VS Code 1.141 默认把 `ctrl/cmd+alt+o` 给 Show Remote Menu（mac 另有 Toggle Overtype/Insert Mode）；`u` 在 1.141 内置键位、内置扩展与本机已装扩展中均未使用（扫描 workbench.desktop.main.js 数值键码 + 各 package.json）。验证：typecheck 0；unit 471/0（35 文件）；build PASS；`oco-0.0.4-fdb6c6f.vsix` 14:47:47 装到本机（VS Code CLI 日志 Extracted / Renamed），14:49:21 被 upbeat-spence 会话向同一 0.0.4 槽位的安装覆盖，当前本机 manifest 无键位，未重装（避免互相覆盖），合入后重装。未验证：侧栏一路——VS Code 把 webview iframe 挂在 workbench 根节点，`focusedView` 只在 Sessions 视图容器本身有焦点时成立，webview 内容有焦点时不成立（Claude Code / Kilo Code 扩展都为此自设上下文键）；按键 E2E NOT RUN。证据 [card8-default-keybindings](evidence/card8-default-keybindings.md)。
+- 第二批（分支 claude/nostalgic-allen-aed66d `d611734`，已合并上面的分支；未合入 main，未推送）：侧栏一路改为宿主自设上下文键 `oco.sidebarFocused`（侧栏页面 window focus / blur → `SessionsWebview` setContext，视图隐藏 / 关闭 / dispose 清除），when 改为 `activeWebviewPanelId == 'oco.chat' || oco.sidebarFocused`。验证：typecheck 0；unit 474/0（+3）；build PASS；E2E `c34-keybindings`（Claude 子代理 Sonnet，mock，4 轮，前 2 轮测试侧修复）4/4 PASS——侧栏有焦点触发、普通编辑器放行且第二键正常输入、聊天面板触发（`docs/evidence/runs/20261016-072621-c34-keybindings-c9d7/results.json`）；`oco-0.0.4-d611734.vsix` 15:30 装到本机，装好的 manifest 7 条 keybindings；`install-local.sh` 新增 package.json SHA 校验。限制：焦点在 webview 文本框时第二键字母可能同时输入（VS Code webview 不能拦截）；Windows/Linux `ctrl+alt+u` 未跑。
 
 ## 卡 12：消息级书签 M22（2026-10-16，Mac mini 会话分支 claude/card12-bookmarks，MacBook 挑选 c91c2c4 / f990a76 / 77c8acf 合入 main，合并提交 `5750dae`，已推送 origin）
 
@@ -156,7 +157,7 @@
 
 - 上游基线：vendor OpenCode v1.18.33（提交 `51ef4be`，浅克隆；旧文档里的补丁基线 `deb241e` 已不存在，补丁再生成改用 `scripts/regen-patch.sh` 在临时 worktree 重建基线）。宿主 `VERIFIED_SERVERS` = 1.18.33、1.19.0（公共 npm 版；2026-10-16 卡 8 决定加入，依据 mini-compat 的 mock 41 套件 0 失败，真实模型下的验证并入 mini-real）、1.18.13（企业服务；前端保持 1.18.33，验收对着 1.18.13 服务端跑；切到 1.18.13 前端的方案停放在本地分支 `claude/opencode-1.18.13-baseline`）。
 - 补丁链：`patches/opencode/` 0001–0028 全部 28 个在干净 vendor HEAD `51ef4be` 上重放通过（2026-10-16 合入卡 10 `0026-oco-embedded-turn-rail.patch`（嵌入模式轮次侧轨）与卡 12 `0027-oco-message-bookmarks.patch`（消息书签按钮）后 `bun run setup` 全链 28/28，合并提交 `5750dae`；0028 为卡 13 `0028-oco-composer-chip.patch`（composer 附件 chip）；2026-10-14 生成 0025 时以 0001–0024 为基线校验；`0024-oco-embedded-subagent-pills.patch` 标题行子代理 pills；`0025-oco-runtime-view-followups.patch` 运行视图 M5 遗留；`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡；`0022-oco-markdown-mermaid.patch` 为 Mermaid；`0023-oco-embedded-new-session-draft.patch` 为新建会话草稿页）。卡 1、卡 3 未改补丁。
-- 本机扩展：已装 `oco-0.0.4-e680a7a.vsix`（main e680a7a = 5750dae 卡 10 / 卡 12 合入 + 1.19.0 进 VERIFIED_SERVERS，vendor v1.18.33 + 补丁 0001–0028；2026-10-16 14:38；extension.js sha256 `3f538d48…`；需 Reload Window）。
+- 本机扩展：已装 `oco-0.0.4-d611734.vsix`（分支 claude/nostalgic-allen-aed66d d611734 = main f5ff439 + 卡 8 默认 chord 键位两批（含 `oco.sidebarFocused`），vendor v1.18.33 + 补丁 0001–0028；2026-10-16 15:30；extension.js sha256 `f682a170…`；需 Reload Window）。
 
 ## 已合入 main 的能力
 
