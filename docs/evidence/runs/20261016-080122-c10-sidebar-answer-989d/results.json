@@ -1,0 +1,41 @@
+{
+  "runId": "20261016-080122-c10-sidebar-answer-989d",
+  "suite": "c10-sidebar-answer",
+  "startedAt": "2026-10-16T08:01:22.347Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "55df8260efee6b4b8484d11892652f8a4e6ad0a37b3f1c25eaf40e1181a0bc7d",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "real",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c10-sidebar-answer",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T08:03:17.666Z",
+  "results": [
+    {
+      "id": "run",
+      "status": "FAIL",
+      "detail": {
+        "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('section[data-group=\"inbox\"]').locator('.row[data-kind=\"question\"][data-session-id=\"ses_ebc45116dffey5hn3GppjaOfuE\"]').locator('button').filter({ hasText: /answer/i }).first()\u001b[22m\n"
+      },
+      "at": "2026-10-16T08:03:16.982Z"
+    }
+  ],
+  "summary": {
+    "PASS": 0,
+    "FAIL": 1,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "question-row",
+    "form-open",
+    "answer-sent",
+    "inbox-cleared"
+  ]
+}

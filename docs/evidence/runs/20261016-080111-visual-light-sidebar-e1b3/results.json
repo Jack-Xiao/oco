@@ -1,0 +1,36 @@
+{
+  "runId": "20261016-080111-visual-light-sidebar-e1b3",
+  "suite": "visual-light-sidebar",
+  "startedAt": "2026-10-16T08:01:11.967Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "ee377eacb6da77f65eb3a7299f1a9e04dc61bea61539beca8e49fa9bc35ea501",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "visual-light",
+  "modelMode": "real",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T08:01:20.392Z",
+  "results": [
+    {
+      "id": "light-shot",
+      "status": "PASS",
+      "detail": {
+        "note": "screenshot only; look at it",
+        "mode": "real"
+      },
+      "at": "2026-10-16T08:01:20.086Z"
+    }
+  ],
+  "summary": {
+    "PASS": 1,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

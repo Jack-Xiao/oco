@@ -1,0 +1,62 @@
+{
+  "runId": "20261016-075937-c24-runtime-question-ee61",
+  "suite": "c24-runtime-question",
+  "startedAt": "2026-10-16T07:59:37.144Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "0028563bc4812aa6f27c61bdd0aba564118ae7d3f9d23524da8c7a4eb81198bf",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "real",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c24-runtime-question",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T08:01:11.529Z",
+  "results": [
+    {
+      "id": "ask-card",
+      "status": "FAIL",
+      "detail": {
+        "pending": false,
+        "askUp": false,
+        "nOpts": 0,
+        "optTexts": []
+      },
+      "at": "2026-10-16T08:01:10.872Z"
+    },
+    {
+      "id": "option-click",
+      "status": "FAIL",
+      "detail": {
+        "clicked": false,
+        "answeredServerSide": true
+      },
+      "at": "2026-10-16T08:01:10.936Z"
+    },
+    {
+      "id": "question-cleared",
+      "status": "FAIL",
+      "detail": {
+        "remaining": [
+          "que_143b96de2001VI963laqf76sRy"
+        ]
+      },
+      "at": "2026-10-16T08:01:10.937Z"
+    }
+  ],
+  "summary": {
+    "PASS": 0,
+    "FAIL": 3,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "ask-card",
+    "option-click",
+    "question-cleared"
+  ]
+}

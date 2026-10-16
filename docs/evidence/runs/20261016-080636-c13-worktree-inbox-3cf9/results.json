@@ -1,0 +1,102 @@
+{
+  "runId": "20261016-080636-c13-worktree-inbox-3cf9",
+  "suite": "c13-worktree-inbox",
+  "startedAt": "2026-10-16T08:06:36.052Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "b397396353565b8fc0e6f75b67473197fbbc1037767f1910bfe2a91f83a2c510",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "real",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c13-worktree-inbox",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T08:07:40.280Z",
+  "results": [
+    {
+      "id": "worktree-sessions-waiting",
+      "status": "PASS",
+      "detail": {
+        "dirs": [
+          "/Users/jarvis/Ai-Project/oco-mini/.oco-test/xdg/data/opencode/worktree/0129c81fef0d1f0701093f7b60925c47e5732aae/gentle-knight",
+          "/Users/jarvis/Ai-Project/oco-mini/.oco-test/xdg/data/opencode/worktree/0129c81fef0d1f0701093f7b60925c47e5732aae/nimble-wolf"
+        ],
+        "sessions": [
+          "ses_ebc4040caffeia9Q5xt1CcTRjr",
+          "ses_ebc3f9310ffevlFFRbRtGRQ3lG"
+        ]
+      },
+      "at": "2026-10-16T08:07:35.930Z"
+    },
+    {
+      "id": "inbox-two-rows",
+      "status": "PASS",
+      "detail": {
+        "rows": 2,
+        "openPanels": 0
+      },
+      "at": "2026-10-16T08:07:38.147Z"
+    },
+    {
+      "id": "status-count-two",
+      "status": "PASS",
+      "detail": {
+        "statusBar": [
+          {
+            "aria": "oco-logo  oco  bell-dot  2, oco: Connected to http://127.0.0.1:4537\n/Users/jarvis/Ai-Project/oco-mini/.oco-test/c13/ws-gsjtd\nMode: Attached server\nServer version: 1.18.33",
+            "text": "oco 2",
+            "bell": true
+          }
+        ],
+        "count": 2
+      },
+      "at": "2026-10-16T08:07:38.152Z"
+    },
+    {
+      "id": "inbox-allow-both",
+      "status": "PASS",
+      "detail": {
+        "clicked": 2
+      },
+      "at": "2026-10-16T08:07:39.530Z"
+    },
+    {
+      "id": "permissions-cleared",
+      "status": "PASS",
+      "detail": {
+        "leftover": {
+          "/Users/jarvis/Ai-Project/oco-mini/.oco-test/xdg/data/opencode/worktree/0129c81fef0d1f0701093f7b60925c47e5732aae/gentle-knight": 0,
+          "/Users/jarvis/Ai-Project/oco-mini/.oco-test/xdg/data/opencode/worktree/0129c81fef0d1f0701093f7b60925c47e5732aae/nimble-wolf": 0
+        }
+      },
+      "at": "2026-10-16T08:07:39.535Z"
+    },
+    {
+      "id": "inbox-and-count-zero",
+      "status": "PASS",
+      "detail": {
+        "inboxRows": 0,
+        "statusBar": [
+          {
+            "aria": "oco-logo  oco, oco: Connected to http://127.0.0.1:4537\n/Users/jarvis/Ai-Project/oco-mini/.oco-test/c13/ws-gsjtd\nMode: Attached server\nServer version: 1.18.33",
+            "text": "oco",
+            "bell": false
+          }
+        ],
+        "count": 0
+      },
+      "at": "2026-10-16T08:07:39.542Z"
+    }
+  ],
+  "summary": {
+    "PASS": 6,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

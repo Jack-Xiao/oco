@@ -1,0 +1,44 @@
+{
+  "runId": "20261016-075936-c23-subagent-pills-86cd",
+  "suite": "c23-subagent-pills",
+  "startedAt": "2026-10-16T07:59:36.664Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "01ee891ea96f8d21dd2ba332ea12881cf6cf34f8c45d50316a54f8d8d8f536c7",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "real",
+  "finishedAt": "2026-10-16T07:59:36.697Z",
+  "results": [
+    {
+      "id": "pills-visible",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "needs OCO_E2E_MODEL=mock"
+      },
+      "at": "2026-10-16T07:59:36.697Z"
+    },
+    {
+      "id": "pill-open-child",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "needs OCO_E2E_MODEL=mock"
+      },
+      "at": "2026-10-16T07:59:36.697Z"
+    }
+  ],
+  "summary": {
+    "PASS": 0,
+    "FAIL": 0,
+    "NOT RUN": 2,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "pills-visible",
+    "pill-open-child"
+  ]
+}

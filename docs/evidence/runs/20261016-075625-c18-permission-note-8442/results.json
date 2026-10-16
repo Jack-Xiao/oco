@@ -1,0 +1,44 @@
+{
+  "runId": "20261016-075625-c18-permission-note-8442",
+  "suite": "c18-permission-note",
+  "startedAt": "2026-10-16T07:56:25.292Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "20ecc716386a82254be2ed4f6d4eb9e94d8b23958bcac9995bcd4ad5dcb7b784",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "real",
+  "finishedAt": "2026-10-16T07:56:25.325Z",
+  "results": [
+    {
+      "id": "always-preview",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "needs the scripted mock model"
+      },
+      "at": "2026-10-16T07:56:25.324Z"
+    },
+    {
+      "id": "deny-note",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "needs the scripted mock model"
+      },
+      "at": "2026-10-16T07:56:25.324Z"
+    }
+  ],
+  "summary": {
+    "PASS": 0,
+    "FAIL": 0,
+    "NOT RUN": 2,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "always-preview",
+    "deny-note"
+  ]
+}

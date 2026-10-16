@@ -1,0 +1,367 @@
+{
+  "runId": "20261016-073656-p1b-narrow-9da0",
+  "suite": "p1b-narrow",
+  "startedAt": "2026-10-16T07:36:56.980Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "86a969cc08b36109f7bff2a4790737405100df772254ccdac15586480089587e",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "widths": [
+    260,
+    320,
+    480,
+    800
+  ],
+  "clickMethod": "Playwright locator.click() (pointer, no force)",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "p1b-narrow-800",
+  "modelMode": "real",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "layout-260": {
+    "zoomLevel": 0,
+    "frameWidths": [
+      262,
+      262,
+      262
+    ],
+    "editorGroups": 3
+  },
+  "layout-320": {
+    "zoomLevel": 0,
+    "frameWidths": [
+      320,
+      320,
+      320
+    ],
+    "editorGroups": 3
+  },
+  "layout-480": {
+    "zoomLevel": -1,
+    "frameWidths": [
+      478,
+      478,
+      481
+    ],
+    "editorGroups": 3
+  },
+  "layout-800": {
+    "zoomLevel": -4,
+    "frameWidths": [
+      800,
+      800,
+      802
+    ],
+    "editorGroups": 3
+  },
+  "finishedAt": "2026-10-16T07:51:39.645Z",
+  "results": [
+    {
+      "id": "deny-260",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc5b6f51ffe2rgvts6Lw7O6Qy",
+        "requestId": "per_143a5be680018giwqi1BBxA8pJ",
+        "geometry": {
+          "left": 65,
+          "right": 122,
+          "top": 709,
+          "bottom": 737,
+          "viewport": [
+            262,
+            802
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "error",
+        "attempts": 1
+      },
+      "at": "2026-10-16T07:38:21.205Z"
+    },
+    {
+      "id": "layout-260",
+      "status": "FAIL",
+      "detail": {
+        "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-component=\"prompt-input\"]')\u001b[22m\n"
+      },
+      "at": "2026-10-16T07:42:22.450Z"
+    },
+    {
+      "id": "deny-320",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc567620ffecL1f7u435ZMPAS",
+        "requestId": "per_143a9f1fb001oCZD4vrYj7r1FT",
+        "geometry": {
+          "left": 123,
+          "right": 180,
+          "top": 709,
+          "bottom": 737,
+          "viewport": [
+            320,
+            802
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "error",
+        "attempts": 1
+      },
+      "at": "2026-10-16T07:42:56.274Z"
+    },
+    {
+      "id": "allow-320",
+      "status": "FAIL",
+      "detail": {
+        "sessionId": "ses_ebc5664a9ffecBDTJjhOtu1m06",
+        "requestId": "per_143aa1dc2001lO9XCLFlEUwTRB",
+        "geometry": {
+          "left": 198,
+          "right": 291,
+          "top": 745,
+          "bottom": 773,
+          "viewport": [
+            320,
+            802
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": false,
+        "toolStatus": "running",
+        "attempts": 1
+      },
+      "at": "2026-10-16T07:46:36.393Z"
+    },
+    {
+      "id": "question-320",
+      "status": "FAIL",
+      "detail": {
+        "sessionId": "ses_ebc566164ffe5RVW7Zm65d9nN4",
+        "requestId": "que_143ad7f8a00191rKZTuVfLQc6y",
+        "optionGeometry": {
+          "left": 29,
+          "right": 291,
+          "top": 586,
+          "bottom": 648,
+          "viewport": [
+            320,
+            802
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "submitGeometry": {
+          "left": 218,
+          "right": 291,
+          "top": 741,
+          "bottom": 773,
+          "viewport": [
+            320,
+            802
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "recordedAnswer": null,
+        "attempts": 1
+      },
+      "at": "2026-10-16T07:50:17.639Z"
+    },
+    {
+      "id": "deny-480",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc4f35ccffe1iDJVRY8K3HwPu",
+        "requestId": "per_143b0f7b7001RBTBpw4Tmzjqm6",
+        "geometry": {
+          "left": 179,
+          "right": 237,
+          "top": 917,
+          "bottom": 945,
+          "viewport": [
+            478,
+            974
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "error",
+        "attempts": 1
+      },
+      "at": "2026-10-16T07:50:36.328Z"
+    },
+    {
+      "id": "allow-480",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc4f2449ffeOWvPh2MkKbiEMQ",
+        "requestId": "per_143b10d80001CgnMH27s2XCC1l",
+        "geometry": {
+          "left": 356,
+          "right": 450,
+          "top": 917,
+          "bottom": 945,
+          "viewport": [
+            478,
+            974
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "completed",
+        "attempts": 1
+      },
+      "at": "2026-10-16T07:50:44.167Z"
+    },
+    {
+      "id": "question-480",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc4f20faffez56c1vHNNGw6Jf",
+        "requestId": "que_143b130ef001wNwyI7O8rzg8oZ",
+        "optionGeometry": {
+          "left": 29,
+          "right": 452,
+          "top": 757,
+          "bottom": 820,
+          "viewport": [
+            481,
+            974
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "submitGeometry": {
+          "left": 379,
+          "right": 452,
+          "top": 913,
+          "bottom": 945,
+          "viewport": [
+            481,
+            974
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "recordedAnswer": "blue",
+        "attempts": 1
+      },
+      "at": "2026-10-16T07:51:02.654Z"
+    },
+    {
+      "id": "deny-800",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc4e85dbffepY83ZkPNeOi2sC",
+        "requestId": "per_143b1a8db001xvcoKtkdEoZMc1",
+        "geometry": {
+          "left": 497,
+          "right": 557,
+          "top": 1669,
+          "bottom": 1697,
+          "viewport": [
+            800,
+            1727
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "error",
+        "attempts": 1
+      },
+      "at": "2026-10-16T07:51:21.689Z"
+    },
+    {
+      "id": "allow-800",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc4e742dffeEFwk6X26YI9rjb",
+        "requestId": "per_143b1c0ff001pv0Afgn8oPaUXU",
+        "geometry": {
+          "left": 675,
+          "right": 770,
+          "top": 1669,
+          "bottom": 1697,
+          "viewport": [
+            800,
+            1727
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "completed",
+        "attempts": 1
+      },
+      "at": "2026-10-16T07:51:29.714Z"
+    },
+    {
+      "id": "question-800",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc4e70cfffe76h3eowOwIb3Oq",
+        "requestId": "que_143b1e5080016kQ76UBRfyZSoU",
+        "optionGeometry": {
+          "left": 29,
+          "right": 774,
+          "top": 1505,
+          "bottom": 1569,
+          "viewport": [
+            802,
+            1727
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "submitGeometry": {
+          "left": 698,
+          "right": 772,
+          "top": 1665,
+          "bottom": 1697,
+          "viewport": [
+            802,
+            1727
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "recordedAnswer": "blue",
+        "attempts": 1
+      },
+      "at": "2026-10-16T07:51:39.018Z"
+    }
+  ],
+  "summary": {
+    "PASS": 8,
+    "FAIL": 3,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "allow-260",
+    "question-260",
+    "allow-320",
+    "question-320"
+  ]
+}

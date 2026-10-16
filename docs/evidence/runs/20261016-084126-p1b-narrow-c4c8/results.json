@@ -1,0 +1,299 @@
+{
+  "runId": "20261016-084126-p1b-narrow-c4c8",
+  "suite": "p1b-narrow",
+  "startedAt": "2026-10-16T08:41:26.174Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "86a969cc08b36109f7bff2a4790737405100df772254ccdac15586480089587e",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "widths": [
+    260,
+    320,
+    480,
+    800
+  ],
+  "clickMethod": "Playwright locator.click() (pointer, no force)",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "p1b-narrow-800",
+  "modelMode": "real",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "layout-260": {
+    "zoomLevel": 0,
+    "frameWidths": [
+      262,
+      262,
+      262
+    ],
+    "editorGroups": 3
+  },
+  "layout-320": {
+    "zoomLevel": 0,
+    "frameWidths": [
+      320,
+      320,
+      320
+    ],
+    "editorGroups": 3
+  },
+  "layout-480": {
+    "zoomLevel": -1,
+    "frameWidths": [
+      478,
+      478,
+      481
+    ],
+    "editorGroups": 3
+  },
+  "layout-800": {
+    "zoomLevel": -4,
+    "frameWidths": [
+      800,
+      800,
+      802
+    ],
+    "editorGroups": 3
+  },
+  "finishedAt": "2026-10-16T09:07:58.173Z",
+  "results": [
+    {
+      "id": "deny-260",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc206569ffeKtrykuLESzZB6E",
+        "requestId": "per_143e0b22d001YKm7wuRdOVS0o6",
+        "geometry": {
+          "left": 65,
+          "right": 122,
+          "top": 709,
+          "bottom": 737,
+          "viewport": [
+            262,
+            802
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "error",
+        "attempts": 1
+      },
+      "at": "2026-10-16T08:42:44.445Z"
+    },
+    {
+      "id": "layout-260",
+      "status": "FAIL",
+      "detail": {
+        "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-component=\"prompt-input\"]')\u001b[22m\n"
+      },
+      "at": "2026-10-16T08:46:45.762Z"
+    },
+    {
+      "id": "deny-320",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc1b82d3ffevdIZucXNSerIcs",
+        "requestId": "per_143e921a8001x7CfB7M9tqlzry",
+        "geometry": {
+          "left": 123,
+          "right": 180,
+          "top": 709,
+          "bottom": 737,
+          "viewport": [
+            320,
+            802
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "error",
+        "attempts": 2
+      },
+      "at": "2026-10-16T08:53:26.794Z"
+    },
+    {
+      "id": "allow-320",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc1b7137ffesrVmo2EqXxskeD",
+        "requestId": "per_143ead795001J0RYgV6hCGp2DA",
+        "geometry": {
+          "left": 198,
+          "right": 291,
+          "top": 745,
+          "bottom": 773,
+          "viewport": [
+            320,
+            802
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "completed",
+        "attempts": 1
+      },
+      "at": "2026-10-16T08:53:51.874Z"
+    },
+    {
+      "id": "question-320",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc1b6df4ffew0elEwDbTt2Tau",
+        "requestId": "que_143eb02b9001bdlSJ65d88s3RE",
+        "optionGeometry": {
+          "left": 29,
+          "right": 291,
+          "top": 586,
+          "bottom": 648,
+          "viewport": [
+            320,
+            802
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "submitGeometry": {
+          "left": 218,
+          "right": 291,
+          "top": 741,
+          "bottom": 773,
+          "viewport": [
+            320,
+            802
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "recordedAnswer": "blue",
+        "attempts": 1
+      },
+      "at": "2026-10-16T08:54:04.214Z"
+    },
+    {
+      "id": "deny-480",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc14d227ffemcIDzwST7bzcHt",
+        "requestId": "per_143ec2a6a001SGyqYRj9xxw3jD",
+        "geometry": {
+          "left": 179,
+          "right": 237,
+          "top": 917,
+          "bottom": 945,
+          "viewport": [
+            478,
+            974
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "error",
+        "attempts": 1
+      },
+      "at": "2026-10-16T08:55:16.101Z"
+    },
+    {
+      "id": "layout-480",
+      "status": "FAIL",
+      "detail": {
+        "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-component=\"prompt-input\"]')\u001b[22m\n"
+      },
+      "at": "2026-10-16T08:59:17.608Z"
+    },
+    {
+      "id": "deny-800",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "model did not request the bash permission",
+        "attempts": 2
+      },
+      "at": "2026-10-16T09:06:33.169Z"
+    },
+    {
+      "id": "allow-800",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc0ff830ffe0ILgGwGpMu0iDf",
+        "requestId": "per_143f70d21001N70iIiAOqfa0M4",
+        "geometry": {
+          "left": 675,
+          "right": 770,
+          "top": 1669,
+          "bottom": 1697,
+          "viewport": [
+            800,
+            1727
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "requestResolved": true,
+        "toolStatus": "completed",
+        "attempts": 1
+      },
+      "at": "2026-10-16T09:07:36.021Z"
+    },
+    {
+      "id": "question-800",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc0ff4ebffe1eRe9v8PBB3LE2",
+        "requestId": "que_143f7b49e0017wYegqzW3BYyga",
+        "optionGeometry": {
+          "left": 29,
+          "right": 774,
+          "top": 1505,
+          "bottom": 1569,
+          "viewport": [
+            802,
+            1727
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "submitGeometry": {
+          "left": 698,
+          "right": 772,
+          "top": 1665,
+          "bottom": 1697,
+          "viewport": [
+            802,
+            1727
+          ],
+          "inside": true,
+          "hitSelf": true
+        },
+        "clickError": null,
+        "recordedAnswer": "blue",
+        "attempts": 1
+      },
+      "at": "2026-10-16T09:07:57.531Z"
+    }
+  ],
+  "summary": {
+    "PASS": 7,
+    "FAIL": 2,
+    "NOT RUN": 1,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "allow-260",
+    "question-260",
+    "allow-480",
+    "question-480",
+    "deny-800"
+  ]
+}

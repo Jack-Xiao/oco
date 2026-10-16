@@ -1,0 +1,52 @@
+{
+  "runId": "20261016-075824-c22-review-threads-a528",
+  "suite": "c22-review-threads",
+  "startedAt": "2026-10-16T07:58:24.787Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "ddc5aaea47c9cb983b382de22d35776e32012d31ce1652e0486988a9d14ad77f",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "real",
+  "fixtureWorkspace": "/Users/jarvis/Ai-Project/oco-mini/.oco-test/c22/ws-ijbi9",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c22-review-threads",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T07:59:36.212Z",
+  "results": [
+    {
+      "id": "thread-appears",
+      "status": "PASS",
+      "detail": {
+        "base": 0,
+        "count": 1,
+        "badge": true,
+        "addNote": {
+          "placeholder": "Enter note or feedback (optional)",
+          "picked": false
+        }
+      },
+      "at": "2026-10-16T07:59:35.091Z"
+    },
+    {
+      "id": "thread-gone",
+      "status": "PASS",
+      "detail": {
+        "count": 0,
+        "base": 0
+      },
+      "at": "2026-10-16T07:59:35.623Z"
+    }
+  ],
+  "summary": {
+    "PASS": 2,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}
