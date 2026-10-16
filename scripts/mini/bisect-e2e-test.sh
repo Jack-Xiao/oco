@@ -10,6 +10,8 @@
 #      OCO_TEST_PORT, OCO_MOCK_LLM_PORT, OCO_TEST_URL.
 # usage: BISECT_PREDICATE=c14-review-notes:draft-acked bash bisect-e2e-test.sh      (inside the repo, on the commit to judge)
 set -u
+# git bisect run hands its command a git-flavoured environment; vendor/opencode is a repo of its own, so never inherit any of it.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "bisect-test: not inside a git repo" >&2; exit 200; }
 cd "$ROOT" || exit 200
 DIR=${BISECT_DIR:-$HOME/oco-mini-logs/bisect}
@@ -73,9 +75,15 @@ if [ ! -s "$CACHE" ]; then
   say "no cached verdict for tree fingerprint $FP ($SUBJECT): build + run"
   VENDOR="$ROOT/vendor/opencode"
   if [ -d "$VENDOR/.git" ]; then
+    # vendor/opencode must resolve to its own repo: a failed discovery would make these commands act on the outer repo
+    # (mini bisect-draft 2026-10-16 21:11 wrote the outer tree into vendor/opencode and emptied its packages/).
+    if [ "$(git -C "$VENDOR" rev-parse --show-toplevel 2>/dev/null)" != "$(cd "$VENDOR" && pwd -P)" ]; then
+      say "vendor/opencode does not resolve to its own git repo: abort"
+      exit 200
+    fi
     # Start every build from the pinned upstream tree: the patch chain differs between commits (0026-0028 come and go).
-    git -C "$VENDOR" checkout -q -- . 2>/dev/null
-    git -C "$VENDOR" clean -fdq -- packages 2>/dev/null
+    git --git-dir="$VENDOR/.git" --work-tree="$VENDOR" checkout -q -- . 2>/dev/null
+    git --git-dir="$VENDOR/.git" --work-tree="$VENDOR" clean -fdq -- packages 2>/dev/null
   fi
   if ! { bun run setup && bun run build; } > "$DIR/logs/$SHA.build.log" 2>&1; then
     say "setup/build failed (logs/$SHA.build.log): skip"
