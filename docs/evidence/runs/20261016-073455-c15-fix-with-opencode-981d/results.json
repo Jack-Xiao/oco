@@ -1,0 +1,78 @@
+{
+  "runId": "20261016-073455-c15-fix-with-opencode-981d",
+  "suite": "c15-fix-with-opencode",
+  "startedAt": "2026-10-16T07:34:55.846Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "f509ec33733e8b58c4f26495d25dbb020e678f69b7be703a880c2fddbba0c738",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "real",
+  "fixtureWorkspace": "/Users/jarvis/Ai-Project/oco-mini/.oco-test/c15/ws-wznn2",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c15-fix-with-opencode",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T07:35:48.810Z",
+  "results": [
+    {
+      "id": "fix-action-offered",
+      "status": "PASS",
+      "detail": {
+        "menu": "Quick Fix Fix with OpenCode "
+      },
+      "at": "2026-10-16T07:35:35.230Z"
+    },
+    {
+      "id": "fix-draft",
+      "status": "PASS",
+      "detail": {
+        "pickedPanel": true,
+        "header": true,
+        "problemLine": true,
+        "codeWindow": true,
+        "sample": "Fix the following problem(s) in broken-wznn2.json:3. broken-wznn2.json:3:8 error [json(516)] Value expected ```json 1|{ 2| \"a\": 1, 3| \"b\": , 4| \"c\": 3 5|} 6| ```"
+      },
+      "at": "2026-10-16T07:35:38.451Z"
+    },
+    {
+      "id": "fix-draft-once",
+      "status": "PASS",
+      "detail": {
+        "headerCount": 1,
+        "acks": 1,
+        "userMessages": 0
+      },
+      "at": "2026-10-16T07:35:38.638Z"
+    },
+    {
+      "id": "terminal-no-record",
+      "status": "PASS",
+      "detail": {
+        "warning": "oco: No finished command in the active terminal (shell integration required)",
+        "pickOpened": false,
+        "draftUnchanged": true
+      },
+      "at": "2026-10-16T07:35:40.691Z"
+    },
+    {
+      "id": "terminal-shell-integ",
+      "status": "PASS",
+      "detail": {
+        "header": true,
+        "outputShown": true
+      },
+      "at": "2026-10-16T07:35:48.169Z"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

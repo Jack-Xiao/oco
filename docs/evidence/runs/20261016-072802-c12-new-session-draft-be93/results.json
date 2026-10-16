@@ -1,0 +1,195 @@
+{
+  "runId": "20261016-072802-c12-new-session-draft-be93",
+  "suite": "c12-new-session-draft",
+  "startedAt": "2026-10-16T07:28:02.962Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "b566bce337d223aac126a407792c80436683a0a023a767158d9b6829d5c193bd",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "real",
+  "fixtureWorkspace": "/Users/jarvis/Ai-Project/oco-mini/.oco-test/c12/ws-wuuko",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c12-new-session-draft",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T07:30:52.519Z",
+  "results": [
+    {
+      "id": "draft-page-ui",
+      "status": "PASS",
+      "detail": {
+        "draftPanel": true,
+        "ready": true,
+        "triggerText": "W\nws-wuuko",
+        "menuItems": [
+          "ws-wuuko"
+        ],
+        "otherKnownProjects": 1,
+        "leaked": [],
+        "addEntry": false
+      },
+      "at": "2026-10-16T07:28:08.926Z"
+    },
+    {
+      "id": "draft-worktree-toggle",
+      "status": "PASS",
+      "detail": {
+        "labelText": "New worktree",
+        "checked": false,
+        "checkboxes": 1,
+        "oldMenuButtons": [],
+        "oldMenuItems": 0,
+        "branch": "main",
+        "branchVisible": true,
+        "bar": [
+          "Build",
+          "Nemotron 3.5 Lightning Free",
+          "W\nws-wuuko",
+          "Connect to 75+ providers to use other models, including Claude, GPT, Gemini, etc"
+        ]
+      },
+      "at": "2026-10-16T07:28:08.954Z"
+    },
+    {
+      "id": "draft-no-session",
+      "status": "PASS",
+      "detail": {
+        "before": 0,
+        "afterOpen": 0
+      },
+      "at": "2026-10-16T07:28:11.460Z"
+    },
+    {
+      "id": "draft-close-discards",
+      "status": "PASS",
+      "detail": {
+        "before": 0,
+        "afterClose": 0,
+        "panels": 0
+      },
+      "at": "2026-10-16T07:28:13.179Z"
+    },
+    {
+      "id": "send-creates-session",
+      "status": "PASS",
+      "detail": {
+        "delta": 1,
+        "directory": "workspace"
+      },
+      "at": "2026-10-16T07:28:14.898Z"
+    },
+    {
+      "id": "send-reply-shown",
+      "status": "FAIL",
+      "detail": {
+        "replied": false,
+        "userSaw": true,
+        "assistantHasMarker": false,
+        "frameFound": true
+      },
+      "at": "2026-10-16T07:29:15.174Z"
+    },
+    {
+      "id": "send-promote-in-place",
+      "status": "PASS",
+      "detail": {
+        "panels": 1,
+        "bound": true,
+        "boundDirectory": true,
+        "stillDraft": false,
+        "sameGeneration": true,
+        "switchReloads": 0,
+        "markerKept": true
+      },
+      "at": "2026-10-16T07:29:15.412Z"
+    },
+    {
+      "id": "send-sidebar",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc637769ffeSUWvQWp1CIo4vA"
+      },
+      "at": "2026-10-16T07:29:15.869Z"
+    },
+    {
+      "id": "worktree-session",
+      "status": "PASS",
+      "detail": {
+        "directory": "/Users/jarvis/Ai-Project/oco-mini/.oco-test/xdg/data/opencode/worktree/81f7db04c129324b7e020c62a4ce7d6a0b85b7a6/hidden-meadow",
+        "underWorktreeRoot": true,
+        "isWorkspace": false,
+        "createdMs": 941,
+        "checkedBefore": false,
+        "checkedAfter": true,
+        "barAfterTick": [
+          "Build",
+          "Nemotron 3.5 Lightning Free",
+          "W\nws-wuuko",
+          "Connect to 75+ providers to use other models, including Claude, GPT, Gemini, etc"
+        ]
+      },
+      "at": "2026-10-16T07:29:18.440Z"
+    },
+    {
+      "id": "worktree-reply-fast",
+      "status": "FAIL",
+      "detail": {
+        "replyMs": 61209,
+        "replyStored": false,
+        "replyShown": false
+      },
+      "at": "2026-10-16T07:30:38.781Z"
+    },
+    {
+      "id": "worktree-in-place",
+      "status": "PASS",
+      "detail": {
+        "panels": 1,
+        "bound": true,
+        "boundDirectory": true,
+        "stillDraft": false,
+        "sameGeneration": true,
+        "switchReloads": 0,
+        "markerKept": true
+      },
+      "at": "2026-10-16T07:30:38.958Z"
+    },
+    {
+      "id": "worktree-sidebar",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc627e0cffeuTggKBrG4uWHZc"
+      },
+      "at": "2026-10-16T07:30:39.038Z"
+    },
+    {
+      "id": "reload-drops-draft",
+      "status": "PASS",
+      "detail": {
+        "draftPanels": 1,
+        "pinned": true,
+        "draftFrame": true,
+        "pinnedUp": true,
+        "postPanels": [
+          "pinned"
+        ],
+        "draftFramesAfter": 0
+      },
+      "at": "2026-10-16T07:30:51.844Z"
+    }
+  ],
+  "summary": {
+    "PASS": 11,
+    "FAIL": 2,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "send-reply-shown",
+    "worktree-reply-fast"
+  ]
+}

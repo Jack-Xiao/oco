@@ -1,0 +1,109 @@
+{
+  "runId": "20261016-072734-c11-sidebar-organize-36e7",
+  "suite": "c11-sidebar-organize",
+  "startedAt": "2026-10-16T07:27:34.456Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "d84e6dc93b325d5b934b583025b4ce9381e01f596fe0af4645e74acee876a069",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "real",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c11-sidebar-organize",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T07:28:02.457Z",
+  "results": [
+    {
+      "id": "pinned-group",
+      "status": "PASS",
+      "detail": {
+        "pinnedHeadFirst": true,
+        "bFirstSession": true,
+        "sequence": [
+          "H:NEEDS ATTENTION1",
+          "R:c10-single-9d80s",
+          "H:sessions",
+          "H:pinned",
+          "R:c11-B-u2ejj",
+          "R:c11-C-u2ejj",
+          "R:c11-A-u2ejj",
+          "R:c10-single-9d80s"
+        ]
+      },
+      "at": "2026-10-16T07:27:40.116Z"
+    },
+    {
+      "id": "selection-bar",
+      "status": "PASS",
+      "detail": {
+        "barText": "2 selected Archive Delete Mark unread Pin Label… Snooze Clear",
+        "selCount": 2
+      },
+      "at": "2026-10-16T07:27:40.257Z"
+    },
+    {
+      "id": "marked-unread",
+      "status": "PASS",
+      "detail": {
+        "ok1": true,
+        "stillAfter700ms": true,
+        "bUnread": false
+      },
+      "at": "2026-10-16T07:27:41.230Z"
+    },
+    {
+      "id": "selection-cleared",
+      "status": "PASS",
+      "detail": {
+        "gone": true,
+        "selectedRows": 0
+      },
+      "at": "2026-10-16T07:27:41.262Z"
+    },
+    {
+      "id": "todo-badge",
+      "status": "FAIL",
+      "detail": {
+        "error": "locator.waitFor: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.row[data-kind=\"session\"][role=\"option",
+        "api": [],
+        "rowHtml": "<div class=\"row\" data-kind=\"session\" data-id=\"ses_ebc6404dcffeBeB44AZsA8Bl6i\" tabindex=\"0\" role=\"option\" data-vscode-context=\"{&quot;webviewSection&quot;:&quot;session&quot;,&quot;sessionId&quot;:&quot;ses_ebc6404dcffeBeB44AZsA8Bl6i&quot;,&quot;pinned&quot;:false,&quot;running&quot;:true,&quot;selection&quot;:[&quot;ses_ebc6404dcffeBeB44AZsA8Bl6i&quot;],&quot;preventDefaultContextMenuItems&quot;:true}\" title=\"c11-A-u2ejj\nRunning\nUpdated 2026/10/16 15:27:41\n/Users/jarvis/Ai-Project/oco-mini/.oco-test/workspace\" aria-label=\"c11-A-u2ejj, Running, now\" aria-selected=\"false\"><span class=\"dot runnin"
+      },
+      "at": "2026-10-16T07:28:01.370Z"
+    },
+    {
+      "id": "archive-batch",
+      "status": "PASS",
+      "detail": {
+        "dtxt": "Cancel Archive Archive 2 sessions? Archived sessions leave the sidebar; they stay on the server.",
+        "btns": [
+          "Cancel",
+          "Archive"
+        ],
+        "rowsGone": true,
+        "archivedA": 1792135681572
+      },
+      "at": "2026-10-16T07:28:01.846Z"
+    },
+    {
+      "id": "delete-batch",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "destructive; kept to archive only"
+      },
+      "at": "2026-10-16T07:28:01.846Z"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 1,
+    "NOT RUN": 1,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "todo-badge"
+  ]
+}

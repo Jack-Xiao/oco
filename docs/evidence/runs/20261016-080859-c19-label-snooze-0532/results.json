@@ -1,0 +1,75 @@
+{
+  "runId": "20261016-080859-c19-label-snooze-0532",
+  "suite": "c19-label-snooze",
+  "startedAt": "2026-10-16T08:08:59.973Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "d1dbcd0e1c2451af2eb6fcbea6bd42f2304172bb252239fe9fa051570fd0f3d7",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "real",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c19-label-snooze",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T08:09:18.888Z",
+  "results": [
+    {
+      "id": "label-section",
+      "status": "PASS",
+      "detail": {
+        "secL": "label:urgent",
+        "secO": "sessions",
+        "nSel": 1
+      },
+      "at": "2026-10-16T08:09:05.531Z"
+    },
+    {
+      "id": "snooze-hides",
+      "status": "PASS",
+      "detail": {
+        "hiddenFromMain": true,
+        "inSnoozedSection": true,
+        "secO": "sessions"
+      },
+      "at": "2026-10-16T08:09:05.999Z"
+    },
+    {
+      "id": "unsnooze-restores",
+      "status": "PASS",
+      "detail": {
+        "section": "sessions"
+      },
+      "at": "2026-10-16T08:09:06.404Z"
+    },
+    {
+      "id": "wake-on-message",
+      "status": "PASS",
+      "detail": {
+        "wasSnoozed": true,
+        "sectionAfter": "sessions"
+      },
+      "at": "2026-10-16T08:09:18.208Z"
+    },
+    {
+      "id": "run",
+      "status": "FAIL",
+      "detail": {
+        "error": "run.recordNotApplicable is not a function"
+      },
+      "at": "2026-10-16T08:09:18.208Z"
+    }
+  ],
+  "summary": {
+    "PASS": 4,
+    "FAIL": 1,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "waiting-not-hidden"
+  ]
+}

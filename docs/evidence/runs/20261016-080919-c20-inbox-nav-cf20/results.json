@@ -1,0 +1,78 @@
+{
+  "runId": "20261016-080919-c20-inbox-nav-cf20",
+  "suite": "c20-inbox-nav",
+  "startedAt": "2026-10-16T08:09:19.506Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "05a929fb915c4fe5b641720c8b4482d69439f23f12514574e3b610cf2e79d847",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "real",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c20-inbox-nav",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T08:09:51.554Z",
+  "results": [
+    {
+      "id": "inbox-quickpick-opens",
+      "status": "PASS",
+      "detail": {
+        "opened": true,
+        "title": "OpenCode Inbox",
+        "alreadyShown": false
+      },
+      "at": "2026-10-16T08:09:47.253Z"
+    },
+    {
+      "id": "inbox-enter-opens-session",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebc3dc9e2ffeVjZ6iD0plTIHTu",
+        "focusedBeforeEnter": true
+      },
+      "at": "2026-10-16T08:09:47.691Z"
+    },
+    {
+      "id": "sidebar-jk",
+      "status": "PASS",
+      "detail": {
+        "i0": 1,
+        "i1": 2,
+        "i2": 3,
+        "i3": 2,
+        "act": "DIV.row|session|true"
+      },
+      "at": "2026-10-16T08:09:50.086Z"
+    },
+    {
+      "id": "sidebar-enter-opens",
+      "status": "PASS",
+      "detail": {
+        "focusedOk": true,
+        "sessionId": "ses_ebc3d6c31ffe7tg4QGGNbDBJN3"
+      },
+      "at": "2026-10-16T08:09:50.135Z"
+    },
+    {
+      "id": "sidebar-help",
+      "status": "PASS",
+      "detail": {
+        "focusedHelp": "row",
+        "helpVisible": true,
+        "text": "Keyboard Shortcuts\n✕\nj / ↓\nNext item\nk / ↑\nPrevious item\nEnter\nOpen item\nEsc\nClear selection / close\n?\nToggle this cheat sheet"
+      },
+      "at": "2026-10-16T08:09:50.935Z"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

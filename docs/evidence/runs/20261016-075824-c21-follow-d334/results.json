@@ -1,0 +1,51 @@
+{
+  "runId": "20261016-075824-c21-follow-d334",
+  "suite": "c21-follow",
+  "startedAt": "2026-10-16T07:58:24.303Z",
+  "ocoCommit": "f5ff439e867b375451be0cb3a544ff3656fc07e4",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "db50f34d2e7e19a9bb341dd1833ff250171312f41588c1be940b8f9696cbc8bc",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "finishedAt": "2026-10-16T07:58:24.332Z",
+  "results": [
+    {
+      "id": "follow-on",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "needs the scripted mock model (OCO_E2E_MODEL=mock)"
+      },
+      "at": "2026-10-16T07:58:24.332Z"
+    },
+    {
+      "id": "preview-open",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "needs the scripted mock model (OCO_E2E_MODEL=mock)"
+      },
+      "at": "2026-10-16T07:58:24.332Z"
+    },
+    {
+      "id": "focus-stays",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "needs the scripted mock model (OCO_E2E_MODEL=mock)"
+      },
+      "at": "2026-10-16T07:58:24.332Z"
+    }
+  ],
+  "summary": {
+    "PASS": 0,
+    "FAIL": 0,
+    "NOT RUN": 3,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "follow-on",
+    "preview-open",
+    "focus-stays"
+  ]
+}
