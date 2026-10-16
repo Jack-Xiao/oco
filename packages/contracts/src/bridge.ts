@@ -128,7 +128,9 @@ export type ConnectionNotice = Envelope<
 /** ADR-007: the host switched this panel to another session of the same connection and directory. The page's
  * route guard accepts only the session the host last sent; the page never picks its own session. */
 /** `directory`: sent after a draft panel's promotion, when the new session lives in another directory (a worktree). */
-/** `messageId` (M22 bookmarks): the user message whose turn the page scrolls to after showing the session. */
+/** `messageId` (M22 bookmarks): the user message whose turn the page scrolls to after showing the session. On the
+ *  session already shown the page scrolls there directly (patch 0027 `oco:scroll-to-message`), not through the
+ *  location hash, so repeating the same target after a manual scroll moves again. */
 export type Navigate = Envelope<"navigate", { sessionId: string; directory?: string; review?: { file?: string }; messageId?: string }>
 export type HostToWebview = Welcome | FetchHead | FetchChunk | FetchEnd | FetchError | StoreResult | DraftInsert | ConnectionNotice | Navigate
 

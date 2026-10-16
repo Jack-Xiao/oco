@@ -13,7 +13,7 @@ index c0939d2..a4500b9 100644
     * error page, the unreachable-server screen and the missing-session screen. */
    recoveryView?(props: RecoveryViewProps): JSX.Element
 diff --git a/packages/app/src/pages/session.tsx b/packages/app/src/pages/session.tsx
-index ed3a652..170e78a 100644
+index ed3a652..bef2734 100644
 --- a/packages/app/src/pages/session.tsx
 +++ b/packages/app/src/pages/session.tsx
 @@ -1986,7 +1986,32 @@ export default function Page() {
@@ -50,6 +50,32 @@ index ed3a652..170e78a 100644
  
    createEffect(() => {
      const sessionID = params.id
+@@ -2052,6 +2077,25 @@ export default function Page() {
+     consumePendingMessage: layout.pendingMessage.consume,
+   })
+ 
++  // oco (patches/opencode/0027): the embedding host's navigate names a turn (a message bookmark). Scroll to it
++  // directly: the location hash alone does nothing when it is unchanged, so re-opening the same bookmark after
++  // scrolling away never moved. A turn that history has not loaded yet goes through the pending message, which
++  // the hash-scroll hook resolves (loads older history, then scrolls) once it arrives.
++  const ocoScrollToMessage = (e: Event) => {
++    const d = (e as CustomEvent<{ sessionID?: unknown; messageID?: unknown }>).detail
++    if (!d || typeof d.messageID !== "string" || !d.messageID || d.sessionID !== params.id) return
++    e.preventDefault()
++    const msg = visibleUserMessages().find((m) => m.id === d.messageID)
++    if (!msg) {
++      setUi("pendingMessage", d.messageID)
++      return
++    }
++    autoScroll.pause()
++    scrollToMessage(msg, "auto")
++  }
++  window.addEventListener("oco:scroll-to-message", ocoScrollToMessage)
++  onCleanup(() => window.removeEventListener("oco:scroll-to-message", ocoScrollToMessage))
++
+   createEffect(
+     on(
+       () => params.id,
 diff --git a/packages/app/src/pages/session/timeline/message-timeline.tsx b/packages/app/src/pages/session/timeline/message-timeline.tsx
 index 4120e2f..243394e 100644
 --- a/packages/app/src/pages/session/timeline/message-timeline.tsx

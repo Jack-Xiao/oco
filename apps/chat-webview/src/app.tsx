@@ -253,21 +253,18 @@ onNavigate((msg) => {
       bound.directory = msg.directory
       saveState()
     }
-    // Already on this session: the router will not remount, so point the hash at the turn.
-    if (hash) {
-      // Re-opening the same bookmark leaves the hash unchanged, which scrolls nothing: drop it first, and give the
-      // router time to commit that (it updates asynchronously; one frame was not always enough in c32).
-      const same = location.hash === hash
-      const point = () => {
+    // Already on this session: the router will not remount, and a hash that is unchanged (the same bookmark again
+    // after scrolling away) scrolls nothing, so ask the session page to scroll there directly: patches/opencode/0027
+    // listens for this event and cancels it once handled (the hook then updates the hash itself). Only when no
+    // session page is listening yet does the hash carry the target, which the page applies when it mounts.
+    if (msg.messageId) {
+      const handled = !window.dispatchEvent(
+        new CustomEvent("oco:scroll-to-message", { cancelable: true, detail: { sessionID: msg.sessionId, messageID: msg.messageId } }),
+      )
+      if (!handled) {
         location.hash = hash
         inner.set({ value: routeFor(bound.sessionId) + hash, replace: true, scroll: false })
       }
-      if (same) {
-        history.replaceState(history.state, "", location.pathname + location.search)
-        inner.set({ value: routeFor(bound.sessionId), replace: true, scroll: false })
-        setTimeout(point, 100)
-      }
-      if (!same) point()
     }
     return void ready(currentRoute.split("#")[0])
   }

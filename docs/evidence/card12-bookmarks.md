@@ -61,3 +61,26 @@
 - 现象（c32 open-same-session-repeat，非必需项）：点书签跳到第 2 轮 → 手动滚到底 → 再点同一书签不回到第 2 轮（hash 未变，上游 `use-session-hash-scroll` 不重新应用）。
 - 第 1 轮：同 hash 时先去 hash，下一帧再设回 → c32 1/2 通过该项。第 2 轮：改为 100 ms 后设回 → 3 次中 1 次通过（[overnight-20261016-095524](runs/overnight-20261016-095524/summary.md)，其余 7 项全过）。保留第 2 轮写法（无副作用、部分改善）。
 - 下一步建议：不靠 hash 往返；补丁给 hash-scroll 暴露「滚到某用户消息」入口（如 0026 已透传的 `scrollToMessage`），宿主 navigate 带 messageId 时直接调用。
+
+## 修复：同一书签再次点击直接滚动（2026-10-16 下午，MacBook 侧会话，分支 claude/upbeat-spence-b71c1d）
+
+- 方案：不再靠 hash 往返。补丁 0027 在 `packages/app/src/pages/session.tsx` 的 `useSessionHashScroll` 调用之后监听 window 事件 `oco:scroll-to-message`（detail `{ sessionID, messageID }`；只处理 `sessionID === params.id`，处理后 `preventDefault`）：目标用户消息在 `visibleUserMessages()` 里时 `autoScroll.pause()` 后直接调用钩子返回的 `scrollToMessage(msg, "auto")`（0026 透传给轮次侧轨的同一入口；钩子随后自己 `updateHash`），不在（更早历史未加载）时 `setUi("pendingMessage", messageID)` 交给钩子的 pending 路径（先加载历史再滚动）。
+- 页面 `apps/chat-webview/src/app.tsx`：navigate 的 sessionId 等于当前绑定且带 messageId 时派发该事件（`cancelable: true`，`dispatchEvent` 返回 false 即已处理）；只有没有会话页监听（尚未挂载）时才退回把 hash 写进路由，挂载后由上游 `applyHash` 处理。删除「去 hash → 100 ms 后设回」逻辑。换会话路径不变（路由 + hash；open-other-session 已验证）。
+- 契约 `packages/contracts/src/bridge.ts`：只在 `Navigate.messageId` 注释补充一句，类型不变。
+- 补丁重生成：`bash scripts/regen-patch.sh 0027 --source <临时树>`，临时树 = vendor HEAD `51ef4be` + 0001–0027（按 memory regen-patch-non-top；0028 不碰 session.tsx）→ 0027 为 8 文件 +115 −2（原 +88 −2），baseline 1db33e2。全链重放：干净 vendor HEAD 临时树按 setup.sh 同样的 `git apply --check` + `git apply` 顺序套 0001–0028，28/28（本 worktree 的 vendor 是主检出 vendor 的 linked worktree，`.git` 是文件，`bun run setup` 的 `-d $V/.git` 判断不成立，故用等价手工重放）。
+- 验证：vendor app typecheck（`tsgo -b`）0；`bun run typecheck` 0；`bun run test:unit` 470/0（35 文件）；`bun run build` PASS（`app-D7HWxmkF.js` 含 `oco:scroll-to-message` 2 处）。
+- E2E：Sonnet 子代理本机 `bash scripts/overnight-e2e.sh c32-bookmarks --loop 2`，结果见下方委派记录与「E2E 结果」。
+
+### 委派记录（修复批）
+
+| task_id | 唯一写入范围 | requested_route | actual_provider/model | agent_id/run_id | 状态 | 结果路径 | 备注 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| c12-fix-impl | 补丁 0027、app.tsx、bridge.ts 注释 | 主线程 | — | — | 已完成 | 本段 | 同一文件内的补丁 / 页面集成与契约，主线程保留项 |
+| c12-fix-e2e | docs/evidence/runs/**、docs/evidence/card12-repeat-fix-e2e.md；c32 只改断言（未改） | claude-subagent/sonnet | claude / sonnet-5-5（子代理自报） | runs 20261016-064243-c32-bookmarks-f249、20261016-064344-c32-bookmarks-8424（agent_id unknown） | 验收通过 | docs/evidence/card12-repeat-fix-e2e.md、docs/evidence/runs/overnight-20261016-144212/summary.md | 要启动 VS Code 的 E2E 按 AGENTS.md 表直接交 Claude 子代理；9 轮工具调用（宿主计 12 次）、约 5.5 分钟；主线程发现的缺陷数 0；未改测试、未提交 |
+
+### E2E 结果（修复后，本机 Sonnet 子代理，`bash scripts/overnight-e2e.sh c32-bookmarks --loop 2 --lock-wait 900`，mock，端口 4517 自启自停）
+
+- 迭代 1：runId `20261016-064243-c32-bookmarks-f249`，exit 0，8 PASS / 0 FAIL（套件 61 s）；迭代 2：runId `20261016-064344-c32-bookmarks-8424`，exit 0，8 PASS / 0 FAIL（58 s）。汇总 `docs/evidence/runs/overnight-20261016-144212/summary.md`（提交 4f114ec + 本修复的未提交改动；VS Code 1.141.0，OpenCode 1.18.33，模型 oco-mock/mock）。
+- 两次都 PASS：button-visible、add-user、add-assistant、open-same-session、**open-same-session-repeat**（`backToTurn2: true, sameItemAgainAfterManualScroll: true`，即手动滚到底后再点同一书签，第 2 轮用户消息回到顶部范围 [-8, 200]）、open-other-session、remove、remove-persist（同 profile 重启后仍在）。open-same-session 两次一致：第 2 轮点击前 top −2210 → 点击后 64；第 4 轮 1190 → 0。
+- 加载的是修复后的构建（`--extensionDevelopmentPath=<worktree>/apps/extension`，`app-D7HWxmkF.js` 含 `oco:scroll-to-message`）。`/tmp/oco-e2e.lock` 已释放，未动用户的 OpenCode 服务。
+- 备注：`docs/evidence/runs/*` 被 .gitignore 忽略，两份 results.json 与 summary 只在磁盘上；子代理报告在 [card12-repeat-fix-e2e](card12-repeat-fix-e2e.md)。PASS 记录不含 `repeatDiag`（hash / 位置 / scroller 只写进 FAIL 分支），本批未改测试。
