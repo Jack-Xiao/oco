@@ -9,6 +9,7 @@ import type { Connection } from "./connection"
 import type { KvStore } from "./host-store"
 import { decideOpenFile, probeCaseInsensitive } from "./open-file-policy"
 import { isLoopbackHost } from "./endpoint"
+import type { MessageBookmarks } from "./bookmarks"
 
 /** VS Code's webview focus poll interval (see Panels.settleWebviewFocus) and the slack allowed for its message. */
 const FOCUS_POLL_MS = 250
@@ -45,6 +46,8 @@ export type Entry = {
   openedAt?: number
   /** Result card: open the review (diff) panel once the page shows the bound session; sent with "navigate". */
   pendingReview?: ReviewIntent
+  /** M22: user-message id to scroll to (`#message-{id}`) once the page shows this session. */
+  pendingMessageId?: string
 }
 
 /** Chat panels (ADR-007): at most one "main" panel that switches sessions in place, plus "pinned" panels
@@ -60,6 +63,8 @@ export class PanelRegistry {
   onRecoveryAction: (action: "retryConnection" | "openSettings" | "showSessions" | "newSession") => void = () => {}
   /** A draft panel's first message created this session; the panel now shows it (patches/opencode/0023). */
   onPromoted: (binding: SessionBinding) => void = () => {}
+  /** M22 message bookmarks. Set from activate; absent in tests that never bookmark. */
+  bookmarks?: MessageBookmarks
   private readonly _onDidChangeActiveSession = new (vscode.EventEmitter ??
     (class {
       private readonly l = new Set<any>()
@@ -138,19 +143,24 @@ export class PanelRegistry {
     focus = true,
     newPanel = false,
     review?: ReviewIntent,
+    messageId?: string,
   ) {
     const existing = this.get(binding)
     if (existing) {
       existing.panel.reveal(undefined, !focus)
-      if (review) {
-        existing.pendingReview = review
-        if (existing.ready) this.sendNavigate(existing)
+      if (review) existing.pendingReview = review
+      if (messageId) existing.pendingMessageId = messageId
+      // Already showing this session: a bookmark still has to scroll (review already did this).
+      if ((review || messageId) && existing.ready) {
+        this.sendNavigate(existing)
+        existing.pendingMessageId = undefined
       }
       return existing
     }
     const main = this.main
     if (!newPanel && main) {
       main.pendingReview = review
+      main.pendingMessageId = messageId
       this.switchTo(main, binding, title)
       main.panel.reveal(undefined, !focus)
       return main
@@ -165,13 +175,20 @@ export class PanelRegistry {
     })
     const entry = this.attach(panel, binding, title, role)
     entry.pendingReview = review
+    entry.pendingMessageId = messageId
     return entry
   }
 
-  /** "navigate" for the entry's current session, carrying the pending review intent (ADR-007 + result card). */
+  /** "navigate" for the entry's current session, carrying the pending review intent and bookmark scroll. */
   private sendNavigate(entry: Entry) {
     const review = entry.pendingReview
-    entry.bridge.core.sendCurrent({ type: "navigate", sessionId: entry.binding.sessionId, ...(review ? { review } : {}) })
+    const messageId = entry.pendingMessageId
+    entry.bridge.core.sendCurrent({
+      type: "navigate",
+      sessionId: entry.binding.sessionId,
+      ...(review ? { review } : {}),
+      ...(messageId ? { messageId } : {}),
+    })
   }
 
   /**
@@ -371,10 +388,11 @@ export class PanelRegistry {
             }
             entry.ready = true
             entry.route = msg.route
-            if (entry.pendingReview) {
-              // The page is on the session now: deliver the review intent (a new panel never saw a "navigate").
+            if (entry.pendingReview || entry.pendingMessageId) {
+              // The page is on the session now: deliver review intent and bookmark scroll (a new panel never saw a "navigate").
               this.sendNavigate(entry)
               entry.pendingReview = undefined
+              entry.pendingMessageId = undefined
             }
             this.log.info(`panel ready ${entry.binding.sessionId} gen ${entry.bridge.core.generation}`)
             this.sentDrafts.delete(entry) // a (re)loaded page has seen none of them
@@ -425,6 +443,19 @@ export class PanelRegistry {
               this.onRecoveryAction(msg.action)
             if (msg.action === "closePanel") panel.dispose()
             if (msg.action === "openFile" && msg.path) void this.openFile(entry, msg.path, msg.line, msg.column, msg.focusAgeMs)
+            if (msg.action === "bookmark") {
+              // connectionId is the panel's, not the page's. A bookmark for another session is ignored.
+              const binding = entry.binding
+              if (!msg.messageId || !msg.anchorId || msg.sessionId !== binding.sessionId) return
+              const added = this.bookmarks?.add({
+                connectionId: binding.connectionId,
+                sessionId: binding.sessionId,
+                messageId: msg.messageId,
+                anchorId: msg.anchorId,
+                summary: msg.body,
+              })
+              if (added) void vscode.window.showInformationMessage("oco: Bookmarked")
+            }
             return
         }
       },

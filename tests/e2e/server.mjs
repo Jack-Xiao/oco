@@ -16,9 +16,16 @@ export async function api(method, p, body, directory = dir) {
 async function detectModel() {
   const configured = await api("GET", "/config").then((c) => c?.model, () => undefined)
   const mock = configured ? configured.startsWith("oco-mock/") : process.env.OCO_E2E_MODEL === "mock"
-  return mock
-    ? { mode: "mock", providerID: "oco-mock", modelID: "mock", label: "OCO Mock" }
-    : { mode: "real", providerID: "opencode", modelID: "big-pickle", label: "Big Pickle" }
+  if (mock) return { mode: "mock", providerID: "oco-mock", modelID: "mock", label: "OCO Mock" }
+  // Real mode: the configured model (OCO_E2E_REAL_MODEL can swap it), labelled as the server names it.
+  const [providerID, ...rest] = (configured ?? "opencode/big-pickle").split("/")
+  const modelID = rest.join("/")
+  const list = await api("GET", "/provider").then(
+    (p) => (Array.isArray(p) ? p : (p?.all ?? Object.values(p?.providers ?? {}))),
+    () => [],
+  )
+  const label = list.find((p) => p.id === providerID)?.models?.[modelID]?.name ?? modelID
+  return { mode: "real", providerID, modelID, label }
 }
 export const MODEL = await detectModel()
 export const messages = (sid) => api("GET", `/session/${sid}/message`)

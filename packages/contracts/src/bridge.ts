@@ -57,6 +57,9 @@ export type UiAction =
   | "closePanel"
   // The page first shows the session (or an error / recovery view); handled by the bridge itself.
   | "painted"
+  // Message bookmark (M22): `messageId` is the bookmarked message, `anchorId` its turn's user message (the scroll
+  // target), `body` a short summary. The host stores it per connection + session; the page keeps no copy.
+  | "bookmark"
 
 // webview -> host
 export type Hello = Envelope<"hello", { docId: string }>
@@ -78,7 +81,7 @@ export type BlobOp = Envelope<"blob.op", { id: string; op: "put" | "get"; blobId
  * to let VS Code report a focus the requesting click just gave the webview before it opens the file. */
 export type Ui = Envelope<
   "ui",
-  { action: UiAction; url?: string; title?: string; body?: string; sessionId?: string; route?: string; path?: string; line?: number; column?: number; focusAgeMs?: number }
+  { action: UiAction; url?: string; title?: string; body?: string; sessionId?: string; route?: string; path?: string; line?: number; column?: number; focusAgeMs?: number; messageId?: string; anchorId?: string }
 >
 export type DraftAck = Envelope<"draft.ack", { id: string; ok: boolean; reason?: string }>
 export type Ready = Envelope<"ready", { route: string }>
@@ -125,7 +128,8 @@ export type ConnectionNotice = Envelope<
 /** ADR-007: the host switched this panel to another session of the same connection and directory. The page's
  * route guard accepts only the session the host last sent; the page never picks its own session. */
 /** `directory`: sent after a draft panel's promotion, when the new session lives in another directory (a worktree). */
-export type Navigate = Envelope<"navigate", { sessionId: string; directory?: string; review?: { file?: string } }>
+/** `messageId` (M22 bookmarks): the user message whose turn the page scrolls to after showing the session. */
+export type Navigate = Envelope<"navigate", { sessionId: string; directory?: string; review?: { file?: string }; messageId?: string }>
 export type HostToWebview = Welcome | FetchHead | FetchChunk | FetchEnd | FetchError | StoreResult | DraftInsert | ConnectionNotice | Navigate
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v)
@@ -151,6 +155,7 @@ const UI_ACTIONS = new Set<UiAction>([
   "newSession",
   "closePanel",
   "painted",
+  "bookmark",
 ])
 const isPos = (v: unknown) => v === undefined || (typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 10_000_000)
 
@@ -188,6 +193,9 @@ export function parseWebviewMessage(raw: unknown): WebviewToHost | null {
       if (raw.path !== undefined && (!isStr(raw.path) || raw.path.length > 4096)) return null
       if (!isPos(raw.line) || !isPos(raw.column)) return null
       if (raw.action === "openFile" && !isStr(raw.path)) return null
+      for (const k of ["messageId", "anchorId"] as const)
+        if (raw[k] !== undefined && (!isStr(raw[k]) || (raw[k] as string).length > 200)) return null
+      if (raw.action === "bookmark" && !(isStr(raw.messageId) && isStr(raw.anchorId) && isStr(raw.sessionId))) return null
       if (raw.focusAgeMs !== undefined && !(typeof raw.focusAgeMs === "number" && Number.isFinite(raw.focusAgeMs) && raw.focusAgeMs >= 0)) return null
       return raw as unknown as Ui
     case "draft.ack":

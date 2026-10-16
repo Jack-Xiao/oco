@@ -897,6 +897,109 @@ body.vscode-high-contrast .subagent-row:focus-visible {
   border-color: var(--vscode-contrastActiveBorder);
 }
 
+/* M22 message bookmarks */
+.bookmarks-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  padding: 0 5px;
+  height: 16px;
+  line-height: 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  cursor: pointer;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+  font-family: inherit;
+}
+.bookmarks-badge:hover {
+  filter: brightness(1.15);
+}
+.bookmarks-badge:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+.bookmarks-list[data-bookmarks-list] {
+  flex-basis: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 0 4px 14px;
+}
+.bookmark-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 22px;
+  padding: 0 6px;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  user-select: none;
+  font-family: inherit;
+  font-size: 11px;
+  text-align: left;
+  box-sizing: border-box;
+}
+.bookmark-row:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+.bookmark-row:focus {
+  outline: none;
+}
+.bookmark-row:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+.bookmark-summary {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bookmark-remove {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+  font-size: 13px;
+  line-height: 16px;
+  font-family: inherit;
+  cursor: pointer;
+  opacity: 0;
+}
+.bookmark-row:hover .bookmark-remove,
+.bookmark-row:focus-within .bookmark-remove,
+.bookmark-remove:focus {
+  opacity: 1;
+}
+.bookmark-remove:hover {
+  color: var(--vscode-errorForeground, var(--vscode-foreground));
+  background: var(--vscode-toolbar-hoverBackground);
+}
+.vscode-high-contrast .bookmark-row:focus-visible,
+body.vscode-high-contrast .bookmark-row:focus-visible {
+  border-color: var(--vscode-contrastActiveBorder);
+}
+.vscode-high-contrast .bookmark-remove,
+body.vscode-high-contrast .bookmark-remove {
+  opacity: 1;
+}
+
 /* M06(1a) Always preview */
 .inbox-always-preview {
   padding-left: 15px;

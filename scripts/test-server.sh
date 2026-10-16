@@ -17,6 +17,10 @@ if [ "$MODEL_MODE" = "mock" ]; then
   sed -e "s#127.0.0.1:4518/#127.0.0.1:${OCO_MOCK_LLM_PORT:-4518}/#" -e "s#__OCO_ROOT__#$ROOT#" "$ROOT/scripts/test-server.mock.opencode.json" > "$T/xdg/config/opencode/opencode.json"
 else
   cp "$ROOT/scripts/test-server.opencode.json" "$T/xdg/config/opencode/opencode.json"
+  # OCO_E2E_REAL_MODEL=provider/model overrides the configured real model (free tier models rotate and rate-limit).
+  if [ -n "${OCO_E2E_REAL_MODEL:-}" ]; then
+    sed -i '' -e "s#\"model\": \"[^\"]*\"#\"model\": \"$OCO_E2E_REAL_MODEL\"#" "$T/xdg/config/opencode/opencode.json"
+  fi
 fi
 if [ ! -s "$T/secret" ]; then (umask 077; openssl rand -hex 16 > "$T/secret"); fi
 if [ ! -d "$T/workspace/.git" ]; then

@@ -446,9 +446,62 @@ try {
     await sleep(500)
     await runShot(page, run, "11-subagent-link")
     // The child's title links back to the parent (a button upstream); the panel returns to A.
+    // Diagnostics (kept): the click error is recorded, not swallowed, together with whether the title button exists,
+    // is visible and is the element hit at its centre, the child's pending permission, and how the panel's session
+    // id / URL / prompt-input evolve after the click.
+    link.diag = { clickError: null, before: null, trail: [] }
     for (const f of await chatFrames(page))
-      if ((await frameSession(f).catch(() => null)) === child) await f.locator('[data-slot="session-title-parent"]').click().catch(() => {})
-    link.back = !!(await frameFor(A, 15000))
+      if ((await frameSession(f).catch(() => null)) === child) {
+        link.diag.before = await f
+          .evaluate(() => {
+            const b = document.querySelector('[data-slot="session-title-parent"]')
+            const r = b?.getBoundingClientRect()
+            const hit = r ? document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) : null
+            return {
+              exists: !!b,
+              visible: !!r && r.width > 0 && r.height > 0,
+              rect: r ? [r.x, r.y, r.width, r.height].map(Math.round) : null,
+              hitSelf: !!hit && (hit === b || b.contains(hit)),
+              hit: hit ? hit.tagName + "." + String(hit.className).slice(0, 60) : null,
+              text: b?.textContent?.slice(0, 40) ?? null,
+              permissionPending: !!document.querySelector('[data-component="permission-prompt"], [data-slot="permission-footer"]') || /Permission required/.test(document.body.innerText),
+              childRunning: /Running|Thinking/.test(document.body.innerText),
+              url: location.pathname + location.hash,
+            }
+          })
+          .catch((e) => ({ error: String(e).slice(0, 120) }))
+        await f
+          .locator('[data-slot="session-title-parent"]')
+          .click({ timeout: 5000 })
+          .catch((e) => void (link.diag.clickError = String(e?.message ?? e).slice(0, 200)))
+      }
+    // "Back" means a visible frame bound to A. It must not wait for A's prompt-input: while the child's shell permission
+    // is still pending (a real model's subagent runs a command nobody approved) the parent shows that permission dock
+    // instead of the composer (seen: sid === A, prompt-input absent), so frameFor(A) never matched although the panel
+    // had returned. The trail keeps only changes of the snapshot.
+    const t0 = Date.now()
+    let last = ""
+    while (Date.now() - t0 < 15000) {
+      const snap = []
+      for (const f of await chatFrames(page))
+        snap.push(
+          await f
+            .evaluate(() => ({
+              sid: window.__OCO_DEBUG__?.sessionId?.() ?? null,
+              vis: document.visibilityState,
+              prompt: !!document.querySelector('[data-component="prompt-input"]'),
+              permissionDock: /Permission required/.test(document.body.innerText),
+              url: location.pathname + location.hash,
+            }))
+            .catch(() => null),
+        )
+      const key = JSON.stringify(snap)
+      if (key !== last) link.diag.trail.push({ t: Date.now() - t0, snap })
+      last = key
+      if (snap.some((x) => x && x.sid === A && x.vis === "visible")) break
+      await sleep(250)
+    }
+    link.back = link.diag.trail.length > 0 && JSON.parse(last).some((x) => x && x.sid === A && x.vis === "visible")
     link.opened = await app.evaluate(() => globalThis.__ocoOpened)
     run.record(
       "subagent-link",

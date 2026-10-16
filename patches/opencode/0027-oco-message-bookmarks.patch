@@ -1,0 +1,232 @@
+diff --git a/packages/app/src/context/platform.tsx b/packages/app/src/context/platform.tsx
+index c0939d2..a4500b9 100644
+--- a/packages/app/src/context/platform.tsx
++++ b/packages/app/src/context/platform.tsx
+@@ -94,6 +94,9 @@ type PlatformBase = {
+    * The page lists only these and offers no "open project" (the host bridge refuses other directories). */
+   embeddedFolders?: string[]
+ 
++  /** oco (patches/opencode/0027): bookmark a message; the embedding host stores it and jumps back to anchorID. */
++  ocoBookmarkMessage?: (input: { sessionID: string; messageID: string; anchorID: string; summary: string }) => void
++
+   /** oco (patches/opencode/0008): the embedding host renders its own recovery screen in place of the
+    * error page, the unreachable-server screen and the missing-session screen. */
+   recoveryView?(props: RecoveryViewProps): JSX.Element
+diff --git a/packages/app/src/pages/session.tsx b/packages/app/src/pages/session.tsx
+index ed3a652..170e78a 100644
+--- a/packages/app/src/pages/session.tsx
++++ b/packages/app/src/pages/session.tsx
+@@ -1986,7 +1986,32 @@ export default function Page() {
+     return forkAt(input.sessionID, msgs.slice(index + 1).find((item) => item.role === "user")?.id)
+   }
+ 
+-  const actions = { revert, fork, forkResponse, openAttachment }
++  // oco (patches/opencode/0027): bookmark a message. Absent unless the embed hook exists, so the
++  // button stays hidden outside the host. Summary is the first non-empty line of the first text part.
++  const bookmark = (input: { sessionID: string; messageID: string; anchorID: string }) => {
++    const mark = platform.ocoBookmarkMessage
++    if (!mark || !params.id) return
++    mark({
++      sessionID: params.id,
++      messageID: input.messageID,
++      anchorID: input.anchorID,
++      summary:
++        (sync().data.part[input.messageID] ?? [])
++          .find((part) => part.type === "text")
++          ?.text.split("\n")
++          .find((line) => line.trim())
++          ?.trim()
++          .slice(0, 200) ?? "",
++    })
++  }
++
++  const actions = {
++    revert,
++    fork,
++    forkResponse,
++    openAttachment,
++    ...(platform.ocoBookmarkMessage ? { bookmark } : {}),
++  }
+ 
+   createEffect(() => {
+     const sessionID = params.id
+diff --git a/packages/app/src/pages/session/timeline/message-timeline.tsx b/packages/app/src/pages/session/timeline/message-timeline.tsx
+index 4120e2f..243394e 100644
+--- a/packages/app/src/pages/session/timeline/message-timeline.tsx
++++ b/packages/app/src/pages/session/timeline/message-timeline.tsx
+@@ -1077,6 +1077,10 @@ export function MessageTimeline(props: {
+                 turnDurationMs={turnDurationMs(row().userMessageID)}
+                 useV2Actions={settings.general.newLayoutDesigns()}
+                 onForkResponse={props.actions?.forkResponse}
++                onBookmarkResponse={
++                  props.actions?.bookmark &&
++                  ((input) => props.actions?.bookmark?.({ ...input, anchorID: row().userMessageID }))
++                }
+                 defaultOpen={defaultOpen()}
+                 toolOpen={toolOpen[part().id] ?? defaultOpen()}
+                 onToolOpenChange={(open) => setToolOpen(part().id, open)}
+diff --git a/packages/session-ui/src/components/message-part.tsx b/packages/session-ui/src/components/message-part.tsx
+index 35e636c..7f07dd6 100644
+--- a/packages/session-ui/src/components/message-part.tsx
++++ b/packages/session-ui/src/components/message-part.tsx
+@@ -179,6 +179,8 @@ export type UserActions = {
+   fork?: SessionAction
+   /** oco (patches/opencode/0011): fork keeping this assistant response. */
+   forkResponse?: SessionAction
++  /** oco (patches/opencode/0027): bookmark this message. anchorID is the user-message scroll target. */
++  bookmark?: (input: { sessionID: string; messageID: string; anchorID: string }) => void
+   revert?: SessionAction
+   openAttachment?: (file: FilePart) => void
+ }
+@@ -206,11 +208,13 @@ export interface MessagePartProps {
+   turnDurationMs?: number
+   useV2Actions?: boolean
+   onForkResponse?: SessionAction
++  /** oco (patches/opencode/0027): bookmark this assistant response. The caller binds anchorID. */
++  onBookmarkResponse?: SessionAction
+ }
+ 
+ function MessageActionButton(
+   props: Pick<ComponentProps<"button">, "disabled" | "onMouseDown" | "onClick" | "aria-label"> & {
+-    icon: "check" | "copy" | "reset" | "oco-fork"
++    icon: "check" | "copy" | "reset" | "oco-fork" | "oco-bookmark"
+     label: JSX.Element
+     useV2?: boolean
+   },
+@@ -1282,6 +1286,17 @@ export function UserMessageDisplay(props: {
+       .finally(() => setState("busy", false))
+   }
+ 
++  const bookmark = () => {
++    const act = props.actions?.bookmark
++    if (!act || busy()) return
++    setState("busy", true)
++    void Promise.resolve()
++      .then(() =>
++        act({ sessionID: props.message.sessionID, messageID: props.message.id, anchorID: props.message.id }),
++      )
++      .finally(() => setState("busy", false))
++  }
++
+   const revert = () => {
+     const act = props.actions?.revert
+     if (!act || busy()) return
+@@ -1421,6 +1436,20 @@ export function UserMessageDisplay(props: {
+               aria-label={i18n.t("ui.message.forkMessage")}
+             />
+           </Show>
++          <Show when={props.actions?.bookmark}>
++            <MessageActionButton
++              icon="oco-bookmark"
++              label={i18n.t("ui.message.bookmarkMessage")}
++              useV2={props.useV2Actions}
++              disabled={!!busy()}
++              onMouseDown={(event) => event.preventDefault()}
++              onClick={(event) => {
++                event.stopPropagation()
++                bookmark()
++              }}
++              aria-label={i18n.t("ui.message.bookmarkMessage")}
++            />
++          </Show>
+           <Show when={text()}>
+             <MessageActionButton
+               icon={copied() ? "check" : "copy"}
+@@ -1498,6 +1527,7 @@ export function Part(props: MessagePartProps) {
+         turnDurationMs={props.turnDurationMs}
+         useV2Actions={props.useV2Actions}
+         onForkResponse={props.onForkResponse}
++        onBookmarkResponse={props.onBookmarkResponse}
+       />
+     </Show>
+   )
+@@ -1798,6 +1828,15 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
+       .finally(() => setForking(false))
+   }
+ 
++  const handleBookmark = () => {
++    const act = props.onBookmarkResponse
++    if (!act || forking()) return
++    setForking(true)
++    void Promise.resolve()
++      .then(() => act({ sessionID: props.message.sessionID, messageID: props.message.id }))
++      .finally(() => setForking(false))
++  }
++
+   const handleCopy = async () => {
+     const content = text()
+     if (!content) return
+@@ -1834,6 +1873,20 @@ PART_MAPPING["text"] = function TextPartDisplay(props) {
+                 aria-label={i18n.t("ui.message.forkMessage")}
+               />
+             </Show>
++            <Show when={props.onBookmarkResponse && props.message.role === "assistant" && !streaming()}>
++              <MessageActionButton
++                icon="oco-bookmark"
++                label={i18n.t("ui.message.bookmarkMessage")}
++                useV2={props.useV2Actions}
++                disabled={forking()}
++                onMouseDown={(event) => event.preventDefault()}
++                onClick={(event) => {
++                  event.stopPropagation()
++                  handleBookmark()
++                }}
++                aria-label={i18n.t("ui.message.bookmarkMessage")}
++              />
++            </Show>
+             <Show when={meta()}>
+               <span data-slot="text-part-meta" class="text-12-regular text-text-weak cursor-default">
+                 {meta()}
+diff --git a/packages/ui/src/components/icon.tsx b/packages/ui/src/components/icon.tsx
+index 6c7c30c..d82b3ae 100644
+--- a/packages/ui/src/components/icon.tsx
++++ b/packages/ui/src/components/icon.tsx
+@@ -101,6 +101,8 @@ const icons = {
+   warning: `<path d="M10 7.91667V11.6667M10 13.7417V13.75M10 2.5L1.875 16.25H18.125L10 2.5Z" stroke="currentColor" stroke-linecap="square"/>`,
+   // oco (patches/opencode/0011): fork a session from a message
+   "oco-fork": `<path d="M2.5 10H8L16.5 3M12.5 3H16.5V7M8 10L16.5 17M12.5 17H16.5V13" stroke="currentColor" stroke-linecap="square"/>`,
++  // oco (patches/opencode/0027): bookmark a message
++  "oco-bookmark": `<path d="M5.5 3.5H14.5V16.5L10 13.25L5.5 16.5V3.5Z" stroke="currentColor" stroke-linecap="square"/>`,
+   reset: `<path d="M5.83333 4.16406L2.5 7.4974L5.83333 10.8307M3.33333 7.4974H17.9167V15.4141H10" stroke="currentColor" stroke-linecap="square"/>`,
+   link: `<path d="M2.08334 12.0833L1.72979 11.7298L1.37624 12.0833L1.72979 12.4369L2.08334 12.0833ZM7.91668 17.9167L7.56312 18.2702L7.91668 18.6238L8.27023 18.2702L7.91668 17.9167ZM17.9167 7.91666L18.2702 8.27022L18.6238 7.91666L18.2702 7.56311L17.9167 7.91666ZM12.0833 2.08333L12.4369 1.72977L12.0833 1.37622L11.7298 1.72977L12.0833 2.08333ZM8.39646 5.06311L8.0429 5.41666L8.75001 6.12377L9.10356 5.77021L8.75001 5.41666L8.39646 5.06311ZM5.77023 9.10355L6.12378 8.74999L5.41668 8.04289L5.06312 8.39644L5.41668 8.74999L5.77023 9.10355ZM14.2298 10.8964L13.8762 11.25L14.5833 11.9571L14.9369 11.6035L14.5833 11.25L14.2298 10.8964ZM11.6036 14.9369L11.9571 14.5833L11.25 13.8762L10.8965 14.2298L11.25 14.5833L11.6036 14.9369ZM7.14646 12.1464L6.7929 12.5L7.50001 13.2071L7.85356 12.8535L7.50001 12.5L7.14646 12.1464ZM12.8536 7.85355L13.2071 7.49999L12.5 6.79289L12.1465 7.14644L12.5 7.49999L12.8536 7.85355ZM2.08334 12.0833L1.72979 12.4369L7.56312 18.2702L7.91668 17.9167L8.27023 17.5631L2.4369 11.7298L2.08334 12.0833ZM17.9167 7.91666L18.2702 7.56311L12.4369 1.72977L12.0833 2.08333L11.7298 2.43688L17.5631 8.27022L17.9167 7.91666ZM12.0833 2.08333L11.7298 1.72977L8.39646 5.06311L8.75001 5.41666L9.10356 5.77021L12.4369 2.43688L12.0833 2.08333ZM5.41668 8.74999L5.06312 8.39644L1.72979 11.7298L2.08334 12.0833L2.4369 12.4369L5.77023 9.10355L5.41668 8.74999ZM14.5833 11.25L14.9369 11.6035L18.2702 8.27022L17.9167 7.91666L17.5631 7.56311L14.2298 10.8964L14.5833 11.25ZM7.91668 17.9167L8.27023 18.2702L11.6036 14.9369L11.25 14.5833L10.8965 14.2298L7.56312 17.5631L7.91668 17.9167ZM7.50001 12.5L7.85356 12.8535L12.8536 7.85355L12.5 7.49999L12.1465 7.14644L7.14646 12.1464L7.50001 12.5Z" fill="currentColor"/>`,
+   providers: `<path d="M10.0001 4.37562V2.875M13 4.37793V2.87793M7.00014 4.37793V2.875M10 17.1279V15.6279M13 17.1279V15.6279M7 17.1279V15.6279M15.625 13.0029H17.125M15.625 7.00293H17.125M15.625 10.0029H17.125M2.875 10.0029H4.375M2.875 13.0029H4.375M2.875 7.00293H4.375M4.375 4.37793H15.625V15.6279H4.375V4.37793ZM12.6241 10.0022C12.6241 11.4519 11.4488 12.6272 9.99908 12.6272C8.54934 12.6272 7.37408 11.4519 7.37408 10.0022C7.37408 8.55245 8.54934 7.3772 9.99908 7.3772C11.4488 7.3772 12.6241 8.55245 12.6241 10.0022Z" stroke="currentColor" stroke-linecap="square"/>`,
+diff --git a/packages/ui/src/i18n/en.ts b/packages/ui/src/i18n/en.ts
+index ea314ad..d69351b 100644
+--- a/packages/ui/src/i18n/en.ts
++++ b/packages/ui/src/i18n/en.ts
+@@ -197,6 +197,7 @@ export const dict: Record<string, string> = {
+   "ui.message.copy": "Copy",
+   "ui.message.copyMessage": "Copy message",
+   "ui.message.forkMessage": "Fork to new session",
++  "ui.message.bookmarkMessage": "Bookmark message",
+   "ui.message.turnRail.jumpToTurn": "Jump to turn {{n}}",
+   "ui.message.turnRail.label": "Turns",
+   "ui.message.revertMessage": "Revert message",
+diff --git a/packages/ui/src/i18n/zh.ts b/packages/ui/src/i18n/zh.ts
+index 625f7ab..1b90510 100644
+--- a/packages/ui/src/i18n/zh.ts
++++ b/packages/ui/src/i18n/zh.ts
+@@ -186,6 +186,7 @@ export const dict = {
+   "ui.message.copy": "复制",
+   "ui.message.copyMessage": "复制消息",
+   "ui.message.forkMessage": "从此消息创建新会话",
++  "ui.message.bookmarkMessage": "添加书签",
+   "ui.message.turnRail.jumpToTurn": "跳转到第 {{n}} 轮",
+   "ui.message.turnRail.label": "轮次",
+   "ui.message.revertMessage": "撤销此消息",
+diff --git a/packages/ui/src/v2/components/icon.tsx b/packages/ui/src/v2/components/icon.tsx
+index fce5e11..091b274 100644
+--- a/packages/ui/src/v2/components/icon.tsx
++++ b/packages/ui/src/v2/components/icon.tsx
+@@ -142,6 +142,11 @@ const icons = {
+     viewBox: "0 0 20 20",
+     body: `<path d="M2.5 10H8L16.5 3M12.5 3H16.5V7M8 10L16.5 17M12.5 17H16.5V13" stroke="currentColor" stroke-linecap="square"/>`,
+   },
++  // oco (patches/opencode/0027): bookmark a message
++  "oco-bookmark": {
++    viewBox: "0 0 20 20",
++    body: `<path d="M5.5 3.5H14.5V16.5L10 13.25L5.5 16.5V3.5Z" stroke="currentColor" stroke-linecap="square"/>`,
++  },
+   reset: {
+     viewBox: "0 0 20 20",
+     body: `<path d="M5.83333 4.16406L2.5 7.4974L5.83333 10.8307M3.33333 7.4974H17.9167V15.4141H10" stroke="currentColor" stroke-linecap="square"/>`,

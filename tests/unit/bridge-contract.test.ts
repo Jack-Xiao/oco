@@ -34,6 +34,17 @@ describe("parseWebviewMessage ui.openFile focusAgeMs (C1 focus)", () => {
   })
 })
 
+describe("parseWebviewMessage ui.bookmark (M22)", () => {
+  test("accepts a bookmark with session, message and anchor", () => {
+    const parsed = parseWebviewMessage(ui({ action: "bookmark", sessionId: "s", messageId: "m", anchorId: "a", body: "summary" }))
+    expect(parsed).not.toBeNull()
+    expect(parsed).toMatchObject({ action: "bookmark", sessionId: "s", messageId: "m", anchorId: "a", body: "summary" })
+  })
+  test("rejects a bookmark missing an id", () => {
+    expect(parseWebviewMessage(ui({ action: "bookmark", sessionId: "s", messageId: "m", body: "summary" }))).toBeNull()
+  })
+})
+
 describe("parseWebviewMessage T010 recovery actions", () => {
   test("the fixed recovery actions are accepted", () => {
     for (const action of ["retryConnection", "openSettings", "showSessions", "newSession", "closePanel"])

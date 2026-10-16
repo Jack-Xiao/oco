@@ -235,7 +235,7 @@ export function blobGet(blobId: string) {
 
 export const ui = (
   action: UiAction,
-  extra: { url?: string; title?: string; body?: string; sessionId?: string; route?: string; path?: string; line?: number; column?: number; focusAgeMs?: number } = {},
+  extra: { url?: string; title?: string; body?: string; sessionId?: string; route?: string; path?: string; line?: number; column?: number; focusAgeMs?: number; messageId?: string; anchorId?: string } = {},
 ) =>
   post({ type: "ui", action, ...extra })
 
