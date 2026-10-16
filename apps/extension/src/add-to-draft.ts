@@ -386,14 +386,23 @@ function collectProblems(scope: "file" | "all", rules: ExcludeRules): ProblemIte
   return items
 }
 
-type GitChange = { uri: Uri }
-type GitRepository = {
+export type GitChange = { uri: Uri }
+export type GitRepository = {
+  rootUri: Uri
   diff(cached?: boolean): Promise<string>
-  state: { workingTreeChanges: readonly GitChange[]; indexChanges: readonly GitChange[] }
+  /** Refreshes `state` (built-in git extension API). */
+  status(): Promise<void>
+  state: {
+    HEAD?: { name?: string; commit?: string }
+    workingTreeChanges: readonly GitChange[]
+    indexChanges: readonly GitChange[]
+    mergeChanges?: readonly GitChange[]
+    untrackedChanges?: readonly GitChange[]
+  }
 }
-type GitApi = { repositories: readonly GitRepository[] }
+export type GitApi = { repositories: readonly GitRepository[] }
 
-async function gitApi(): Promise<GitApi | undefined> {
+export async function gitApi(): Promise<GitApi | undefined> {
   const ext = vs().extensions.getExtension("vscode.git")
   if (!ext) return undefined
   try {

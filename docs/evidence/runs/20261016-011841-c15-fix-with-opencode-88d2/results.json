@@ -1,0 +1,77 @@
+{
+  "runId": "20261016-011841-c15-fix-with-opencode-88d2",
+  "suite": "c15-fix-with-opencode",
+  "startedAt": "2026-10-16T01:18:41.769Z",
+  "ocoCommit": "9dd4853718fd3a321194b84f2982bbfd13becf16",
+  "ocoDirty": true,
+  "upstreamSha": null,
+  "scriptSha256": "f509ec33733e8b58c4f26495d25dbb020e678f69b7be703a880c2fddbba0c738",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "mock",
+  "fixtureWorkspace": "/Users/xiaojiang/Ai-Project/oco/.claude/worktrees/card11-git-actions-0c72f6/.oco-test/c15/ws-d2m7a",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c15-fix-with-opencode",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-16T01:20:49.554Z",
+  "results": [
+    {
+      "id": "fix-action-offered",
+      "status": "PASS",
+      "detail": {
+        "menu": "Quick Fix Fix with OpenCode "
+      },
+      "at": "2026-10-16T01:19:23.274Z"
+    },
+    {
+      "id": "fix-draft",
+      "status": "PASS",
+      "detail": {
+        "pickedPanel": true,
+        "header": true,
+        "problemLine": true,
+        "codeWindow": true,
+        "sample": "Fix the following problem(s) in broken-d2m7a.json:3. broken-d2m7a.json:3:8 error [json(516)] Value expected ```json 1|{ 2| \"a\": 1, 3| \"b\": , 4| \"c\": 3 5|} 6| ```"
+      },
+      "at": "2026-10-16T01:19:26.552Z"
+    },
+    {
+      "id": "fix-draft-once",
+      "status": "PASS",
+      "detail": {
+        "headerCount": 1,
+        "acks": 1,
+        "userMessages": 0
+      },
+      "at": "2026-10-16T01:19:26.638Z"
+    },
+    {
+      "id": "terminal-no-record",
+      "status": "PASS",
+      "detail": {
+        "warning": "oco: No finished command in the active terminal (shell integration required)",
+        "pickOpened": false,
+        "draftUnchanged": true
+      },
+      "at": "2026-10-16T01:19:28.629Z"
+    },
+    {
+      "id": "terminal-shell-integ",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "terminal never reported a finished shell-integration command within ~25 s"
+      },
+      "at": "2026-10-16T01:20:49.179Z"
+    }
+  ],
+  "summary": {
+    "PASS": 4,
+    "FAIL": 0,
+    "NOT RUN": 1,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

@@ -142,6 +142,26 @@
         "category": "oco"
       },
       {
+        "command": "oco.git.askCommit",
+        "title": "Ask Agent to Commit Changes",
+        "category": "oco"
+      },
+      {
+        "command": "oco.git.commitWithOpenCode",
+        "title": "Commit with OpenCode",
+        "category": "oco"
+      },
+      {
+        "command": "oco.git.askOpenPR",
+        "title": "Ask Agent to Open a Pull Request",
+        "category": "oco"
+      },
+      {
+        "command": "oco.git.openScm",
+        "title": "Open Source Control View",
+        "category": "oco"
+      },
+      {
         "command": "oco.fixWithOpenCode",
         "title": "Fix with OpenCode",
         "category": "oco"
@@ -413,6 +433,10 @@
         {
           "command": "oco.reviewNotes.createNote",
           "when": "false"
+        },
+        {
+          "command": "oco.git.commitWithOpenCode",
+          "when": "false"
         }
       ],
       "editor/title": [
@@ -459,6 +483,16 @@
           "command": "oco.addGitDiffToDraft",
           "when": "scmProvider == git",
           "group": "navigation"
+        },
+        {
+          "command": "oco.git.commitWithOpenCode",
+          "when": "scmProvider == git",
+          "group": "navigation@1"
+        },
+        {
+          "command": "oco.git.askOpenPR",
+          "when": "scmProvider == git",
+          "group": "1_oco@1"
         }
       ],
       "editor/context": [
@@ -558,6 +592,20 @@
           "default": true,
           "scope": "machine",
           "markdownDescription": "Show the focused session's model, context usage and cost in the status bar."
+        },
+        "oco.git.commitPrompt": {
+          "type": "string",
+          "default": "Commit the current changes in this repository.\nBranch: ${branch}\nChanged files (${count}):\n${files}\n\nReview the diff with git first, group related changes into one or more commits with concise conventional commit messages (subject under 72 characters, body saying why), and run the commits yourself. Do not push.",
+          "scope": "machine",
+          "editPresentation": "multilineText",
+          "markdownDescription": "Prompt template for “oco: Ask Agent to Commit Changes” (also the “Commit with OpenCode” button in the Source Control title bar). Placeholders: `${branch}` current branch, `${count}` number of changed files, `${files}` up to 20 changed file paths, one per line. The rendered text is added to the main panel's session draft and never sent automatically; the agent runs git itself, oco never does. Leave empty for the built-in template. User settings only (machine scope), so a repository cannot inject text into your prompts."
+        },
+        "oco.git.prPrompt": {
+          "type": "string",
+          "default": "Open a pull request for the current branch.\nBranch: ${branch}\nUncommitted changes (${count}):\n${files}\n\nIf there are uncommitted changes, commit them first. Push the branch and open the pull request with the gh CLI (or this repository's equivalent) with a title under 70 characters, a summary of what changed and why, and how it was tested. Do not merge it. Report the pull request URL when done.",
+          "scope": "machine",
+          "editPresentation": "multilineText",
+          "markdownDescription": "Prompt template for “oco: Ask Agent to Open a Pull Request”. Placeholders: `${branch}` current branch, `${count}` number of changed files, `${files}` up to 20 changed file paths, one per line. The rendered text is added to the main panel's session draft and never sent automatically; the agent runs git itself, oco never does. Leave empty for the built-in template. User settings only (machine scope), so a repository cannot inject text into your prompts."
         }
       }
     },

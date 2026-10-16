@@ -1,0 +1,87 @@
+{
+  "runId": "20261016-011803-c31-git-actions-b1ca",
+  "suite": "c31-git-actions",
+  "startedAt": "2026-10-16T01:18:03.577Z",
+  "ocoCommit": "9dd4853718fd3a321194b84f2982bbfd13becf16",
+  "ocoDirty": true,
+  "upstreamSha": null,
+  "scriptSha256": "83e995d8870dd0f9a6bb7e58f65f32cb12a6fdaf07f5be45ceb9ed1c84b573f5",
+  "node": "v26.7.0",
+  "os": "darwin 27.2.0 arm64",
+  "serverVersion": "1.18.33",
+  "modelMode": "mock",
+  "changedFile": "c31-h336ry.txt",
+  "vscodeVersion": "1.141.0",
+  "vscodeProfile": "c31-git-actions",
+  "model": "oco-mock/mock",
+  "branch": "main",
+  "finishedAt": "2026-10-16T01:18:18.454Z",
+  "results": [
+    {
+      "id": "no-session",
+      "status": "PASS",
+      "detail": {
+        "toasts": "oco: Open a session in the main panel first"
+      },
+      "at": "2026-10-16T01:18:09.041Z"
+    },
+    {
+      "id": "commit-draft",
+      "status": "PASS",
+      "detail": {
+        "composer": "Commit the current changes in this repository. Branch: main Changed files (1): - c31-h336ry.txt Review the diff with git first, group related changes into one or more commits with concise conventional commit messages (subject under 72 characters, body saying why), and run the commits yourself. Do not push.",
+        "branch": "main",
+        "file": "c31-h336ry.txt",
+        "userMessages": 0,
+        "branchLine": "Branch: main",
+        "gitReady": true,
+        "gitStatus": "?? c31-h336ry.txt"
+      },
+      "at": "2026-10-16T01:18:16.960Z"
+    },
+    {
+      "id": "pr-draft",
+      "status": "PASS",
+      "detail": {
+        "composer": "Commit the current changes in this repository. Branch: main Changed files (1): - c31-h336ry.txt Review the diff with git first, group related changes into one or more commits with concise conventional commit messages (subject under 72 characters, body saying why), and run the commits yourself. Do not push.Open a pull request for the current branch. Branch: main Uncommitted changes (1): - c31-h336r",
+        "prPart": "Open a pull request for the current branch. Branch: main Uncommitted changes (1): - c31-h336ry.txt If there are uncommitted changes, commit them first. Push the branch and open the pull request with the gh CLI (or this repository's equivalent) with a title under 70 characters, a summary of what chan",
+        "commitTextKept": true,
+        "branch": "main",
+        "joint": "\"s yourself. Do not push.Open a pull \""
+      },
+      "at": "2026-10-16T01:18:17.351Z"
+    },
+    {
+      "id": "open-scm",
+      "status": "PASS",
+      "detail": {
+        "sidebarTitle": "Source Control"
+      },
+      "at": "2026-10-16T01:18:17.491Z"
+    },
+    {
+      "id": "scm-button",
+      "status": "PASS",
+      "detail": {
+        "ariaLabel": "Commit with OpenCode",
+        "where": "pane-header",
+        "occurrencesBefore": 1,
+        "occurrencesAfter": 2,
+        "titleBarLabels": [
+          "Source Control actions",
+          "Views and More Actions..."
+        ]
+      },
+      "at": "2026-10-16T01:18:17.989Z"
+    }
+  ],
+  "summary": {
+    "PASS": 5,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

@@ -1,6 +1,6 @@
 # ADR-009：多 agent 驾驶舱的边界
 
-状态：已采纳（边界决定）。日期：2026-10-10。来源：[NEXT §2](../NEXT.md)、[ARCHITECTURE §1 / §8 / §9](../ARCHITECTURE.md)。实现证据按批次记入 [cockpit-inbox-2026-10-10](../evidence/cockpit-inbox-2026-10-10.md) 及后续证据文件；本 ADR 只定边界，不宣称任何功能已验证。
+状态：已采纳（边界决定）。日期：2026-10-10；2026-10-16 §4 补 Git 动作边界（卡 11 M21 v1）。来源：[NEXT §2](../NEXT.md)、[ARCHITECTURE §1 / §8 / §9](../ARCHITECTURE.md)。实现证据按批次记入 [cockpit-inbox-2026-10-10](../evidence/cockpit-inbox-2026-10-10.md) 及后续证据文件；本 ADR 只定边界，不宣称任何功能已验证。
 
 ## 背景
 
@@ -41,9 +41,17 @@ oco 不做：推理循环；执行工具或解释工具结果；自建权限规�
 - 批次标签是视图状态（ARCHITECTURE §4）：存 oco 本地状态并以连接 + sessionID 为键，不写进服务端配置、不改会话标题冒充元数据。
 - 发送失败不无条件重试（ARCHITECTURE §6）：先查会话是否已创建，查不到时标「结果未知」交给用户。
 
-### 4. 结果卡与批次汇总只读
+### 4. 结果卡与批次汇总只读；Git 动作只投递提示
 
 每会话结果卡（改动文件、耗时、花费、最后一条输出、打开 diff）全部来自服务端消息与运行视图已有索引；不在 oco 侧重算 token 费用或推断模型。
+
+Git 动作边界（M21 v1，2026-10-16 卡 11；Claude Code「commit / create PR」按钮在 oco 的等价物）：
+
+- oco 不执行 git：不提交、不推送、不开 PR、不合并，不内置 git 子进程，也不解析 agent 的输出去判断「是否已提交」。提交与开 PR 由 agent 在自己的会话里用自己的工具（shell、`gh`）完成，权限批复仍走 §1 的上游 permission 流程。
+- oco 只做两件事。(a) `oco.git.askCommit` / `oco.git.askOpenPR`（SCM 标题栏按钮「Commit with OpenCode」是前者的别名）把带仓库上下文的提示渲染后投进**主面板**会话的草稿：复用 M05 的 `draft.insert` 通道，`source` 沿用既有的 `gitDiff` 元数据，不扩桥契约；不自动发送，用户看过再按 Enter；主面板没有会话时只提示，不替用户新建会话。(b) `oco.git.openScm` 打开 VS Code 原生 SCM 视图，人工 git 操作走内置 Git 扩展。
+- 仓库上下文只读自 VS Code 内置 Git 扩展 API（`vscode.git` 的 `getAPI(1)`）：当前分支、改动文件数、前 20 个文件名、是否有未提交改动。读不到（扩展未启用、无仓库）时占位符留空，不报错、不自己跑 `git status`。仓库选择顺序：SCM 标题菜单传入的 SourceControl 根目录 → 包含主面板会话目录的仓库（worktree 会话因此指向自己的 worktree）→ 第一个仓库。
+- 模板是用户设置 `oco.git.commitPrompt` / `oco.git.prPrompt`，占位符 `${branch}`、`${files}`、`${count}`；machine 作用域：仓库里的 `.vscode/settings.json` 不能往 agent 的草稿里塞文本。
+- 不做：CI 监视、PR 状态轮询或绑定、自动修 CI、自动合并、PR 评论回流、定时器；不读 GitHub 凭据。这些要么需要常驻监视（§1 禁止定时器），要么是 agent 工具层已有的能力（`gh`）。
 
 ### 5. Agent 定义编辑仍按 ARCHITECTURE §8
 
@@ -59,4 +67,5 @@ oco 不做：推理循环；执行工具或解释工具结果；自建权限规�
 
 - 收件箱：E2E mock 造三个后台子代理同时等授权，不打开任何会话面板即可全部批完；批复后 `GET /permission` 为空，侧栏与状态栏计数归零。
 - 批量发起：清单 N 项、并发上限 k，任意时刻 busy 会话 ≤ k；全部完成后侧栏按批次分组显示 N 个会话。
+- Git 动作（§4）：mock E2E 执行 `oco.git.askCommit` / `oco.git.askOpenPR` 后，主面板草稿含模板文字、当前分支名与改动文件名，且会话的用户消息数不变（未自动发送）；没有主面板会话时只出现提示，不新建会话。
 - 不做项不需要验收，只需在 STATUS 保持「不做」声明。
