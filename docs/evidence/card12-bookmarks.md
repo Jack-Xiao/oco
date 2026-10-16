@@ -41,3 +41,23 @@
 
 - 去掉 `app.tsx` 里为 vendor 字段未落地而加的局部类型交叉（0027 已加 `Platform.ocoBookmarkMessage`）。
 - 验证：vendor app typecheck 0；仓库 typecheck 0；unit 460/0（含 bookmarks、bridge-contract 新例）；补丁 0027 由 regen-patch 生成。build / E2E 待 c32。
+
+## E2E
+
+- 委派记录：c32-e2e | 写入 tests/e2e/c32-bookmarks.mjs、本段、docs/evidence/runs/ | claude-subagent/sonnet | Sonnet 5.5 | 本子代理 | 进行中。
+- 构建：`bun run build` exit 0；`apps/extension/media/chat/assets/app-1akm4pVF.js` 含 "Bookmark message" / ocoBookmarkMessage（4 处）。
+- 委派记录状态更新：c32-e2e 已返回（约 20 轮工具调用）。
+- 新增：`tests/e2e/c32-bookmarks.mjs`（mock 模型；6 轮，每轮 14 条编号句；侧栏徽标 / 子项 / × 用 `.bookmarks-badge`、`.bookmarks-list > .bookmark-row[data-message-id]`、`.bookmark-remove`）。lib 未改。
+- c32 运行（`bash scripts/overnight-e2e.sh c32-bookmarks`，各 PASS 7 / FAIL 1）：
+  - 1：docs/evidence/runs/20261016-014651-c32-bookmarks-da92/results.json
+  - 2：docs/evidence/runs/20261016-014803-c32-bookmarks-64dd/results.json（含失败诊断）
+  - 必需用例 button-visible / add-user / add-assistant / open-same-session / open-other-session / remove 两次均 PASS；remove-persist（同 profile 重启后剩余书签仍在）PASS；唯一 FAIL 是附加探测 open-same-session-repeat。
+  - 观测：转到第 2 轮后落点 top=64px（滚动区高 670）；重复提示 "oco: Bookmarked" 无第二次；摘要 = 首行（助手为 "1. Mock line 1."，以 messageId 区分）。
+- 产品缺陷 1（轻微，两次均复现）：同一书签子项在手动滚走后再次点击不滚动。步骤：点子项跳到第 2 轮 -> 手动滚到底 -> 再点同一子项。期望：再次回到第 2 轮；实际：scrollTop 仍 2812（底部），`location.hash` 仍为 `#message-{u2}`（哈希未变，不触发滚动）。选择器：侧栏 `.bookmarks-list > .bookmark-row[data-message-id]`。结果记在 results.json 的 open-same-session-repeat（非必需用例）。不同子项之间的连续跳转正常。
+- 回归（各 1 次，docs/evidence/runs/overnight-20261016-094901/summary.md）：c29-rewind 4/4、c3-fork 4/4、c30-turn-rail 7/7、c17-subagent-aggregate 5/5、p1b-sidebar 13/13，均 exit 0。
+
+## 已知缺陷：同一书签再次点击不滚动（修两轮未稳，按 §0 规则收尾）
+
+- 现象（c32 open-same-session-repeat，非必需项）：点书签跳到第 2 轮 → 手动滚到底 → 再点同一书签不回到第 2 轮（hash 未变，上游 `use-session-hash-scroll` 不重新应用）。
+- 第 1 轮：同 hash 时先去 hash，下一帧再设回 → c32 1/2 通过该项。第 2 轮：改为 100 ms 后设回 → 3 次中 1 次通过（[overnight-20261016-095524](runs/overnight-20261016-095524/summary.md)，其余 7 项全过）。保留第 2 轮写法（无副作用、部分改善）。
+- 下一步建议：不靠 hash 往返；补丁给 hash-scroll 暴露「滚到某用户消息」入口（如 0026 已透传的 `scrollToMessage`），宿主 navigate 带 messageId 时直接调用。

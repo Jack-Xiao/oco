@@ -255,8 +255,19 @@ onNavigate((msg) => {
     }
     // Already on this session: the router will not remount, so point the hash at the turn.
     if (hash) {
-      location.hash = hash
-      inner.set({ value: routeFor(bound.sessionId) + hash, replace: true, scroll: false })
+      // Re-opening the same bookmark leaves the hash unchanged, which scrolls nothing: drop it first, and give the
+      // router time to commit that (it updates asynchronously; one frame was not always enough in c32).
+      const same = location.hash === hash
+      const point = () => {
+        location.hash = hash
+        inner.set({ value: routeFor(bound.sessionId) + hash, replace: true, scroll: false })
+      }
+      if (same) {
+        history.replaceState(history.state, "", location.pathname + location.search)
+        inner.set({ value: routeFor(bound.sessionId), replace: true, scroll: false })
+        setTimeout(point, 100)
+      }
+      if (!same) point()
     }
     return void ready(currentRoute.split("#")[0])
   }
