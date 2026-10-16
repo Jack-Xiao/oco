@@ -9,7 +9,7 @@
 - 命令：第 3 步原样（`bisect-e2e.sh 8d2d9db 5750dae 120`）。
 
 ## 测试台问题（已绕过，需修脚本）
-链运行 1：端点判完（好/坏正确），但二分内每个中间提交都 `build=FAIL`：`git bisect run` 给子进程导出 `GIT_DIR`，`bisect-e2e-test.sh` 里 `git -C vendor/opencode ...` 命中父仓库，setup.sh 报 `vendor/opencode is at <父仓库提交>, expected 51ef4be`，全部 skip，`only-skipped-left`。处置：只在 `~/oco-mini-logs/bisect-draft/` 的脚本副本里加 `unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR`，bisect reset 后重跑（链运行 2）。**仓库里的 scripts/mini/bisect-e2e-test.sh 仍有此缺陷，需本机会话补同样一行。** verdicts.tsv 含链运行 1 的 build=FAIL 行（可忽略）。
+链运行 1：端点判完（好/坏正确），但二分内每个中间提交都 `build=FAIL`：`git bisect run` 给子进程导出 `GIT_DIR`，`bisect-e2e-test.sh` 里 `git -C vendor/opencode ...` 命中父仓库，setup.sh 报 `vendor/opencode is at <父仓库提交>, expected 51ef4be`，全部 skip，`only-skipped-left`。处置：只在 `~/oco-mini-logs/bisect-draft/` 的脚本副本里加 `unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR`，bisect reset 后重跑（链运行 2）。**仓库里的 scripts/mini/bisect-e2e-test.sh 仍有此缺陷，需本机会话补同样一行。（本机会话补注，合入后：已在 692a556 修复，加 unset GIT_* 并在重置 vendor 前校验它解析到自己的仓库；原因是 `~/Ai-Project/oco-mini` 是 linked worktree，`git bisect run` 在其中才导出 `GIT_DIR`，已在 mini 上用合成仓库独立复现：普通仓库只导出空的 `GIT_PREFIX`。mini 的 `vendor/opencode` 根还留着链运行 1 写进去的外层顶层文件（apps/ docs/ patches/opencode/ scripts/ tests/ CHANGELOG.md，未跟踪），未清理。）** verdicts.tsv 含链运行 1 的 build=FAIL 行（可忽略）。
 
 ## 端点核对（首轮>重跑）
 | 提交 | c14 draft-acked | p1b chain-draft | summary |
