@@ -1,0 +1,255 @@
+diff --git a/packages/app/src/pages/session.tsx b/packages/app/src/pages/session.tsx
+index 8553fae..ed3a652 100644
+--- a/packages/app/src/pages/session.tsx
++++ b/packages/app/src/pages/session.tsx
+@@ -2215,6 +2215,7 @@ export default function Page() {
+                   setScrollToEnd={(fn) => {
+                     scrollToEnd = fn
+                   }}
++                  scrollToMessage={scrollToMessage}
+                 />
+               )}
+             </Show>
+diff --git a/packages/app/src/pages/session/timeline/message-timeline.tsx b/packages/app/src/pages/session/timeline/message-timeline.tsx
+index 1a21700..4120e2f 100644
+--- a/packages/app/src/pages/session/timeline/message-timeline.tsx
++++ b/packages/app/src/pages/session/timeline/message-timeline.tsx
+@@ -78,6 +78,7 @@ import { observeElementOffsetReconnectAware } from "./observe-element-offset"
+ import { createTimelineProjection } from "./projection"
+ import { MessageComment, SummaryDiff, TimelineRow, TimelineRowMap } from "./rows"
+ import { filterVirtualIndexes } from "./virtual-items"
++import { OcoTurnRail } from "./oco-turn-rail"
+ 
+ const emptyMessages: MessageType[] = []
+ const emptyParts: PartType[] = []
+@@ -303,6 +304,7 @@ export function MessageTimeline(props: {
+   setRevealMessage?: (fn: (id: string) => void) => void
+   setScrollToEnd?: (fn: () => void) => void
+   setHistoryAnchor?: (handlers: { capture: () => void; restore: (done: boolean) => void }) => void
++  scrollToMessage?: (message: UserMessage, behavior?: ScrollBehavior) => void
+ }) {
+   let touchGesture: number | undefined
+ 
+@@ -1409,6 +1411,14 @@ export function MessageTimeline(props: {
+           </button>
+         </Show>
+       </div>
++      <Show when={platform.embedded && props.userMessages.length >= 2}>
++        <OcoTurnRail
++          userMessages={props.userMessages}
++          scrollToMessage={props.scrollToMessage}
++          isBottom={props.scroll.bottom}
++          scroller={listRoot}
++        />
++      </Show>
+       <ScrollView
+         viewportRef={bindListRoot}
+         onWheel={handleListWheel}
+diff --git a/packages/app/src/pages/session/timeline/oco-turn-rail.test.ts b/packages/app/src/pages/session/timeline/oco-turn-rail.test.ts
+new file mode 100644
+index 0000000..446bdd9
+--- /dev/null
++++ b/packages/app/src/pages/session/timeline/oco-turn-rail.test.ts
+@@ -0,0 +1,18 @@
++import { describe, expect, test } from "bun:test"
++import type { Part } from "@opencode-ai/sdk/v2"
++import { turnTitle } from "./oco-turn-title"
++
++const text = (t: string) => ({ type: "text", text: t }) as Part
++
++describe("turnTitle", () => {
++  test("first non-empty line of the first text part", () => {
++    expect(turnTitle([{ type: "file" } as Part, text("\n  fix the build  \nsecond line")])).toBe("fix the build")
++  })
++  test("caps at 80 characters", () => {
++    expect(turnTitle([text("x".repeat(120))])).toHaveLength(80)
++  })
++  test("empty when there is no text", () => {
++    expect(turnTitle(undefined)).toBe("")
++    expect(turnTitle([text("   ")])).toBe("")
++  })
++})
+diff --git a/packages/app/src/pages/session/timeline/oco-turn-rail.tsx b/packages/app/src/pages/session/timeline/oco-turn-rail.tsx
+new file mode 100644
+index 0000000..d804846
+--- /dev/null
++++ b/packages/app/src/pages/session/timeline/oco-turn-rail.tsx
+@@ -0,0 +1,136 @@
++import { createEffect, createSignal, For, on, onCleanup, Show, type Accessor } from "solid-js"
++import type { UserMessage } from "@opencode-ai/sdk/v2"
++import { useLanguage } from "@/context/language"
++import { useSync } from "@/context/sync"
++import { turnTitle } from "./oco-turn-title"
++
++export interface OcoTurnRailProps {
++  userMessages: UserMessage[]
++  scrollToMessage?: (message: UserMessage, behavior?: ScrollBehavior) => void
++  isBottom?: boolean
++  scroller?: Accessor<HTMLDivElement | undefined>
++}
++
++export function OcoTurnRail(props: OcoTurnRailProps) {
++  const language = useLanguage()
++  const sync = useSync()
++  const [activeId, setActiveId] = createSignal<string>()
++
++  const count = () => props.userMessages.length
++  const currentActiveId = () =>
++    activeId() ?? (props.isBottom ? props.userMessages.at(-1)?.id : props.userMessages[0]?.id)
++
++  createEffect(
++    on(
++      () => props.isBottom,
++      (bottom) => {
++        if (bottom) {
++          const last = props.userMessages.at(-1)
++          if (last) setActiveId(last.id)
++        }
++      },
++    ),
++  )
++
++  let scrollFrame: number | undefined
++  const updateOnScroll = () => {
++    if (props.isBottom) {
++      const last = props.userMessages.at(-1)
++      if (last && activeId() !== last.id) setActiveId(last.id)
++      return
++    }
++    const root = props.scroller?.()
++    if (!root) return
++
++    const box = root.getBoundingClientRect()
++    const threshold = box.top + 80
++    const list = root.querySelectorAll<HTMLElement>("[data-message-id]")
++    let bestId: string | undefined
++    let bestDist = Infinity
++
++    for (let i = 0; i < list.length; i++) {
++      const el = list[i]
++      const id = el.dataset.messageId
++      if (!id) continue
++      const rect = el.getBoundingClientRect()
++      if (rect.top <= threshold && rect.bottom >= threshold) {
++        bestId = id
++        break
++      }
++      const dist = Math.abs(rect.top - threshold)
++      if (dist < bestDist) {
++        bestDist = dist
++        bestId = id
++      }
++    }
++
++    if (bestId && activeId() !== bestId && props.userMessages.some((m) => m.id === bestId)) {
++      setActiveId(bestId)
++    }
++  }
++
++  const handleScroll = () => {
++    if (scrollFrame !== undefined) return
++    scrollFrame = requestAnimationFrame(() => {
++      scrollFrame = undefined
++      updateOnScroll()
++    })
++  }
++
++  createEffect(() => {
++    const root = props.scroller?.()
++    if (!root) return
++    root.addEventListener("scroll", handleScroll, { passive: true })
++    onCleanup(() => {
++      root.removeEventListener("scroll", handleScroll)
++      if (scrollFrame !== undefined) cancelAnimationFrame(scrollFrame)
++    })
++  })
++
++  const handleClick = (msg: UserMessage) => {
++    setActiveId(msg.id)
++    props.scrollToMessage?.(msg, "auto")
++  }
++
++  return (
++    <Show when={count() >= 2}>
++      <nav
++        aria-label={language.t("ui.message.turnRail.label")}
++        data-oco-turn-rail
++        class="absolute right-1 top-14 bottom-8 w-4.5 z-30 pointer-events-none select-none flex flex-col items-center"
++      >
++        <div class="relative w-full h-full">
++          <For each={props.userMessages}>
++            {(message, index) => {
++              const parts = () => sync().data.part[message.id]
++              const title = () => turnTitle(parts())
++              const active = () => currentActiveId() === message.id
++              const n = () => count()
++              const top = () => (n() > 1 ? `${(index() / (n() - 1)) * 100}%` : "0%")
++
++              return (
++                <button
++                  type="button"
++                  data-oco-turn-index={index()}
++                  aria-label={language.t("ui.message.turnRail.jumpToTurn", { n: index() + 1 })}
++                  title={title() || undefined}
++                  onClick={() => handleClick(message)}
++                  class="pointer-events-auto absolute left-1/2 -translate-x-1/2 -translate-y-1/2 p-0 h-4 w-full flex items-center justify-center cursor-pointer border-none bg-transparent group"
++                  style={{ top: top() }}
++                >
++                  <span
++                    class="block h-1 rounded-full transition-all duration-150 ease-out motion-reduce:transition-none"
++                    classList={{
++                      "w-3.5 bg-text-strong opacity-100": active(),
++                      "w-2 bg-text-weak opacity-40 group-hover:w-3 group-hover:opacity-100 group-hover:bg-text-base": !active(),
++                    }}
++                  />
++                </button>
++              )
++            }}
++          </For>
++        </div>
++      </nav>
++    </Show>
++  )
++}
+diff --git a/packages/app/src/pages/session/timeline/oco-turn-title.ts b/packages/app/src/pages/session/timeline/oco-turn-title.ts
+new file mode 100644
+index 0000000..fb85e0d
+--- /dev/null
++++ b/packages/app/src/pages/session/timeline/oco-turn-title.ts
+@@ -0,0 +1,10 @@
++import type { Part } from "@opencode-ai/sdk/v2"
++
++/** First non-empty line of a turn's first text part, capped at 80 characters (turn rail tooltip). */
++export function turnTitle(parts?: Part[]) {
++  const line = (parts ?? [])
++    .flatMap((part) => (part.type === "text" && part.text ? part.text.split(/\r?\n/) : []))
++    .map((s) => s.trim())
++    .find((s) => s.length > 0)
++  return line ? line.slice(0, 80) : ""
++}
+diff --git a/packages/ui/src/i18n/en.ts b/packages/ui/src/i18n/en.ts
+index 54008fb..ea314ad 100644
+--- a/packages/ui/src/i18n/en.ts
++++ b/packages/ui/src/i18n/en.ts
+@@ -197,6 +197,8 @@ export const dict: Record<string, string> = {
+   "ui.message.copy": "Copy",
+   "ui.message.copyMessage": "Copy message",
+   "ui.message.forkMessage": "Fork to new session",
++  "ui.message.turnRail.jumpToTurn": "Jump to turn {{n}}",
++  "ui.message.turnRail.label": "Turns",
+   "ui.message.revertMessage": "Revert message",
+   "ui.message.copyResponse": "Copy response",
+   "ui.message.copied": "Copied",
+diff --git a/packages/ui/src/i18n/zh.ts b/packages/ui/src/i18n/zh.ts
+index c5a33ef..625f7ab 100644
+--- a/packages/ui/src/i18n/zh.ts
++++ b/packages/ui/src/i18n/zh.ts
+@@ -186,6 +186,8 @@ export const dict = {
+   "ui.message.copy": "复制",
+   "ui.message.copyMessage": "复制消息",
+   "ui.message.forkMessage": "从此消息创建新会话",
++  "ui.message.turnRail.jumpToTurn": "跳转到第 {{n}} 轮",
++  "ui.message.turnRail.label": "轮次",
+   "ui.message.revertMessage": "撤销此消息",
+   "ui.message.copyResponse": "复制回复",
+   "ui.message.copied": "已复制！",

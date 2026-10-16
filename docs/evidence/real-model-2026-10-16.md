@@ -31,3 +31,7 @@ tests/e2e/server.mjs:19-22 `detectModel()` 在 real 模式下固定返回 `{prov
 - A 3（c5 same-command、subagent、run 级联）；B 4（c16、c17、c6、c5 perm-reject）；C 4（c10、c11、c14、p1b-narrow）；D 1（c4 subagent-link，低置信度）。
 - c4 其余 16 项、c12、c13、c15、p1b-sidebar 全部 PASS。
 - c16 / c17 的 0 到 1 秒结束是设计内的 mock-only 早退，不是崩溃、端口或锁问题。
+
+## 重跑（主线程，07:39，修 server.mjs 模型探测后，nemotron-3.5-lightning-free）
+
+汇总 [overnight-20261016-073956](runs/overnight-20261016-073956/summary.md)：p1b-narrow 12/12（模型探测修复后转绿，原因 C 成立）；c11 5/1/2（todo-badge 仍失败，A：小模型不写 todo）；c10 0/1（question-row 缺失，A：模型不调用 question 工具）；c4 16/1，subagent-link 第二次失败（D 待诊断：子会话标题点回父面板 15 s 内未回，mock 过）。
