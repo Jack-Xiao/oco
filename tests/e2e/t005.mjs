@@ -7,7 +7,10 @@ import { api, messages, status, waitIdle, MODEL } from "./server.mjs"
 
 const results = []
 const record = (id, st, detail) => { results.push({ id, status: st, detail }); console.log(`[${st}] ${id}: ${JSON.stringify(detail)}`) }
-const { app, page } = await launch({ profile: "t005" })
+// Card 13: the automatic selection chip (oco.draft.attachSelection) is off here. Step 4 leaves math.ts fully selected, and
+// with it on the chip would ride on A's step-6 bash prompt; the mock model joins the message pieces without separators,
+// so its command regex would swallow the file's first line. The manual chip flow is what this suite covers; c33 covers auto.
+const { app, page } = await launch({ profile: "t005", settings: { "oco.draft.attachSelection": false } })
 const png = fs.readFileSync(path.join(root, "tests/fixtures/oco-test.png"))
 
 const promptText = (f) => f.locator('[data-component="prompt-input"]').innerText()
