@@ -79,7 +79,7 @@
 ### 卡 8：需要用户决定（不阻塞，早上看）
 
 - 夜间新增：真实模型怎么跑（提供模型凭据 / 用官方 OpenCode 二进制）；是否把 opencode 1.19.0 加进 VERIFIED_SERVERS（mock 41 套件全过，真实模型未跑）；两处窄布局观感（矮舞台工具行只剩「+N」；窄布局未打标签的行紧跟最后一个标签组、没有自己的分区头）；先看 18 张目视截图。
-- 默认键位：`oco.inbox.next`、`oco.session.parent / child / nextSibling / previousSibling / recent`、`oco.follow.toggle` 现在都不绑定；要不要给 chord 默认值（when 限定 `activeWebviewPanelId == 'oco.chat'` 或 oco 视图焦点）。
+- [DONE 2026-10-16，分支 claude/sad-mirzakhani-d4a775 fdb6c6f，未合入 main] 默认键位：`ctrl+alt+u`（mac `cmd+alt+u`）+ `i` / `p` / `c` / `n` / `shift+n` / `r` / `f`（收件箱 / 父 / 子 / 下一个兄弟 / 上一个兄弟 / 最近 / Follow），when `activeWebviewPanelId == 'oco.chat' || focusedView == 'oco.sessions'`。前缀 `o` 与 VS Code 默认 Show Remote Menu 冲突故改 `u`。遗留：Sessions webview 内容有焦点时 `focusedView` 不成立（VS Code 把 iframe 挂在根节点），要在侧栏可用需宿主自设 `oco.sidebarFocused` 上下文键（webview 收 focus / blur 后 setContext）+ 按键 E2E；若不限焦点可改 when 为 `view.oco.sessions.visible`。
 - 卡 6 分支是否合入 main、是否推送（卡 7 通过后）。
 - 立项决策：M21 Git 动作（先补 ADR-009 §4）、M18 导出与分享、M15 Agents 视图、M04 回滚入口、Aider 式注释触发、T018 publisher 与许可证、M13 composer chip（需扩 DraftInsert 契约与补丁 0001）。
 
@@ -134,7 +134,7 @@
 - 卡 12 消息级书签（Claude Code 2.1.286 Bookmarks 侧栏）：钉住某条回复，侧栏会话下方列出，点击走上游 `useSessionHashScroll` 定位。M。[认领：Mac mini 会话（按 08:45 裁定，卡 10 合入后接手）· 建议分支 `claude/card12-bookmarks`；文件归属：`apps/extension/src/bookmarks.ts`（新）、`sessions-webview.ts`、`package.json` 只加命令 / 菜单、`tests/e2e/c32-*`、`docs/evidence/card12-*`；如需 vendor 补丁用 **0027**；`extension.ts` 只加一行 `...registerBookmarks(...)`] [DONE 2026-10-16，Mac mini 会话实现（分支 claude/card12-bookmarks，补丁 0027），MacBook 挑选 c91c2c4 / f990a76 / 77c8acf 合入 main `5750dae`，夹带的卡 11 草稿未合入；c32 必需项 6/6 ×2，附加项 open-same-session-repeat 留缺陷（同一书签再点不滚动）；见 STATUS 卡 12、[card12-bookmarks](evidence/card12-bookmarks.md)]
 - 卡 13 M13 composer chip + 「自动附带编辑器选区」设置（Claude Code 2.1.300 `attachSelection`）：需扩 DraftInsert 契约与补丁 0001。M。[认领：本机新会话 · `claude/card13-composer-chip`；文件归属：`packages/contracts/src/bridge.ts`（DraftInsert chip 字段，向后兼容）、`patches/opencode/0001-*` 再生成（`scripts/regen-patch.sh`，非顶层补丁按 memory 规则用临时树）、`apps/chat-webview/*`、`apps/extension/src/add-to-draft.ts`、`package.json` 只加设置 `oco.draft.attachSelection`、`tests/unit/*`、`tests/e2e/c33-*`、`docs/evidence/card13-*`；如需新补丁用 **0028**；`extension.ts` 只改选区监听的注册一行] [DONE 2026-10-16，实际分支 `claude/great-keller-c26ae2`（app 建的 worktree 分支，非认领行写的名字），合入 main `d04ad9d` 已推送，本机已装 VSIX；见 STATUS 卡 13、[card13-composer-chip](evidence/card13-composer-chip.md)；本批（卡 9–13）至此做完，不再开新卡]
 - 不做（已评估）：收尾框 / 回复按钮、提议卡、PR 绑定与 CI 自动修复、Remote Control / 云会话 / 定时任务、Artifacts、浏览器面板、idle compaction（服务端概念）。
-- 仍需用户决定（卡 8 不变）：默认键位 chord、真实模型凭据、1.19.0 进 VERIFIED_SERVERS、M15 Agents 视图、T018 publisher / 许可证、Aider 式注释触发。
+- 仍需用户决定（卡 8 不变；默认键位已做 2026-10-16）：真实模型凭据、1.19.0 进 VERIFIED_SERVERS、M15 Agents 视图、T018 publisher / 许可证、Aider 式注释触发。
 
 ## 1. 真实模型回归（本批第二步）
 

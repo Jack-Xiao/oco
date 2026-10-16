@@ -1120,3 +1120,11 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 来源：Mac mini 会话在本地分支 `claude/card10-toc`（e1b7eef，补丁 0026 + c30）与 `claude/card12-bookmarks`（77c8acf，补丁 0027 + c32）完成实现与 E2E，但未合入 main（mini 本地 main 停在 398a45e）。MacBook 会话 `git fetch` 两条分支后，把卡 10（935ad43 / 310267e / e1b7eef）、c4 真实模型测试修正（ef07c39）与卡 12（c91c2c4 / f990a76 / 77c8acf）挑选到 `claude/land-card10-12`，`--no-ff` 合入 main。卡 12 分支夹带的卡 11 草稿（45d9d86 / 688e4cf）按 NEXT §0b 裁定未合入；`sessions-webview.ts` 唯一一处冲突只保留书签消息；mini 分支上对 STATUS / NEXT / PROGRESS 的改动丢弃，由本条与 STATUS 段落代替。
 - 验证（合入前，落地分支）：`bun run setup` 干净 vendor 重放补丁 0001–0028 28/28；typecheck 0；unit 全过；vendor app typecheck 0；build PASS。E2E 以 mini 分支上的结果为准（c30 7/7 ×2、c32 必需项 6/6 ×2 + 回归），合入后的默认 mock 回归 + c30 / c32 / c33 派 Mac mini `regress-1016`（见 NEXT「Mac mini 队列」）。本机已装 `oco-0.0.4-5750dae.vsix`。
 - 遗留：卡 12 同一书签再次点击不滚动（轻微，建议补丁暴露 `scrollToMessage` 入口）；两张卡均无真实模型目视。
+
+## 2026-10-16 下午：卡 8 第 1 项——卡 6 导航命令默认 chord 键位（分支 claude/sad-mirzakhani-d4a775，fdb6c6f）
+
+- 来源：卡 8 决策清单里用户同意先做的默认键位项。只改 `apps/extension/package.json` 的 contributes.keybindings（7 条）、`tests/unit/settings-contribution.test.ts`（1 个新测试）、USER-GUIDE「默认键位」表、README / CHANGELOG 各一句。
+- 键位：`ctrl+alt+u`（mac `cmd+alt+u`）+ `i` / `p` / `c` / `n` / `shift+n` / `r` / `f`；when `activeWebviewPanelId == 'oco.chat' || focusedView == 'oco.sessions'`。任务示例前缀 `o` 核对后放弃：VS Code 1.141 默认把 `ctrl/cmd+alt+o` 给 Show Remote Menu（mac 另有 Toggle Overtype/Insert Mode）；对 1.141 的 workbench.desktop.main.js 数值键码、内置扩展与本机已装扩展 package.json 扫描 a–z 后，`u` 是无 macOS 系统快捷键（排除 `d` / `h`）、无常见 AltGr 组合（排除 `e` / `q` / `z`）的空位。
+- 验证：typecheck 0；unit 471/0（35 文件）；build PASS；`oco-0.0.4-fdb6c6f.vsix` 打包并于 14:47:47 装到本机，14:49:21 被 upbeat-spence 会话的安装覆盖（同一 0.0.4 槽位），当前本机无此键位，合入后重装。按键 E2E NOT RUN。
+- 遗留：VS Code 把 webview iframe 挂在 workbench 根节点（`overlayWebview.ts`），`ViewPane` 用 DOM `trackFocus` 驱动 `focusedView`，所以 Sessions webview 内容有焦点时该键不成立，只有视图容器本身有焦点时成立；要在侧栏可用需宿主自设 `oco.sidebarFocused`（Sessions webview 收 focus / blur 后 setContext，Claude Code / Kilo Code 同法）。委派：任务 ≤ 10 处编辑且发起会话注明可主线程直做，未派外部路线，见证据文件「委派记录」。
+- 环境：app worktree 没有 vendor/opencode，按 memory「worktree-vendor-setup」挂主检出 vendor 的 git worktree（51ef4be，补丁 0001–0028 应用 28/28，bun install 4667 包）；删除本 worktree 后需 `git -C /Users/xiaojiang/Ai-Project/oco/vendor/opencode worktree prune`。
