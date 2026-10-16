@@ -1108,3 +1108,9 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 主线程：ADR-009 §4 Git 动作边界、方案与契约（复用 draft.insert，不扩桥）、审阅、集成、合入与文档。实现交 Gemini（`gem-mva8n6ru-qi8ji`，17 m 54 s，包装层收尾报 ERROR 但 6 个文件齐全、自报数字与复跑一致；主线程修 4 处：删测试钩子与重复回退、改 `Disposable[]` 约定、注入 git API、收窄 any）；E2E 交本机 Sonnet 子代理（25 次工具调用 8 m 38 s：c31 5/5 ×2，c15 回归过，测试侧修 0 轮）。
 - 验证：typecheck 0；unit 448/0；build PASS；本机已装 `oco-0.0.4-ffc311c.vsix`。证据 [card11-git-actions](evidence/card11-git-actions.md)、[card11-e2e](evidence/card11-e2e.md)。
 - 协调：Mac mini 会话（未拉到 6b99e3b）重复开工卡 11，主会话裁定 499b7f1、用户确认后归本机，mini 草稿只作对照；其锁被自写 c31 循环占住，E2E 按 §0 改本机子代理。教训：认领前先 `git pull` 再看 NEXT；单测在全量 `bun test` 里 `mock.module("vscode")` 的导出名由最先 mock 的文件固定，register 模块返回 `Disposable[]` 并经 deps 注入依赖。
+
+## 2026-10-16 中午：卡 13 M13 composer chip + 自动附带编辑器选区（合入 main d04ad9d）
+
+- 主线程：契约 `DraftChip` / `DraftInsert.chip`（向后兼容）、panels 待发队列（auto 只留一条、不 reveal、拒绝只记日志）、chat-webview 透传、补丁 0028 生成与全链重放、审阅、集成、合入与文档。实现交 Gemini 两路并行（host `gem-mvacf36h` 682 s / 7 轮；vendor `gem-mvacf42q` 448 s / 5 轮，包装层报 ERROR 但产物完整，按规则换 Grok 后 60 s 内发现并停掉避免双写）；主线程补 `selectionLines` 与补丁 v2（file part 名丢行号、自动 + 手动双 chip，均由 Mac mini 首轮 E2E 发现）。E2E 交 Mac mini 两轮（c33 4/4 + 可选 1/1；t005 改期望 chip，第 4/5 步过；第 6 步 concurrent-permissions FAIL，main 对照：main 969a4a0 两次 9/9 PASS（detail 相同）；根因是测试里残留的全选选区让自动 chip 混进 mock 的 bash 命令（mock-llm 无分隔拼接文本），t005 改为关掉自动附带后本分支两次 9/9 PASS（mini-t005-chip））。
+- 验证：typecheck 0；unit 463/0（34 文件）；build PASS；vendor typecheck 0；补丁链 0001–0028 重放 26/26；本机已装 `oco-0.0.4-d04ad9d.vsix`。证据 [card13-composer-chip](evidence/card13-composer-chip.md)、[mini-card13](evidence/mini-card13.md)、[mini-card13-rerun](evidence/mini-card13-rerun.md)。
+- 环境：app worktree 没有 vendor/opencode，按 memory「worktree-vendor-setup」用主检出 vendor 的 git worktree 搭建；`regen-patch.sh` 对新编号要先放占位文件。

@@ -2,6 +2,14 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 卡 13：M13 composer chip + 自动附带编辑器选区（2026-10-16，分支 claude/great-keller-c26ae2，已合入 main，合并提交 `d04ad9d`，已推送 origin）
+
+- 契约：`DraftInsert` 增加可选 `chip: { label, path, startLine?, endLine?, mime?, auto? }`（`DraftChip`），无 chip 的消息仍是补丁 0001 的纯文本插入（终端 / Problems / Git diff 三个命令不变）。
+- 嵌入端：补丁 `0028-oco-composer-chip`——收到 chip 时不插文本，而是作为上游附件 pill（`ImageAttachmentPart`，`mime text/plain`，`filename` = `路径:起-止`，如 `math.ts:2-3`）显示在 composer 上方，可点 × 移除；发送时随消息作为 file part（data URL）发出，服务端生成合成 text part 交给模型。同一标签只一枚：手动取代自动、自动遇手动跳过。
+- 宿主：`oco.addSelectionToDraft`「Add Selection to Session Draft」改为发 chip（选区原文，空选区整文件）；新设置 `oco.draft.attachSelection`（默认 true，machine）：主面板会话打开时，文件编辑器的非空选区（去抖 250 ms）自动附一枚 auto chip（固定 id，新选区替换，选区清空移除，用户删掉后同一选区不再加，焦点进 webview 不动它，超过 400 行截断，不抢焦点、面板隐藏时只排队一条）。新文件 `apps/extension/src/attach-selection.ts`；`extension.ts` 只换成一行注册。
+- 验证：typecheck 0；unit 463/0（34 文件；新 `attach-selection.test.ts` 15 用例 + 设置贡献同步）；build PASS；vendor app typecheck 0；补丁链 0001–0028 干净重放 26/26。E2E（mock，Mac mini Sonnet 子代理）新 c33-composer-chip 4/4 required + auto-dedupe PASS（第二轮，补丁 v2）；t005 改为期望 chip，第 4 / 5 步 PASS，第 6 步 `concurrent-permissions-routed` FAIL（A completed / C error）——main 969a4a0 对照 `mini-t005-main`：main 969a4a0 两次 9/9 PASS（detail 相同）；根因是测试里残留的全选选区让自动 chip 混进 mock 的 bash 命令（mock-llm 无分隔拼接文本），t005 改为关掉自动附带后本分支两次 9/9 PASS（mini-t005-chip）。本机已装 `oco-0.0.4-d04ad9d.vsix`（需 Reload Window）。证据 [card13-composer-chip](evidence/card13-composer-chip.md)。
+- 遗留：选区 chip 只进主面板会话（pinned 面板不自动附带）；历史里的用户消息以上游附件卡显示 chip；没有真实模型目视。
+
 ## 卡 11：M21 Git 动作 v1（2026-10-16，分支 claude/card11-git-actions-0c72f6，已合入 main，合并提交 `ffc311c`，已推送 origin）
 
 - 边界：ADR-009 §4 补「Git 动作只投递提示」——oco 不执行 git（不提交 / 推送 / 开 PR / 合并，不内置 git 子进程，不解析 agent 输出判断是否已提交），不做 CI 监视、PR 轮询 / 绑定、自动合并；提交与开 PR 由 agent 用自己的工具完成。
@@ -126,8 +134,8 @@
 ## 基线与版本
 
 - 上游基线：vendor OpenCode v1.18.33（提交 `51ef4be`，浅克隆；旧文档里的补丁基线 `deb241e` 已不存在，补丁再生成改用 `scripts/regen-patch.sh` 在临时 worktree 重建基线）。宿主 `VERIFIED_SERVERS` = 1.18.33、1.18.13（企业服务；前端保持 1.18.33，验收对着 1.18.13 服务端跑；切到 1.18.13 前端的方案停放在本地分支 `claude/opencode-1.18.13-baseline`）。
-- 补丁链：`patches/opencode/` 0001–0025（0024 / 0025 只在卡 6 分支）在干净 vendor HEAD `51ef4be` 上重放通过（2026-10-14 生成 0025 时以 0001–0024 为基线校验；`0024-oco-embedded-subagent-pills.patch` 标题行子代理 pills；`0025-oco-runtime-view-followups.patch` 运行视图 M5 遗留；`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡；`0022-oco-markdown-mermaid.patch` 为 Mermaid；`0023-oco-embedded-new-session-draft.patch` 为新建会话草稿页）。卡 1、卡 3 未改补丁。
-- 本机扩展：已装 `oco-0.0.4-ffc311c.vsix`（main ffc311c = 499b7f1 + 卡 11 Git 动作 v1，vendor v1.18.33 + 补丁 0001–0025；2026-10-16 09:3x；extension.js sha256 `d3c22b7b…`；需 Reload Window）。
+- 补丁链：`patches/opencode/` 0001–0025 + 0028 在干净 vendor HEAD `51ef4be` 上重放通过（2026-10-16 卡 13 生成 `0028-oco-composer-chip.patch`（composer 附件 chip）后全链 26/26；0026 / 0027 留给 Mac mini 的卡 10 / 卡 12，合入时再补；2026-10-14 生成 0025 时以 0001–0024 为基线校验；`0024-oco-embedded-subagent-pills.patch` 标题行子代理 pills；`0025-oco-runtime-view-followups.patch` 运行视图 M5 遗留；`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡；`0022-oco-markdown-mermaid.patch` 为 Mermaid；`0023-oco-embedded-new-session-draft.patch` 为新建会话草稿页）。卡 1、卡 3 未改补丁。
+- 本机扩展：已装 `oco-0.0.4-d04ad9d.vsix`（main d04ad9d = 969a4a0 + 卡 13 composer chip，vendor v1.18.33 + 补丁 0001–0025 + 0028；2026-10-16 12:26；extension.js sha256 `93a87889…`；需 Reload Window）。
 
 ## 已合入 main 的能力
 
