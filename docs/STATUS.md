@@ -2,6 +2,14 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 卡 11：M21 Git 动作 v1（2026-10-16，分支 claude/card11-git-actions-0c72f6，已合入 main，合并提交 `ffc311c`，已推送 origin）
+
+- 边界：ADR-009 §4 补「Git 动作只投递提示」——oco 不执行 git（不提交 / 推送 / 开 PR / 合并，不内置 git 子进程，不解析 agent 输出判断是否已提交），不做 CI 监视、PR 轮询 / 绑定、自动合并；提交与开 PR 由 agent 用自己的工具完成。
+- 宿主：`oco.git.askCommit`「Ask Agent to Commit Changes」、`oco.git.askOpenPR`「Ask Agent to Open a Pull Request」把模板（设置 `oco.git.commitPrompt` / `oco.git.prPrompt`，占位符 `${branch}` `${files}` `${count}`，machine 作用域，空则用内置英文模板）用内置 Git 扩展 API 的上下文（分支、改动数、前 20 个文件名；仓库取 SCM 传入根 → 含主面板会话目录的仓库 → 第一个）渲染后插进**主面板**会话草稿（M05 `draft.insert`，source 沿用 `gitDiff`，不扩桥契约），不自动发送；没有主面板会话只提示「Open a session in the main panel first」。`oco.git.openScm` 打开 SCM 视图；SCM 标题菜单按钮「Commit with OpenCode」（别名 `oco.git.commitWithOpenCode`，显示在 Source Control 视图窗格头工具条）+ 溢出菜单「Ask Agent to Open a Pull Request」。新文件 `apps/extension/src/git-actions.ts`；补丁链不变（0001–0025）。
+- 验证：typecheck 0；unit 448/0（33 文件；新 `git-actions.test.ts` 8 用例 + 设置贡献同步）；build PASS；E2E（mock，本机 Sonnet 子代理）新 c31-git-actions 5/5（no-session / commit-draft / pr-draft / open-scm / scm-button）连跑 2 次，回归 c15 4/0/1（terminal-shell-integ NOT RUN，既有）。产品缺陷 0。本机已装 `oco-0.0.4-ffc311c.vsix`（需 Reload Window）。证据 [card11-git-actions](evidence/card11-git-actions.md)、[card11-e2e](evidence/card11-e2e.md)。
+- 协调：Mac mini 会话未拉到认领规则也做了一份卡 11（其 45d9d86 + 自写 c31），裁定（NEXT §0b 冲突处理 + 用户确认）后只作对照（见证据「对照」）；其 bridge.ts 改动属卡 12，未合入。E2E 因 mini 的锁被它自己的 c31 循环占用，按 §0 固定做法改走本机 Claude 子代理。
+- 观察（不改）：连续两次 Git 动作的草稿之间无分隔（页面侧补丁 0001 对所有来源原样追加），记 NEXT §3。
+
 ## 卡 9：消息级回退入口（2026-10-16，Mac mini 会话分支 claude/card9-rewind 1a6789a，已 cherry-pick 进 main `83624b8`，未推送）
 
 - 结论：上游用户消息操作行已有「Revert message」（reset 图标，hover 显示，与 0011 fork 按钮同排；`session-ui/src/components/message-part.tsx:1396`），嵌入模式可用 → 不加补丁 0026。更正 c27(b)「嵌入模式无逐条消息回退按钮」：该用例未 hover。行为：`POST /session/:id/revert`（边界为该条用户消息）、回填输入框、revert dock Restore 恢复；busy 时按钮不禁用，先中断再回退。
@@ -119,10 +127,11 @@
 
 - 上游基线：vendor OpenCode v1.18.33（提交 `51ef4be`，浅克隆；旧文档里的补丁基线 `deb241e` 已不存在，补丁再生成改用 `scripts/regen-patch.sh` 在临时 worktree 重建基线）。宿主 `VERIFIED_SERVERS` = 1.18.33、1.18.13（企业服务；前端保持 1.18.33，验收对着 1.18.13 服务端跑；切到 1.18.13 前端的方案停放在本地分支 `claude/opencode-1.18.13-baseline`）。
 - 补丁链：`patches/opencode/` 0001–0025（0024 / 0025 只在卡 6 分支）在干净 vendor HEAD `51ef4be` 上重放通过（2026-10-14 生成 0025 时以 0001–0024 为基线校验；`0024-oco-embedded-subagent-pills.patch` 标题行子代理 pills；`0025-oco-runtime-view-followups.patch` 运行视图 M5 遗留；`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡；`0022-oco-markdown-mermaid.patch` 为 Mermaid；`0023-oco-embedded-new-session-draft.patch` 为新建会话草稿页）。卡 1、卡 3 未改补丁。
-- 本机扩展：已装 `oco-0.0.4-1f5c6fb.vsix`（main 1f5c6fb = 3f89430 + 会话导出 + 状态栏 HUD（只刷状态栏），vendor v1.18.33 + 补丁 0001–0025；2026-10-16 03:40；extension.js sha256 `d7617ec9…`；需 Reload Window）。
+- 本机扩展：已装 `oco-0.0.4-ffc311c.vsix`（main ffc311c = 499b7f1 + 卡 11 Git 动作 v1，vendor v1.18.33 + 补丁 0001–0025；2026-10-16 09:3x；extension.js sha256 `d3c22b7b…`；需 Reload Window）。
 
 ## 已合入 main 的能力
 
+- Git 动作 v1（卡 11，2026-10-16）：`oco.git.askCommit` / `oco.git.askOpenPR` 带仓库上下文的提示模板进主面板草稿、`oco.git.openScm`、SCM 标题按钮「Commit with OpenCode」；oco 不执行 git（ADR-009 §4）。
 - 会话侧栏改为 webview：Claude Code 风格列表、圆角选中、30px 行高、时间右对齐、搜索由标题栏按钮触发、Connection/Agents 视图删除，验证见 [spike 记录](evidence/sessions-webview-spike-2026-10-08.md)、[ADR-008](adr/008-webview-sessions-list.md)。
 - 会话标题行上下文用量（补丁 0019）：圆环阈值配色、无数字直显，替代 0017 隐藏圆环，证据见 [c5-context-usage](evidence/c5-context-usage.md)。
 - 界面英文化与状态栏标志：扩展界面统一英文，状态栏采用 `$(oco-logo)` 单字形字体图标，证据见 [i18n-english-strings](evidence/i18n-english-strings.md)、[状态栏复验](evidence/gcp-workstation-20260930.md)。

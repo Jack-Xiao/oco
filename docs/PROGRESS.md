@@ -1102,3 +1102,9 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 卡 9：Grok 调查发现上游已有用户消息「Revert message」；Sonnet 子代理写 c29-rewind 证实嵌入模式可用（4/4 ×2，c27 / c3 回归过），不加补丁 0026。
 - 真实模型：官方 opencode 1.18.33 二进制（`~/oco-bin/official/`）绕过 403；big-pickle 等免费模型限流，`opencode/nemotron-3.5-lightning-free` 可用。真实回归与归因见 [real-model-2026-10-16](evidence/real-model-2026-10-16.md)。
 - MacBook 卡 9 会话（规划会话 07:39 按 main 398a45e 派出，看不到 mini 分支上的认领）与 Mac mini 会话重复：主线程 grep 独立得出同一结论；Mac mini `mini-card9` 独立 c29 变体 3/3 + c27 / c3 回归过；发现重复后中止重复路线，把 Mac mini 会话的 1a6789a / e9ce24d cherry-pick 进 main（83624b8 / a4d2c64），交叉验证见 [card9-rewind-macbook](evidence/card9-rewind-macbook.md)、[mini-card9](evidence/mini-card9.md)。教训：认领标记只在 mini 分支上，NEXT §0 已加开工前检查。
+
+## 2026-10-16 上午：卡 11 M21 Git 动作 v1（合入 main ffc311c）
+
+- 主线程：ADR-009 §4 Git 动作边界、方案与契约（复用 draft.insert，不扩桥）、审阅、集成、合入与文档。实现交 Gemini（`gem-mva8n6ru-qi8ji`，17 m 54 s，包装层收尾报 ERROR 但 6 个文件齐全、自报数字与复跑一致；主线程修 4 处：删测试钩子与重复回退、改 `Disposable[]` 约定、注入 git API、收窄 any）；E2E 交本机 Sonnet 子代理（25 次工具调用 8 m 38 s：c31 5/5 ×2，c15 回归过，测试侧修 0 轮）。
+- 验证：typecheck 0；unit 448/0；build PASS；本机已装 `oco-0.0.4-ffc311c.vsix`。证据 [card11-git-actions](evidence/card11-git-actions.md)、[card11-e2e](evidence/card11-e2e.md)。
+- 协调：Mac mini 会话（未拉到 6b99e3b）重复开工卡 11，主会话裁定 499b7f1、用户确认后归本机，mini 草稿只作对照；其锁被自写 c31 循环占住，E2E 按 §0 改本机子代理。教训：认领前先 `git pull` 再看 NEXT；单测在全量 `bun test` 里 `mock.module("vscode")` 的导出名由最先 mock 的文件固定，register 模块返回 `Disposable[]` 并经 deps 注入依赖。
