@@ -1,3 +1,5 @@
+（已执行：2026-10-16 07:49–07:52 完成 3/3 + 回归；与 Mac mini 会话的 claude/card9-rewind 1a6789a 重复，结果只作交叉验证，见 evidence/card9-rewind-macbook.md）
+
 项目 oco（OpenCode 的 VS Code 客户端），你在 Mac mini 执行机上无人值守运行，工作目录就是仓库根，分支 mini/card9（基线 main 398a45e + 本提示词；setup 与 build 已由脚本完成；E2E 服务器用 `~/oco-bin/opencode`，run-task 已设 `OCO_OPENCODE_BIN`）。用户不在：不要提问，遇到阻塞用 `bash scripts/mini/notify.sh "<一句话>"` 通知后按下面的降级规则继续。
 
 目标：证明（或证伪）oco 嵌入模式里每条用户消息的悬停操作行已经有上游的逐条回退按钮——`aria-label` 为 "Revert message" / "撤销此消息"（icon reset），紧挨 fork 按钮（"Fork to new session" / "从此消息创建新会话"），两者同在 `[data-slot="user-message-copy-wrapper"]`——并把「点按钮回退 → revert dock → Restore」写成 mock E2E。这是 Claude Code「回退到检查点」在 oco 的等价物（卡 9）。

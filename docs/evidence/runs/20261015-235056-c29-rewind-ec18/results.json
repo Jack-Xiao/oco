@@ -1,0 +1,86 @@
+{
+  "runId": "20261015-235056-c29-rewind-ec18",
+  "suite": "c29-rewind",
+  "startedAt": "2026-10-15T23:50:56.615Z",
+  "ocoCommit": "1a1aa188e39bd0f588568233a1843b39cbfd3669",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "9d4263fb73418586520b3f521de6a304ac52aa4a6e897f1c3e9414d4bb1a4629",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "vscodeVersion": "1.141.2",
+  "vscodeProfile": "c29-rewind",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T23:51:11.615Z",
+  "results": [
+    {
+      "id": "rewind-row",
+      "status": "PASS",
+      "detail": {
+        "revertBox": {
+          "x": 1019,
+          "y": 182,
+          "width": 24,
+          "height": 24
+        },
+        "forkBox": {
+          "x": 1053,
+          "y": 182,
+          "width": 24,
+          "height": 24
+        },
+        "dy": 0
+      },
+      "at": "2026-10-15T23:51:08.884Z"
+    },
+    {
+      "id": "rewind-button",
+      "status": "FAIL",
+      "detail": {
+        "nRevert": 1,
+        "nFork": 1,
+        "revertVisible": true,
+        "dockText": "2 rolled back messages Reply with exactly this line and nothing else: RW-1-lre17",
+        "serverRevert": null,
+        "firstUser": "msg_141fa00e90010eLOvLSiTE6hLd",
+        "serverRevertIsFirstUser": false,
+        "composer": "Reply with exactly this line and nothing else: RW-1-lre17"
+      },
+      "at": "2026-10-15T23:51:08.952Z"
+    },
+    {
+      "id": "rewind-restore",
+      "status": "PASS",
+      "detail": {
+        "steps": [
+          {
+            "step": "expanded",
+            "dock": "2 rolled back messages Reply with exactly this line and nothing else: RW-1-lre17 Restore message Reply with exactly this line and nothing else: RW-2-lre17 Restore message",
+            "restoreButtons": 2
+          },
+          {
+            "step": "restore-last-1",
+            "dock": null
+          }
+        ],
+        "dockGone": true,
+        "serverRevert": null,
+        "userMessages": 2
+      },
+      "at": "2026-10-15T23:51:10.983Z"
+    }
+  ],
+  "summary": {
+    "PASS": 2,
+    "FAIL": 1,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "rewind-button"
+  ]
+}

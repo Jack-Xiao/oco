@@ -1,0 +1,52 @@
+{
+  "runId": "20261015-235134-c27-docks-baba",
+  "suite": "c27-docks",
+  "startedAt": "2026-10-15T23:51:34.937Z",
+  "ocoCommit": "1a1aa188e39bd0f588568233a1843b39cbfd3669",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "5868ab0ef42225e90573a263858eecfbdafb2071cc03696a5ec30b00c568b774",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "vscodeVersion": "1.141.2",
+  "vscodeProfile": "c27-docks",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-15T23:51:53.484Z",
+  "results": [
+    {
+      "id": "todo-dock",
+      "status": "PASS",
+      "detail": {
+        "shown": true,
+        "dockText": "1 of 3 todos completed | 1 | 3 |  | Collapse",
+        "collapsedStates": [
+          "false",
+          "true",
+          "false"
+        ]
+      },
+      "at": "2026-10-15T23:51:46.942Z"
+    },
+    {
+      "id": "revert-dock",
+      "status": "PASS",
+      "detail": {
+        "dockText": "1 rolled back message Reply with exactly this line and nothing else: UNDO-2-jcxkl",
+        "serverRevert": "msg_141faab03001ndUVIPsNgvZfEA",
+        "cleared": true
+      },
+      "at": "2026-10-15T23:51:53.012Z"
+    }
+  ],
+  "summary": {
+    "PASS": 2,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

@@ -11,6 +11,7 @@
 每个会话的固定做法（省 token）：
 
 - 开工只读 AGENTS.md、本节和对应卡片。卡片点名的文件先 grep 定位，再按行读。不读调研全文和历史证据。
+- 开工前先看 Mac mini 会话是否已认领同一张卡：`ssh macmini 'cd ~/Ai-Project/oco && git branch --show-current && git log --oneline -3'`（认领只记在 mini 本地分支的 NEXT 上，main / origin 看不到；2026-10-16 卡 9 因此被 MacBook 与 Mac mini 各做了一遍）。
 - 调查交 Grok；实现交 Gemini，失败换 Grok；要起 VS Code 的 E2E 交 Claude 子代理（`model: "sonnet"`）。主线程只做方案、契约、集成、验收和提交。子代理回报不超过 15 行，完整记录和委派记录写进 `docs/evidence/<本卡批次>.md`。
 - 只跑本卡相关的检查：typecheck、unit、build、本卡 E2E 和卡里点名的回归，不跑全量。E2E 只读 results.json，不看截图。
 - 某一项修了两轮还不过，就记进本节，先收尾，不在本会话硬磕。
@@ -115,7 +116,7 @@
 
 下一批候选（按价值 / 成本排序，早上确认后按 §0 固定做法一张卡一个会话）：
 
-- 卡 9 M04 回退入口 [DONE 2026-10-16，分支 claude/card9-rewind：上游用户消息自带「Revert message」（hover 显示，与 fork 同排），嵌入模式可用；c27(b) 结论系测试未 hover。新增 c29-rewind 4/4 ×2，不加补丁 0026。见 [card9-rewind](evidence/card9-rewind.md)]
+- 卡 9 M04 回退入口 [DONE 2026-10-16，Mac mini 会话分支 claude/card9-rewind，已 cherry-pick 进 main 83624b8；MacBook 卡 9 会话重复开工后只做交叉验证（见 STATUS）：上游用户消息自带「Revert message」（hover 显示，与 fork 同排），嵌入模式可用；c27(b) 结论系测试未 hover。新增 c29-rewind 4/4 ×2，不加补丁 0026。见 [card9-rewind](evidence/card9-rewind.md)]
 - 卡 10 章节目录：核实上游 `pages/session/timeline/` 在嵌入模式是否可见；不可见则打开或做紧凑「跳到某轮」侧轨（Claude Code mark_chapter 的等价物）。S。 [进行中 2026-10-16：Mac mini 会话，分支 claude/card9-rewind 之后另开 claude/card10-toc；MacBook 请勿重复]
 - 卡 11 M21 Git 动作 v1：先补 ADR-009 §4 边界（oco 不自己执行 git），只做「让 agent 提交 / 开 PR」提示模板 + 打开 SCM 视图；不做 CI 监视与自动合并。S + ADR。
 - 卡 12 消息级书签（Claude Code 2.1.286 Bookmarks 侧栏）：钉住某条回复，侧栏会话下方列出，点击走上游 `useSessionHashScroll` 定位。M。

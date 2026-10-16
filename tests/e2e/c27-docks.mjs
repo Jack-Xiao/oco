@@ -2,8 +2,8 @@
 // Cases:
 //   todo-dock    "Use the todowrite tool to plan: a; b; c" renders data-component="session-todo-dock" ("of 3 todos completed");
 //                (the dock only shows while a turn is running, so a slow second turn keeps it open); the toggle button collapses (data-collapsed=true) and expands it again
-//   revert-dock  the only per-message revert entry in the embedded UI is the "/undo" slash command (the timeline has no
-//                revert button here): /undo on a 2-turn session shows data-component="session-revert-dock" ("1 rolled back
+//   revert-dock  revert through the "/undo" slash command (the per-message hover button "Revert message" also exists in
+//                the embedded timeline; c29-rewind covers it): /undo on a 2-turn session shows data-component="session-revert-dock" ("1 rolled back
 //                message"); the server session has revert set; Restore clears both
 // A missing entry or dock is recorded as NOT RUN with the missing piece in the detail (product finding, vendor untouched).
 import { fileURLToPath } from "node:url"

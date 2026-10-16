@@ -1101,3 +1101,4 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 
 - 卡 9：Grok 调查发现上游已有用户消息「Revert message」；Sonnet 子代理写 c29-rewind 证实嵌入模式可用（4/4 ×2，c27 / c3 回归过），不加补丁 0026。
 - 真实模型：官方 opencode 1.18.33 二进制（`~/oco-bin/official/`）绕过 403；big-pickle 等免费模型限流，`opencode/nemotron-3.5-lightning-free` 可用。真实回归与归因见 [real-model-2026-10-16](evidence/real-model-2026-10-16.md)。
+- MacBook 卡 9 会话（规划会话 07:39 按 main 398a45e 派出，看不到 mini 分支上的认领）与 Mac mini 会话重复：主线程 grep 独立得出同一结论；Mac mini `mini-card9` 独立 c29 变体 3/3 + c27 / c3 回归过；发现重复后中止重复路线，把 Mac mini 会话的 1a6789a / e9ce24d cherry-pick 进 main（83624b8 / a4d2c64），交叉验证见 [card9-rewind-macbook](evidence/card9-rewind-macbook.md)、[mini-card9](evidence/mini-card9.md)。教训：认领标记只在 mini 分支上，NEXT §0 已加开工前检查。

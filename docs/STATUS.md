@@ -2,10 +2,11 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
-## 卡 9：消息级回退入口（2026-10-16，分支 claude/card9-rewind，本地提交未推送）
+## 卡 9：消息级回退入口（2026-10-16，Mac mini 会话分支 claude/card9-rewind 1a6789a，已 cherry-pick 进 main `83624b8`，未推送）
 
 - 结论：上游用户消息操作行已有「Revert message」（reset 图标，hover 显示，与 0011 fork 按钮同排；`session-ui/src/components/message-part.tsx:1396`），嵌入模式可用 → 不加补丁 0026。更正 c27(b)「嵌入模式无逐条消息回退按钮」：该用例未 hover。行为：`POST /session/:id/revert`（边界为该条用户消息）、回填输入框、revert dock Restore 恢复；busy 时按钮不禁用，先中断再回退。
 - 验证：新 mock E2E c29-rewind（button-visible / revert-to-message / restore / busy-revert）4/4 连跑 2 次；回归 c27-docks 2/2、c3-fork 4/4。产品缺陷 0。证据 [card9-rewind](evidence/card9-rewind.md)。
+- 交叉验证（MacBook 卡 9 会话，与 Mac mini 会话重复开工）：主线程 grep 独立得出同一结论；派 Mac mini `mini-card9` 在 main 398a45e 基线独立写的 c29 变体 3/3（回退首条用户消息 → dock「2 rolled back messages」、revert / fork 同排 dy=0、Restore 最后一条一次恢复全部）+ 回归 c27-docks 2/2、c3-fork 4/4，results.json 已入库。产品代码、vendor、补丁链（仍为 0001–0025）未动，本机已装的 `oco-0.0.4-1f5c6fb.vsix` 已含该按钮，无需重装。见 [card9-rewind-macbook](evidence/card9-rewind-macbook.md)、[mini-card9](evidence/mini-card9.md)。
 
 ## Claude Code 对照批次：会话导出 + 状态栏 HUD（2026-10-16 夜间，已合入 main，合并提交 `1f5c6fb`，已推送 origin）
 
