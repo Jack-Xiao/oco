@@ -1,5 +1,5 @@
 {
-  "at": "2026-10-16T03:34:35.561Z",
+  "at": "2026-10-16T04:21:12.098Z",
   "results": [
     {
       "id": "three-sessions",
@@ -47,7 +47,7 @@
     },
     {
       "id": "concurrent-permissions-routed",
-      "status": "FAIL",
+      "status": "PASS",
       "detail": {
         "pendingBoth": 2,
         "cDockShowsC": true,
