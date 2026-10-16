@@ -27,6 +27,7 @@ describe("connection settings contribution", () => {
     const props = Object.keys(c.configuration.properties)
     expect(props.sort()).toEqual([
       "oco.decorations.changedFiles",
+      "oco.draft.attachSelection",
       "oco.git.commitPrompt",
       "oco.git.prPrompt",
       "oco.notify.finished",

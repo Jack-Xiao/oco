@@ -109,7 +109,13 @@ export type DraftSource =
   | { kind: "terminal"; command: string; exitCode?: number; truncated: boolean }
   /** "Fix with OpenCode" code action: diagnostics at one location plus the surrounding code. */
   | { kind: "fix"; path: string; line: number; count: number; truncated: boolean }
-export type DraftInsert = Envelope<"draft.insert", { id: string; sessionId: string; text: string; source: DraftSource }>
+/** Card 13 (M13 composer chip). With `chip` present the composer shows `text` as a removable attachment pill
+ * (`label`, e.g. `src/math.ts:3-7`) instead of inserting it into the editor; it leaves with the message as a
+ * `text/plain` file part (upstream attachments model, patch 0028). Backward compatible: a message without `chip` is
+ * the plain text insert patch 0001 has always handled. `auto` marks the host's automatic editor-selection chip
+ * (`oco.draft.attachSelection`): at most one at a time, a new one replaces it, and `text: ""` with `auto` removes it. */
+export type DraftChip = { label: string; path: string; startLine?: number; endLine?: number; mime?: string; auto?: boolean }
+export type DraftInsert = Envelope<"draft.insert", { id: string; sessionId: string; text: string; source: DraftSource; chip?: DraftChip }>
 /** Host connection state for this panel (T010). `state` is the host's feed state; `bound` is false when the host
  * is now connected somewhere else than the panel's binding. Carries no address, credentials or server text. */
 export type ConnectionNotice = Envelope<

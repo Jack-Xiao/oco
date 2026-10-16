@@ -22,7 +22,8 @@ const colorScheme = (): "light" | "dark" => {
 }
 
 type DraftSource = DraftInsert["source"]
-type PendingDraft = { id: string; text: string; source: DraftSource }
+type DraftChip = NonNullable<DraftInsert["chip"]>
+type PendingDraft = { id: string; text: string; source: DraftSource; chip?: DraftChip }
 export type Entry = {
   panel: vscode.WebviewPanel
   bridge: ReturnType<typeof createBridge>
@@ -281,7 +282,7 @@ export class PanelRegistry {
     for (const d of this.pending(e)) {
       if (sent.has(d.id)) continue
       sent.add(d.id)
-      e.bridge.core.sendCurrent({ type: "draft.insert", id: d.id, sessionId: e.binding.sessionId, text: d.text, source: d.source })
+      e.bridge.core.sendCurrent({ type: "draft.insert", id: d.id, sessionId: e.binding.sessionId, text: d.text, source: d.source, ...(d.chip ? { chip: d.chip } : {}) })
     }
   }
 
@@ -391,9 +392,11 @@ export class PanelRegistry {
             if (msg.ok) entry.stats.draftAcks++
             else {
               // The page refused (e.g. not showing the bound session): surface it, never retarget.
+              // An automatic selection chip (card 13) follows every selection change, so its refusal is only logged.
               entry.stats.draftRejects++
               this.log.warn(`draft insert rejected in ${entry.binding.sessionId}: ${msg.reason}`)
-              void vscode.window.showWarningMessage(`oco: Could not add to the draft (${msg.reason ?? "unknown"})`)
+              if (!this.pending(entry).find((d) => d.id === msg.id)?.chip?.auto)
+                void vscode.window.showWarningMessage(`oco: Could not add to the draft (${msg.reason ?? "unknown"})`)
             }
             void this.setPending(entry, this.pending(entry).filter((d) => d.id !== msg.id))
             return
@@ -530,11 +533,15 @@ export class PanelRegistry {
     entry.bridge.core.sendCurrent({ type: "connection", state: s.state, bound: s.connectionId === entry.binding.connectionId })
   }
 
-  /** Queue text for a specific session's draft (never sends). Persisted until the page acknowledges it. */
-  async insertDraft(entry: Entry, text: string, source: DraftSource) {
-    const d: PendingDraft = { id: crypto.randomUUID(), text, source }
-    await this.setPending(entry, [...this.pending(entry), d])
-    entry.panel.reveal(undefined, false)
+  /** Queue text for a specific session's draft (never sends). Persisted until the page acknowledges it.
+   * With `chip` (card 13) the page shows it as an attachment pill; an automatic selection chip replaces any earlier
+   * automatic one still waiting, so a hidden panel never accumulates stale selections. */
+  async insertDraft(entry: Entry, text: string, source: DraftSource, chip?: DraftChip) {
+    const d: PendingDraft = { id: crypto.randomUUID(), text, source, ...(chip ? { chip } : {}) }
+    const waiting = chip?.auto ? this.pending(entry).filter((p) => !p.chip?.auto) : this.pending(entry)
+    await this.setPending(entry, [...waiting, d])
+    // An automatic chip must not steal focus or cover the editor the user is selecting in; it lands when the panel shows.
+    if (!chip?.auto) entry.panel.reveal(undefined, false)
     this.flushDrafts(entry)
   }
 

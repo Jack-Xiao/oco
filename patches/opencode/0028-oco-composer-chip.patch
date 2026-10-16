@@ -1,0 +1,75 @@
+diff --git a/packages/app/src/components/prompt-input-v2.tsx b/packages/app/src/components/prompt-input-v2.tsx
+index b535964..7221e33 100644
+--- a/packages/app/src/components/prompt-input-v2.tsx
++++ b/packages/app/src/components/prompt-input-v2.tsx
+@@ -26,7 +26,9 @@ import { usePlatform } from "@/context/platform"
+ import { useSDK } from "@/context/sdk"
+ import { useSync } from "@/context/sync"
+ import { createSessionTabs } from "@/pages/session/helpers"
++import { createBlobReference } from "@/utils/draft-store"
+ import { showToast } from "@/utils/toast"
++import { uuid } from "@/utils/uuid"
+ import { PromptInputV2, type PromptInputV2Suggestion } from "@opencode-ai/session-ui/v2/prompt-input"
+ import {
+   createPromptInputV2Controller,
+@@ -95,12 +97,59 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
+   // "oco:draft-insert" { id, sessionID, text }. The text is appended to this composer's draft only if
+   // the composer belongs to that session, and is never sent; the result is reported back as
+   // "oco:draft-inserted" { id, ok, reason }.
++  // Card 13 (patches/opencode/0028): with `chip` the text is not inserted but added as an attachment pill (an
++  // ImageAttachmentPart with a text/plain blob, sent with the message as a file part). The host's automatic
++  // selection chip has a fixed id: a new one replaces it, and an empty `text` removes it.
+   if (typeof window !== "undefined") {
+     const ocoParams = useParams<{ id?: string }>()
+     const onOcoInsert = (event: Event) => {
+-      const detail = (event as CustomEvent<{ id?: string; sessionID?: string; text?: string }>).detail ?? {}
++      const detail =
++        (
++          event as CustomEvent<{
++            id?: string
++            sessionID?: string
++            text?: string
++            chip?: { label: string; path: string; startLine?: number; endLine?: number; mime?: string; auto?: boolean }
++          }>
++        ).detail ?? {}
+       const done = (ok: boolean, reason?: string) =>
+         window.dispatchEvent(new CustomEvent("oco:draft-inserted", { detail: { id: detail.id, ok, reason } }))
++      if (detail.chip) {
++        if (!detail.sessionID) return done(false, "invalid insert")
++        if (ocoParams.id !== detail.sessionID) return done(false, "composer belongs to another session")
++        const autoId = "oco-auto-selection"
++        if (detail.chip.auto && detail.text === "") {
++          const filtered = prompt.current().filter((p) => !(p.type === "image" && p.id === autoId))
++          prompt.set(filtered, prompt.cursor())
++          return done(true)
++        }
++        if (!detail.chip.label || !detail.text) return done(false, "invalid insert")
++        const chip = detail.chip
++        const text = detail.text
++        void (async () => {
++          try {
++            const mime = chip.mime ?? "text/plain"
++            const file = new File([text], chip.label, { type: mime })
++            const blob = platform.draftStore ? await platform.draftStore.putBlob(file) : await createBlobReference(file)
++            const part: ImageAttachmentPart = {
++              type: "image",
++              id: chip.auto ? autoId : uuid(),
++              filename: chip.label,
++              sourcePath: chip.path,
++              mime,
++              blob,
++            }
++            const base = chip.auto
++              ? prompt.current().filter((p) => !(p.type === "image" && p.id === autoId))
++              : prompt.current()
++            prompt.set([...base, part], prompt.cursor())
++            done(true)
++          } catch {
++            done(false, "chip failed")
++          }
++        })()
++        return
++      }
+       if (!detail.text || !detail.sessionID) return done(false, "invalid insert")
+       if (ocoParams.id !== detail.sessionID) return done(false, "composer belongs to another session")
+       const text = detail.text
