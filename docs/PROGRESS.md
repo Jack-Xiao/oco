@@ -1128,3 +1128,11 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 发现：① c14 `draft-acked`、p1b-sidebar `chain-draft` 在 mock 与 real 同败，疑卡 10–13 合入引入的回归（10-15 mock 全量均过），待二分；② c19 测试台缺陷（`run.recordNotApplicable` 不存在，real 走 N/A 分支即崩）；③ c12 在 real 下新失败（10-16 早先 PASS，mock 13/13）；④ 免费模型偶发短停滞（预检探针第 1 次 90 s 无输出、5 分钟后恢复）；⑤ `overnight-e2e.sh --real` 默认批次只有 13 个套件、不含 c18–c24，real 豁免清单缺 c18 / c21 / c23，要靠显式列出才是 21 套件；⑥ c11 archive-batch 在 real 下 PASS（模态出现），delete-batch 仍设计内 NOT RUN。
 - 委派记录：task_id=mini-real；唯一写入范围 `docs/evidence/mini-real.md` + `docs/evidence/runs/`；requested_route=Mac mini 执行机（`claude -p --model sonnet`）；actual_provider/model=Anthropic / sonnet（脚本默认，具体模型 ID 未回传，记 unknown）；run_id=tmux `mini-mini-real` / 分支 `mini/mini-real`；状态=验收通过（主线程抽查 4 份 summary、c11 results.json 与证据表一致，未发现与证据不符的数字）；轮数 unknown，耗时 128 分钟（含预检与证据整理）；主线程接手：无。
 - 未做：1.19.0 公共 npm 二进制的真实模型子集（本任务范围外，卡 8 决定行原写并入 mini-real）；c25–c33 的真实模式；失败套件的产品侧深查（c5 `run` 崩溃、c12 real 失败来源、p1b-narrow layout-260）。
+
+## 2026-10-16 晚上：real 测试台缺口修复（测试侧，分支 claude/lucid-kirch-64cf81）
+
+- 来源：mini-real 稳定失败清单里属测试台 / 模型行为的几项（NEXT §1 类别 C / A），由主会话派发的侧会话处理。只改测试侧：`tests/e2e/`、`scripts/overnight-e2e.sh`；不动产品代码、patches、vendor。
+- 改动（[e2e-real-gaps](evidence/e2e-real-gaps.md)）：c19 / c18 的 `run.recordNotApplicable`（不存在的方法）改为导入的 `recordNotApplicable(run, REQUIRED, …)`；overnight 默认批次并入 c18–c24、visual-light-sidebar（21 个），`--real` 豁免清单补 c18 c21 c23（共 6 个）；c10 / c24 / c11 / c12 增加 `MODEL.mode === "real"` 分支（等待放宽到 180 s / 90 s，强提示词，前提不成立记 N/A），mock 路径不变。归因更正：c10 / c24 / c12 失败主因是免费模型延迟与 mock 固定选项文字，c12 的标记在提示词里。
+- 验证（离线）：typecheck 0；unit 470 / 0；6 个套件 `node --check` 与 `tsc --checkJs` 未定义名检查通过；dry-run mock 21 个、`--real` 15 个（任务书写 18 = 21 − 旧清单 3，补 c18 c21 c23 后应为 15）；N/A 路径离线模拟 exit 0。mock E2E 与 real 新分支 NOT RUN：mini 当时被 `mini-mini-real-1190` 占用，未派发；提示词 [e2e-real-gaps](mini/e2e-real-gaps.md) 已就绪（mini 跑 6 个 mock 套件 + 两个 dry-run，可选 `--real c19-label-snooze`）。
+- 委派记录：task_id=real-gaps-suites（c10 c11 c12 c24 的 real 分支）；requested_route=gemini-worker（Antigravity）；actual=Gemini（包装层 model unknown，自报 Gemini 3.8 Flash (High)），job gem-mvas6ln8-ebryk；426 s / 5 次工具调用；状态=验收通过（主线程审阅 4 个 diff，功能缺陷 0）；主线程接手：c18 c19 脚本与 docs（原因见证据表）。
+- 未做：mini 上的 mock 确认与 real 新分支验证；c14 draft-acked / p1b-sidebar chain-draft 二分、c5-runtime `run` 崩溃、p1b-narrow layout-260（不在本批）。
