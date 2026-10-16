@@ -10,7 +10,8 @@
 #      OCO_TEST_PORT, OCO_MOCK_LLM_PORT, OCO_TEST_URL.
 # usage: BISECT_PREDICATE=c14-review-notes:draft-acked bash bisect-e2e-test.sh      (inside the repo, on the commit to judge)
 set -u
-# git bisect run hands its command a git-flavoured environment; vendor/opencode is a repo of its own, so never inherit any of it.
+# Inside a linked worktree (the mini's ~/Ai-Project/oco-mini) `git bisect run` exports GIT_DIR to its command, which would make every
+# `git -C vendor/opencode ...` act on the outer repo. vendor/opencode is a repo of its own: never inherit any of this.
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR
 ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "bisect-test: not inside a git repo" >&2; exit 200; }
 cd "$ROOT" || exit 200
@@ -76,7 +77,7 @@ if [ ! -s "$CACHE" ]; then
   VENDOR="$ROOT/vendor/opencode"
   if [ -d "$VENDOR/.git" ]; then
     # vendor/opencode must resolve to its own repo: a failed discovery would make these commands act on the outer repo
-    # (mini bisect-draft 2026-10-16 21:11 wrote the outer tree into vendor/opencode and emptied its packages/).
+    # (mini bisect-draft 2026-10-16 21:11 wrote the outer repo's top-level files into vendor/opencode).
     if [ "$(git -C "$VENDOR" rev-parse --show-toplevel 2>/dev/null)" != "$(cd "$VENDOR" && pwd -P)" ]; then
       say "vendor/opencode does not resolve to its own git repo: abort"
       exit 200
