@@ -2,7 +2,7 @@
 
 本文件是唯一的当前队列。状态只看 [STATUS](STATUS.md)。不要执行 HANDOFF 或 P1B-NEXT-STEPS 里的旧提示词。
 
-当前基线：main `1f5c6fb`（2026-10-16 夜间：卡 6 + 卡 7 合并提交 `3f89430`，Claude Code 对照批次合并提交 `1f5c6fb`，均已推送 origin；补丁 0024 / 0025 随之进入 main）。上一批基线：main `9222aa7`（2026-10-14 合入卡 1、卡 3、卡 2 与 M20 第一步，已推送 origin）。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
+当前基线：main `5750dae`（2026-10-16 下午：卡 10 轮次侧轨（补丁 0026）+ 卡 12 消息书签（补丁 0027）从 Mac mini 分支挑选合入，补丁链 0001–0028 全部进入 main，已推送 origin）。上一基线 main `1f5c6fb`（2026-10-16 夜间：卡 6 + 卡 7 合并提交 `3f89430`，Claude Code 对照批次合并提交 `1f5c6fb`，均已推送 origin；补丁 0024 / 0025 随之进入 main）。上一批基线：main `9222aa7`（2026-10-14 合入卡 1、卡 3、卡 2 与 M20 第一步，已推送 origin）。运行视图 M1–M5（补丁 0020）、结果卡（0021）、Mermaid（0022）、新建会话草稿页 + New worktree（0023）均已合入；vendor OpenCode v1.18.33；验证过的服务端为 1.18.33 和企业服务 1.18.13。gcp-workstation 已不存在，Remote 相关验证统一 BLOCKED；本机查看走 `bash scripts/package-vsix.sh && bash scripts/install-local.sh` 后 Reload Window。
 
 ## 0. 本轮路线（2026-10-13 用户确认：按建议从前往后做，一个会话做一张卡）
 
@@ -93,6 +93,7 @@
 - [DONE 71bfce4，本机子代理：1.19.0 mock 41 套件 0 失败] mini-compat：对 npm 最新公共版 opencode（1.19.x）跑 mock 回归并列出差异，供「是否支持公共版」决策。
 - mini-remote（提示词 [docs/mini/mini-remote.md](mini/mini-remote.md)，card7 结束后派发）：VS Code Remote-SSH 连 Mac mini 自身，解除 Remote 断网恢复 / Remote 窗口查看轨迹与运行视图的 BLOCKED。2026-10-14 用户同意；前提是用户手动给 Mac mini 加自连 ssh key（安全配置不由代理改）。
 - 常驻：每次合入 main 后跑一次 `overnight-e2e.sh` 默认回归。
+- [派发 2026-10-16 14:35，MacBook] regress-1016：卡 10 / 卡 12 合入 main 5750dae 后的默认 mock 回归 + c30 / c32 / c33 各一次（提示词 [docs/mini/regress-1016.md](mini/regress-1016.md)，结果 `docs/evidence/mini-regress-1016.md`，取回 `bash scripts/mini/collect.sh regress-1016`）。
 
 本机保留（按省 token 排，每项一个新会话，开工只读 AGENTS.md + 对应卡）：
 1. 早上第一件（小会话）：用 AskUserQuestion 一次问完卡 8（默认键位、合入 / 推送、M21 / M18 / M15 / M04 / Aider / T018 / M13 chip 立项），零调查成本。
@@ -122,14 +123,15 @@
 - 合入顺序：先完成者先合（`--no-ff`）；合入前先把最新 main 合进自己分支，重跑 typecheck / unit（以及本卡 E2E）；合入后立刻推送 origin，并用 `bash scripts/mini/notify.sh` 或 NEXT 行通知；另一边在自己合入前再合一次 main。
 - 冲突处理（2026-10-16 08:45）：Mac mini 会话在未拉到 6b99e3b 的情况下也开始了卡 11（本地分支同名 `claude/card11-git-actions`，未提交，且改了 `packages/contracts/src/bridge.ts`）。裁定：卡 11 归本机会话（ADR §4 已提交 21f9b27，实现不扩桥契约）；Mac mini 会话请停下卡 11，把草稿存到 `claude/card11-mini-draft`（只作对照，不合入 bridge.ts 改动），拉 origin/main，先按合入顺序把卡 10（`claude/card10-toc` e1b7eef）合入 main 并推送，再认领卡 12（消息级书签）。公共契约（bridge.ts）按 AGENTS.md 只由主线程集成人改。
 - 进度（2026-10-16 10:30）：本机三张卡已全部合入 main——卡 9（021c58f，无补丁）、卡 11（ffc311c）、卡 13（d04ad9d，补丁 **0028** composer chip）。Mac mini 侧：卡 10（`claude/card10-toc`，补丁 0026）仍未合入 main，卡 12 已在 `claude/card12-bookmarks` 进行中。给 Mac mini 会话的提醒：合入卡 10 / 卡 12 前先 fetch 并合最新 main（现已含 0028），用 `scripts/regen-patch.sh` 的校验方式确认整条补丁链 0001–0025、0026、(0027)、0028 能在干净 vendor 重放（0026 turn rail 与 0028 composer chip 文件应不重叠，但要跑一次）；合入后重新打包安装 VSIX 并在 NEXT 本行后追加结果。
+- 进度（2026-10-16 下午，MacBook 会话）：卡 10（`claude/card10-toc` e1b7eef）与卡 12（`claude/card12-bookmarks` 77c8acf）已由 MacBook 从 Mac mini 本地分支 fetch 后挑选落地到 main（合并提交 `5750dae`，`--no-ff`）；卡 12 分支里的卡 11 草稿（45d9d86 / 688e4cf）按裁定未合入。给 Mac mini 会话：不要再把这两张卡合入 main 或推送；`git fetch origin && git checkout main && git merge --ff-only origin/main` 更新本地 main 即可（mini 本地 main 停在 398a45e）；两张卡的 STATUS / PROGRESS 段落由 MacBook 已补齐。卡 9–13 全部合入，本批结束。
 - E2E 互斥：Mac mini 上同时只跑一个 E2E（`/tmp/oco-e2e.lock`，dispatch 的 `mini-*` 会话互斥）；本机跑 E2E 同样拿 `/tmp/oco-e2e.lock`。VSIX 由合入者在合入 main 后打包安装一次。
 
 下一批候选（按价值 / 成本排序，早上确认后按 §0 固定做法一张卡一个会话）：
 
 - 卡 9 M04 回退入口 [DONE 2026-10-16，Mac mini 会话分支 claude/card9-rewind，已 cherry-pick 进 main 83624b8；MacBook 卡 9 会话重复开工后只做交叉验证（见 STATUS）：上游用户消息自带「Revert message」（hover 显示，与 fork 同排），嵌入模式可用；c27(b) 结论系测试未 hover。新增 c29-rewind 4/4 ×2，不加补丁 0026。见 [card9-rewind](evidence/card9-rewind.md)]
-- 卡 10 章节目录：核实上游 `pages/session/timeline/` 在嵌入模式是否可见；不可见则打开或做紧凑「跳到某轮」侧轨（Claude Code mark_chapter 的等价物）。S。[认领：Mac mini 会话 · `claude/card10-toc`，补丁 0026 turn rail 进行中] [进行中 2026-10-16：Mac mini 会话，分支 claude/card9-rewind 之后另开 claude/card10-toc；MacBook 请勿重复]
+- 卡 10 章节目录：核实上游 `pages/session/timeline/` 在嵌入模式是否可见；不可见则打开或做紧凑「跳到某轮」侧轨（Claude Code mark_chapter 的等价物）。S。[认领：Mac mini 会话 · `claude/card10-toc`，补丁 0026 turn rail 进行中] [进行中 2026-10-16：Mac mini 会话，分支 claude/card9-rewind 之后另开 claude/card10-toc；MacBook 请勿重复] [DONE 2026-10-16，MacBook 从 mini 分支挑选 935ad43 / 310267e / e1b7eef 合入 main `5750dae`；c30-turn-rail 7/7 ×2；见 STATUS 卡 10、[card10-toc](evidence/card10-toc.md)]
 - 卡 11 M21 Git 动作 v1：先补 ADR-009 §4 边界（oco 不自己执行 git），只做「让 agent 提交 / 开 PR」提示模板 + 打开 SCM 视图；不做 CI 监视与自动合并。S + ADR。[认领：本机新会话 · `claude/card11-git-actions`] [DONE 2026-10-16，合入 main `ffc311c` 已推送，本机已装 VSIX；见 STATUS 卡 11、[card11-git-actions](evidence/card11-git-actions.md)；Mac mini 的同名草稿（45d9d86 + 自写 c31）只作对照未合入]
-- 卡 12 消息级书签（Claude Code 2.1.286 Bookmarks 侧栏）：钉住某条回复，侧栏会话下方列出，点击走上游 `useSessionHashScroll` 定位。M。[认领：Mac mini 会话（按 08:45 裁定，卡 10 合入后接手）· 建议分支 `claude/card12-bookmarks`；文件归属：`apps/extension/src/bookmarks.ts`（新）、`sessions-webview.ts`、`package.json` 只加命令 / 菜单、`tests/e2e/c32-*`、`docs/evidence/card12-*`；如需 vendor 补丁用 **0027**；`extension.ts` 只加一行 `...registerBookmarks(...)`]
+- 卡 12 消息级书签（Claude Code 2.1.286 Bookmarks 侧栏）：钉住某条回复，侧栏会话下方列出，点击走上游 `useSessionHashScroll` 定位。M。[认领：Mac mini 会话（按 08:45 裁定，卡 10 合入后接手）· 建议分支 `claude/card12-bookmarks`；文件归属：`apps/extension/src/bookmarks.ts`（新）、`sessions-webview.ts`、`package.json` 只加命令 / 菜单、`tests/e2e/c32-*`、`docs/evidence/card12-*`；如需 vendor 补丁用 **0027**；`extension.ts` 只加一行 `...registerBookmarks(...)`] [DONE 2026-10-16，Mac mini 会话实现（分支 claude/card12-bookmarks，补丁 0027），MacBook 挑选 c91c2c4 / f990a76 / 77c8acf 合入 main `5750dae`，夹带的卡 11 草稿未合入；c32 必需项 6/6 ×2，附加项 open-same-session-repeat 留缺陷（同一书签再点不滚动）；见 STATUS 卡 12、[card12-bookmarks](evidence/card12-bookmarks.md)]
 - 卡 13 M13 composer chip + 「自动附带编辑器选区」设置（Claude Code 2.1.300 `attachSelection`）：需扩 DraftInsert 契约与补丁 0001。M。[认领：本机新会话 · `claude/card13-composer-chip`；文件归属：`packages/contracts/src/bridge.ts`（DraftInsert chip 字段，向后兼容）、`patches/opencode/0001-*` 再生成（`scripts/regen-patch.sh`，非顶层补丁按 memory 规则用临时树）、`apps/chat-webview/*`、`apps/extension/src/add-to-draft.ts`、`package.json` 只加设置 `oco.draft.attachSelection`、`tests/unit/*`、`tests/e2e/c33-*`、`docs/evidence/card13-*`；如需新补丁用 **0028**；`extension.ts` 只改选区监听的注册一行] [DONE 2026-10-16，实际分支 `claude/great-keller-c26ae2`（app 建的 worktree 分支，非认领行写的名字），合入 main `d04ad9d` 已推送，本机已装 VSIX；见 STATUS 卡 13、[card13-composer-chip](evidence/card13-composer-chip.md)；本批（卡 9–13）至此做完，不再开新卡]
 - 不做（已评估）：收尾框 / 回复按钮、提议卡、PR 绑定与 CI 自动修复、Remote Control / 云会话 / 定时任务、Artifacts、浏览器面板、idle compaction（服务端概念）。
 - 仍需用户决定（卡 8 不变）：默认键位 chord、真实模型凭据、1.19.0 进 VERIFIED_SERVERS、M15 Agents 视图、T018 publisher / 许可证、Aider 式注释触发。

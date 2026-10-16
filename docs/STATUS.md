@@ -2,6 +2,23 @@
 
 唯一的当前状态入口；队列见 [NEXT](NEXT.md)。详细历史和 ADR 按需读取。
 
+## 卡 12：消息级书签 M22（2026-10-16，Mac mini 会话分支 claude/card12-bookmarks，MacBook 挑选 c91c2c4 / f990a76 / 77c8acf 合入 main，合并提交 `5750dae`，已推送 origin）
+
+- 对应 Claude Code 2.1.286 VS Code Bookmarks：钉住某条消息，侧栏该会话下方列出，点击打开会话并滚到该轮。
+- 契约：`UiAction` 加 `"bookmark"`，`Ui` 加 `messageId?` / `anchorId?`（≤200 字符，bookmark 必带 sessionId / messageId / anchorId，`body` 为摘要）；`Navigate` 加 `messageId?`（滚动目标 = 该轮用户消息 id）。
+- 嵌入端：补丁 `0027-oco-message-bookmarks`——`platform.ocoBookmarkMessage` 钩子（只在嵌入模式存在），用户 / 助手消息操作行多一枚书签按钮；i18n en / zh。
+- 宿主：新文件 `apps/extension/src/bookmarks.ts`（`MessageBookmarks`，`oco.messageBookmarks` Memento，按连接 + 会话存，去重、摘要截 80 字）；`panels` 收 `ui bookmark`（connectionId 取面板 binding，sessionId 不符则忽略）并提示 `oco: Bookmarked`；`open(…, messageId)` 对已打开面板也 `sendNavigate`；侧栏行 `bookmarks { total, items }` 子列表（计数徽标、点击打开并按 anchorId 滚动、悬停 × 删除）；页面同会话走 `location.hash = #message-{id}`，换会话把哈希附在路由后。v1 只做「加书签」（重复为 no-op），删除在侧栏子行上做，页面不显示已收藏状态。
+- 验证（Mac mini 分支）：typecheck 0；unit 460/0；vendor app typecheck 0；补丁 0027 由 regen-patch 生成；build PASS。E2E（mock，Sonnet 子代理）新 c32-bookmarks 必需 6 项 + remove-persist 两次 PASS，附加探测 open-same-session-repeat FAIL（见遗留）；回归 c29 4/4、c3-fork 4/4、c30 7/7、c17 5/5、p1b-sidebar 13/13。合入后本机：setup 全链 0001–0028 重放 28/28、typecheck 0、unit 全过、vendor typecheck 0、build PASS（见 PROGRESS 本批）。证据 [card12-bookmarks](evidence/card12-bookmarks.md)。
+- 遗留（产品缺陷，轻微）：同一书签在手动滚走后再次点击不滚动（hash 未变，上游 `use-session-hash-scroll` 不重放）；修两轮未稳（先去 hash 100 ms 后设回，3 次 1 过），建议改为补丁暴露「滚到某用户消息」入口（0026 已透传的 `scrollToMessage`），宿主 navigate 带 messageId 时直接调用。无真实模型目视。
+- 协调：Mac mini 卡 12 分支里夹带的卡 11 草稿（45d9d86 / 688e4cf：`git-actions.ts`、c31、ADR §4a、askCommit 侧栏消息）按 NEXT §0b 裁定未合入，`sessions-webview.ts` 冲突时只保留书签消息。
+
+## 卡 10：轮次侧轨 / 章节目录（2026-10-16，Mac mini 会话分支 claude/card10-toc，MacBook 挑选 935ad43 / 310267e / e1b7eef 合入 main，合并提交 `5750dae`，已推送 origin）
+
+- 结论：上游无章节目录 / 大纲，只有 jump-to-latest；补丁 `0026-oco-embedded-turn-rail`——`MessageTimeline` 的 relative 容器内加绝对定位刻度轨 `oco-turn-rail.tsx`（只在 `platform.embedded` 且可见用户轮次 ≥ 2 时渲染），每轮一枚刻度按 `i / (n - 1)` 纵向分布，title 为该轮用户消息首行（`oco-turn-title.ts`，截 80 字），点击 `scrollToMessage(message, "auto")`，高亮用独立信号不写 `store.messageId`（避免松开贴底）；rail 顶部跟随 sticky 标题栏底边 + 16 px（ResizeObserver），aria-label i18n en / zh；`session.tsx` 透传 `scrollToMessage`。Claude Code mark_chapter 的等价物。
+- 顺带（935ad43，卡 10 文件归属）：E2E real 模式读 opencode 配置里的模型，`OCO_E2E_REAL_MODEL` 可覆盖，`--real` 批次跳过 mock 专属套件；`test-server.sh` / `overnight-e2e.sh` 相应加参数。另 ef07c39：c4 subagent-link 用例改按会话 id 判断返回（真实模型下等权限时不再误判）。真实模型解封记录见 [real-model-2026-10-16](evidence/real-model-2026-10-16.md)（官方 opencode 1.18.33 二进制绕过 big-pickle 403，`opencode/nemotron-3.5-lightning-free` 可用）。
+- 验证（Mac mini 分支）：vendor app typecheck 0；补丁 0026（7 文件 +189）由 regen-patch 生成；build PASS。E2E（mock）新 c30-turn-rail 首轮 5/7（D1：首刻度被 sticky 标题栏盖住，真实指针点不到），修 D1 后 7/7 ×2，p1b-narrow 12/12；回归 c29 4/4、c3-fork 4/4、c4 17/17。260 px 下 timeline 横向溢出为上游既有（overflowPreExisting），不计 rail 缺陷。证据 [card10-toc](evidence/card10-toc.md)。
+- 遗留：无真实模型目视；Gemini 实现自报的单测结果不实（已由主线程改为测真实实现），委派记录见证据。
+
 ## 卡 13：M13 composer chip + 自动附带编辑器选区（2026-10-16，分支 claude/great-keller-c26ae2，已合入 main，合并提交 `d04ad9d`，已推送 origin）
 
 - 契约：`DraftInsert` 增加可选 `chip: { label, path, startLine?, endLine?, mime?, auto? }`（`DraftChip`），无 chip 的消息仍是补丁 0001 的纯文本插入（终端 / Problems / Git diff 三个命令不变）。
@@ -134,11 +151,13 @@
 ## 基线与版本
 
 - 上游基线：vendor OpenCode v1.18.33（提交 `51ef4be`，浅克隆；旧文档里的补丁基线 `deb241e` 已不存在，补丁再生成改用 `scripts/regen-patch.sh` 在临时 worktree 重建基线）。宿主 `VERIFIED_SERVERS` = 1.18.33、1.18.13（企业服务；前端保持 1.18.33，验收对着 1.18.13 服务端跑；切到 1.18.13 前端的方案停放在本地分支 `claude/opencode-1.18.13-baseline`）。
-- 补丁链：`patches/opencode/` 0001–0025 + 0028 在干净 vendor HEAD `51ef4be` 上重放通过（2026-10-16 卡 13 生成 `0028-oco-composer-chip.patch`（composer 附件 chip）后全链 26/26；0026 / 0027 留给 Mac mini 的卡 10 / 卡 12，合入时再补；2026-10-14 生成 0025 时以 0001–0024 为基线校验；`0024-oco-embedded-subagent-pills.patch` 标题行子代理 pills；`0025-oco-runtime-view-followups.patch` 运行视图 M5 遗留；`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡；`0022-oco-markdown-mermaid.patch` 为 Mermaid；`0023-oco-embedded-new-session-draft.patch` 为新建会话草稿页）。卡 1、卡 3 未改补丁。
-- 本机扩展：已装 `oco-0.0.4-d04ad9d.vsix`（main d04ad9d = 969a4a0 + 卡 13 composer chip，vendor v1.18.33 + 补丁 0001–0025 + 0028；2026-10-16 12:26；extension.js sha256 `93a87889…`；需 Reload Window）。
+- 补丁链：`patches/opencode/` 0001–0028 全部 28 个在干净 vendor HEAD `51ef4be` 上重放通过（2026-10-16 合入卡 10 `0026-oco-embedded-turn-rail.patch`（嵌入模式轮次侧轨）与卡 12 `0027-oco-message-bookmarks.patch`（消息书签按钮）后 `bun run setup` 全链 28/28，合并提交 `5750dae`；0028 为卡 13 `0028-oco-composer-chip.patch`（composer 附件 chip）；2026-10-14 生成 0025 时以 0001–0024 为基线校验；`0024-oco-embedded-subagent-pills.patch` 标题行子代理 pills；`0025-oco-runtime-view-followups.patch` 运行视图 M5 遗留；`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡；`0022-oco-markdown-mermaid.patch` 为 Mermaid；`0023-oco-embedded-new-session-draft.patch` 为新建会话草稿页）。卡 1、卡 3 未改补丁。
+- 本机扩展：已装 `oco-0.0.4-5750dae.vsix`（main 5750dae = 43dd488 + 卡 10 轮次侧轨 + 卡 12 消息书签，vendor v1.18.33 + 补丁 0001–0028；2026-10-16 14:26；extension.js sha256 `c82a787c…`；需 Reload Window）。
 
 ## 已合入 main 的能力
 
+- 消息级书签（卡 12，2026-10-16，补丁 0027）：消息操作行书签按钮 → 宿主 Memento 存储、侧栏会话下方书签子列表（打开并滚到该轮 / 删除），`Navigate.messageId`。
+- 轮次侧轨（卡 10，2026-10-16，补丁 0026）：嵌入模式消息时间线右缘每轮一枚刻度，title 为该轮首行，点击跳到该轮，键盘可达；只在轮次 ≥ 2 时显示。
 - Git 动作 v1（卡 11，2026-10-16）：`oco.git.askCommit` / `oco.git.askOpenPR` 带仓库上下文的提示模板进主面板草稿、`oco.git.openScm`、SCM 标题按钮「Commit with OpenCode」；oco 不执行 git（ADR-009 §4）。
 - 会话侧栏改为 webview：Claude Code 风格列表、圆角选中、30px 行高、时间右对齐、搜索由标题栏按钮触发、Connection/Agents 视图删除，验证见 [spike 记录](evidence/sessions-webview-spike-2026-10-08.md)、[ADR-008](adr/008-webview-sessions-list.md)。
 - 会话标题行上下文用量（补丁 0019）：圆环阈值配色、无数字直显，替代 0017 隐藏圆环，证据见 [c5-context-usage](evidence/c5-context-usage.md)。

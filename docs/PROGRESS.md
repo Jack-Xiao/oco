@@ -1114,3 +1114,9 @@ C1 首批检查（`3bc386f` 产品代码）：typecheck PASS；unit 117/117；�
 - 主线程：契约 `DraftChip` / `DraftInsert.chip`（向后兼容）、panels 待发队列（auto 只留一条、不 reveal、拒绝只记日志）、chat-webview 透传、补丁 0028 生成与全链重放、审阅、集成、合入与文档。实现交 Gemini 两路并行（host `gem-mvacf36h` 682 s / 7 轮；vendor `gem-mvacf42q` 448 s / 5 轮，包装层报 ERROR 但产物完整，按规则换 Grok 后 60 s 内发现并停掉避免双写）；主线程补 `selectionLines` 与补丁 v2（file part 名丢行号、自动 + 手动双 chip，均由 Mac mini 首轮 E2E 发现）。E2E 交 Mac mini 两轮（c33 4/4 + 可选 1/1；t005 改期望 chip，第 4/5 步过；第 6 步 concurrent-permissions FAIL，main 对照：main 969a4a0 两次 9/9 PASS（detail 相同）；根因是测试里残留的全选选区让自动 chip 混进 mock 的 bash 命令（mock-llm 无分隔拼接文本），t005 改为关掉自动附带后本分支两次 9/9 PASS（mini-t005-chip））。
 - 验证：typecheck 0；unit 463/0（34 文件）；build PASS；vendor typecheck 0；补丁链 0001–0028 重放 26/26；本机已装 `oco-0.0.4-d04ad9d.vsix`。证据 [card13-composer-chip](evidence/card13-composer-chip.md)、[mini-card13](evidence/mini-card13.md)、[mini-card13-rerun](evidence/mini-card13-rerun.md)。
 - 环境：app worktree 没有 vendor/opencode，按 memory「worktree-vendor-setup」用主检出 vendor 的 git worktree 搭建；`regen-patch.sh` 对新编号要先放占位文件。
+
+## 2026-10-16 下午：卡 10 轮次侧轨 + 卡 12 消息书签（Mac mini 会话实现，MacBook 合入 main 5750dae）
+
+- 来源：Mac mini 会话在本地分支 `claude/card10-toc`（e1b7eef，补丁 0026 + c30）与 `claude/card12-bookmarks`（77c8acf，补丁 0027 + c32）完成实现与 E2E，但未合入 main（mini 本地 main 停在 398a45e）。MacBook 会话 `git fetch` 两条分支后，把卡 10（935ad43 / 310267e / e1b7eef）、c4 真实模型测试修正（ef07c39）与卡 12（c91c2c4 / f990a76 / 77c8acf）挑选到 `claude/land-card10-12`，`--no-ff` 合入 main。卡 12 分支夹带的卡 11 草稿（45d9d86 / 688e4cf）按 NEXT §0b 裁定未合入；`sessions-webview.ts` 唯一一处冲突只保留书签消息；mini 分支上对 STATUS / NEXT / PROGRESS 的改动丢弃，由本条与 STATUS 段落代替。
+- 验证（合入前，落地分支）：`bun run setup` 干净 vendor 重放补丁 0001–0028 28/28；typecheck 0；unit 全过；vendor app typecheck 0；build PASS。E2E 以 mini 分支上的结果为准（c30 7/7 ×2、c32 必需项 6/6 ×2 + 回归），合入后的默认 mock 回归 + c30 / c32 / c33 派 Mac mini `regress-1016`（见 NEXT「Mac mini 队列」）。本机已装 `oco-0.0.4-5750dae.vsix`。
+- 遗留：卡 12 同一书签再次点击不滚动（轻微，建议补丁暴露 `scrollToMessage` 入口）；两张卡均无真实模型目视。
