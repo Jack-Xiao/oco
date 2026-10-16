@@ -42,6 +42,13 @@
 - vendor app `bun run typecheck`（tsgo -b）：0 错误；补丁链 0001–0028 干净重放 26/26。
 - E2E：见下「E2E（Mac mini）」。
 
+## E2E（Mac mini，Claude Sonnet 子代理；mock 模型）
+
+- 第一轮 `mini-card13`（分支 mini/card13 = bb25a93 + 套件，10:38–11:43，commit 1820e72 / c5499bd，已合进本分支）：写了 `tests/e2e/c33-composer-chip.mjs`（212 行），改了 t005 第 4 步判定。正式结果 `runs/20261016-031917-c33-composer-chip-552d`（在 mini 上）：manual-chip PASS（pill `math.ts:2-3`，在 `[data-component="prompt-input-v2-attachments"]` 的 `attachment-card-v2` 里，类型标签 `TS:2-3`，contenteditable 不含代码，未自动发送）；send-chip FAIL（产品缺陷 1：file part `filename` = `math.ts`，缺行号；产品缺陷 2：两个 file part——自动 chip + 手动 chip；解码内容 `return a + b }` 正确；服务端存了合成 text part）；auto-chip FAIL（测试侧：用 Go to File 重新聚焦编辑器把文件开进聊天面板所在组盖住了面板，`panel.visible` 为 false 不送达；状态栏确认选区存在「Ln 2, Col 15 (14 selected)」）；auto-dedupe NOT RUN（依赖 auto pill）；auto-off PASS（关掉设置 8 s 无自动 pill，手动命令仍出 `math.ts:2`）。对照运行 `c33-dbg-6ed4`（auto-chip 单独跑）：auto-chip PASS（308 ms 出 `math.ts:2` → `math.ts:2-3` 只一枚 → ArrowRight 消失）、auto-dedupe PASS（remove 按钮 aria-label `Remove attachment`，点 × 后 4 s 不回来）。t005：第 4 步 `bHasChip` true（pill 文本并入 bDraft）、第 5 步 `hasMarker` / `hasFileBody` true（服务端合成 text part 含原文）；`concurrent-permissions-routed` FAIL（A completed、C error；与 chip 无直接关系，待第二轮对照）。mini 侧两点：没有 `timeout` 命令（用 perl alarm）；E2E 服务器由它自己在锁内起停。
+- 两处产品缺陷已在补丁 0028 第二版修复（见「补丁」）。
+- 第二轮 `mini-card13-rerun`（分支 = 0a47382：补丁 v2 + 第一轮套件；commit f77bfcd，已合进本分支）：c33 正式结果 `runs/20261016-035156-c33-composer-chip-1f6a`（在 mini 上；evidence [mini-card13-rerun](mini-card13-rerun.md)）：**manual-chip PASS、send-chip PASS**（`filePartCount` 1，parts `[text][file math.ts:2-3 text/plain][text][text]`，解码 `return a + b }`，`filenameHasRange` true，发送后 composer 无 pill）、**auto-chip PASS**（选第 2 行出 pill → 扩到 2-3 仍只一枚 → 清选区消失）、**auto-off PASS**、auto-dedupe（可选）PASS（`Remove attachment`，点 × 后不回来）。t005：第 4 步 PASS、第 5 步 PASS；第 6 步 `concurrent-permissions-routed` 两轮都 FAIL（dock 路由正确，A completed，C 会话 finish=error）→ 派 `mini-t005-main` 在 main 969a4a0（不含卡 13）对照，见下。测试侧修正（子代理自报）：侧边 `.view-lines` 只有 353 px 宽，点击坐标 x:600 改 x:150；发送后历史里的用户消息也带 `math.ts:2-3` 标签，pill 判定只看 `prompt-input-v2-attachments`，判定标准未放宽。
+- `concurrent-permissions-routed` 对照（`mini-t005-main`，base 969a4a0）：待返回。
+
 ## 环境
 
 - 本 worktree 没有 `vendor/opencode`（gitignored）：按 setup.sh 的步骤手工建——`git -C /Users/xiaojiang/Ai-Project/oco/vendor/opencode worktree add --detach vendor/opencode 51ef4be`，用绝对路径 `git apply` 0001–0025（97 个文件改动），`bun install --frozen-lockfile`（4667 packages，69 s），链接 `apps/chat-webview/node_modules`。
