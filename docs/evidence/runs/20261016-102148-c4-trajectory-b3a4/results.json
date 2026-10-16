@@ -1,0 +1,295 @@
+{
+  "runId": "20261016-102148-c4-trajectory-b3a4",
+  "suite": "c4-trajectory",
+  "startedAt": "2026-10-16T10:21:48.693Z",
+  "ocoCommit": "625b306dfac489afeb525310fc632a2b83b1b9ab",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "0f36d40f705a34cdcc5bc59273f3d133d739835389b33298e19b604528ca2855",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "modelMode": "real",
+  "locale": "default",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c4-trajectory",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T10:26:13.924Z",
+  "results": [
+    {
+      "id": "header-actions-chat",
+      "status": "PASS",
+      "detail": {
+        "titlebarHidden": true,
+        "reviewInRow": true,
+        "ringInRow": true,
+        "usageLevel": "normal",
+        "usageText": ""
+      },
+      "at": "2026-10-16T10:22:40.278Z"
+    },
+    {
+      "id": "header-actions-trajectory",
+      "status": "PASS",
+      "detail": {
+        "reviewInHeader": true,
+        "usageInHeader": true
+      },
+      "at": "2026-10-16T10:22:40.397Z"
+    },
+    {
+      "id": "toggle-open",
+      "status": "PASS",
+      "detail": {
+        "opened": true,
+        "composerVisible": true
+      },
+      "at": "2026-10-16T10:22:40.398Z"
+    },
+    {
+      "id": "locale-copy",
+      "status": "PASS",
+      "detail": {
+        "lang": "en",
+        "toggle": "Trajectory",
+        "hasHan": false
+      },
+      "at": "2026-10-16T10:22:40.401Z"
+    },
+    {
+      "id": "compact-groups",
+      "status": "PASS",
+      "detail": {
+        "groups": 2,
+        "toolRows": 0,
+        "summary": "▸ 2 steps · 1 tool call · bash",
+        "expanded": "true",
+        "nestedTool": 1
+      },
+      "at": "2026-10-16T10:22:40.496Z"
+    },
+    {
+      "id": "rows-match-server",
+      "status": "PASS",
+      "detail": {
+        "server": {
+          "user": 2,
+          "assistant": 3,
+          "tool": 1,
+          "reasoning": 3,
+          "userIds": [
+            "msg_1443b95620011PuR5WDegN2yBs",
+            "msg_1443c03bb001zROHFTvPVHZEUO"
+          ]
+        },
+        "ui": {
+          "user": 2,
+          "tool": 1,
+          "reasoning": 3,
+          "bars": 3,
+          "totals": "Requests 3 Tools 1 Input 25.9K Cache hit 97% Output 239 Thinking 496 Cost $0",
+          "userIds": [
+            "msg_1443b95620011PuR5WDegN2yBs",
+            "msg_1443c03bb001zROHFTvPVHZEUO"
+          ]
+        }
+      },
+      "at": "2026-10-16T10:22:40.543Z"
+    },
+    {
+      "id": "scale-toggle",
+      "status": "PASS",
+      "detail": {
+        "scales": {
+          "turn": {
+            "pressed": [
+              "turn"
+            ],
+            "lefts": [
+              76,
+              298,
+              419
+            ]
+          },
+          "request": {
+            "pressed": [
+              "request"
+            ],
+            "lefts": [
+              76,
+              305,
+              533
+            ]
+          },
+          "duration": {
+            "pressed": [
+              "duration"
+            ],
+            "lefts": [
+              76,
+              373,
+              535
+            ]
+          }
+        },
+        "gaps": [
+          229,
+          228
+        ]
+      },
+      "at": "2026-10-16T10:22:41.110Z"
+    },
+    {
+      "id": "tool-detail",
+      "status": "PASS",
+      "detail": {
+        "detail": "Tool\nTurn 1 · Step 1\n✕\nOverview\nRaw\nInput · bash\n{\n  \"command\": \"echo traj-csfgp\"\n}\nOutput\ntraj-csfgp\n\nRequest\nSource\nRequest #1\nModel\nopencode/nemotron-3.5-lightning-free\nAgent\nbuild\nStatus\nCompleted · tool-calls\nTokens\nTotal\n8,628 tok\nInput (uncached)\n185\nCache read\n8,384\nCache write\n0\nCache hit\n98%\nOutput\n30\nThinking\n29\nCost\n$0 (not priced: subscription, free or unknown price)\nRequest timing\nSt"
+      },
+      "at": "2026-10-16T10:22:41.201Z"
+    },
+    {
+      "id": "request-timing",
+      "status": "PASS",
+      "detail": {
+        "ttft": "16.9 s",
+        "generation": "678 ms",
+        "total": "8,628 tok",
+        "cacheRead": "8,384",
+        "source": "Request #1"
+      },
+      "at": "2026-10-16T10:22:41.300Z"
+    },
+    {
+      "id": "raw-content",
+      "status": "PASS",
+      "detail": {
+        "raw": "Tool\nTurn 1 · Step 1\n✕\nOverview\nRaw\n{\n  \"type\": \"tool\",\n  \"tool\": \"bash\",\n  \"callID\": \"call-737f9c51-523b-4455-81cd-943c4fa05ce5\",\n  \"state\": {\n    \"status\": \"completed\",\n    \"input\": {\n      \"command\": \"echo traj-csfgp\"\n    },\n    \"time\": {\n      \"start\": 1792146135617,\n      \"end\": 1792146135772\n "
+      },
+      "at": "2026-10-16T10:22:41.395Z"
+    },
+    {
+      "id": "tools-tab",
+      "status": "PASS",
+      "detail": {
+        "server": 13,
+        "ui": 13,
+        "expanded": "true",
+        "schema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"command\": {\n      \"type\": \"string\",\n      \"description\": \"The command to execute\"\n    },\n    \""
+      },
+      "at": "2026-10-16T10:22:41.695Z"
+    },
+    {
+      "id": "live-update",
+      "status": "PASS",
+      "detail": {
+        "seenRunning": true,
+        "stillOpenWhileRunning": true,
+        "relaxed": "real model: mock text and Completed label not required",
+        "barsBefore": 3,
+        "barsAfter": 4,
+        "tail": "o first token\n4.8 s\nGeneration\n19.9 s\nThroughput\n47.8 tok/s\nDerived from the timestamps OpenCode stores (first token = start of the first thinking, reply or tool input); not the provider's own timing."
+      },
+      "at": "2026-10-16T10:23:08.014Z"
+    },
+    {
+      "id": "back-to-chat",
+      "status": "PASS",
+      "detail": {
+        "chatBack": true
+      },
+      "at": "2026-10-16T10:23:08.062Z"
+    },
+    {
+      "id": "switch-resets",
+      "status": "PASS",
+      "detail": {
+        "reset": true
+      },
+      "at": "2026-10-16T10:23:09.247Z"
+    },
+    {
+      "id": "narrow-detail",
+      "status": "PASS",
+      "detail": {
+        "widths": [
+          480
+        ],
+        "root": 464,
+        "detail": 464,
+        "overflow": 0,
+        "closed": true
+      },
+      "at": "2026-10-16T10:23:11.146Z"
+    },
+    {
+      "id": "subagent-row",
+      "status": "PASS",
+      "detail": {
+        "child": "ses_ebbc32b82ffeCNixOIMAoI1zZv",
+        "status": "running",
+        "rows": 1,
+        "nested": false,
+        "text": "Subagent @explore Find fork code → Running…",
+        "childField": "ses_ebbc32b82ffeCNixOIMAoI1zZv",
+        "relaxed": "real model: description / child output text not required"
+      },
+      "at": "2026-10-16T10:26:12.448Z"
+    },
+    {
+      "id": "subagent-link",
+      "status": "PASS",
+      "detail": {
+        "child": "ses_ebbc32b82ffeCNixOIMAoI1zZv",
+        "href": null,
+        "role": "button",
+        "clickOutline": "none",
+        "switched": true,
+        "diag": {
+          "clickError": null,
+          "before": {
+            "exists": true,
+            "visible": true,
+            "rect": [
+              18,
+              60,
+              63,
+              16
+            ],
+            "hitSelf": true,
+            "hit": "BUTTON.min-w-0 max-w-[40%] truncate pl-2 text-[13px] font-[530] lea",
+            "text": "New session",
+            "permissionPending": true,
+            "childRunning": true,
+            "url": "/index.html"
+          },
+          "trail": [
+            {
+              "t": 22,
+              "snap": [
+                {
+                  "sid": "ses_ebbc48036ffeFZHace8c5Otcun",
+                  "vis": "visible",
+                  "prompt": false,
+                  "permissionDock": true,
+                  "url": "/index.html"
+                }
+              ]
+            }
+          ]
+        },
+        "back": true,
+        "opened": []
+      },
+      "at": "2026-10-16T10:26:13.378Z"
+    }
+  ],
+  "summary": {
+    "PASS": 17,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

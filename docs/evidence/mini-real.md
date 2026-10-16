@@ -101,3 +101,40 @@
 - c12 本轮 real 下失败而 10-16 为 PASS；模型 / 服务端版本（1.18.33 官方）与 10-16 的测试环境不同，差异来源未查。
 - 4527/4528 上的他人服务未动；本机无 `timeout` 命令，探针用 `perl -e 'alarm 90; exec @ARGV'`。
 - 未看截图；没有改任何代码。
+
+## 1.19.0 子集（opencode-ai@1.19.0，第二阶段）
+
+状态：已完成（无 BLOCKED）。只记录，未改代码。
+
+**基线**
+- 提交 625b306；`$OCO_OPENCODE_BIN --version` = 1.19.0（`~/oco-bin/official-1190`，npm 本地装，未碰 `~/oco-bin/official`）；实际模型（results.json）`opencode/nemotron-3.5-lightning-free`；VS Code 1.142.0；端口 4537 / 4538。
+- 开始 2026-10-16 17:41:24，链结束 18:39:51，总耗时约 58 分钟（链 17:41:47 起）。
+- 探针：第 1 次即输出 OK。
+- 批 A（1.19.0，`--real p1a-chat c4-trajectory c5-runtime t015-diagnostics`）：`docs/evidence/runs/overnight-20261016-174147/summary.md`，serverVersion 1.19.0。
+- 批 B（1.18.33 对照，`OCO_OPENCODE_BIN=~/oco-bin/official/node_modules/.bin/opencode … p1a-chat t015-diagnostics`）：`docs/evidence/runs/overnight-20261016-180721/summary.md`，serverVersion 1.18.33。
+- 批 C（1.19.0 重跑 c4-trajectory c5-runtime p1a-chat）：`docs/evidence/runs/overnight-20261016-182146/summary.md`，serverVersion 1.19.0。三批 model 均为 nemotron。
+
+**结果（4 套件）**
+
+| 套件 | 1.19.0 首轮 | serverVersion | 1.19.0 重跑 | 1.18.33 对照（来源） | 差异 / 类别 | results.json（首轮 / 重跑 / 对照） |
+| --- | --- | --- | --- | --- | --- | --- |
+| p1a-chat | FAIL（PASS 1 / FAIL 2 / NOT RUN 2，957 s） | 1.19.0 | FAIL（PASS 1 / FAIL 2 / NOT RUN 1，525 s） | FAIL（批 B：PASS 1 / FAIL 2 / NOT RUN 2，858 s） | 稳定失败，两版同样失败 = 与版本无关；类别 A/C（`stream-locked` serverChars 0 即模型无输出；`run` 点 prompt 输入框 30 s 超时；permission-bound / question-answer 模型未触发） | 20261016-094149-p1a-chat-bf33 / 20261016-103107-p1a-chat-c4f7 / 20261016-100723-p1a-chat-9006 |
+| c4-trajectory | FAIL（`run` 崩溃 `Cannot read properties of undefined (reading 'id')`，0/1，40 s） | 1.19.0 | PASS 17/17（265 s） | 首轮 `run` 崩溃偶发、重跑 17/17（mini-real 表） | 偶发，与对照同形；结论 PASS | 20261016-095746-c4-trajectory-5bdb / 20261016-102148-c4-trajectory-b3a4 / — |
+| c5-runtime | FAIL（PASS 12 / FAIL 2：`plan-chip`、`run` 15 s 超时，529 s） | 1.19.0 | FAIL（PASS 4 / FAIL 1：`run` 15 s 超时，293 s） | 两轮 FAIL，`run` 15 s 超时（mini-real 表） | `run` 两轮都 FAIL = 稳定失败；对照本身不稳定，不判版本差异；类别 C | 20261016-095826-c5-runtime-a7ca / 20261016-102614-c5-runtime-4a48 / — |
+| t015-diagnostics | PASS 4/4（5 s） | 1.19.0 | 未重跑 | PASS 4/4（批 B，6 s） | 无差异 | 20261016-100716-t015-diagnostics-2211 / — / 20261016-102141-t015-diagnostics-6377 |
+
+（NOT RUN 的 permission-bound / question-answer：模型未请求权限 / 未调用 question 工具，类别 A。）
+
+**t015 `status-version`**（两版均 PASS）
+- 1.19.0：version `1.19.0`，statusText `$(oco-logo) oco $(bell-dot) 3`，不含 `$(warning)`。
+- 1.18.33：version `1.18.33`，statusText `$(oco-logo) oco $(bell-dot) 1`，不含 `$(warning)`。
+
+**1.19.0 特有失败（版本相关嫌疑）**：无。
+
+**结论**：真实模型下，1.19.0 相对 1.18.33 未见新增失败 / 不兼容；p1a-chat 两版同样失败，c4 偶发后重跑通过，c5 `run` 超时在两版都出现。
+
+**限制与未查项**
+- 样本小（每套件 1–2 轮）；免费模型输出波动（p1a-chat `serverChars: 0`、permission/question 未触发）使 p1a-chat 的多数用例无法验证，1.19.0 在这些用例上的行为未被检验。
+- c5 对照本身不稳定，不能判版本差异；`run` 超时的具体位置未追查（只记录，未看截图）。
+- p1a-chat `run` 失败（点 prompt 输入框超时，两版同形）与 c4 `run` 崩溃（`reading 'id'`）的测试侧位置未定位。
+- 批 B 只跑了 p1a-chat 与 t015；c4 / c5 对照取自 mini-real 21 套件表，而非本次同批。

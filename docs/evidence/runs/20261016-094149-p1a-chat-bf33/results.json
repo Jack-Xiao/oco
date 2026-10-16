@@ -1,0 +1,85 @@
+{
+  "runId": "20261016-094149-p1a-chat-bf33",
+  "suite": "p1a-chat",
+  "startedAt": "2026-10-16T09:41:49.530Z",
+  "ocoCommit": "625b306dfac489afeb525310fc632a2b83b1b9ab",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "eb35f9eccacb616f7452beda471624a99760f6895765d40d0af48094268b98f3",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "p1a-chat",
+  "modelMode": "real",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "sessionId": "ses_ebbe91a35ffe9w55vvmHMTIiXJ",
+  "finishedAt": "2026-10-16T09:57:45.669Z",
+  "results": [
+    {
+      "id": "stream-locked",
+      "status": "FAIL",
+      "detail": {
+        "distinctSamplesWhileBusy": 0,
+        "samplesArePrefixes": true,
+        "monotonic": true,
+        "finalDomEqualsServer": true,
+        "serverChars": 0,
+        "firstDiff": null
+      },
+      "at": "2026-10-16T09:45:01.518Z"
+    },
+    {
+      "id": "permission-bound",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "model did not request the bash permission within 90s",
+        "waitedMs": 90065
+      },
+      "at": "2026-10-16T09:46:32.431Z"
+    },
+    {
+      "id": "question-answer",
+      "status": "NOT RUN",
+      "detail": {
+        "reason": "model did not call the question tool",
+        "attempts": 2
+      },
+      "at": "2026-10-16T09:53:36.299Z"
+    },
+    {
+      "id": "run",
+      "status": "FAIL",
+      "detail": {
+        "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-action=\"prompt-submit\"]')\u001b[22m\n"
+      },
+      "at": "2026-10-16T09:57:44.955Z"
+    },
+    {
+      "id": "csp-violations",
+      "status": "PASS",
+      "detail": {
+        "count": 0,
+        "sample": []
+      },
+      "at": "2026-10-16T09:57:45.058Z"
+    }
+  ],
+  "summary": {
+    "PASS": 1,
+    "FAIL": 2,
+    "NOT RUN": 2,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "stream-locked",
+    "permission-bound",
+    "question-answer",
+    "cancel-real",
+    "policy-foreign-session",
+    "policy-directory-override",
+    "policy-unlisted-write"
+  ]
+}

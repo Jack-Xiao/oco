@@ -1,0 +1,130 @@
+{
+  "runId": "20261016-102614-c5-runtime-4a48",
+  "suite": "c5-runtime",
+  "startedAt": "2026-10-16T10:26:14.460Z",
+  "ocoCommit": "625b306dfac489afeb525310fc632a2b83b1b9ab",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "52664c4aaba9b94635d678ce01bf0c043f72136a97d6595767497dc9a9ad65b1",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "1.19.0",
+  "modelMode": "real",
+  "locale": "default",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c5-runtime",
+  "model": "opencode/nemotron-3.5-lightning-free",
+  "finishedAt": "2026-10-16T10:31:05.975Z",
+  "results": [
+    {
+      "id": "toggle-three",
+      "status": "PASS",
+      "detail": {
+        "views": [
+          "chat",
+          "trajectory",
+          "runtime"
+        ],
+        "viewsOrderExact": true,
+        "opened": true,
+        "composerVisible": true
+      },
+      "at": "2026-10-16T10:26:23.784Z"
+    },
+    {
+      "id": "idle-state",
+      "status": "PASS",
+      "detail": {
+        "state": "idle",
+        "stage": "pre",
+        "focus": "pre",
+        "stateText": "Standing by",
+        "idleSubsMode": "strip",
+        "idleLaneK": 0,
+        "idlePlanChips": 0
+      },
+      "at": "2026-10-16T10:26:23.792Z"
+    },
+    {
+      "id": "theme-dark",
+      "status": "PASS",
+      "detail": {
+        "bgLum": 0.009117957730975224,
+        "fgLum": 0.6667370683724081,
+        "bgDark": true,
+        "contrastOk": true
+      },
+      "at": "2026-10-16T10:26:23.793Z"
+    },
+    {
+      "id": "locale-copy",
+      "status": "PASS",
+      "detail": {
+        "toggleLabel": "Runtime",
+        "stateText": "Standing by",
+        "hasHan": false,
+        "localeMatch": true,
+        "locale": "en"
+      },
+      "at": "2026-10-16T10:26:23.795Z"
+    },
+    {
+      "id": "run",
+      "status": "FAIL",
+      "detail": {
+        "error": "locator.waitFor: Timeout 15000ms exceeded. {\"ds\":{\"theme\":\"oc-2\",\"colorScheme\":\"dark\",\"ocoModel\":\"ready\"},\"n\":0,\"vis\":\"visible\",\"txt\":\"New session - 2026-10-16T10:26:19.091Z\\nChat\\nTrajectory\\nRuntime\\nWaiting for your approval\\n1 waiting for your answer\\nLast event 1 min ago\\n● Live\\nReplay\\n⏮\\n|◀\\n▶\\n▶|\\nR1\\n18:31:05\\n1×\\nAssemble request\\nCarries \",\"rect\":null,\"w\":1345,\"h\":1188}"
+      },
+      "at": "2026-10-16T10:31:05.887Z"
+    }
+  ],
+  "summary": {
+    "PASS": 4,
+    "FAIL": 1,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 1,
+  "missingRequired": [
+    "tool-turn",
+    "context-known",
+    "last-event",
+    "replay",
+    "playback",
+    "log-overlay",
+    "back-to-chat",
+    "trajectory-still-works",
+    "plan-chip",
+    "perm-approve",
+    "reply-in-panel",
+    "perm-reject",
+    "tool-fail",
+    "question-route",
+    "dismiss",
+    "fold",
+    "same-command",
+    "no-leak",
+    "stop",
+    "retry",
+    "subagent",
+    "strip",
+    "replay-no-actions",
+    "keyboard",
+    "think-card",
+    "think-expand",
+    "width-560",
+    "width-wide",
+    "ring",
+    "motion-on",
+    "reduced-motion",
+    "width-1600",
+    "parallel-subagents",
+    "focus-stable",
+    "focus-on-change",
+    "geometry-stable",
+    "tools-k-collapse",
+    "legend",
+    "summary",
+    "fill"
+  ]
+}
