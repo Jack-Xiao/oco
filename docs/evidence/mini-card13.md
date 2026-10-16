@@ -3,7 +3,7 @@
 委派记录: task=card13-e2e, 写入范围=tests/e2e/c33-composer-chip.mjs、t005 第4步、本文件、docs/evidence/runs/; requested_route=mini 执行机上的 Claude (Sonnet 5.5) 直接执行（无人值守，无外部代理）; 状态=已返回。
 环境: run-task 未启动 E2E 服务器，由 /tmp/c33run.sh 在锁内临时起 `OCO_E2E_MODEL=mock scripts/test-server.sh` 并在结束后关闭（本机无 `timeout`，用 perl alarm）。
 
-## c33-composer-chip（0/4 required 通过中 2/4）
+## c33-composer-chip（required 2/4 通过）
 results.json: docs/evidence/runs/20261016-031917-c33-composer-chip-552d/results.json
 - manual-chip PASS — pill `math.ts:2-3`；composer 文本 `math.ts:2-3 TS:2-3 Ask anything…`（"TS:2-3" 是 pill 的类型标签）；contenteditable 无代码；userMessages=0。
 - send-chip FAIL — 内容送达（file part 的 data: base64 解码为选区原文 `  return a + b\n}`，text part 也含原文），但两个 file part 的 `filename` 都是 `math.ts`（不含 `:2-3`），mime text/plain。parts=[text, file, file, text×4]。发送后 composer 不再含 pill。按任务判定（filename 含 `math.ts:2`）记 FAIL；产品侧：range 没进 filename。
