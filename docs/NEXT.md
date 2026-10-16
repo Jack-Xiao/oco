@@ -87,7 +87,7 @@
 ### Mac mini 队列（2026-10-14 起；约定见 [MINI](MINI.md)，一次一个，提示词写到 `docs/mini/<任务>.md` 再 dispatch）
 
 - [DONE 6885865] card7：卡 6 新功能 E2E（c18–c24）+ 13 套件回归 + p1b-narrow 循环 + c4 / c5 真实模式 + 目视截图。
-- [BLOCKED：big-pickle 403，需真实模型凭据或官方 OpenCode 二进制] mini-real：卡 7 修复合入后，真实模型全量 21 套件；含 c10 / c11 遗留 NOT RUN（模态确认的批量 delete / archive、真实模型压缩目视）。
+- [DONE 2026-10-16，合入 main 4870625] mini-real：官方 opencode 1.18.33（`~/oco-bin/official`）+ 免费 `opencode/nemotron-3.5-lightning-free`，21 套件（默认 `--real` 批 10 + c18–c24 / visual-light-sidebar 8，c6 / c16 / c17 由脚本跳过），重跑后终态 PASS 6 / FAIL 9 / N/A 6，链 102 分钟（提示词 [docs/mini/mini-real.md](mini/mini-real.md)，证据 [mini-real](evidence/mini-real.md)；稳定失败与后续见 §1）。c10 / c11 遗留：c11 archive-batch 在 real 下 PASS，delete-batch 仍设计内 NOT RUN，压缩目视仍 NOT RUN。
 - [DONE d7fe378] mini-nested：mock 产生孙会话 + 嵌套 ≥2 层 E2E（运行视图、侧栏徽标、标题行 pills）。
 - [部分 aaa22a0：perf.mjs 匹配修复 4/4、bench 端口改包装脚本（单元 43/0、Playwright 61/65，3 个失败待在干净上游检出上区分来源）；数小时内存与数千行滚动仍 TODO] mini-perf：数千行长会话滚动与数小时常驻内存趋势（先修 `perf.mjs` 按 `.oco-test/vscode/perf` 找进程、遇短路径失配的问题）；`test:bench` 端口 4096 / 3000 冲突。
 - [DONE aaa22a0，本机子代理] mini-tools-k：轮末工具台 end 后 ≥2 s 采样复核（0.6 / 2.6 / 3.6 s 均为 0）。
@@ -141,15 +141,20 @@
 
 - [既有，待修] c5-runtime think-card：思考卡片宽度 337→342→344 抖动，main 3f89430 基线 2/2 复现（[mini-baseline](evidence/mini-baseline.md)），与 cc-features 无关；和 mini-card7 记的舞台高度抖动同类，需在运行视图里定位宽度来源（补丁 0020 / 0025 的几何）。
 - [DONE 2026-10-16] p1b-narrow deny-260 / question-260：根因是 HUD 布线在 `/provider` 返回等时机多触发一次侧栏整表重渲染；改为只刷状态栏的 `refreshHud()` 后 ×5 全过（[mini-narrow](evidence/mini-narrow.md)）。教训：状态栏类更新不要走 `view.refresh()`。
-- [DONE 一轮] 真实模型全量 E2E：21 套件，首轮 16 套件无 FAIL；修测试后重跑 p1a-chat、p1a-identity 通过。见 [fail-diag](evidence/cleanup-2026-10-10-fail-diag.md)。
+- [DONE 一轮，2026-10-10 big-pickle] 真实模型全量 E2E：21 套件，首轮 16 套件无 FAIL；修测试后重跑 p1a-chat、p1a-identity 通过。见 [fail-diag](evidence/cleanup-2026-10-10-fail-diag.md)。
+- [DONE 2026-10-16 mini-real，合入 main 4870625] 真实模型全量（官方 opencode 1.18.33 + `opencode/nemotron-3.5-lightning-free`，21 套件，[mini-real](evidence/mini-real.md)）：首轮 PASS 3 / FAIL 12 / N/A 6，每个 FAIL 套件重跑一次后终态 **PASS 6**（c13 c15 c20 c22 c4-trajectory visual-light-sidebar；c13 / c20 / c4 首轮失败是偶发）/ **FAIL 9**（c10 c11 c12 c14 c19 c24 p1b-sidebar p1b-narrow c5-runtime）/ **N/A 6**（c6 c16 c17 被 `--real` 跳过；c18 c21 c23 mock 守卫 NOT RUN）。真实模型不再 BLOCKED（big-pickle 403 用官方二进制 + nemotron 绕开）；免费模型偶发短停滞（预检探针第 1 次 90 s 无输出、5 分钟后恢复，c4 首轮 41 s 崩溃疑同类）。
+- [TODO，疑近期合入的回归，优先] c14 `draft-acked`（draftAcks 0→4，断言要求 +1，rejects 0）与 p1b-sidebar `chain-draft`（draftHead 为空、sentMessages 0）：mock 与 real 同败（regress-1016 的 mock 回归、mini-real 的 mock 对照各一次），而 10-15 mock 全量（c14 6/0、p1b-sidebar 13/0）和 10-16 早先 real（p1b-sidebar 全过）都过，嫌疑在卡 10–13 合入（卡 13 改了 DraftInsert / panels 待发队列）。先在 5750dae 之前的提交上单跑二分（Mac mini），再定是测试断言过严还是 draft ack 重复发。
+- [TODO，类别 A 模型行为，建议 real 下豁免或放宽] c10 `run`（question-row 等 4 项缺）、c24 ask-card / option-click（nemotron 不调 question 工具，与 10-16 c10 同因）、c11 todo-badge（小模型不写 todo）、c12 send-reply-shown / worktree-reply-fast（real 特有、mock 13/13：断言依赖 mock 回复文本与 60 s 限制，两轮 61.1 / 61.2 s）；c5-runtime 两轮都在 `run` 15 s `waitFor` 超时崩溃（疑 subagent 残留级联，未深查），其余失败用例两轮不一致（首轮 trajectory-still-works；重跑 perm-reject（B，mock 口令）、fold、same-command（A）、no-leak）。
+- [TODO，类别 C 测试台] `tests/e2e/c19-label-snooze.mjs:169` 调用不存在的 `run.recordNotApplicable(...)`（其他套件用导入的 `recordNotApplicable(run, REQUIRED, …)`），real 模式走 N/A 分支即崩，缺 waiting-not-hidden（mock 5/5）；p1b-narrow real 下 `layout-260` 两轮都等不到 `prompt-input`（30 s，mock 通过），其余失败用例两轮不一致，一轮 15–26 分钟；`overnight-e2e.sh --real` 的 mock 专属豁免清单（现 c6 c16 c17）应补 c18 c21 c23，默认批次只有 13 个套件（不含 c18–c24 / visual-light-sidebar），`--real` 默认不是 21 套件，本轮靠显式列出补齐。
+- [NOT RUN] 1.19.0 公共 npm 二进制的真实模型子集：卡 8 决定行写「并入 mini-real」，本轮 mini-real 只跑了 1.18.33（任务范围没有 1.19.0）；要验证另派 Mac mini 任务（`opencode-ai@1.19.0` 装到独立目录，跑 c4 / c11 / c15 / c22 等不依赖 mock 口令的子集）。c25–c33 也未跑真实模式（不在 21 套件内）。
 - [TODO，卡 7 `overnight-e2e.sh --loop 10 p1b-narrow`] p1b-narrow「新面板未出现」：两次落在不同宽度（320、260），先用 mock 模式循环复现，判定是否为产品侧打开新面板的竞态。
-- [DONE 代码 522c08b，NOT RUN 待卡 7] c4 live-update / subagent-row、c5 tool-turn / tool-fail / retry：按 `modelMode` 把依赖 mock 口令或模型时序的断言改判 N/A 或放宽采样；c5 真实模式外层超时调到 ≥ 30 分钟。
+- [DONE 代码 522c08b；mini-real 2026-10-16 实跑：c4 重跑 17/17（首轮 run 崩溃偶发），c5 仍 FAIL（见上；tool-fail 记 N/A，retry / subagent / think-card 在 run 崩溃后未跑到）] c4 live-update / subagent-row、c5 tool-turn / tool-fail / retry：按 `modelMode` 把依赖 mock 口令或模型时序的断言改判 N/A 或放宽采样；c5 真实模式外层超时调到 ≥ 30 分钟。
 - [DONE 2026-10-10] 真实模型新对话运行视图：阶段序列与流式递增正常；轮末 tools-k 复核见第 3 节。
 - [NOT RUN] 嵌套 ≥2 层子代理：big-pickle 两次提示都只派一层；要验证得给 mock 补孙会话再加 E2E，或换会递归派发的模型。
 - [DONE 2026-10-10] 亮色主题目视：仅轨迹时间线圆点对比度偏低（第 3 节小项）。
 - [TODO，长期] 数小时运行与长会话内存趋势；数千行长会话滚动（工作站上最长只有 12 次请求）。
 - [BLOCKED，无主机] Remote 断网恢复、Remote 窗口查看轨迹与运行视图；本机粘贴图片（A11 剩余）仍 NOT RUN。
-- [TODO] 2026-10-11 批次遗留的 E2E 未覆盖项，见 c10 / c11 证据的 NOT RUN：模态确认的 delete / archive 批量、真实模型下压缩目视。
+- [部分 2026-10-16 mini-real] 2026-10-11 批次遗留的 E2E 未覆盖项（c10 / c11 证据的 NOT RUN）：c11 archive-batch 在 real 下 PASS（出现模态「Archive 2 sessions?」）；delete-batch 仍设计内 NOT RUN（destructive，只测 archive）；c10 两轮 0/1（question-row 缺，A）；真实模型下压缩目视没有套件，仍 NOT RUN。
 
 ## 2. 多 agent 驾驶舱（下一阶段；先写 ADR-009 划界，再动手）
 

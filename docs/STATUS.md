@@ -59,7 +59,7 @@
 - 侧栏：权限行显示 Always 将放行的模式（只读，最多 3 个 + 计数）；doom_loop 独立图标与文案；Deny with note（行内输入，随 `POST /permission/:id/reply` 的 `message` 发送）。本地标签（≤32 字符，分区 Pinned > 标签组 > 其余，标注不同步）与 Snooze（只作用于非等待 / 非运行行，底部折叠分区，下一条消息到达自动唤醒，状态栏计数不变）。j / k / Enter / Esc / ? 键盘与速查浮层。子会话 / todo 懒取只对收件箱、pinned 与 recent 前 20 行。
 - 宿主命令（均无默认键位）：`oco.inbox.next` 收件箱 QuickPick（按类分组，权限项按钮只作用于该项）；`oco.session.parent / child / nextSibling / previousSibling / recent`（宿主 MRU）；`oco.follow.toggle` Follow（按会话、默认关、preview + preserveFocus、750 ms 节流、用户正在编辑不切换）；资源管理器徽标标出打开面板会话上一轮改过的文件（设置 `oco.decorations.changedFiles`）；审阅意见显示为编辑器评论线程，gutter「+」可直接加意见。`bridge-policy` 在 loopback 下 realpath 后再比较目录。
 - 上游补丁：`0024-oco-embedded-subagent-pills`（嵌入模式标题行子代理 pills，窄面板折叠为 `⑂ done/total`，点击走宿主 openSession）；`0025-oco-runtime-view-followups`（环心提问态点选项即回答、窄布局卡片贴环下方与空工具台收缩、进度条标签避让刻度、结果浮层 ← n/total → 翻页）。
-- 验证（25f3f9a）：typecheck 0；unit 422/0（30 文件）；vendor app typecheck 0、运行视图单测 131/0；build PASS；只读评审 5 处缺陷已修。夜间（2026-10-15，Mac mini + 本机子代理）：新 mock E2E c18–c25 全过，mock 回归 21 套件 0 失败，p1b-narrow 循环 10/10（未复现产品竞态），c25 嵌套子代理 3×6/0；夜里修了 3 处产品缺陷（Follow 在文件落盘前打开失败后被节流挡住、0025 窄矮舞台 `toolCap=0` 崩成恢复页、子代理汇总 waiting 应优先于 running）；公共版 opencode 1.19.0 mock 41 套件 0 失败、无产品不兼容（未加入 VERIFIED_SERVERS，待决定）。真实模型 c4 / c5 BLOCKED：`opencode/big-pickle` 返回 403（免费档只能在官方 OpenCode 内用）。18 张目视截图（mock）在 `docs/evidence/runs/overnight-card7-visual/visual/`，待用户看。本机已装 `oco-0.0.4-2846f66.vsix`。证据 [roadmap-batch-2026-10-14](evidence/roadmap-batch-2026-10-14.md)。
+- 验证（25f3f9a）：typecheck 0；unit 422/0（30 文件）；vendor app typecheck 0、运行视图单测 131/0；build PASS；只读评审 5 处缺陷已修。夜间（2026-10-15，Mac mini + 本机子代理）：新 mock E2E c18–c25 全过，mock 回归 21 套件 0 失败，p1b-narrow 循环 10/10（未复现产品竞态），c25 嵌套子代理 3×6/0；夜里修了 3 处产品缺陷（Follow 在文件落盘前打开失败后被节流挡住、0025 窄矮舞台 `toolCap=0` 崩成恢复页、子代理汇总 waiting 应优先于 running）；公共版 opencode 1.19.0 mock 41 套件 0 失败、无产品不兼容（未加入 VERIFIED_SERVERS，待决定）。真实模型 c4 / c5 当时 BLOCKED：`opencode/big-pickle` 返回 403（免费档只能在官方 OpenCode 内用）；2026-10-16 已改用官方 opencode 1.18.33 二进制 + `opencode/nemotron-3.5-lightning-free` 跑通 21 套件（见「已知限制与 NOT RUN」首条）。18 张目视截图（mock）在 `docs/evidence/runs/overnight-card7-visual/visual/`，待用户看。本机已装 `oco-0.0.4-2846f66.vsix`。证据 [roadmap-batch-2026-10-14](evidence/roadmap-batch-2026-10-14.md)。
 
 ## M20 第一步：侧栏子代理聚合（2026-10-14，已合入 main，合并提交 9222aa7，已推送 origin）
 
@@ -150,7 +150,7 @@
 
 ## 基线与版本
 
-- 上游基线：vendor OpenCode v1.18.33（提交 `51ef4be`，浅克隆；旧文档里的补丁基线 `deb241e` 已不存在，补丁再生成改用 `scripts/regen-patch.sh` 在临时 worktree 重建基线）。宿主 `VERIFIED_SERVERS` = 1.18.33、1.19.0（公共 npm 版；2026-10-16 卡 8 决定加入，依据 mini-compat 的 mock 41 套件 0 失败，真实模型下的验证并入 mini-real）、1.18.13（企业服务；前端保持 1.18.33，验收对着 1.18.13 服务端跑；切到 1.18.13 前端的方案停放在本地分支 `claude/opencode-1.18.13-baseline`）。
+- 上游基线：vendor OpenCode v1.18.33（提交 `51ef4be`，浅克隆；旧文档里的补丁基线 `deb241e` 已不存在，补丁再生成改用 `scripts/regen-patch.sh` 在临时 worktree 重建基线）。宿主 `VERIFIED_SERVERS` = 1.18.33、1.19.0（公共 npm 版；2026-10-16 卡 8 决定加入，依据 mini-compat 的 mock 41 套件 0 失败，真实模型下的验证：mini-real 2026-10-16 只跑了 1.18.33，1.19.0 仍 NOT RUN）、1.18.13（企业服务；前端保持 1.18.33，验收对着 1.18.13 服务端跑；切到 1.18.13 前端的方案停放在本地分支 `claude/opencode-1.18.13-baseline`）。
 - 补丁链：`patches/opencode/` 0001–0028 全部 28 个在干净 vendor HEAD `51ef4be` 上重放通过（2026-10-16 合入卡 10 `0026-oco-embedded-turn-rail.patch`（嵌入模式轮次侧轨）与卡 12 `0027-oco-message-bookmarks.patch`（消息书签按钮）后 `bun run setup` 全链 28/28，合并提交 `5750dae`；0028 为卡 13 `0028-oco-composer-chip.patch`（composer 附件 chip）；2026-10-14 生成 0025 时以 0001–0024 为基线校验；`0024-oco-embedded-subagent-pills.patch` 标题行子代理 pills；`0025-oco-runtime-view-followups.patch` 运行视图 M5 遗留；`0019-oco-embedded-context-usage.patch` 恢复标题行上下文用量；`0020-oco-runtime-view.patch` 为运行视图，历史文档中提到补丁 0019 运行视图的均指现在的 0020；`0021-oco-result-card.patch` 为每会话结果卡；`0022-oco-markdown-mermaid.patch` 为 Mermaid；`0023-oco-embedded-new-session-draft.patch` 为新建会话草稿页）。卡 1、卡 3 未改补丁。
 - 本机扩展：已装 `oco-0.0.4-e680a7a.vsix`（main e680a7a = 5750dae 卡 10 / 卡 12 合入 + 1.19.0 进 VERIFIED_SERVERS，vendor v1.18.33 + 补丁 0001–0028；2026-10-16 14:38；extension.js sha256 `3f538d48…`；需 Reload Window）。
 
@@ -184,6 +184,7 @@
 
 ## 已知限制与 NOT RUN
 
+- 真实模型全量 E2E（mini-real，2026-10-16，合入 main 4870625；官方 opencode 1.18.33 + `opencode/nemotron-3.5-lightning-free`，21 套件，[mini-real](evidence/mini-real.md)）：首轮 PASS 3 / FAIL 12 / N/A 6，FAIL 套件各重跑一次后终态 PASS 6（c13 c15 c20 c22 c4 visual-light-sidebar）/ FAIL 9 / N/A 6。稳定失败：c10 / c24 / c11（模型不调 question / todo 工具，A）、c12 send-reply-shown / worktree-reply-fast（real 特有，A）、c14 draft-acked 与 p1b-sidebar chain-draft（mock 同败，疑卡 10–13 合入的回归，待二分）、c19（测试台 `run.recordNotApplicable` 缺陷，C）、p1b-narrow layout-260（real 特有，C）；c5-runtime 两轮都在 `run` 15 s 超时崩溃，其余用例两轮不一致。N/A：c6 c16 c17（`--real` 跳过）、c18 c21 c23（mock 守卫）。NOT RUN：1.19.0 公共二进制的真实模型验证、c25–c33 的真实模式（不在 21 套件内）、c11 delete-batch（设计内）、真实模型压缩目视。免费模型有偶发短停滞（探针第 1 次 90 s 无输出、5 分钟后恢复）。
 - 真实模型新对话：2026-10-10 实测一次，阶段序列与流式递增正常；轮末工具台收起只差一次 end 后 ≥2 s 的采样复核（见 NEXT 小项）。
 - 子代理嵌套：嵌套 ≥2 层（孙会话）仍 NOT RUN：mock 不产生孙会话，真实模型 big-pickle 2026-10-10 两次提示都只派一层子代理。
 - 主题支持：主要在暗色主题下验证；亮色主题 2026-10-10 目视一次（运行视图 + 轨迹视图），仅轨迹时间线圆点对比度偏低。
