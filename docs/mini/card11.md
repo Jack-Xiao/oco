@@ -14,7 +14,13 @@
 可选（不列入 required，但要记录）：`scm-button`：打开 SCM 视图后，标题栏工具条里找 `aria-label` 含 `Commit with OpenCode` 的按钮（`.part.sidebar .actions-container a`，找不到时用 `.part.sidebar .composite.title [aria-label]` 列出全部 aria-label 写进 detail 并记 NOT RUN）；找到就点它 → composer 再次追加 `Commit the current changes`（计数增加）→ PASS。
 每个用例失败时 `runShot` 一张。branch 占位符为空（composer 有模板文字但没有 `Branch: ${BR}`）是产品侧结论：commit-draft 记 FAIL，detail 写明 composer 里 `Branch:` 行的实际内容，并把 `.oco-test/workspace` 的 `git status --short` 输出记进 detail；不要为此改产品代码。
 
-然后：先拿 E2E 互斥锁——`mkdir /tmp/oco-e2e.lock` 成功才跑（成功后 `echo $$ > /tmp/oco-e2e.lock/pid`），失败说明另一个会话正在跑 E2E：每 60 s 重试一次，最多等 30 分钟，超时则通知并把全部用例记 BLOCKED。拿到锁后 `timeout 600 node tests/e2e/run.mjs c31-git-actions`；不过则按失败项最多修两轮测试侧问题；通过后跑回归 `timeout 600 node tests/e2e/run.mjs c15-fix-with-opencode`。跑完（无论成败）`rm -rf /tmp/oco-e2e.lock`。只读 results.json，不看截图。
+然后跑套件。E2E 互斥锁 `/tmp/oco-e2e.lock`（mkdir 锁，`pid` 文件记持有者；另一个会话可能正在用它跑真实模型 E2E）：等锁、跑套件、放锁必须在**同一条** Bash 命令里完成（这样 pid 在持有期间一直存活），Bash timeout 设 600000：
+
+```
+LOCK=/tmp/oco-e2e.lock; until mkdir "$LOCK" 2>/dev/null; do p=$(cat "$LOCK/pid" 2>/dev/null); if [ -n "$p" ] && ! kill -0 "$p" 2>/dev/null; then echo "stale lock (pid $p gone), removing"; rm -rf "$LOCK"; continue; fi; echo "lock held by pid ${p:-?}, waiting"; sleep 30; done; echo $$ > "$LOCK/pid"; timeout 540 node tests/e2e/run.mjs c31-git-actions; rc=$?; rm -rf "$LOCK"; echo "suite exit=$rc"
+```
+
+命令因等锁被 10 分钟超时杀掉就原样再执行（最多 4 次，总共约 40 分钟）；四次都没拿到锁就 `notify.sh` 通知并把全部用例记 BLOCKED。不过则按失败项最多修两轮测试侧问题（同样用上面的命令重跑）；通过后用同一形式跑回归 `c15-fix-with-opencode`。只读 results.json，不看截图。
 
 唯一写入范围：`tests/e2e/c31-git-actions.mjs`、`docs/evidence/mini-card11.md`（新）、`docs/evidence/runs/`。不改产品代码、vendor、patches；不改 STATUS / NEXT / PROGRESS；不推送 origin；不合入 main；不用 pkill / killall。
 验收：c31 四个 required 用例在 results.json 里有 PASS / FAIL / BLOCKED；evidence 列出每个用例的结果与关键 detail（composer 前 200 字、BR、toasts、scm-button 的 aria-label 列表）、回归 c15 结果、results.json 路径。

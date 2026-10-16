@@ -13,6 +13,7 @@ import { BlobStore } from "./bridge-host"
 import { KvStore } from "./host-store"
 import { PanelRegistry, VIEW_TYPE, type Entry } from "./panels"
 import { registerAddToDraft } from "./add-to-draft"
+import { DEFAULT_COMMIT_PROMPT, DEFAULT_PR_PROMPT, registerGitActions } from "./git-actions"
 import { registerTerminalOutput } from "./terminal-output"
 import { registerFixWithOpenCode } from "./fix-with-opencode"
 import { ReviewNotes, registerReviewNotesCommands } from "./review-notes"
@@ -494,6 +495,14 @@ export function activate(context: vscode.ExtensionContext) {
       pickSession,
       requireTrust,
       onDone: () => view.refresh(),
+    }),
+    // Card 11 (M21 v1, ADR-009 §4): ask the agent to commit / open a PR → main panel draft. oco never runs git.
+    ...registerGitActions({
+      panels,
+      template: (kind) => {
+        const v = vscode.workspace.getConfiguration("oco.git").get<string>(kind === "commit" ? "commitPrompt" : "prPrompt", "")
+        return v.trim() ? v : kind === "commit" ? DEFAULT_COMMIT_PROMPT : DEFAULT_PR_PROMPT
+      },
     }),
     // Feature A: Export session as Markdown and to File
     ...registerExportSession({

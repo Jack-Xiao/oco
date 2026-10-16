@@ -27,6 +27,8 @@ describe("connection settings contribution", () => {
     const props = Object.keys(c.configuration.properties)
     expect(props.sort()).toEqual([
       "oco.decorations.changedFiles",
+      "oco.git.commitPrompt",
+      "oco.git.prPrompt",
       "oco.notify.finished",
       "oco.notify.needsMe",
       "oco.opencodePath",
@@ -77,6 +79,29 @@ describe("connection settings contribution", () => {
     for (const m of c.menus["webview/context"]) expect(m.when).toContain("webviewId == 'oco.sessions' && webviewSection == 'session'")
     expect(c.menus["view/title"].find((m: any) => m.command === "oco.selectFolder")?.when).toContain("oco.multiRoot")
     for (const id of ["oco.selectFolder", "oco.exportDiagnostics", "oco.showLog", "oco.restartManagedServer", "oco.stopManagedServer"]) expect(c.commands.some((x: any) => x.command === id)).toBe(true)
+  })
+  test("git actions (card 11): commands, SCM title button, hidden alias", () => {
+    for (const cmd of ["oco.git.askCommit", "oco.git.commitWithOpenCode", "oco.git.askOpenPR", "oco.git.openScm"]) {
+      expect(c.commands.some((x: any) => x.command === cmd)).toBe(true)
+    }
+    const scmTitle = c.menus["scm/title"]
+    const commitBtn = scmTitle.find((m: any) => m.command === "oco.git.commitWithOpenCode")
+    expect(commitBtn).toBeDefined()
+    expect(commitBtn.when).toContain("scmProvider == git")
+    expect(commitBtn.group).toMatch(/^navigation/)
+
+    const prBtn = scmTitle.find((m: any) => m.command === "oco.git.askOpenPR")
+    expect(prBtn).toBeDefined()
+    expect(prBtn.when).toContain("scmProvider == git")
+
+    const hidden = c.menus.commandPalette.find((m: any) => m.command === "oco.git.commitWithOpenCode")
+    expect(hidden?.when).toBe("false")
+
+    for (const k of ["oco.git.commitPrompt", "oco.git.prPrompt"]) {
+      const prop = c.configuration.properties[k]
+      expect(prop.scope).toBe("machine")
+      expect(prop.markdownDescription).toContain("${branch}")
+    }
   })
 })
 
