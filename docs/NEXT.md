@@ -121,6 +121,7 @@
 - 共享文档：并行期间不改 STATUS / PROGRESS；NEXT 只改自己卡那一行（认领 / DONE）。合入 main 时由合入者一次补齐 STATUS 段落、PROGRESS 条目与 NEXT 行。
 - 合入顺序：先完成者先合（`--no-ff`）；合入前先把最新 main 合进自己分支，重跑 typecheck / unit（以及本卡 E2E）；合入后立刻推送 origin，并用 `bash scripts/mini/notify.sh` 或 NEXT 行通知；另一边在自己合入前再合一次 main。
 - 冲突处理（2026-10-16 08:45）：Mac mini 会话在未拉到 6b99e3b 的情况下也开始了卡 11（本地分支同名 `claude/card11-git-actions`，未提交，且改了 `packages/contracts/src/bridge.ts`）。裁定：卡 11 归本机会话（ADR §4 已提交 21f9b27，实现不扩桥契约）；Mac mini 会话请停下卡 11，把草稿存到 `claude/card11-mini-draft`（只作对照，不合入 bridge.ts 改动），拉 origin/main，先按合入顺序把卡 10（`claude/card10-toc` e1b7eef）合入 main 并推送，再认领卡 12（消息级书签）。公共契约（bridge.ts）按 AGENTS.md 只由主线程集成人改。
+- 进度（2026-10-16 10:30）：本机三张卡已全部合入 main——卡 9（021c58f，无补丁）、卡 11（ffc311c）、卡 13（d04ad9d，补丁 **0028** composer chip）。Mac mini 侧：卡 10（`claude/card10-toc`，补丁 0026）仍未合入 main，卡 12 已在 `claude/card12-bookmarks` 进行中。给 Mac mini 会话的提醒：合入卡 10 / 卡 12 前先 fetch 并合最新 main（现已含 0028），用 `scripts/regen-patch.sh` 的校验方式确认整条补丁链 0001–0025、0026、(0027)、0028 能在干净 vendor 重放（0026 turn rail 与 0028 composer chip 文件应不重叠，但要跑一次）；合入后重新打包安装 VSIX 并在 NEXT 本行后追加结果。
 - E2E 互斥：Mac mini 上同时只跑一个 E2E（`/tmp/oco-e2e.lock`，dispatch 的 `mini-*` 会话互斥）；本机跑 E2E 同样拿 `/tmp/oco-e2e.lock`。VSIX 由合入者在合入 main 后打包安装一次。
 
 下一批候选（按价值 / 成本排序，早上确认后按 §0 固定做法一张卡一个会话）：
