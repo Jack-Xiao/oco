@@ -29,6 +29,22 @@ oco 是 OpenCode 的 VS Code 客户端：会话列表、对话界面都来自 Op
 - 编辑器右键 “Add Selection to Session Draft”：把选中内容（含未保存修改）加入指定会话的草稿，不会自动发送。
 - 侧栏 OpenCode → Connection（默认折叠，在 Sessions 下方）：只读显示连接状态、服务地址、当前文件夹、模式、服务版本和托管进程，和状态栏悬停提示一致。连接异常时点“状态”行，效果同点状态栏（重连、设置密码或打开设置）。
 
+### 默认键位
+
+嵌入聊天面板是当前编辑器时，先按 `Ctrl+Alt+U`（macOS：`Cmd+Alt+U`），再按第二键；其他位置这组键不生效，Keyboard Shortcuts 里搜 `oco` 可改。侧栏 Sessions 视图有焦点时按 when 条件也放行，但 VS Code 对 webview 视图不可靠地设置焦点键，这一路未验证。
+
+| 第二键 | 命令 |
+| --- | --- |
+| `I` | oco: Inbox: Next Action |
+| `P` | oco: Open Parent Session |
+| `C` | oco: Open Child Session |
+| `N` | oco: Open Next Sibling Session |
+| `Shift+N` | oco: Open Previous Sibling Session |
+| `R` | oco: Switch to Recent Session |
+| `F` | oco: Toggle Follow Mode |
+
+前缀不用 `O`：VS Code 1.141 默认把 `Ctrl/Cmd+Alt+O` 给了 Remote: Show Remote Menu（macOS 另有 Toggle Overtype/Insert Mode）；`Ctrl/Cmd+Alt+U` 在 VS Code 1.141 内置键位和本机已装扩展中都未使用。
+
 ## 多根工作区
 
 一个窗口打开多个文件夹时，侧栏和新建会话一次只对应一个“当前文件夹”（默认第一个）。Sessions 标题旁显示当前文件夹名；用标题栏的文件夹按钮或 “oco: Select Workspace Folder” 切换，选择按工作区记住。已打开的会话标签页不受切换影响。

@@ -43,7 +43,7 @@ bash scripts/test-server.sh
 
 4. 用 VS Code 打开本仓库，以扩展开发宿主运行 `apps/extension`。在开发宿主的**用户设置**（machine 作用域，工作区设置无效）中把 `oco.serverUrl` 设为 `http://127.0.0.1:4517`，执行 `oco: Set Server Password`（密码在 `.oco-test/secret`，只保存给该地址），然后打开活动栏的 **OpenCode → Sessions**：新建、搜索、重命名、打开或聚焦会话；状态栏显示连接状态和等待处理的会话数。也可以用 `oco: New Session` / `oco: Open Session` / `oco: Add Selection to Session Draft`。
 
-已知行为：嵌入的对话页不占用官方应用的新建/标签/终端快捷键，这些按键交给 VS Code（例如 Cmd+N 新建未命名文件）。
+已知行为：嵌入的对话页不占用官方应用的新建/标签/终端快捷键，这些按键交给 VS Code（例如 Cmd+N 新建未命名文件）。oco 自己只占一组 chord：`Ctrl+Alt+U`（macOS `Cmd+Alt+U`）后接字母，仅在 oco 聊天面板激活或 Sessions 视图有焦点时生效，表见 [使用与故障说明](docs/USER-GUIDE.md#默认键位)。
 
 安装、连接方式（attached / managed）、侧栏视图和故障排查见 [使用与故障说明](docs/USER-GUIDE.md)；打包用 `bash scripts/package-vsix.sh`。
 
