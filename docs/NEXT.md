@@ -114,11 +114,19 @@
 - 常驻：合入 main 后默认 mock 回归。[DONE：mini-ccfeat 13 套件 11 过；c5-runtime think-card 为 main 既有抖动（mini-baseline 2/2 复现，见 §1）；p1b-narrow 归因 HUD 布线多触发整表重渲染，改 `refreshHud()` 后 mini-narrow ×5 全过]
 - 收尾：[DONE 合并提交 `1f5c6fb` 已推送；本机已装 `oco-0.0.4-1f5c6fb.vsix`；Mac mini 已拉取]
 
+2026-10-16 上午用户决定：按卡 9–13 顺序开工，允许并行；本机会话与 Mac mini 会话按下面的规则协调（两边都读这一段，改动只提交到各自分支，规则本身只在 main 上改）：
+
+- 认领：开工前在本节对应卡末尾写「[认领：<会话> · <分支>]」，提交到 main 并推送；已被认领的卡不另开。现状：卡 9 DONE（main 021c58f，无补丁）；卡 10 = Mac mini 会话 · `claude/card10-toc`（补丁 0026 turn rail、c29 / c30、test-server / overnight-e2e real 模式）；卡 11 = 本机新会话 · `claude/card11-git-actions`。
+- 文件归属：卡 10 = `patches/opencode/0026-*`、`tests/e2e/c29-*`、`c30-*`、`tests/e2e/server.mjs`、`scripts/test-server.sh`、`scripts/overnight-e2e.sh`、`docs/evidence/card10-*`；卡 11 = `docs/adr/009-*`（只加 §4）、`apps/extension/src/*`、`apps/extension/package.json`、`tests/unit/*`、`tests/e2e/c31-*`、`docs/evidence/card11-*`。不碰对方的文件；新补丁号卡 10 用 0026，其余卡从 0027 起，开新补丁前先看 main 上最新编号。
+- 共享文档：并行期间不改 STATUS / PROGRESS；NEXT 只改自己卡那一行（认领 / DONE）。合入 main 时由合入者一次补齐 STATUS 段落、PROGRESS 条目与 NEXT 行。
+- 合入顺序：先完成者先合（`--no-ff`）；合入前先把最新 main 合进自己分支，重跑 typecheck / unit（以及本卡 E2E）；合入后立刻推送 origin，并用 `bash scripts/mini/notify.sh` 或 NEXT 行通知；另一边在自己合入前再合一次 main。
+- E2E 互斥：Mac mini 上同时只跑一个 E2E（`/tmp/oco-e2e.lock`，dispatch 的 `mini-*` 会话互斥）；本机跑 E2E 同样拿 `/tmp/oco-e2e.lock`。VSIX 由合入者在合入 main 后打包安装一次。
+
 下一批候选（按价值 / 成本排序，早上确认后按 §0 固定做法一张卡一个会话）：
 
 - 卡 9 M04 回退入口 [DONE 2026-10-16，Mac mini 会话分支 claude/card9-rewind，已 cherry-pick 进 main 83624b8；MacBook 卡 9 会话重复开工后只做交叉验证（见 STATUS）：上游用户消息自带「Revert message」（hover 显示，与 fork 同排），嵌入模式可用；c27(b) 结论系测试未 hover。新增 c29-rewind 4/4 ×2，不加补丁 0026。见 [card9-rewind](evidence/card9-rewind.md)]
-- 卡 10 章节目录：核实上游 `pages/session/timeline/` 在嵌入模式是否可见；不可见则打开或做紧凑「跳到某轮」侧轨（Claude Code mark_chapter 的等价物）。S。 [进行中 2026-10-16：Mac mini 会话，分支 claude/card9-rewind 之后另开 claude/card10-toc；MacBook 请勿重复]
-- 卡 11 M21 Git 动作 v1：先补 ADR-009 §4 边界（oco 不自己执行 git），只做「让 agent 提交 / 开 PR」提示模板 + 打开 SCM 视图；不做 CI 监视与自动合并。S + ADR。
+- 卡 10 章节目录：核实上游 `pages/session/timeline/` 在嵌入模式是否可见；不可见则打开或做紧凑「跳到某轮」侧轨（Claude Code mark_chapter 的等价物）。S。[认领：Mac mini 会话 · `claude/card10-toc`，补丁 0026 turn rail 进行中] [进行中 2026-10-16：Mac mini 会话，分支 claude/card9-rewind 之后另开 claude/card10-toc；MacBook 请勿重复]
+- 卡 11 M21 Git 动作 v1：先补 ADR-009 §4 边界（oco 不自己执行 git），只做「让 agent 提交 / 开 PR」提示模板 + 打开 SCM 视图；不做 CI 监视与自动合并。S + ADR。[认领：本机新会话 · `claude/card11-git-actions`]
 - 卡 12 消息级书签（Claude Code 2.1.286 Bookmarks 侧栏）：钉住某条回复，侧栏会话下方列出，点击走上游 `useSessionHashScroll` 定位。M。
 - 卡 13 M13 composer chip + 「自动附带编辑器选区」设置（Claude Code 2.1.300 `attachSelection`）：需扩 DraftInsert 契约与补丁 0001。M。
 - 不做（已评估）：收尾框 / 回复按钮、提议卡、PR 绑定与 CI 自动修复、Remote Control / 云会话 / 定时任务、Artifacts、浏览器面板、idle compaction（服务端概念）。
