@@ -97,14 +97,12 @@ async function openSide() {
   await view.waitFor({ state: "visible", timeout: 15000 })
   await view.click({ position: { x: 600, y: 5 } }).catch(() => {})
 }
-const hasEditorFocus = async () => /Ln \d+/.test(await page.locator(".statusbar").innerText().catch(() => ""))
-/** Click into the side editor; after a send the webview keeps focus, so fall back to quick-open (no activeTextEditor otherwise). */
+/** Click into the side editor (never Go to File: it opens in the chat panel group and hides the panel); returns the chat frame visibility. */
 const focusEditor = async () => {
-  await page.locator(".editor-instance .monaco-editor .view-lines", { hasText: "export function add" }).first().click({ position: { x: 600, y: 5 } }).catch(() => {})
+  await page.locator(".editor-instance .monaco-editor .view-lines", { hasText: "export function add" }).first().click({ position: { x: 150, y: 5 } }).catch(() => {})
   await sleep(300)
-  if (await hasEditorFocus()) return
-  await command(page, "Go to File", { input: "math.ts" })
-  await sleep(800)
+  const f = await sessionFrame(3000).catch(() => null)
+  return f ? await f.evaluate(() => document.visibilityState).catch(() => "unknown") : "no-frame"
 }
 async function gotoLine2() {
   await page.keyboard.press("Control+G")
@@ -153,35 +151,38 @@ try {
     const textHit = parts.some((p) => p.type === "text" && String(p.text ?? "").includes(CODE))
     const after = await snap()
     await check("send-chip", !!file && (decoded.includes(CODE) || textHit), {
+      filePartCount: files.length,
       parts: parts.map((p) => [p.type, p.filename ?? "", p.mime ?? ""]),
       decoded: flat(decoded, 120),
       delivered: decoded.includes(CODE) || textHit,
       fileUrlPrefixes: files.map((p) => String(p.url ?? "").slice(0, 30)),
       filenameHasRange: !!file,
       textPartHasCode: textHit,
-      composerStillHasPill: after.body.includes("math.ts:2"),
+      composerStillHasPill: after.attach.includes("math.ts:2"),
     })
   })
 
   await step("auto-chip", async () => {
-    await focusEditor()
+    const vis = await focusEditor()
+    const editorDiag = await page.evaluate(() => ({ views: [...document.querySelectorAll(".editor-instance .monaco-editor .view-lines")].map((e) => { const r = e.getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height), (e.textContent ?? "").slice(0, 20)] }), tabs: [...document.querySelectorAll(".tabs-container .tab")].map((t) => (t.getAttribute("aria-label") ?? "").slice(0, 40) + (t.classList.contains("active") ? "*" : "")), status: (document.querySelector(".statusbar")?.textContent ?? "").slice(0, 120) })).catch(() => null)
+    if (vis !== "visible") return check("auto-chip", false, { reason: "chat frame not visible after clicking side editor", visibility: vis })
     await page.keyboard.press("ArrowRight")
     await selectLine2()
-    const a = await until((s) => s.body.includes("math.ts:2"), 10000)
+    const a = await until((s) => s.attach.includes("math.ts:2"), 10000)
     const statusLine = a.ok ? "" : flat(await page.locator(".statusbar").innerText().catch(() => ""), 200)
     const aDom = a.ok ? null : await dom()
     await page.keyboard.press("Shift+ArrowDown")
-    const b = await until((s) => s.body.includes("math.ts:2-3"), 10000)
+    const b = await until((s) => s.attach.includes("math.ts:2-3"), 10000)
     const count = occurrences(b.s.attach, "math.ts:")
     await page.keyboard.press("ArrowRight")
-    const c = await until((s) => !s.body.includes("math.ts:"), 10000)
-    await check("auto-chip", a.ok && b.ok && count === 1 && c.ok, { step1: { ok: a.ok, ms: a.ms, composer: a.s.composer, statusLine, dom: aDom }, step2: { ok: b.ok, ms: b.ms, composer: b.s.composer, occurrences: count, bodyOccurrences: occurrences(b.s.body, "math.ts:"), attach: flat(b.s.attach, 100) }, step3: { ok: c.ok, ms: c.ms, composer: c.s.composer } })
+    const c = await until((s) => !s.attach.includes("math.ts:"), 10000)
+    await check("auto-chip", a.ok && b.ok && count === 1 && c.ok, { step1: { editorDiag, ok: a.ok, ms: a.ms, composer: a.s.composer, statusLine, dom: aDom }, step2: { ok: b.ok, ms: b.ms, composer: b.s.composer, occurrences: count, bodyOccurrences: occurrences(b.s.body, "math.ts:"), attach: flat(b.s.attach, 100) }, step3: { ok: c.ok, ms: c.ms, composer: c.s.composer } })
   })
 
   await step("auto-dedupe", async () => {
     await focusEditor()
     await selectLine2()
-    const a = await until((s) => s.body.includes("math.ts:2"), 10000)
+    const a = await until((s) => s.attach.includes("math.ts:2"), 10000)
     const f = await sessionFrame(3000)
     const btns = await f.evaluate(() => [...document.querySelectorAll('[data-component="prompt-input-v2-attachments"] button[aria-label]')].map((b) => b.getAttribute("aria-label")))
     if (!a.ok || !btns.length) return run.record("auto-dedupe", "NOT RUN", { reason: a.ok ? "no remove button" : "no auto pill", ariaLabels: btns })
@@ -191,9 +192,9 @@ try {
       b?.click()
       return !!b
     })
-    const gone = await until((s) => !s.body.includes("math.ts:"), 5000)
+    const gone = await until((s) => !s.attach.includes("math.ts:"), 5000)
     await sleep(4000)
-    const back = (await snap()).body.includes("math.ts:")
+    const back = (await snap()).attach.includes("math.ts:")
     run.record("auto-dedupe", clicked && gone.ok && !back ? "PASS" : "FAIL", { ariaLabels: btns, clicked, removed: gone.ok, cameBack: back })
   })
 
