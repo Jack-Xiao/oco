@@ -67,3 +67,6 @@
 验收：evidence 文件的表正好 21 行，每行结果为 PASS / FAIL / N/A 之一，附稳定失败清单；基线里的模型和 opencode 版本取自实际返回。
 预算：最多 40 轮工具调用 / 240 分钟。首次可用工具轮次先写 checkpoint，之后每个子目标（预检、两批结束、重跑结束）更新一次。
 报告 ≤15 行：PASS / FAIL / N/A 套件数、稳定失败列表（套件:用例:类别）、BLOCKED 项、evidence 路径、总耗时、实际模型。不要粘贴日志。
+
+---
+状态补记（本机，不属于给 Mac mini 的任务正文）：第一阶段（本提示词）已于 2026-10-16 15:19–17:27 在 f5ff439 上跑完，合入 main 4870625，证据 docs/evidence/mini-real.md。用户随后补充要顺带验 opencode 1.19.0（`VERIFIED_SERVERS` 已含 1.19.0，ead5758），作为第二阶段另行派发，ID `mini-real-1190`，提示词 [mini-real-1190.md](mini-real-1190.md)：1.18.33 全量落盘后，用公共 npm 版 `opencode-ai@1.19.0` 的 darwin-arm64 二进制（装在 `~/oco-bin/official-1190`，不全局安装）、同一个免费模型 `opencode/nemotron-3.5-lightning-free`，只跑子集 `p1a-chat c4-trajectory c5-runtime t015-diagnostics`（p1a-chat 与 t015 另在 1.18.33 上跑一次作基线）；1.19.0 子集的结果以单独一段追加在 docs/evidence/mini-real.md 末尾，预算在原来基础上最多再加 60 分钟（子集运行本身）。
