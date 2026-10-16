@@ -4,12 +4,13 @@
 //   deny-note        "Deny with note…" opens a textarea; Enter sends reject + message: GET /permission empties and the server
 //                    received the note (it surfaces in the session's tool error / messages).
 import { fileURLToPath } from "node:url"
-import { createRun } from "./lib/results.mjs"
+import { createRun, recordNotApplicable } from "./lib/results.mjs"
 import { launch, command, waitUntil, runShot, clearNotifications } from "./vscode.mjs"
 import { api, MODEL, messages } from "./server.mjs"
 import { sessionsFrame } from "./lib/sessions-web.mjs"
 
-const run = createRun({ suite: "c18-permission-note", required: ["always-preview", "deny-note"], scriptPath: fileURLToPath(import.meta.url) })
+const REQUIRED = ["always-preview", "deny-note"]
+const run = createRun({ suite: "c18-permission-note", required: REQUIRED, scriptPath: fileURLToPath(import.meta.url) })
 const health = await api("GET", "/global/health").catch(() => null)
 run.setEnv({ serverVersion: health?.version ?? null, modelMode: MODEL.mode })
 const errMsg = (e) => String(e?.message ?? e).slice(0, 400)
@@ -60,7 +61,7 @@ try {
     const serverAlways = req.always ?? []
     await runShot(page, run, "1-always-preview")
     if (serverAlways.length === 0) {
-      run.recordNotApplicable("always-preview", { reason: "server permission carries no `always` patterns; nothing to preview", rowShown, text, btnTitle })
+      recordNotApplicable(run, REQUIRED, "always-preview", "server permission carries no `always` patterns; nothing to preview", { rowShown, text, btnTitle })
     } else {
       const expected = serverAlways.slice(0, 3)
       const ok = rowShown && text?.startsWith("Always will allow:") && expected.every((p, i) => codes[i] === p) && (btnTitle ?? "") === serverAlways.join(", ")
