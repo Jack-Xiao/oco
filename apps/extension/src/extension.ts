@@ -13,6 +13,7 @@ import { BlobStore } from "./bridge-host"
 import { KvStore } from "./host-store"
 import { PanelRegistry, VIEW_TYPE, type Entry } from "./panels"
 import { registerAddToDraft } from "./add-to-draft"
+import { registerAttachSelection } from "./attach-selection"
 import { DEFAULT_COMMIT_PROMPT, DEFAULT_PR_PROMPT, registerGitActions } from "./git-actions"
 import { registerTerminalOutput } from "./terminal-output"
 import { registerFixWithOpenCode } from "./fix-with-opencode"
@@ -438,31 +439,7 @@ export function activate(context: vscode.ExtensionContext) {
         fail("Could not create session", e)
       }
     }),
-    vscode.commands.registerCommand("oco.addSelectionToDraft", async (targetSessionId?: string) => {
-      const editor = vscode.window.activeTextEditor
-      if (!editor) return void vscode.window.showWarningMessage("oco: No active editor")
-      const open = panels.list().filter((e) => !e.binding.draft) // a new-session page has no session draft yet
-      if (open.length === 0) return void vscode.window.showWarningMessage("oco: Open a session tab first")
-      let target = typeof targetSessionId === "string" ? open.find((e) => e.binding.sessionId === targetSessionId) : undefined
-      if (!target) {
-        // Always explicit: the user picks the session (the last active one is only listed first).
-        const last = panels.active
-        const items = [...open]
-          .sort((a) => (a === last ? -1 : 1))
-          .map((e) => ({ label: e.panel.title, description: e.binding.sessionId, e }))
-        target = (await vscode.window.showQuickPick(items, { placeHolder: "Add to which session draft? (not sent automatically)", matchOnDescription: true }))?.e
-      }
-      if (!target) return
-      const doc = editor.document
-      const sel = editor.selection.isEmpty ? new vscode.Range(0, 0, doc.lineCount, 0) : editor.selection
-      const text = doc.getText(sel) // actual buffer content, including unsaved edits
-      const rel = vscode.workspace.asRelativePath(doc.uri)
-      const startLine = sel.start.line + 1
-      const endLine = sel.end.line + 1
-      const fence = "```"
-      const snippet = `\n${rel}:${startLine}-${endLine}${doc.isDirty ? " (unsaved)" : ""}\n${fence}${doc.languageId}\n${text}\n${fence}\n`
-      await panels.insertDraft(target, snippet, { kind: "selection", path: rel, startLine, endLine, unsaved: doc.isDirty })
-    }),
+    ...registerAttachSelection(panels),
     // M14 Pin + Mark as Unread: sidebar-local metadata (memento), batch-aware via the webview's `selection` context.
     vscode.commands.registerCommand("oco.pinSession", async (arg?: unknown) => {
       const items = rowItems(arg)

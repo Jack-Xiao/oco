@@ -7,7 +7,10 @@ import { api, messages, status, waitIdle, MODEL } from "./server.mjs"
 
 const results = []
 const record = (id, st, detail) => { results.push({ id, status: st, detail }); console.log(`[${st}] ${id}: ${JSON.stringify(detail)}`) }
-const { app, page } = await launch({ profile: "t005" })
+// Card 13: the automatic selection chip (oco.draft.attachSelection) is off here. Step 4 leaves math.ts fully selected, and
+// with it on the chip would ride on A's step-6 bash prompt; the mock model joins the message pieces without separators,
+// so its command regex would swallow the file's first line. The manual chip flow is what this suite covers; c33 covers auto.
+const { app, page } = await launch({ profile: "t005", settings: { "oco.draft.attachSelection": false } })
 const png = fs.readFileSync(path.join(root, "tests/fixtures/oco-test.png"))
 
 const promptText = (f) => f.locator('[data-component="prompt-input"]').innerText()
@@ -98,13 +101,13 @@ try {
   await page.keyboard.press("Enter")
   await sleep(4000)
   const fB = await focusSession(B)
-  const bDraft = await promptText(fB)
+  const bDraft = (await promptText(fB)) + " " + (await fB.locator('[data-component="prompt-input-v2-attachments"]').innerText().catch(() => "")) // the chip is outside the contenteditable
   const aDraft = await promptText(await focusSession(A))
   const cDraft = await promptText(await focusSession(C))
   const bNotSent = (await messages(B)).length === bMsgsBefore
   await shot(page, "t005-4-selection-draft")
-  record("selection-into-chosen-draft", bDraft.includes("unsaved-marker-777") && bDraft.includes("draft-B-bravo") && !aDraft.includes("unsaved-marker") && !cDraft.includes("unsaved-marker") && bNotSent ? "PASS" : "FAIL",
-    { bHasUnsaved: bDraft.includes("unsaved-marker-777"), bKeptOldDraft: bDraft.includes("draft-B-bravo"), aClean: !aDraft.includes("unsaved-marker"), cClean: !cDraft.includes("unsaved-marker"), notAutoSent: bNotSent })
+  record("selection-into-chosen-draft", /math\.ts:1-\d+/.test(bDraft) && bDraft.includes("draft-B-bravo") && !aDraft.includes("unsaved-marker") && !cDraft.includes("unsaved-marker") && bNotSent ? "PASS" : "FAIL",
+    { bHasChip: /math\.ts:1-\d+/.test(bDraft), bKeptOldDraft: bDraft.includes("draft-B-bravo"), aClean: !aDraft.includes("unsaved-marker"), cClean: !cDraft.includes("unsaved-marker"), notAutoSent: bNotSent })
 
   // 5. send B: the server must receive the unsaved buffer content
   const fB2 = await focusSession(B)

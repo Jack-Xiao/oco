@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-29T13:21:00.022Z",
+  "at": "2026-10-16T04:21:12.098Z",
   "results": [
     {
       "id": "three-sessions",
@@ -30,7 +30,7 @@
       "id": "selection-into-chosen-draft",
       "status": "PASS",
       "detail": {
-        "bHasUnsaved": true,
+        "bHasChip": true,
         "bKeptOldDraft": true,
         "aClean": true,
         "cClean": true,

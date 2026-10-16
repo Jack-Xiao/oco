@@ -20,6 +20,7 @@ import { base64Decode, base64Encode } from "@opencode-ai/core/util/encode"
 import { createMemoryHistory, MemoryRouter, type BaseRouterProps } from "@solidjs/router"
 import { render } from "solid-js/web"
 import { blobGet, blobPut, bridgeFetch, currentGeneration, draftAck, hostStorage, init, onDraftInsert, onNavigate, ready, ui, vscode } from "./bridge"
+import type { HostToWebview } from "@oco/contracts"
 import { storageStats } from "./local-storage"
 import { ConnectionBanner, RecoveryView } from "./recovery"
 import { installSubmitStatus, submitStats } from "./submit-status"
@@ -171,10 +172,12 @@ function PanelRouter(props: BaseRouterProps) {
 
 // Host -> draft insert. Delivered only to the bound session's composer; the (patched) composer
 // re-checks its own session and reports the outcome, which is acknowledged to the host.
+// `chip` (card 13, patch 0028) passes through untouched: the composer shows it as an attachment pill.
 let composerReady = false
-const queued: { id: string; sessionId: string; text: string }[] = []
-const deliver = (m: { id: string; sessionId: string; text: string }) =>
-  window.dispatchEvent(new CustomEvent("oco:draft-insert", { detail: { id: m.id, sessionID: m.sessionId, text: m.text } }))
+type DraftInsertMessage = Extract<HostToWebview, { type: "draft.insert" }>
+const queued: DraftInsertMessage[] = []
+const deliver = (m: DraftInsertMessage) =>
+  window.dispatchEvent(new CustomEvent("oco:draft-insert", { detail: { id: m.id, sessionID: m.sessionId, text: m.text, chip: m.chip } }))
 window.addEventListener("oco:draft-inserted", (e) => {
   const d = (e as CustomEvent<{ id?: string; ok: boolean; reason?: string }>).detail
   if (d?.id) draftAck(d.id, d.ok, d.reason)

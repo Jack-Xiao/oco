@@ -516,6 +516,12 @@
           "scope": "machine",
           "markdownDescription": "Show badges on files modified in the active OpenCode session's most recent diff."
         },
+        "oco.draft.attachSelection": {
+          "type": "boolean",
+          "default": true,
+          "scope": "machine",
+          "markdownDescription": "Automatically attach the active editor's selection to the main panel's draft as a removable `file:line-line` chip that is sent with the next message. The chip follows the selection: a new selection replaces it, clearing the selection removes it, and a chip you removed is not re-added for the same selection. Turn off to attach selections only with **oco: Add Selection to Draft**."
+        },
         "oco.serverMode": {
           "type": "string",
           "enum": [
