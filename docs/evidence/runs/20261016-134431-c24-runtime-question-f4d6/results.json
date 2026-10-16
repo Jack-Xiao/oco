@@ -1,0 +1,59 @@
+{
+  "runId": "20261016-134431-c24-runtime-question-f4d6",
+  "suite": "c24-runtime-question",
+  "startedAt": "2026-10-16T13:44:31.373Z",
+  "ocoCommit": "882291a10d19763a3a2122a9419f5827a647085c",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "8e2f00c3e2ec74ab136130771a06cb5cb0d0120c6417a13c23ee6d06c10e452b",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c24-runtime-question",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-16T13:44:41.573Z",
+  "results": [
+    {
+      "id": "ask-card",
+      "status": "PASS",
+      "detail": {
+        "pending": true,
+        "askUp": true,
+        "nOpts": 2,
+        "optTexts": [
+          "① red\nRed",
+          "② blue\nBlue"
+        ]
+      },
+      "at": "2026-10-16T13:44:40.826Z"
+    },
+    {
+      "id": "option-click",
+      "status": "PASS",
+      "detail": {
+        "clicked": true,
+        "answeredServerSide": true
+      },
+      "at": "2026-10-16T13:44:41.273Z"
+    },
+    {
+      "id": "question-cleared",
+      "status": "PASS",
+      "detail": {
+        "remaining": []
+      },
+      "at": "2026-10-16T13:44:41.274Z"
+    }
+  ],
+  "summary": {
+    "PASS": 3,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}

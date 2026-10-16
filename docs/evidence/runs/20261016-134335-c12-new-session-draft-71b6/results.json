@@ -1,0 +1,190 @@
+{
+  "runId": "20261016-134335-c12-new-session-draft-71b6",
+  "suite": "c12-new-session-draft",
+  "startedAt": "2026-10-16T13:43:35.967Z",
+  "ocoCommit": "882291a10d19763a3a2122a9419f5827a647085c",
+  "ocoDirty": true,
+  "upstreamSha": "51ef4be1d3c122f18fefb510dca8d778571f4f18",
+  "scriptSha256": "dc7dcc6a21e6a59aba79972c5442a64c2dc9fcca229765492a4df3449f4f9c09",
+  "node": "v26.11.1",
+  "os": "darwin 25.2.0 arm64",
+  "serverVersion": "local",
+  "modelMode": "mock",
+  "fixtureWorkspace": "/Users/jarvis/Ai-Project/oco-mini/.oco-test/c12/ws-24y58",
+  "vscodeVersion": "1.142.0",
+  "vscodeProfile": "c12-new-session-draft",
+  "model": "oco-mock/mock",
+  "finishedAt": "2026-10-16T13:44:06.481Z",
+  "results": [
+    {
+      "id": "draft-page-ui",
+      "status": "PASS",
+      "detail": {
+        "draftPanel": true,
+        "ready": true,
+        "triggerText": "W\nws-24y58",
+        "menuItems": [
+          "ws-24y58"
+        ],
+        "otherKnownProjects": 63,
+        "leaked": [],
+        "addEntry": false
+      },
+      "at": "2026-10-16T13:43:41.847Z"
+    },
+    {
+      "id": "draft-worktree-toggle",
+      "status": "PASS",
+      "detail": {
+        "labelText": "New worktree",
+        "checked": false,
+        "checkboxes": 1,
+        "oldMenuButtons": [],
+        "oldMenuItems": 0,
+        "branch": "main",
+        "branchVisible": true,
+        "bar": [
+          "Build",
+          "OCO Mock",
+          "W\nws-24y58"
+        ]
+      },
+      "at": "2026-10-16T13:43:41.876Z"
+    },
+    {
+      "id": "draft-no-session",
+      "status": "PASS",
+      "detail": {
+        "before": 0,
+        "afterOpen": 0
+      },
+      "at": "2026-10-16T13:43:44.384Z"
+    },
+    {
+      "id": "draft-close-discards",
+      "status": "PASS",
+      "detail": {
+        "before": 0,
+        "afterClose": 0,
+        "panels": 0
+      },
+      "at": "2026-10-16T13:43:46.131Z"
+    },
+    {
+      "id": "send-creates-session",
+      "status": "PASS",
+      "detail": {
+        "delta": 1,
+        "directory": "workspace"
+      },
+      "at": "2026-10-16T13:43:47.747Z"
+    },
+    {
+      "id": "send-reply-shown",
+      "status": "PASS",
+      "detail": {
+        "replied": true,
+        "userSaw": true,
+        "assistantHasMarker": true,
+        "frameFound": true
+      },
+      "at": "2026-10-16T13:43:48.159Z"
+    },
+    {
+      "id": "send-promote-in-place",
+      "status": "PASS",
+      "detail": {
+        "panels": 1,
+        "bound": true,
+        "boundDirectory": true,
+        "stillDraft": false,
+        "sameGeneration": true,
+        "switchReloads": 0,
+        "markerKept": true
+      },
+      "at": "2026-10-16T13:43:48.369Z"
+    },
+    {
+      "id": "send-sidebar",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebb0ba458ffeOsur6i77Rei6rv"
+      },
+      "at": "2026-10-16T13:43:48.828Z"
+    },
+    {
+      "id": "worktree-session",
+      "status": "PASS",
+      "detail": {
+        "directory": "/Users/jarvis/Ai-Project/oco-mini/.oco-test/xdg/data/opencode/worktree/4ee732920fc332e2fdf1f68f6d6861d3173d0cd5/sunny-otter",
+        "underWorktreeRoot": true,
+        "isWorkspace": false,
+        "createdMs": 932,
+        "checkedBefore": false,
+        "checkedAfter": true,
+        "barAfterTick": [
+          "Build",
+          "OCO Mock",
+          "W\nws-24y58"
+        ]
+      },
+      "at": "2026-10-16T13:43:51.323Z"
+    },
+    {
+      "id": "worktree-reply-fast",
+      "status": "PASS",
+      "detail": {
+        "replyMs": 2149,
+        "replyStored": true,
+        "replyShown": true
+      },
+      "at": "2026-10-16T13:43:52.846Z"
+    },
+    {
+      "id": "worktree-in-place",
+      "status": "PASS",
+      "detail": {
+        "panels": 1,
+        "bound": true,
+        "boundDirectory": true,
+        "stillDraft": false,
+        "sameGeneration": true,
+        "switchReloads": 0,
+        "markerKept": true
+      },
+      "at": "2026-10-16T13:43:52.953Z"
+    },
+    {
+      "id": "worktree-sidebar",
+      "status": "PASS",
+      "detail": {
+        "sessionId": "ses_ebb0b9534ffeaHbZC0FVb5fdQk"
+      },
+      "at": "2026-10-16T13:43:53.010Z"
+    },
+    {
+      "id": "reload-drops-draft",
+      "status": "PASS",
+      "detail": {
+        "draftPanels": 1,
+        "pinned": true,
+        "draftFrame": true,
+        "pinnedUp": true,
+        "postPanels": [
+          "pinned"
+        ],
+        "draftFramesAfter": 0
+      },
+      "at": "2026-10-16T13:44:05.936Z"
+    }
+  ],
+  "summary": {
+    "PASS": 13,
+    "FAIL": 0,
+    "NOT RUN": 0,
+    "BLOCKED": 0,
+    "N/A": 0
+  },
+  "exitCode": 0,
+  "missingRequired": []
+}
