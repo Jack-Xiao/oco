@@ -25,7 +25,7 @@ describe("server version notes", () => {
     for (const v of VERIFIED_SERVERS) expect(versionNote(v)).toBeUndefined()
     expect(versionNote("1.18.13")).toBeUndefined()
     expect(versionNote("1.19.0")).toBeUndefined()
-    expect(versionNote("1.19.0")).toMatch(/not verified by oco/)
+    expect(versionNote("1.20.0")).toMatch(/not verified by oco/)
     expect(versionNote("2.0.0")).toMatch(/V1 only/)
     expect(versionNote(undefined)).toBeUndefined()
   })
@@ -33,7 +33,7 @@ describe("server version notes", () => {
     expect(versionNote("2.0.28")).toMatch(/V1 only/)
     expect(versionNote("2.0.28")).toMatch(/OpenCode V2/)
     expect(versionNote("1.18.33")).toBeUndefined()
-    expect(versionNote("1.19.0")).toMatch(/not verified by oco/)
+    expect(versionNote("1.20.0")).toMatch(/not verified by oco/)
     expect(versionNote("3.0.0")).toMatch(/not OpenCode v1/)
   })
   test("status lines show mode, version and managed process", () => {
