@@ -71,10 +71,10 @@ index 0000000..446bdd9
 +})
 diff --git a/packages/app/src/pages/session/timeline/oco-turn-rail.tsx b/packages/app/src/pages/session/timeline/oco-turn-rail.tsx
 new file mode 100644
-index 0000000..d804846
+index 0000000..f6dbd00
 --- /dev/null
 +++ b/packages/app/src/pages/session/timeline/oco-turn-rail.tsx
-@@ -0,0 +1,136 @@
+@@ -0,0 +1,146 @@
 +import { createEffect, createSignal, For, on, onCleanup, Show, type Accessor } from "solid-js"
 +import type { UserMessage } from "@opencode-ai/sdk/v2"
 +import { useLanguage } from "@/context/language"
@@ -154,12 +154,21 @@ index 0000000..d804846
 +    })
 +  }
 +
++  // The sticky session title sits over the top of the list; start the rail below it so no tick is covered.
++  const [headerBottom, setHeaderBottom] = createSignal(48)
++
 +  createEffect(() => {
 +    const root = props.scroller?.()
 +    if (!root) return
 +    root.addEventListener("scroll", handleScroll, { passive: true })
++    const header = root.querySelector<HTMLElement>("[data-session-title]")
++    const observer = header ? new ResizeObserver(
++          () => setHeaderBottom(header.getBoundingClientRect().bottom - root.getBoundingClientRect().top + root.offsetTop),
++        ) : undefined
++    if (header) observer?.observe(header)
 +    onCleanup(() => {
 +      root.removeEventListener("scroll", handleScroll)
++      observer?.disconnect()
 +      if (scrollFrame !== undefined) cancelAnimationFrame(scrollFrame)
 +    })
 +  })
@@ -174,7 +183,8 @@ index 0000000..d804846
 +      <nav
 +        aria-label={language.t("ui.message.turnRail.label")}
 +        data-oco-turn-rail
-+        class="absolute right-1 top-14 bottom-8 w-4.5 z-30 pointer-events-none select-none flex flex-col items-center"
++        style={{ top: `${headerBottom() + 16}px` }}
++        class="absolute right-1 bottom-8 w-4.5 z-30 pointer-events-none select-none flex flex-col items-center"
 +      >
 +        <div class="relative w-full h-full">
 +          <For each={props.userMessages}>

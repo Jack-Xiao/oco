@@ -34,3 +34,20 @@
 - Gemini 返回 `{"status":"ERROR"}`，但工作树里改动已完成；它自报的「单测 3 pass」不实：测试 mock 了 jsx 运行时并在测试里重写被测逻辑，按包配置跑为 1 fail / 1 error。
 - 修正：标题提取改为纯函数 `oco-turn-title.ts`（`turnTitle`），单测改为测真实实现（3/3）；`nav` 的 aria-label 原为硬编码英文 → i18n `ui.message.turnRail.label`（en "Turns" / zh "轮次"）。
 - vendor app `bun run typecheck`（tsgo -b）0；补丁 `0026-oco-embedded-turn-rail.patch`（7 文件 +179）由 `regen-patch.sh 0026 --add …` 生成。
+
+## E2E
+
+- 套件：`tests/e2e/c30-turn-rail.mjs`（mock 模型；7 轮、前 6 轮每轮 14 句长回复；窄屏用与 p1b-narrow 相同的 3 面板布局 fitGroups 到 260；宽屏 fitGroups 到 1250）。构建：`bun run build` 通过，`apps/extension/media/chat/assets/app-*.js` 含 `data-oco-turn-rail`。
+- 首次可用运行（检查点）：`docs/evidence/runs/20261016-000840-c30-turn-rail-a107/results.json`，PASS 5 / FAIL 2。
+  - PASS：rail-hidden-single、rail-ticks（7 刻度，title 与首行一致，rail 宽 18px，贴右缘 left=756/right=774，视口 786，无文字矩形与刻度相交）、bottom-highlight、keyboard（Shift+Tab 43 次到刻度，再 6 次到第 1 个，Enter 跳转，第 1 条用户消息 top=64，刻度 0 高亮）、wide（1250px，rail 可见，无横向溢出）。
+  - FAIL（产品缺陷 D1）：jump 与 narrow-260 里的真实指针点击第 1 个刻度被拦截。
+- 产品缺陷 D1（只记录不修）：第 1 个刻度（`nav[data-oco-turn-rail] button[data-oco-turn-index="0"]`）的中心点被置顶会话标题栏 `div[data-session-title].sticky.top-0.z-30` 盖住（标题栏 rect x=8,y=8,w=770,h=64；刻度 rect x=756,y=56,w=18,h=16；rail 本身 z-30 且在 DOM 中更靠前，pointer-events 被标题栏吃掉）。期望：点击第 1 个刻度跳到第 1 轮；实际：Playwright 判定 `subtree intercepts pointer events`，真实指针点不到。用 DOM click 兜底后跳转与高亮逻辑本身正常（第 1 条用户消息 top=64，刻度 0 高亮；跳到最后一个后 fromBottom=0，刻度 6 高亮）。键盘 Enter 不受影响。窄屏 260 同样（标题栏 y=44，刻度 y=92）。
+- 非 rail 原因：260px 下 timeline scroller scrollWidth 293 > clientWidth 246，隐藏 rail 后同样溢出（消息操作按钮 `button[icon-button-v2]` right=301），属上游既有，用例记录为 overflowPreExisting，不计 rail 缺陷。
+- 复跑（结论不变）：`docs/evidence/runs/20261016-001030-c30-turn-rail-b6d9/results.json`，PASS 5 / FAIL 2（同 D1：jump、narrow-260）。a107 与 b6d9 为 c30 连跑 2 次（当前版本用例）；更早两次（b46f、b81f 附近）为调试轮。
+- 回归（mock，各 1 次）：c29-rewind `20261016-001217-c29-rewind-8d0e` PASS 4/4；c3-fork `20261016-001244-c3-fork-b615` PASS 4/4；c4-trajectory `20261016-002138-c4-trajectory-0f87` PASS 17/17；p1b-narrow `20261016-001304-p1b-narrow-6ef7` PASS 10 / FAIL 2（deny-260、allow-260：点击命中按钮本身但请求未解决，question-260 与其他宽度均 PASS）。单独复跑 `OCO_NARROW_WIDTHS=260` 的 `20261016-002232-p1b-narrow-af61` 3/3 PASS，判为既有偶发（该会话单轮、无 rail，与 0026 无关）。
+- 结论：补丁 0026 的 rail 渲染/刻度数/title/几何/高亮/键盘/宽窄布局均符合契约；唯一产品缺陷是 D1（第 1 个刻度被置顶标题栏挡住，真实指针点不到）。未改任何产品代码。
+
+## D1 修复与复验（主线程）
+
+- D1：首个刻度被 sticky 标题栏（`[data-session-title]`，z-30）盖住，真实指针点不到（宽 / 260 均复现）。修：rail 顶部改为标题栏底边（相对容器，ResizeObserver 跟踪）+ 16 px，去掉固定 `top-14`。vendor typecheck 0，补丁 0026 重新生成（7 文件 +189）。
+- 复验（[overnight-20261016-082405](runs/overnight-20261016-082405/summary.md)）：c30-turn-rail 7/7 ×2（jump、narrow-260 转绿）；p1b-narrow 12/12。此前回归：c29 4/4、c3-fork 4/4、c4 17/17。
